@@ -425,8 +425,9 @@ struct ProfileView: View {
                 LinearGradient(
                     stops: [
                         .init(color: .clear, location: 0),
-                        .init(color: .clear, location: 0.55),
-                        .init(color: Color.unbound.bg.opacity(0.58), location: 0.84),
+                        .init(color: .black.opacity(0.12), location: 0.42),
+                        .init(color: .black.opacity(0.5), location: 0.66),
+                        .init(color: Color.unbound.bg.opacity(0.88), location: 0.88),
                         .init(color: Color.unbound.bg, location: 1)
                     ],
                     startPoint: .top,
