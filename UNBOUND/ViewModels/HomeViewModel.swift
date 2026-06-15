@@ -34,6 +34,8 @@ final class HomeViewModel: ObservableObject {
     @Published var lastLog: WorkoutLog?
     @Published var weekSessionDays: Set<Int> = [] // Mon=1...Sun=7
     @Published var bodyRegionLoads: [BodyRegion: Double] = [:]
+    @Published var bodyRegionStatuses: [BodyRegion: BodyLoadRegionStatus] = [:]
+    @Published var progressionStates: [String: ProgressionState] = [:]
 
     // Attribute profile (Phase 8+)
     @Published var attributeProfile: AttributeProfile = AttributeProfile.empty(userId: "", at: .now)
@@ -104,6 +106,7 @@ final class HomeViewModel: ObservableObject {
         async let recentLogs: [WorkoutLog] = fetchRecentLogsSafe(userId: userId, limit: 40)
         async let weightLogs: [BodyWeightLog] = fetchBodyWeightLogsSafe(userId: userId, limit: 30)
         async let travel: TravelOverride? = TravelOverrideStore.shared.activeOverride(for: userId)
+        async let progressions: [ProgressionState] = ProgressionStateStore.shared.fetchAll(userId: userId)
 
         _ = await skillLoad
         _ = await rankDecay
@@ -118,6 +121,9 @@ final class HomeViewModel: ObservableObject {
         applyRecentLogs(await recentLogs)
         bodyWeightLogs = await weightLogs
         activeTravelOverride = await travel
+        progressionStates = Dictionary(
+            uniqueKeysWithValues: (await progressions).map { (MovementCatalog.normalized($0.exerciseKey), $0) }
+        )
 
         let history = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
         lastScanAt = history.last?.createdAt
@@ -205,7 +211,13 @@ final class HomeViewModel: ObservableObject {
         lastLog = HomeLoadDerivations.lastLog(logs)
         hasLoggedAnyWorkout = HomeLoadDerivations.hasLogged(logs)
         weekSessionDays = HomeLoadDerivations.weekSessionDays(logs.map(\.startedAt))
-        bodyRegionLoads = HomeLoadDerivations.bodyRegionLoads(logs)
+        let statuses = HomeLoadDerivations.bodyRegionStatuses(logs)
+        bodyRegionStatuses = statuses
+        bodyRegionLoads = statuses.reduce(into: [:]) { result, entry in
+            if entry.value.load > 0.05 {
+                result[entry.key] = entry.value.load
+            }
+        }
     }
 
     // MARK: - Refresh
@@ -332,31 +344,15 @@ final class HomeViewModel: ObservableObject {
     }
 
     var todayProgramDay: ProgramDay? {
-        // Travel override short-circuits the normal rotation.
-        if let override = activeTravelOverride, let tday = override.day(for: Date()) {
-            return synthesizeTravelDay(from: tday, override: override)
-        }
         guard let program else { return nil }
-        guard !program.days.isEmpty else { return nil }
-        let daysSinceStart = max(
-            0,
-            Calendar.current.dateComponents([.day], from: program.createdAt, to: Date()).day ?? 0
+        return ProgramOverviewDayResolver(
+            userId: services.auth.currentUserId,
+            activeTravelOverride: activeTravelOverride,
+            scheduleRevision: 0,
+            scheduleStore: ProgramScheduleStore.shared,
+            calendar: .current
         )
-        let dayIndex = daysSinceStart % program.days.count
-        return program.days[dayIndex]
-    }
-
-    func synthesizeTravelDay(from tday: TravelDay, override: TravelOverride) -> ProgramDay {
-        let workout = tday.workout(summary: "Travel block: \(override.summary)")
-        return ProgramDay(
-            id: "travel-home",
-            dayNumber: 0,
-            label: tday.isRest ? "TRAVEL · REST" : "TRAVEL · \(tday.title)",
-            isRestDay: tday.isRest,
-            workout: workout,
-            nutritionOverride: nil,
-            recoveryActivities: []
-        )
+        .day(for: Date(), in: program)
     }
 
     var todayPlannedBodyRegions: [BodyRegion] {

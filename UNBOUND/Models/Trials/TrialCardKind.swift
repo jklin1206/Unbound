@@ -46,8 +46,38 @@ extension WeeklyVowKind {
         case .overdrive:
             return "Post-workout binding"
         case .apex:
-            return "Hard workout"
+            return "Dedicated binding"
         }
+    }
+
+    var commitmentSummary: String {
+        switch self {
+        case .ember:
+            return "Low-risk reset that protects recovery."
+        case .overdrive:
+            return "Focused finisher added after training."
+        case .apex:
+            return "Hard dedicated session. Every prescribed set must be logged."
+        }
+    }
+
+    var proofRuleSummary: String {
+        switch self {
+        case .ember:
+            return "Save the routed recovery work to clear it."
+        case .overdrive:
+            return "Save the routed finisher work to clear it."
+        case .apex:
+            return "No partial clears: all prescribed movements and set volume required."
+        }
+    }
+
+    var rewardSummary: String {
+        "+\(completionBonusOverallLevelXP) LVL XP"
+    }
+
+    var missDebtSummary: String {
+        "Miss: \(missedPenaltyOverallLevelXP) XP debt"
     }
 
     var proofAssetSymbolName: String {

@@ -86,21 +86,21 @@ enum ProgramSelectedDayPresenter {
         isCalibration: Bool
     ) -> String {
         if isCalibration { return "CALIBRATION" }
-        if isToday { return "TODAY" }
-        if let day { return "DAY \(day.dayNumber)" }
-        return "PROGRAM"
+        if isToday { return "DAILY QUEST" }
+        if let day { return "DAY \(day.dayNumber) QUEST" }
+        return "DAILY"
     }
 
     private static func title(
         for day: ProgramDay?,
         skillNodes: [SkillNode]
     ) -> String {
-        guard let day else { return "NO SESSION" }
-        if day.isRestDay { return "REST DAY" }
+        guard let day else { return "NO QUEST" }
+        if day.isRestDay { return "RECOVERY QUEST" }
         if let skillTitle = ProgramSkillFocusResolver.compactTitle(for: skillNodes) {
             return skillTitle
         }
-        return day.workout?.name.uppercased() ?? "NO SESSION"
+        return day.workout?.name.uppercased() ?? "NO QUEST"
     }
 
     private static func contextLabel(for day: ProgramDay?, date: Date) -> String {

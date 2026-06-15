@@ -76,18 +76,7 @@ struct ProfileView: View {
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: 0) {
                             trophyHeader(topSafeInset: rootProxy.safeAreaInsets.top)
-
-                            VStack(spacing: 0) {
-                                ProfileBuildCard(profile: attributeProfile)
-                                badgesArchiveSection
-                                rewardsRow
-                                if let beforePhoto, let afterPhoto {
-                                    ProgressJourneySection(dayZero: beforePhoto, now: afterPhoto)
-                                }
-                                PhotoCalendarView().environmentObject(services)
-                                Spacer().frame(height: 118)
-                            }
-                            .padding(.horizontal, 20)
+                            profileArchiveStack
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -207,6 +196,31 @@ struct ProfileView: View {
             refreshEquippedCosmetics()
         }
         .attributeRankUpToast()
+    }
+
+    private var profileArchiveStack: some View {
+        VStack(spacing: 14) {
+            ProfileArchiveBand(tint: activeProfileTint) {
+                ProfileBuildCard(profile: attributeProfile)
+            }
+
+            ProfileArchiveBand(tint: Color.unbound.rankGold) {
+                badgesArchiveSection
+            }
+
+            ProfileArchiveBand(tint: Color.unbound.impact) {
+                VStack(spacing: 0) {
+                    if let beforePhoto, let afterPhoto {
+                        ProgressJourneySection(dayZero: beforePhoto, now: afterPhoto)
+                    }
+                    PhotoCalendarView().environmentObject(services)
+                }
+            }
+
+            Spacer().frame(height: 118)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 14)
     }
 
     private var profileBaseWash: some View {
@@ -495,6 +509,16 @@ struct ProfileView: View {
                     badgeTier: showcaseLiftTier
                 )
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.unbound.surface.opacity(0.28))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(Color.unbound.borderSubtle.opacity(0.62), lineWidth: 0.5)
+            )
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
         }
@@ -632,7 +656,7 @@ struct ProfileView: View {
     }
 
     private var hasLongIdentityText: Bool {
-        profileIdentityName.count > 20 || profileTitleLine.count > 22
+        profileIdentityName.count > 20 || (profileTitleLine?.count ?? 0) > 22
     }
 
     private func heroAvatar(level: Int, tint: Color, size: CGFloat) -> some View {
@@ -701,16 +725,18 @@ struct ProfileView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Text(profileTitleLine.uppercased())
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .tracking(1.1)
-                        .foregroundStyle(rankTextColor)
-                        .lineLimit(profileTitleLine.count > 28 ? 2 : 1)
-                        .minimumScaleFactor(0.58)
-                        .allowsTightening(true)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if let profileTitleLine {
+                        Text(profileTitleLine.uppercased())
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .tracking(1.1)
+                            .foregroundStyle(rankTextColor)
+                            .lineLimit(profileTitleLine.count > 28 ? 2 : 1)
+                            .minimumScaleFactor(0.58)
+                            .allowsTightening(true)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -743,8 +769,8 @@ struct ProfileView: View {
         playerHandle
     }
 
-    private var profileTitleLine: String {
-        trialsState.equippedTitle.map(TitleCatalog.displayName(for:)) ?? "No title"
+    private var profileTitleLine: String? {
+        trialsState.equippedTitle.map(TitleCatalog.displayName(for:))
     }
 
     private var avatarInitial: String {
@@ -943,39 +969,6 @@ struct ProfileView: View {
 
     // MARK: - Archive
 
-    private var rewardsRow: some View {
-        NavigationLink(destination: RewardsVaultView().environmentObject(services)) {
-            HStack(spacing: 14) {
-                Image(systemName: "trophy.fill")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Color.unbound.accent)
-                    .frame(width: 30, height: 40)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("REWARDS")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.8)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text("Titles, skins, cosmetics & badges")
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Text("See everything and how to earn it")
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .padding(.vertical, 15)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .bottom) {
-                UnboundNativeDivider(opacity: 0.42)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
     private var badgesArchiveSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -992,7 +985,7 @@ struct ProfileView: View {
                 }
                 Spacer()
                 NavigationLink(destination: BadgeGalleryView().environmentObject(services)) {
-                    Image(systemName: "arrow.right")
+                    Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(Color.unbound.accent)
                         .frame(width: 34, height: 34)
@@ -1045,4 +1038,35 @@ struct ProfileView: View {
         .frame(width: 68)
     }
 
+}
+
+private struct ProfileArchiveBand<Content: View>: View {
+    let tint: Color
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .padding(.horizontal, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.unbound.surface.opacity(0.38),
+                            tint.opacity(0.05),
+                            Color.unbound.surface.opacity(0.18)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle.opacity(0.72), lineWidth: 0.5)
+        }
+    }
 }

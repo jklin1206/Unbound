@@ -11,7 +11,7 @@ final class ProgramSurfaceStateTests: XCTestCase {
         )
         XCTAssertEqual(errorState.kind, .loadError)
         XCTAssertEqual(errorState.primaryActionTitle, "Retry")
-        XCTAssertEqual(errorState.secondaryActionTitle, "Browse Routines")
+        XCTAssertEqual(errorState.secondaryActionTitle, "Browse Dungeons")
     }
 
     func testLoadedProgramResolvesTrainingRestMissingAndBlockCompleteStates() {
@@ -31,7 +31,7 @@ final class ProgramSurfaceStateTests: XCTestCase {
         )
         XCTAssertEqual(training.kind, .trainingDay)
         XCTAssertTrue(training.canStartWorkout)
-        XCTAssertEqual(training.primaryActionTitle, "Begin Session")
+        XCTAssertEqual(training.primaryActionTitle, "Begin Quest")
 
         let rest = ProgramSurfaceState.resolve(
             state: .loaded(trainingProgram),
@@ -41,7 +41,7 @@ final class ProgramSurfaceStateTests: XCTestCase {
         XCTAssertEqual(rest.kind, .restDay)
         XCTAssertFalse(rest.canStartWorkout)
         XCTAssertEqual(rest.primaryActionTitle, "View Recovery")
-        XCTAssertEqual(rest.secondaryActionTitle, "Add Light Work")
+        XCTAssertEqual(rest.secondaryActionTitle, "Add Light Quest")
 
         let missing = ProgramSurfaceState.resolve(
             state: .loaded(program(createdAt: now, days: [])),
@@ -83,6 +83,64 @@ final class ProgramSurfaceStateTests: XCTestCase {
 
         XCTAssertEqual(surface.kind, .trainingDay)
         XCTAssertTrue(surface.canStartWorkout)
+    }
+
+    func testLoadedProgramTreatsUserOwnedDayAsTrainingDay() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let userOwnedDay = day(
+            number: 1,
+            isRest: false,
+            includeGeneratedWorkout: false,
+            workout: nil,
+            savedWorkoutId: UUID(),
+            userWorkoutDraft: TrainingSessionDraft(
+                userId: "u-1",
+                source: .custom,
+                title: "Custom Daily Quest",
+                estimatedMinutes: 25,
+                blocks: []
+            )
+        )
+        let surface = ProgramSurfaceState.resolve(
+            state: .loaded(program(createdAt: now, days: [userOwnedDay])),
+            selectedDate: now,
+            now: now
+        )
+
+        XCTAssertEqual(surface.kind, .trainingDay)
+        XCTAssertTrue(surface.canStartWorkout)
+        XCTAssertEqual(surface.primaryActionTitle, "Begin Quest")
+    }
+
+    func testWorkoutLaunchCoordinatorRoutesUserOwnedDayWhenDraftExists() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let draft = TrainingSessionDraft(
+            userId: "u-1",
+            source: .custom,
+            title: "Custom Daily Quest",
+            estimatedMinutes: 25,
+            blocks: []
+        )
+        let userOwnedDay = day(
+            number: 1,
+            isRest: false,
+            includeGeneratedWorkout: false,
+            workout: nil,
+            savedWorkoutId: UUID(),
+            userWorkoutDraft: draft
+        )
+
+        switch ProgramWorkoutLaunchCoordinator.destination(
+            for: userOwnedDay,
+            date: now,
+            isCompleted: false,
+            draft: draft
+        ) {
+        case .draft(let launched):
+            XCTAssertEqual(launched.id, draft.id)
+        case .dayDetail:
+            XCTFail("Expected user-owned daily quest to launch its resolved draft")
+        }
     }
 
     func testProgramProofFixturesResolveToRequestedSurfaceStates() {
@@ -183,13 +241,20 @@ final class ProgramSurfaceStateTests: XCTestCase {
         )
     }
 
-    private func day(number: Int, isRest: Bool) -> ProgramDay {
+    private func day(
+        number: Int,
+        isRest: Bool,
+        includeGeneratedWorkout: Bool = true,
+        workout: Workout? = nil,
+        savedWorkoutId: UUID? = nil,
+        userWorkoutDraft: TrainingSessionDraft? = nil
+    ) -> ProgramDay {
         ProgramDay(
             id: "d-\(number)",
             dayNumber: number,
             label: isRest ? "Rest" : "Push",
             isRestDay: isRest,
-            workout: isRest ? nil : Workout(
+            workout: isRest || !includeGeneratedWorkout ? nil : (workout ?? Workout(
                 name: "Push",
                 targetMuscleGroups: [.chest],
                 warmup: [],
@@ -210,7 +275,9 @@ final class ProgramSurfaceStateTests: XCTestCase {
                 estimatedMinutes: 30,
                 notes: nil,
                 blockType: nil
-            ),
+            )),
+            savedWorkoutId: savedWorkoutId,
+            userWorkoutDraft: userWorkoutDraft,
             nutritionOverride: nil,
             recoveryActivities: []
         )

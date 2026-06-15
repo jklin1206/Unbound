@@ -21,12 +21,13 @@ extension UnboundHomeView {
     // MARK: - Session flow
 
     func beginTodaySession() {
+        let date = Date()
         guard let day = model.todayProgramDay
         else {
             NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
             return
         }
-        guard day.workout != nil || day.userWorkoutDraft != nil else {
+        guard day.canStartWorkoutSession else {
             NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
             return
         }
@@ -37,11 +38,46 @@ extension UnboundHomeView {
             )
             return
         }
-        workoutReadyDraft = DailyWorkoutResolver.programDraft(
-            from: day,
+        let programId = model.program?.id
+        let modifierContext = todayModifierContext(userId: userId, program: model.program, date: date)
+        let draft = ProgramWorkoutDraftResolver(
             userId: userId,
-            programId: model.program?.id,
-            date: Date()
+            programId: programId,
+            progressionStates: model.progressionStates,
+            modifierContext: modifierContext
+        )
+        .draft(from: day, date: date)
+
+        if let draft {
+            workoutReadyDraft = draft
+        } else {
+            NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
+        }
+    }
+
+    func todayModifierContext(
+        userId: String,
+        program: TrainingProgram?,
+        date: Date
+    ) -> DailyWorkoutModifierContext {
+        let deloadFactor = SkillProgressService.shared.currentWeekPhase.workoutDeloadFactor
+        guard let program,
+              let override = ProgramTrainingContextStore.shared.activeDailyContext(
+                userId: userId,
+                programId: program.id,
+                date: date
+              )
+        else {
+            return DailyWorkoutModifierContext(deloadFactor: deloadFactor)
+        }
+
+        let resolution = ProgramFocusSwitchCoordinator.resolvedContext(
+            override: override,
+            profile: model.profile
+        )
+        return DailyWorkoutModifierContext(
+            availableEquipment: resolution.dailyModifierEquipment,
+            deloadFactor: deloadFactor
         )
     }
 

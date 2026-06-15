@@ -107,7 +107,11 @@ struct UnboundHomeView: View {
                         VStack(spacing: 0) {
                             homeControlSurface
 
-                            BodyLoadHeatmapView(loads: model.bodyRegionLoads, plannedRegions: model.todayPlannedBodyRegions)
+                            BodyLoadHeatmapView(
+                                loads: model.bodyRegionLoads,
+                                statuses: model.bodyRegionStatuses,
+                                plannedRegions: model.todayPlannedBodyRegions
+                            )
 
                             contextualStack
                                 .padding(.top, 14)

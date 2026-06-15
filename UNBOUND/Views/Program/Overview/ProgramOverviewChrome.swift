@@ -3,7 +3,7 @@ import SwiftUI
 struct ProgramOverviewTopBar: View {
     var body: some View {
         HStack {
-            Text("TRAIN")
+            Text("QUEST BOARD")
                 .font(Font.unbound.titleS)
                 .tracking(2.0)
                 .foregroundStyle(Color.unbound.textPrimary)
@@ -21,9 +21,9 @@ struct ProgramOverviewTabSelector: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            tabChip(.program, label: "PROGRAM")
-            tabChip(.myWorkouts, label: "WORKOUTS")
-            tabChip(.routines, label: "ROUTINES")
+            tabChip(.program, label: "DAILY")
+            tabChip(.myWorkouts, label: "LOADOUTS")
+            tabChip(.routines, label: "DUNGEONS")
         }
     }
 
@@ -99,10 +99,10 @@ struct ProgramNoProgramState: View {
             Image(systemName: "dumbbell")
                 .font(.system(size: 40, weight: .thin))
                 .foregroundStyle(Color.unbound.textTertiary)
-            Text("No program yet")
+            Text("No daily quest yet")
                 .font(Font.unbound.titleM)
                 .foregroundStyle(Color.unbound.textPrimary)
-            Text("Complete onboarding to generate your first training block.")
+            Text("Complete onboarding to forge your first training block.")
                 .font(Font.unbound.bodyM)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
@@ -122,10 +122,10 @@ struct ProgramSubscriptionBanner: View {
                 Image(systemName: "lock.fill")
                     .foregroundStyle(Color.unbound.accent)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Unlock your full program")
+                    Text("Unlock the full quest board")
                         .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text("Subscribe to access workouts, nutrition & recovery.")
+                    Text("Subscribe to access daily quests, nutrition, and recovery.")
                         .font(Font.unbound.captionS)
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
@@ -153,7 +153,7 @@ struct ProgramErrorStateView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 28))
                 .foregroundStyle(Color.unbound.alert)
-            Text(error?.localizedDescription ?? "Program unavailable.")
+            Text(error?.localizedDescription ?? "Daily quest unavailable.")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)

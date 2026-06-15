@@ -100,7 +100,7 @@ enum WeeklyVowGenerator {
             kind: .apex,
             theme: .wildcard,
             displayName: apexVowName(for: capstone),
-            blurb: "A dedicated Limit Binding Vow: a hard standalone workout with a real cost if you leave it unfinished.",
+            blurb: "The hardest Binding Vow: a dedicated weekend session. Every listed movement and set must be logged, or the miss becomes XP debt.",
             capstone: capstone,
             prescription: WeeklyVowPrescription(
                 placement: .dedicatedSession,

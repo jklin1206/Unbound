@@ -235,16 +235,19 @@ struct HomeTrainingConsoleSection: View {
 
     var body: some View {
         let workout = day?.workout
+        let draft = day?.userWorkoutDraft
         let isRest = day?.isRestDay ?? false
-        let canStart = workout != nil && !isRest
+        let canStart = day?.canStartWorkoutSession ?? false
         let tint = Self.protocolTint(canStart: canStart, isRest: isRest)
-        let title = workout?.name ?? (isRest ? "Recovery Protocol" : "Plan Session")
-        let minutes = workout?.estimatedMinutes ?? (isRest ? 18 : 30)
+        let title = workout?.name ?? draft?.title ?? day?.label ?? (isRest ? "Recovery Protocol" : "Plan Session")
+        let minutes = workout?.estimatedMinutes ?? draft?.estimatedMinutes ?? (isRest ? 18 : 30)
         // Quest voice for the focus tag — "TARGET · CHEST" instead of a bare
         // body-part label.
         let focusTarget = workout?.targetMuscleGroups.first?.displayName.uppercased()
         let focus = focusTarget.map { "TARGET · \($0)" } ?? (isRest ? "RECOVERY" : "CUSTOM")
-        let planValue = workout.map { "\($0.mainExercises.count) MOVES" } ?? (isRest ? "REST" : "OPEN")
+        let planValue = workout.map { "\($0.mainExercises.count) MOVES" }
+            ?? draft.map { "\($0.blocks.count) BLOCKS" }
+            ?? (isRest ? "REST" : "OPEN")
         let metrics = [
             UnboundNativeMetric(label: "Day", value: programDayLabel, tint: tint),
             UnboundNativeMetric(label: "Time", value: "\(minutes)M", tint: tint),
@@ -271,7 +274,7 @@ struct HomeTrainingConsoleSection: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .unboundTextShadow(strength: 0.82)
 
-                    Text(Self.protocolHeroSubtitle(workout: workout, isRest: isRest))
+                    Text(Self.protocolHeroSubtitle(workout: workout, draft: draft, isRest: isRest))
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(2)
@@ -322,7 +325,7 @@ struct HomeTrainingConsoleSection: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 20)
-        .padding(.top, 26)
+        .padding(.top, 20)
         .padding(.bottom, 30)
         .background {
             ProtocolHeroBackground(tint: tint)
@@ -360,9 +363,17 @@ struct HomeTrainingConsoleSection: View {
         canStart ? Color.unbound.accent : (isRest ? Color.unbound.coachCyan : Color.unbound.ember)
     }
 
-    private static func protocolHeroSubtitle(workout: Workout?, isRest: Bool) -> String {
+    private static func protocolHeroSubtitle(
+        workout: Workout?,
+        draft: TrainingSessionDraft?,
+        isRest: Bool
+    ) -> String {
         if let workout {
             return "Objective: clear \(workout.mainExercises.count) movements. Every logged set counts."
+        }
+        if let draft {
+            let blockCount = max(1, draft.blocks.count)
+            return "Objective: clear \(blockCount) blocks. Every logged set counts."
         }
         if isRest {
             return "Objective: active recovery. Return stronger tomorrow."

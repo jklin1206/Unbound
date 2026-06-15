@@ -64,8 +64,36 @@ final class HomeLoadDerivationsTests: XCTestCase {
         ]
 
         let loads = HomeLoadDerivations.bodyRegionLoads(logs, now: now, calendar: cal())
+        let statuses = HomeLoadDerivations.bodyRegionStatuses(logs, now: now, calendar: cal())
 
         XCTAssertEqual(loads[.midLowerChest] ?? 0, 0, accuracy: 0.001)
+        XCTAssertEqual(statuses[.midLowerChest]?.lastTrainedAt, date(2026, 5, 4))
+    }
+
+    func test_bodyRegionStatuses_tracksLastTrainedForSelectedRegionDetails() {
+        let now = date(2026, 5, 13, 12)
+        let recent = date(2026, 5, 13, 6)
+        let older = date(2026, 5, 11, 12)
+        let logs = [
+            log(startedAt: older, entries: [entry("Bench Press", completedSets: 3)]),
+            log(startedAt: recent, entries: [entry("Bench Press", completedSets: 4, rpe: 8)])
+        ]
+
+        let statuses = HomeLoadDerivations.bodyRegionStatuses(logs, now: now, calendar: cal())
+        let chest = statuses[.midLowerChest]
+
+        XCTAssertEqual(chest?.lastTrainedAt, recent)
+        XCTAssertGreaterThan(chest?.load ?? 0, 0)
+        XCTAssertEqual(chest?.lastTrainedText(relativeTo: now), "Last trained 6h ago")
+    }
+
+    func test_bodyRegionStatusRecoveryTextUsesEstimatedReadyTime() {
+        let now = date(2026, 5, 13, 12)
+        let trainedAt = date(2026, 5, 13, 0)
+        let status = BodyLoadRegionStatus(region: .quads, load: 15, lastTrainedAt: trainedAt)
+
+        XCTAssertEqual(status.recoveryHours, 48)
+        XCTAssertEqual(status.recoveryText(relativeTo: now), "Ready in 1d 12h")
     }
 
     private func log(startedAt: Date, entries: [ExerciseLogEntry]) -> WorkoutLog {
