@@ -13,10 +13,22 @@ struct GateBeatOverlay: View {
 
     var body: some View {
         ZStack {
-            Image(world.bannerAssetName).resizable().scaledToFill().ignoresSafeArea()
-                .overlay(world.fillTint.opacity(0.18)).overlay(Color.black.opacity(0.32))
+            Color.unbound.bg.ignoresSafeArea()
+            // Bound the scaledToFill banner to the screen (Color.clear takes the
+            // proposed size, the image fills + clips inside it) so it can't overflow
+            // and drag the copy off-center.
+            Color.clear
+                .overlay(Image(world.bannerAssetName).resizable().scaledToFill())
+                .clipped()
+                .overlay(world.fillTint.opacity(0.18))
+                .overlay(Color.black.opacity(0.32))
+                .ignoresSafeArea()
             Text(line.uppercased()).font(Font.unbound.titleM.weight(.black)).tracking(1.5)
-                .foregroundStyle(Color.unbound.textPrimary).multilineTextAlignment(.center)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, 32)
         }
         .opacity(shown ? 1 : 0)
