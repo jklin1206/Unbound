@@ -103,41 +103,50 @@ struct HomeCommandMiniGlyph: View {
     let kind: HomeCommandArtworkKind
     let tint: Color
 
+    // A bordered icon chip (not a bare floating symbol) so the commands read as
+    // defined controls instead of a flat tinted glyph. Scales to whatever frame
+    // the caller gives it.
     var body: some View {
-        ZStack {
-            Image(systemName: systemName)
-                .font(.system(size: fontSize, weight: .black))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
+        GeometryReader { geo in
+            let side = min(geo.size.width, geo.size.height)
+            ZStack {
+                RoundedRectangle(cornerRadius: side * 0.28, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [tint.opacity(0.22), tint.opacity(0.05)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: side * 0.28, style: .continuous)
+                            .strokeBorder(tint.opacity(0.5), lineWidth: 1)
+                    )
 
-            if kind == .rankLibrary {
-                RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                    .fill(Color.unbound.textPrimary.opacity(0.70))
-                    .frame(width: 16, height: 3)
-                    .offset(y: 9)
+                Image(systemName: systemName)
+                    .font(.system(size: side * 0.44, weight: .black))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+                    .rotationEffect(.degrees(rotation))
             }
+            .frame(width: geo.size.width, height: geo.size.height)
         }
     }
 
     private var systemName: String {
         switch kind {
-        case .rankTrial: return "flag.checkered"
-        case .trialKey: return "key.fill"
-        case .vow: return "seal.fill"
-        case .shop: return "bag.fill"
-        case .backdrops: return "photo.on.rectangle.angled"
+        case .rankTrial:   return "flag.checkered"
+        case .trialKey:    return "key.fill"
+        case .vow:         return "link"
+        case .shop:        return "bag.fill"
+        case .backdrops:   return "photo.on.rectangle.angled"
         case .rankLibrary: return "list.bullet.rectangle.portrait.fill"
-        case .weight: return "scalemass.fill"
+        case .weight:      return "scalemass.fill"
         }
     }
 
-    private var fontSize: CGFloat {
-        switch kind {
-        case .trialKey: return 23
-        case .vow: return 24
-        case .backdrops: return 20
-        case .rankLibrary: return 22
-        default: return 21
-        }
+    // The gate key reads better angled than bolt-upright.
+    private var rotation: Double {
+        kind == .trialKey ? -45 : 0
     }
 }

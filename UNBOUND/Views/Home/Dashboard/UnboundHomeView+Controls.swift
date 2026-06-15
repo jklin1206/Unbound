@@ -35,7 +35,7 @@ extension UnboundHomeView {
                     title: "Rank Trial",
                     detail: rankTrialCommandDetail,
                     value: rankTrialCommandValue,
-                    tint: homeControlTint,
+                    tint: Color.unbound.rankGold,
                     accessibilityLabel: "Open rank trial"
                 ) {
                     handleRankTrialCommand()
