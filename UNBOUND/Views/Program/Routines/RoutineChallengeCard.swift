@@ -5,6 +5,11 @@ import UIKit
 
 struct RoutineChallengeCard: View {
     let routine: RoutineDef
+    let currentTier: SkillTier
+
+    private var unlockState: RoutineUnlockState {
+        RoutineUnlockPolicy.state(for: routine, currentTier: currentTier)
+    }
 
     private var canComplete: Bool {
         RoutineHistoryStore.shared.canComplete(routineId: routine.id)
@@ -79,6 +84,48 @@ struct RoutineChallengeCard: View {
                 .strokeBorder(routine.category.color.opacity(0.28), lineWidth: 1)
         )
         .shadow(color: routine.category.color.opacity(0.18), radius: 18, x: 0, y: 10)
+        .overlay {
+            if !unlockState.isUnlocked { lockedOverlay }
+        }
+    }
+
+    // Locked endgame floor — shown as an aspirational teaser, not hidden.
+    private var lockedOverlay: some View {
+        let tint = unlockState.requiredTier.rewardTextTint
+        return ZStack {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.76))
+
+            VStack(spacing: 10) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 24, weight: .black))
+                    .foregroundStyle(tint)
+
+                HStack(spacing: 7) {
+                    Image(unlockState.requiredTier.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 20, height: 20)
+                    Text(unlockState.lockedText.uppercased())
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(1.2)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                }
+
+                Text(unlockState.requirementText)
+                    .font(Font.unbound.monoS)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 24)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(tint.opacity(0.34), lineWidth: 1)
+        )
+        .allowsHitTesting(false)
     }
 
     @ViewBuilder

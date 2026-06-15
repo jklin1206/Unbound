@@ -4,6 +4,7 @@ import UIKit
 struct ProgramRoutinesTab: View {
     @Binding var selectedChallengeId: String
     @Binding var selectedRoutineIdsByCategory: [RoutineCategory: String]
+    let currentTier: SkillTier
     let onBeginRoutine: (RoutineDef) -> Void
 
     var body: some View {
@@ -50,7 +51,7 @@ struct ProgramRoutinesTab: View {
                     Button {
                         onBeginRoutine(routine)
                     } label: {
-                        RoutineChallengeCard(routine: routine)
+                        RoutineChallengeCard(routine: routine, currentTier: currentTier)
                     }
                     .buttonStyle(RoutineChallengePressStyle())
                     .tag(routine.id)
@@ -90,7 +91,7 @@ struct ProgramRoutinesTab: View {
                     Button {
                         onBeginRoutine(routine)
                     } label: {
-                        RoutineChallengeCard(routine: routine)
+                        RoutineChallengeCard(routine: routine, currentTier: currentTier)
                     }
                     .buttonStyle(RoutineChallengePressStyle())
                     .tag(routine.id)
