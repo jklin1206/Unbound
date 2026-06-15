@@ -6,7 +6,7 @@ extension UnboundHomeView {
     var homeControlSurface: some View {
         VStack(spacing: 12) {
             weekPath
-            homeIconDock
+            homeCommandCenter
         }
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -22,76 +22,58 @@ extension UnboundHomeView {
         }
     }
 
-    var homeIconDock: some View {
-        let columns = [
-            GridItem(.flexible(minimum: 0), spacing: 10),
-            GridItem(.flexible(minimum: 0), spacing: 10),
-            GridItem(.flexible(minimum: 0), spacing: 10)
-        ]
+    var homeCommandCenter: some View {
+        VStack(spacing: 14) {
+            HomeCommandSection(
+                title: "Progression",
+                palette: .progression,
+                commands: [
+                    HomeCommand(
+                        artwork: .rankTrial,
+                        title: "Gate Keys",
+                        detail: rankTrialCommandValue,
+                        accessibilityLabel: "Open rank trial"
+                    ) { handleRankTrialCommand() },
+                    HomeCommand(
+                        artwork: .vow,
+                        title: "Vows",
+                        detail: trialCommandValue,
+                        accessibilityLabel: "Open weekly vow"
+                    ) { handleTrialCommand() },
+                    HomeCommand(
+                        artwork: .rankLibrary,
+                        title: "Rank Library",
+                        detail: model.aggregateTier.displayName,
+                        accessibilityLabel: "Open rank library"
+                    ) { showRankLibrary = true }
+                ]
+            )
 
-        return LazyVGrid(columns: columns, spacing: 8) {
-            HomeIconCommand(
-                artwork: .rankTrial,
-                title: "Rank Trial",
-                value: rankTrialCommandValue,
-                tint: rankTrialCommandTint,
-                accessibilityLabel: "Open rank trial"
-            ) {
-                handleRankTrialCommand()
-            }
-
-            HomeIconCommand(
-                artwork: .vow,
-                title: "Vows",
-                value: trialCommandValue,
-                tint: trialCommandTint,
-                accessibilityLabel: "Open weekly vow"
-            ) {
-                handleTrialCommand()
-            }
-
-            HomeIconCommand(
-                artwork: .shop,
-                title: "Shop",
-                value: "\(shopInventoryStore.purchasedItemIDs.count) owned",
-                tint: Color.skinHex("8B5CF6"),
-                accessibilityLabel: "Open cosmetics shop"
-            ) {
-                showingShop = true
-            }
-
-            HomeIconCommand(
-                artwork: .backdrops,
-                title: "Backdrops",
-                value: equippedHomeBackdrop?.name ?? "Default",
-                tint: equippedHomeBackdrop?.accent ?? Color.skinHex("2DD4BF"),
-                accessibilityLabel: "Change home backdrop"
-            ) {
-                showingBackdropPicker = true
-            }
-
-            HomeIconCommand(
-                artwork: .rankLibrary,
-                title: "Rank Library",
-                value: model.aggregateTier.displayName,
-                tint: model.aggregateTier.rewardTextTint,
-                accessibilityLabel: "Open rank library"
-            ) {
-                showRankLibrary = true
-            }
-
-            HomeIconCommand(
-                artwork: .weight,
-                title: "Weight",
-                value: bodyWeightCommandValue,
-                tint: bodyWeightStatusColor,
-                accessibilityLabel: "Open bodyweight log"
-            ) {
-                handleBodyWeightCommand()
-            }
+            HomeCommandSection(
+                title: "Cosmetics",
+                palette: .cosmetics,
+                commands: [
+                    HomeCommand(
+                        artwork: .shop,
+                        title: "Shop",
+                        detail: "\(shopInventoryStore.purchasedItemIDs.count) owned",
+                        accessibilityLabel: "Open cosmetics shop"
+                    ) { showingShop = true },
+                    HomeCommand(
+                        artwork: .backdrops,
+                        title: "Backdrops",
+                        detail: equippedHomeBackdrop?.name ?? "Default",
+                        accessibilityLabel: "Change home backdrop"
+                    ) { showingBackdropPicker = true },
+                    HomeCommand(
+                        artwork: .weight,
+                        title: "Weight",
+                        detail: bodyWeightCommandValue,
+                        accessibilityLabel: "Open bodyweight log"
+                    ) { handleBodyWeightCommand() }
+                ]
+            )
         }
-        .padding(.top, 4)
-        .padding(.bottom, 4)
         .frame(maxWidth: .infinity)
     }
 
@@ -105,18 +87,6 @@ extension UnboundHomeView {
         return "IDLE"
     }
 
-    var trialCommandTint: Color {
-        if let activeTrial = model.trialsState.currentTrial {
-            if activeTrial.capstoneState == .completed { return Color.unbound.success }
-            if activeTrial.capstoneState == .missed { return Color.unbound.alert }
-            return activeTrial.chosenCard.theme.tintColor
-        }
-        if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
-            return Color.unbound.accent
-        }
-        return Color.unbound.textTertiary
-    }
-
     var rankTrialCommandValue: String {
         guard let readiness = model.overallRankTrialReadiness,
               readiness.definition != nil
@@ -126,13 +96,6 @@ extension UnboundHomeView {
         let metCount = readiness.requirements.filter(\.isMet).count
         let totalCount = max(1, readiness.requirements.count)
         return "\(metCount)/\(totalCount)"
-    }
-
-    var rankTrialCommandTint: Color {
-        guard let readiness = model.overallRankTrialReadiness,
-              readiness.definition != nil
-        else { return Color.unbound.textTertiary }
-        return rankGatePulseTint(readiness)
     }
 
     var bodyWeightCommandValue: String {
