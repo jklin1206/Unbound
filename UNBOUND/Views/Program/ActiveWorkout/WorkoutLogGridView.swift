@@ -99,6 +99,39 @@ struct WorkoutLogGridView: View {
         }
     }
 
+    // The Count is a card flow (like the deck): one forged count-card per station shows the
+    // target; you do the whole set, then keep the count with a single tap — no mid-set
+    // logging — which logs the station "as planned" on the one spine and turns the next card.
+    @ViewBuilder
+    private func countCardFlow(for definition: OverallRankTrialDefinition) -> some View {
+        if let pair = currentExercisePair {
+            CountCardStage(
+                world: GateWorldCatalog.world(for: definition.format),
+                exercise: pair.exercise,
+                stationIndex: pair.index,
+                stationCount: session.exercises.count,
+                stationsCleared: countClearedStations,
+                onKeepCount: { completeCountStation(pair) }
+            )
+            .id(countWorkingSetId(pair.exercise) ?? pair.exercise.id)
+            .zIndex(Double(pair.index + 1))
+        }
+    }
+
+    private var countClearedStations: Int {
+        session.exercises.filter { ex in ex.sets.contains { $0.logged && !$0.isWarmup } }.count
+    }
+
+    private func countWorkingSetId(_ ex: ActiveWorkoutSession.ActiveExercise) -> String? {
+        (ex.sets.first { !$0.isWarmup && !$0.logged } ?? ex.sets.first { !$0.logged })?.id
+    }
+
+    private func completeCountStation(_ pair: (index: Int, exercise: ActiveWorkoutSession.ActiveExercise)) {
+        guard let setIndex = pair.exercise.sets.firstIndex(where: { !$0.isWarmup && !$0.logged })
+            ?? pair.exercise.sets.firstIndex(where: { !$0.logged }) else { return }
+        onConfirmAsPlanned(pair.index, setIndex)
+    }
+
     @ViewBuilder
     private func rankTrialModeFlow(for definition: OverallRankTrialDefinition) -> some View {
         switch definition.format {
@@ -107,9 +140,7 @@ struct WorkoutLogGridView: View {
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
         case .theCount:
-            GateTrialActiveView(definition: definition, session: session) { index, exercise in
-                exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
-            }
+            countCardFlow(for: definition)
         case .theForging:
             GateTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
