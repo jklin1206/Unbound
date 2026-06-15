@@ -31,7 +31,7 @@ struct TrialPickerPromptCard: View {
                             .lineLimit(1)
                     }
 
-                    Text("Pick this week's vow")
+                    Text("Bind a weekly challenge")
                         .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(1)

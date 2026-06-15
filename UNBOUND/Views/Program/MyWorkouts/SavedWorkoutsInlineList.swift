@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The saved-workouts list, rendered inline (no modal/NavigationStack chrome) for
-/// the My Workouts tab. Flat calm rows on `bg` separated by hairline rules.
+/// the Loadouts tab. Flat calm rows on `bg` separated by hairline rules.
 /// Data from SavedWorkoutStore; delete + Squad-share handled locally; start /
 /// schedule bubble up to the parent (which applies them to the program).
 struct SavedWorkoutsInlineList: View {
@@ -27,11 +27,11 @@ struct SavedWorkoutsInlineList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            CalmSectionHeader(title: "SAVED", trailing: workouts.isEmpty ? nil : "\(workouts.count)")
+            CalmSectionHeader(title: "LOADOUTS", trailing: workouts.isEmpty ? nil : "\(workouts.count)")
                 .padding(.bottom, 8)
 
             if workouts.isEmpty {
-                Text("No saved workouts yet — save one or quick-log a session.")
+                Text("No loadouts yet - create one or quick-log a quest.")
                     .font(Font.unbound.bodyS)
                     .foregroundStyle(Color.unbound.textTertiary)
                     .padding(.vertical, 8)
@@ -154,7 +154,7 @@ private struct SavedWorkoutInlineRow: View {
                         UnboundHaptics.medium()
                         onStartWorkout()
                     } label: {
-                        Text("Start Workout")
+                        Text("Start Loadout")
                             .font(Font.unbound.bodyMStrong)
                             .foregroundStyle(Color.unbound.textPrimary)
                             .frame(maxWidth: .infinity)
@@ -323,7 +323,7 @@ private struct SquadRoutineDropShareSheet: View {
                 }
                 .padding(20)
             }
-            .navigationTitle("Share Routine")
+            .navigationTitle("Share Loadout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -351,7 +351,7 @@ private struct SquadRoutineDropShareSheet: View {
                 Text("\(workout.exerciseCount) exercise\(workout.exerciseCount == 1 ? "" : "s") - \(workout.estimatedMinutes)m")
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textSecondary)
-                Text(currentSquadState?.currentSquad?.name ?? "Join a squad before dropping routines.")
+                Text(currentSquadState?.currentSquad?.name ?? "Join a squad before dropping loadouts.")
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundStyle(currentSquadState?.currentSquad == nil ? Color.unbound.alert : Color.unbound.textTertiary)
                     .lineLimit(1)
@@ -383,7 +383,7 @@ private struct SquadRoutineDropShareSheet: View {
               let state = currentSquadState,
               let squad = state.currentSquad
         else {
-            errorMessage = "Join a squad before sharing routines."
+            errorMessage = "Join a squad before sharing loadouts."
             return
         }
 

@@ -40,4 +40,11 @@ final class WeeklyVowKindTests: XCTestCase {
         XCTAssertEqual(TrialCardKind.growth, .overdrive)
         XCTAssertEqual(TrialCardKind.prestige, .apex)
     }
+
+    func testVowMechanicSummariesExplainApexStakes() {
+        XCTAssertTrue(WeeklyVowKind.apex.commitmentSummary.contains("Every prescribed set"))
+        XCTAssertTrue(WeeklyVowKind.apex.proofRuleSummary.contains("No partial clears"))
+        XCTAssertEqual(WeeklyVowKind.apex.rewardSummary, "+240 LVL XP")
+        XCTAssertEqual(WeeklyVowKind.apex.missDebtSummary, "Miss: 120 XP debt")
+    }
 }

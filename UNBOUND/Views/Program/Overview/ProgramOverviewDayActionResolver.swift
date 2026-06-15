@@ -51,7 +51,7 @@ enum ProgramOverviewDayActionResolver {
         if input.isCompleted {
             return ProgramOverviewDayActionState(
                 primaryAction: .viewLog,
-                label: input.isRestDay ? "VIEW RECOVERY" : "VIEW LOG",
+                label: input.isRestDay ? "VIEW RECOVERY" : "VIEW QUEST LOG",
                 isEnabled: true,
                 showsAddExtraSession: input.isToday,
                 showsEditSession: false
@@ -72,7 +72,7 @@ enum ProgramOverviewDayActionResolver {
             return ProgramOverviewDayActionState(
                 primaryAction: input.hasWorkout ? (input.isToday ? .loadWorkout : .editWorkout) : .none,
                 label: input.hasWorkout
-                    ? (input.isToday ? "BEGIN SESSION" : "EDIT WORKOUT")
+                    ? (input.isToday ? "BEGIN QUEST" : "EDIT QUEST")
                     : "NOTHING PLANNED",
                 isEnabled: input.hasWorkout,
                 showsAddExtraSession: false,
@@ -83,7 +83,7 @@ enum ProgramOverviewDayActionResolver {
         if input.isToday, input.hasResumableDraft {
             return ProgramOverviewDayActionState(
                 primaryAction: .resumeWorkout,
-                label: "RESUME SESSION",
+                label: "RESUME QUEST",
                 isEnabled: true,
                 showsAddExtraSession: false,
                 showsEditSession: input.hasWorkout
@@ -93,7 +93,7 @@ enum ProgramOverviewDayActionResolver {
         if input.isToday, input.hasWorkout {
             return ProgramOverviewDayActionState(
                 primaryAction: .loadWorkout,
-                label: "BEGIN SESSION",
+                label: "BEGIN QUEST",
                 isEnabled: true,
                 showsAddExtraSession: false,
                 showsEditSession: true
@@ -102,7 +102,7 @@ enum ProgramOverviewDayActionResolver {
 
         return ProgramOverviewDayActionState(
             primaryAction: input.hasWorkout ? .editWorkout : .none,
-            label: input.hasWorkout ? "EDIT WORKOUT" : "NOTHING PLANNED",
+            label: input.hasWorkout ? "EDIT QUEST" : "NOTHING PLANNED",
             isEnabled: input.hasWorkout,
             showsAddExtraSession: false,
             showsEditSession: false

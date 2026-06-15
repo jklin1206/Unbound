@@ -305,7 +305,7 @@ struct SquadDetailView: View {
                     HStack(spacing: 8) {
                         squadMetaPill(
                             icon: "person.2.fill",
-                            value: "\(state.roster.count)/8",
+                            value: "\(state.roster.count)/\(squad.maxSize)",
                             label: "CREW",
                             tint: Color.unbound.accent
                         )
@@ -428,7 +428,12 @@ struct SquadDetailView: View {
     }
 
     private var squadBoardSection: some View {
-        SquadBoardView(rows: squadBoardRows, season: currentSeason)
+        SquadBoardView(
+            rows: squadBoardRows,
+            season: currentSeason,
+            capacity: state.currentSquad?.maxSize ?? 10,
+            inviteURL: state.currentSquad?.inviteURL
+        )
     }
 
     private func seasonRewardsSection(squad: Squad) -> some View {
@@ -544,7 +549,7 @@ struct SquadDetailView: View {
     private var routineDropsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                sectionHeader("ROUTINE DROPS")
+                sectionHeader("LOADOUT DROPS")
                 Spacer()
                 Text("\(routineDrops.count)")
                     .font(.system(size: 9, weight: .heavy, design: .monospaced))
@@ -562,7 +567,7 @@ struct SquadDetailView: View {
             }
 
             if routineDrops.isEmpty {
-                emptySlab("No routines shared yet. Drop a Saved Workout from the Program tab.", icon: "square.and.arrow.up.fill")
+                emptySlab("No loadouts shared yet. Drop a Loadout from the Quest Board.", icon: "square.and.arrow.up.fill")
             } else {
                 VStack(spacing: 10) {
                     ForEach(routineDrops.prefix(5)) { drop in
@@ -940,14 +945,14 @@ struct SquadDetailView: View {
     private func saveRoutineDrop(_ drop: SquadRoutineDrop) {
         let saved = drop.savedWorkoutCopy()
         SavedWorkoutStore.shared.save(saved)
-        routineDropStatus = "Saved \(drop.title) to your workouts."
+        routineDropStatus = "Saved \(drop.title) to your Loadouts."
     }
 
     @MainActor
     private func useRoutineDropToday(_ drop: SquadRoutineDrop) {
         let saved = drop.savedWorkoutCopy()
         SavedWorkoutStore.shared.save(saved)
-        routineDropStatus = "Saved \(drop.title) and sent it to today's Program."
+        routineDropStatus = "Saved \(drop.title) and sent it to today's Daily Quest."
         NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
             NotificationCenter.default.post(name: .savedWorkoutScheduleTodayRequested, object: saved)

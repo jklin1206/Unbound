@@ -46,6 +46,7 @@ struct HomeBackgroundContrastScrim: View {
 
 enum HomeCommandArtworkKind {
     case rankTrial
+    case trialKey
     case vow
     case shop
     case backdrops
@@ -98,7 +99,7 @@ struct HomeIconCommand: View {
     }
 }
 
-private struct HomeCommandMiniGlyph: View {
+struct HomeCommandMiniGlyph: View {
     let kind: HomeCommandArtworkKind
     let tint: Color
 
@@ -121,7 +122,8 @@ private struct HomeCommandMiniGlyph: View {
     private var systemName: String {
         switch kind {
         case .rankTrial: return "flag.checkered"
-        case .vow: return "link"
+        case .trialKey: return "key.fill"
+        case .vow: return "seal.fill"
         case .shop: return "bag.fill"
         case .backdrops: return "photo.on.rectangle.angled"
         case .rankLibrary: return "list.bullet.rectangle.portrait.fill"
@@ -131,6 +133,7 @@ private struct HomeCommandMiniGlyph: View {
 
     private var fontSize: CGFloat {
         switch kind {
+        case .trialKey: return 23
         case .vow: return 24
         case .backdrops: return 20
         case .rankLibrary: return 22

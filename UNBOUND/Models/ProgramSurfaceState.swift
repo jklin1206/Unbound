@@ -30,23 +30,23 @@ struct ProgramSurfaceState: Equatable, Sendable {
         case .idle:
             return ProgramSurfaceState(
                 kind: .noProgram,
-                title: "No program yet",
-                primaryActionTitle: "Build Program",
-                secondaryActionTitle: "Browse Routines"
+                title: "No daily quest yet",
+                primaryActionTitle: "Build Daily Quest",
+                secondaryActionTitle: "Browse Dungeons"
             )
         case .loading:
             return ProgramSurfaceState(
                 kind: .loading,
-                title: "Loading program",
+                title: "Loading daily quest",
                 primaryActionTitle: "Loading",
                 secondaryActionTitle: nil
             )
         case .error:
             return ProgramSurfaceState(
                 kind: .loadError,
-                title: "Program unavailable",
+                title: "Daily quest unavailable",
                 primaryActionTitle: "Retry",
-                secondaryActionTitle: "Browse Routines"
+                secondaryActionTitle: "Browse Dungeons"
             )
         case .loaded(let program):
             if BlockRolloverScheduler.shouldRollover(program: program, now: now) {
@@ -61,25 +61,25 @@ struct ProgramSurfaceState: Equatable, Sendable {
             guard let day = programDay(for: selectedDate, in: program, calendar: calendar) else {
                 return ProgramSurfaceState(
                     kind: .missingDay,
-                    title: "No session planned",
-                    primaryActionTitle: "Edit Program",
-                    secondaryActionTitle: "Browse Routines"
+                    title: "No quest planned",
+                    primaryActionTitle: "Edit Quest",
+                    secondaryActionTitle: "Browse Dungeons"
                 )
             }
 
-            if day.isRestDay || day.workout == nil {
+            if !day.canStartWorkoutSession {
                 return ProgramSurfaceState(
                     kind: .restDay,
-                    title: "Recovery command",
+                    title: "Recovery quest",
                     primaryActionTitle: "View Recovery",
-                    secondaryActionTitle: "Add Light Work"
+                    secondaryActionTitle: "Add Light Quest"
                 )
             }
 
             return ProgramSurfaceState(
                 kind: .trainingDay,
-                title: "Today command",
-                primaryActionTitle: calendar.isDate(selectedDate, inSameDayAs: now) ? "Begin Session" : "View Details",
+                title: "Daily quest",
+                primaryActionTitle: calendar.isDate(selectedDate, inSameDayAs: now) ? "Begin Quest" : "View Details",
                 secondaryActionTitle: "Edit"
             )
         }

@@ -135,26 +135,29 @@ private struct SquadLogoOptionButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 8) {
-                SquadLogoMarkView(logoId: preset.id, size: 76, showsBorder: isSelected)
-                    .overlay(alignment: .topTrailing) {
-                        if isSelected {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 17, weight: .black))
-                                .foregroundStyle(Color.unbound.bg, preset.palette.primary)
-                                .offset(x: 4, y: -4)
-                        }
+            SquadLogoMarkView(logoId: preset.id, size: 82, showsBorder: isSelected)
+                .overlay(alignment: .topTrailing) {
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 18, weight: .black))
+                            .foregroundStyle(Color.unbound.bg, preset.palette.primary)
+                            .offset(x: 5, y: -5)
                     }
-                Text(preset.title.uppercased())
-                    .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                    .tracking(0.8)
-                    .foregroundStyle(isSelected ? Color.unbound.textPrimary : Color.unbound.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.74)
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 112)
-            .contentShape(Rectangle())
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 96)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color.unbound.surface.opacity(isSelected ? 0.9 : 0.0))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(
+                            isSelected ? preset.palette.primary.opacity(0.5) : Color.clear,
+                            lineWidth: 1
+                        )
+                )
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("\(preset.title) squad mark"))

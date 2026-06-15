@@ -11,8 +11,8 @@ extension UnboundHomeView {
 
             // The System opens the screen — quest-window voice, not a casual
             // greeting. The console below carries the day's quest itself.
-            // The directive band sits centered between the top bar and the
-            // quest console — equal, tight air on both sides.
+            // Keep the System directive close to the quest console so the
+            // first viewport starts with action instead of empty art.
             HomeSystemDirectiveLine(
                 message: systemDirectiveText,
                 dayText: shortDayString()
@@ -20,7 +20,7 @@ extension UnboundHomeView {
             .padding(.top, 16)
 
             trainingConsole
-                .padding(.top, 16)
+                .padding(.top, 8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.bottom, 2)

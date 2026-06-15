@@ -4,26 +4,25 @@ import UIKit
 
 struct BodyLoadHeatmapView: View {
     let loads: [BodyRegion: Double]
+    let statuses: [BodyRegion: BodyLoadRegionStatus]
     let plannedRegions: [BodyRegion]
     @State private var selectedRegion: BodyRegion?
 
-    private var readings: [BodyLoadRegionReading] {
-        loads
-            .filter { $0.value > 0.05 }
-            .map { BodyLoadRegionReading(region: $0.key, load: $0.value) }
-            .sorted { lhs, rhs in
-                if lhs.load == rhs.load { return lhs.region.displayName < rhs.region.displayName }
-                return lhs.load > rhs.load
-            }
+    private var hasRecentLoad: Bool {
+        loads.contains { $0.value > 0.05 }
     }
 
-    private var topReading: BodyLoadRegionReading? {
-        readings.first
+    private var selectedStatus: BodyLoadRegionStatus? {
+        guard let selectedRegion else { return nil }
+        return statuses[selectedRegion] ?? BodyLoadRegionStatus(
+            region: selectedRegion,
+            load: loads[selectedRegion] ?? 0
+        )
     }
 
     private var selectedReading: BodyLoadRegionReading? {
-        guard let selectedRegion else { return nil }
-        return BodyLoadRegionReading(region: selectedRegion, load: loads[selectedRegion] ?? 0)
+        guard let selectedStatus else { return nil }
+        return BodyLoadRegionReading(region: selectedStatus.region, load: selectedStatus.load)
     }
 
     private var plannedSummary: String? {
@@ -47,10 +46,6 @@ struct BodyLoadHeatmapView: View {
                 BodyLoadFigure(side: .back, loads: loads, selectedRegion: $selectedRegion)
             }
 
-            if let selectedReading {
-                BodyLoadSelectionStrip(reading: selectedReading)
-            }
-
             footer
         }
         .padding(.vertical, 16)
@@ -69,38 +64,53 @@ struct BodyLoadHeatmapView: View {
 
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
-            if let topReading {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("BODY LOAD")
-                        .font(Font.unbound.captionS.weight(.black))
-                        .tracking(1.8)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text(topReading.region.displayName.uppercased())
-                        .font(.system(size: 24, weight: .black))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                    Text("Last 7 days")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color.unbound.textTertiary)
-                }
+            VStack(alignment: .leading, spacing: 5) {
+                Text("BODY LOAD")
+                    .font(Font.unbound.captionS.weight(.black))
+                    .tracking(1.8)
+                    .foregroundStyle(Color.unbound.textTertiary)
 
-                Spacer(minLength: 8)
+                Text(headerTitle)
+                    .font(.system(size: 24, weight: .black))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
 
-                BodyLoadBandPill(band: topReading.band)
+                Text(headerSubtitle)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.78)
+            }
+
+            Spacer(minLength: 8)
+
+            if let selectedReading {
+                BodyLoadBandPill(band: selectedReading.band)
             } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("BODY LOAD")
-                        .font(Font.unbound.captionS.weight(.black))
-                        .tracking(1.8)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text("NO RECENT LOAD")
-                        .font(.system(size: 23, weight: .black))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                }
-                Spacer()
+                BodyLoadContextPill(text: "LAST 7 DAYS")
             }
         }
+    }
+
+    private var headerTitle: String {
+        if let selectedReading {
+            return selectedReading.region.displayName.uppercased()
+        }
+        return hasRecentLoad ? "SELECT A REGION" : "NO RECENT LOAD"
+    }
+
+    private var headerSubtitle: String {
+        if let selectedStatus {
+            return "\(selectedStatus.lastTrainedText()) · \(selectedStatus.recoveryText())"
+        }
+        if hasRecentLoad {
+            return "Tap the map to focus one body area."
+        }
+        if let plannedSummary {
+            return "Next target: \(plannedSummary)."
+        }
+        return "Log a session to light up the map."
     }
 
     private var footer: some View {
@@ -518,57 +528,10 @@ struct BodyLoadRegionReading: Identifiable {
         BodyLoadBand.band(for: load)
     }
 
-    var loadText: String {
-        if load < 1 {
-            return "<1"
-        }
-        return "\(Int(load.rounded()))"
-    }
-
     var accessibilityValue: String {
-        "\(band.label), \(loadText) recent load"
-    }
-}
-
-struct BodyLoadSelectionStrip: View {
-    let reading: BodyLoadRegionReading
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(reading.band.tint)
-                .frame(width: 8, height: 8)
-                .shadow(color: reading.band.tint.opacity(0.55), radius: 4)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(reading.region.displayName.uppercased())
-                    .font(.system(size: 12, weight: .black, design: .monospaced))
-                    .tracking(0.7)
-                    .foregroundStyle(Color.unbound.textPrimary)
-
-                Text("\(reading.band.label.uppercased()) · \(reading.loadText) LOAD")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .tracking(0.5)
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-
-            Spacer(minLength: 8)
-
-            Image(systemName: "scope")
-                .font(.system(size: 13, weight: .heavy))
-                .foregroundStyle(reading.band.tint)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(
-            Capsule(style: .continuous)
-                .fill(Color.unbound.bg.opacity(0.42))
-        )
-        .overlay(
-            Capsule(style: .continuous)
-                .strokeBorder(reading.band.tint.opacity(0.34), lineWidth: 1)
-        )
-        .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .center)))
+        load < 0.5
+            ? "No recent training load"
+            : "\(band.label) recent training load"
     }
 }
 
@@ -589,6 +552,27 @@ struct BodyLoadBandPill: View {
             .overlay(
                 Capsule()
                     .strokeBorder(band.tint.opacity(0.28), lineWidth: 1)
+            )
+    }
+}
+
+struct BodyLoadContextPill: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+            .tracking(0.7)
+            .foregroundStyle(Color.unbound.textTertiary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(Color.unbound.bg.opacity(0.42))
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
             )
     }
 }

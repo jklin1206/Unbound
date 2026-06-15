@@ -462,6 +462,8 @@ struct RoutinePlayerView: View {
     }
 
     private func tick() {
+        guard !isComplete, current != nil else { return }
+
         elapsedSeconds += 1
         guard let step = current else { return }
         switch step.kind {

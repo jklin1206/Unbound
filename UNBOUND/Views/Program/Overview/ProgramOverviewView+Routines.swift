@@ -1,17 +1,26 @@
 import SwiftUI
 
 extension ProgramOverviewView {
-    // MARK: - ROUTINES tab
+    // MARK: - DUNGEONS tab
 
     var routinesTab: some View {
         ProgramRoutinesTab(
             selectedChallengeId: $selectedChallengeId,
             selectedRoutineIdsByCategory: $selectedRoutineIdsByCategory,
+            currentTier: routineAccessTier,
             onBeginRoutine: beginRoutineTravel
         )
+        .task {
+            await refreshRoutineAccessTier()
+        }
     }
 
     func beginRoutineTravel(_ routine: RoutineDef) {
+        guard RoutineUnlockPolicy.state(for: routine, currentTier: routineAccessTier).isUnlocked else {
+            UnboundHaptics.soft()
+            return
+        }
+
         UnboundHaptics.medium()
         travelingRoutine = routine
         routineTravelProgress = 0
@@ -27,6 +36,14 @@ extension ProgramOverviewView {
                 routineTravelProgress = 0
             }
         }
+    }
+
+    func refreshRoutineAccessTier() async {
+        guard let userId = services.auth.currentUserId else {
+            routineAccessTier = .initiate
+            return
+        }
+        routineAccessTier = await services.rank.aggregateTier(userId: userId)
     }
 
     #if DEBUG

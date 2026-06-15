@@ -4,12 +4,13 @@ import UIKit
 struct ProgramRoutinesTab: View {
     @Binding var selectedChallengeId: String
     @Binding var selectedRoutineIdsByCategory: [RoutineCategory: String]
+    let currentTier: SkillTier
     let onBeginRoutine: (RoutineDef) -> Void
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
-                Text("Pick a side mission when the main plan is not the move. Rewards come from the work you log.")
+                Text("Enter a dungeon when today needs a different shape. Reach higher depths to open deeper floors.")
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -35,29 +36,35 @@ struct ProgramRoutinesTab: View {
                 Image(systemName: RoutineCategory.challenge.systemImage)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(RoutineCategory.challenge.color)
-                Text("CHALLENGE LIBRARY")
+                Text("DUNGEON BOARD")
                     .font(Font.unbound.captionS.weight(.bold))
                     .tracking(1.6)
                     .foregroundStyle(RoutineCategory.challenge.color)
                 Spacer()
-                Text("\(challenges.count) missions")
+                Text("\(challenges.count) dungeons")
                     .font(Font.unbound.monoS)
                     .foregroundStyle(Color.unbound.textTertiary)
             }
 
             TabView(selection: $selectedChallengeId) {
                 ForEach(challenges) { routine in
+                    let unlockState = RoutineUnlockPolicy.state(for: routine, currentTier: currentTier)
                     Button {
+                        guard unlockState.isUnlocked else {
+                            UnboundHaptics.soft()
+                            return
+                        }
                         onBeginRoutine(routine)
                     } label: {
-                        RoutineChallengeCard(routine: routine)
+                        RoutineChallengeCard(routine: routine, unlockState: unlockState)
                     }
                     .buttonStyle(RoutineChallengePressStyle())
+                    .disabled(!unlockState.isUnlocked)
                     .tag(routine.id)
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 356)
+            .frame(height: RoutineDungeonLayout.cardHeight)
 
             RoutineChallengeDots(challenges: challenges, selectedId: selectedChallengeId)
         }
@@ -80,28 +87,39 @@ struct ProgramRoutinesTab: View {
                     .tracking(1.6)
                     .foregroundStyle(category.color)
                 Spacer()
-                Text("\(items.count) missions")
+                Text("\(items.count) dungeons")
                     .font(Font.unbound.monoS)
                     .foregroundStyle(Color.unbound.textTertiary)
             }
 
             TabView(selection: selection) {
                 ForEach(items) { routine in
+                    let unlockState = RoutineUnlockPolicy.state(for: routine, currentTier: currentTier)
                     Button {
+                        guard unlockState.isUnlocked else {
+                            UnboundHaptics.soft()
+                            return
+                        }
                         onBeginRoutine(routine)
                     } label: {
-                        RoutineChallengeCard(routine: routine)
+                        RoutineChallengeCard(routine: routine, unlockState: unlockState)
                     }
                     .buttonStyle(RoutineChallengePressStyle())
+                    .disabled(!unlockState.isUnlocked)
                     .tag(routine.id)
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 356)
+            .frame(height: RoutineDungeonLayout.cardHeight)
 
             RoutineChallengeDots(challenges: items, selectedId: selection.wrappedValue)
         }
     }
+}
+
+private enum RoutineDungeonLayout {
+    static let cardHeight: CGFloat = 352
+    static let fallbackCoverAspectRatio: CGFloat = 2688.0 / 1520.0
 }
 
 // MARK: - Routine step preview helper
@@ -110,13 +128,21 @@ private func routineStepPreview(_ step: RoutineStep) -> String {
     switch step {
     case .instruction(let t, _):            return t
     case .timed(let l, let s, _):           return "\(l) — \(s)s"
-    case .interval(let l, let r, _):        return "\(l) — \(r) rounds"
+    case .interval(let l, let r, let segs):
+        let work = segs.map { "\($0.label) \($0.seconds)s" }.joined(separator: " / ")
+        return work.isEmpty ? "\(l) — \(r) rounds" : "\(l) — \(r) rounds: \(work)"
     case .repTarget(let n, let t, _):       return t.map { "\(n) — \($0)" } ?? "\(n) — AMRAP"
     case .circuit(let r, _, let steps):
         let moves = steps.compactMap(routineStepShortLabel).prefix(4).joined(separator: " + ")
         return moves.isEmpty ? "Circuit × \(r) rounds" : "Circuit × \(r): \(moves)"
     case .note(let t):                      return t
     }
+}
+
+private func routineRunStepPreview(_ runStep: RoutineRunStep) -> String {
+    let preview = routineStepPreview(runStep.kind)
+    guard let roundLabel = runStep.roundLabel else { return preview }
+    return "\(roundLabel): \(preview)"
 }
 
 private func routineStepShortLabel(_ step: RoutineStep) -> String? {
@@ -162,32 +188,34 @@ private struct RoutineDifficultyBadge: View {
         .padding(.vertical, compact ? 6 : 8)
         .background(Capsule().fill(Color.unbound.bg.opacity(compact ? 0.62 : 0.52)))
         .overlay(Capsule().strokeBorder(tint.opacity(0.36), lineWidth: 1))
-        .accessibilityLabel("\(tier.displayName) routine difficulty")
+        .accessibilityLabel("\(tier.displayName) dungeon difficulty")
     }
 }
 
 struct RoutineChallengeCard: View {
     let routine: RoutineDef
+    let unlockState: RoutineUnlockState
 
     private var canComplete: Bool {
         RoutineHistoryStore.shared.canComplete(routineId: routine.id)
+    }
+
+    private var coverAspectRatio: CGFloat {
+        UIImage(named: routine.coverAssetName)?.routineCoverAspectRatio ?? RoutineDungeonLayout.fallbackCoverAspectRatio
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack(alignment: .bottomLeading) {
                 routineCover
-                    .frame(height: 198)
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
                 LinearGradient(
                     colors: [.clear, Color.unbound.bg.opacity(0.70), Color.unbound.bg.opacity(0.92)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 7) {
                     statusChip
                     Text(routine.title.uppercased())
                         .font(Font.unbound.titleL)
@@ -200,37 +228,47 @@ struct RoutineChallengeCard: View {
                         .foregroundStyle(Color.unbound.textSecondary)
                         .lineLimit(2)
                 }
-                .padding(18)
-            }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 16)
 
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 8) {
+                if !unlockState.isUnlocked {
+                    lockedOverlay
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                }
+            }
+            .aspectRatio(coverAspectRatio, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 7) {
                     metricPill(value: routine.durationLabel, label: "TIME")
-                    rankMetricPill(tier: routine.difficultyTier)
-                    metricPill(value: "PROOF", label: "LVL XP")
+                    depthMetricPill(tier: routine.difficultyTier)
+                    unlockMetricPill
                 }
 
-                HStack(spacing: 12) {
-                    Text(routine.steps.first.map(routineStepPreview) ?? "Open the mission and start.")
+                HStack(spacing: 10) {
+                    Text(unlockState.isUnlocked ? routine.steps.first.map(routineStepPreview) ?? "Open the dungeon and start." : unlockState.requirementText)
                         .font(Font.unbound.captionS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .lineLimit(2)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     HStack(spacing: 6) {
-                        Text(canComplete ? "READY" : "OPEN")
+                        Text(actionLabel)
                             .font(Font.unbound.captionS.weight(.heavy))
                             .tracking(1.4)
-                        Image(systemName: canComplete ? "arrow.right" : "checkmark.seal.fill")
+                        Image(systemName: actionIcon)
                             .font(.system(size: 11, weight: .bold))
                     }
                     .foregroundStyle(Color.unbound.bg)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 9)
-                    .background(Capsule().fill(canComplete ? routine.category.color : Color.unbound.textTertiary))
+                    .background(Capsule().fill(actionTint))
                 }
             }
-            .padding(16)
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 15)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
@@ -250,8 +288,10 @@ struct RoutineChallengeCard: View {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFill()
-                .saturation(canComplete ? 1 : 0.25)
-                .opacity(canComplete ? 0.9 : 0.48)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+                .saturation(unlockState.isUnlocked && canComplete ? 1 : 0.22)
+                .opacity(unlockState.isUnlocked ? (canComplete ? 0.92 : 0.56) : 0.34)
         } else {
             ZStack {
                 LinearGradient(
@@ -294,17 +334,94 @@ struct RoutineChallengeCard: View {
     private var statusChip: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(canComplete ? routine.category.color : Color.unbound.textTertiary)
+                .fill(statusTint)
                 .frame(width: 6, height: 6)
-            Text(canComplete ? "MISSION READY" : "CLEARED TODAY")
+            Text(statusText)
                 .font(Font.unbound.monoS.weight(.heavy))
                 .tracking(1.3)
         }
-        .foregroundStyle(canComplete ? routine.category.color : Color.unbound.textTertiary)
+        .foregroundStyle(statusTint)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(Capsule().fill(Color.unbound.bg.opacity(0.62)))
         .overlay(Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+    }
+
+    private var lockedOverlay: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 7) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 11, weight: .bold))
+                Text("SEALED")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.3)
+            }
+            Text(unlockState.lockedText.uppercased())
+                .font(Font.unbound.monoS.weight(.bold))
+                .tracking(0.8)
+        }
+        .foregroundStyle(Color.unbound.textPrimary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.76))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color.unbound.textTertiary.opacity(0.36), lineWidth: 1)
+        )
+        .padding(16)
+    }
+
+    private var statusText: String {
+        if !unlockState.isUnlocked { return "SEALED" }
+        return canComplete ? "DUNGEON READY" : "CLEARED TODAY"
+    }
+
+    private var statusTint: Color {
+        if !unlockState.isUnlocked { return Color.unbound.textTertiary }
+        return canComplete ? routine.category.color : Color.unbound.textTertiary
+    }
+
+    private var actionLabel: String {
+        if !unlockState.isUnlocked { return "SEALED" }
+        return canComplete ? "ENTER" : "OPEN"
+    }
+
+    private var actionIcon: String {
+        if !unlockState.isUnlocked { return "lock.fill" }
+        return canComplete ? "arrow.right" : "checkmark.seal.fill"
+    }
+
+    private var actionTint: Color {
+        if !unlockState.isUnlocked { return Color.unbound.textTertiary }
+        return canComplete ? routine.category.color : Color.unbound.textTertiary
+    }
+
+    private var unlockMetricPill: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(unlockState.isUnlocked ? "OPEN" : unlockState.requiredTier.displayName.uppercased())
+                .font(Font.unbound.monoS.weight(.bold))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.62)
+            Text(unlockState.isUnlocked ? "DUNGEON" : "DEPTH")
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .tracking(1.1)
+                .foregroundStyle(Color.unbound.textTertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.surfaceElevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder((unlockState.isUnlocked ? routine.category.color : Color.unbound.textTertiary).opacity(0.22), lineWidth: 1)
+        )
     }
 
     private func metricPill(value: String, label: String) -> some View {
@@ -328,7 +445,7 @@ struct RoutineChallengeCard: View {
         )
     }
 
-    private func rankMetricPill(tier: SkillTier) -> some View {
+    private func depthMetricPill(tier: SkillTier) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
                 Image(tier.assetName)
@@ -343,7 +460,7 @@ struct RoutineChallengeCard: View {
                     .minimumScaleFactor(0.68)
             }
 
-            Text("RANK")
+            Text("DEPTH")
                 .font(.system(size: 8, weight: .heavy, design: .monospaced))
                 .tracking(1.1)
                 .foregroundStyle(Color.unbound.textTertiary)
@@ -359,7 +476,7 @@ struct RoutineChallengeCard: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(tier.rewardTextTint.opacity(0.24), lineWidth: 1)
         )
-        .accessibilityLabel("\(tier.displayName) routine rank")
+        .accessibilityLabel("\(tier.displayName) dungeon depth")
     }
 }
 
@@ -404,7 +521,7 @@ struct RoutineTravelOverlay: View {
                         .scaleEffect(1 + progress * 0.12)
                 }
 
-                Text("ENTERING MISSION")
+                Text("ENTERING DUNGEON")
                     .font(Font.unbound.monoS.weight(.heavy))
                     .tracking(2.0)
                     .foregroundStyle(routine.category.color)
@@ -424,6 +541,13 @@ struct RoutineChallengePressStyle: ButtonStyle {
 
 private extension RoutineDef {
     var coverAssetName: String { "routine_challenge_\(id)" }
+}
+
+private extension UIImage {
+    var routineCoverAspectRatio: CGFloat {
+        guard size.height > 0 else { return RoutineDungeonLayout.fallbackCoverAspectRatio }
+        return size.width / size.height
+    }
 }
 
 struct RoutineCompletionFlow: View {
@@ -578,7 +702,11 @@ private struct RoutineReadyFace: View {
     }
 
     private var runCount: Int {
-        RoutineRun.build(routine.steps).run.count
+        planRun.count
+    }
+
+    private var planRun: [RoutineRunStep] {
+        RoutineRun.build(routine.steps).run
     }
 
     var body: some View {
@@ -620,7 +748,7 @@ private struct RoutineReadyFace: View {
 
             Spacer()
 
-            Text("ROUTINE READY")
+            Text("DUNGEON READY")
                 .font(Font.unbound.captionS.weight(.heavy))
                 .tracking(2.0)
                 .foregroundStyle(routine.category.color)
@@ -681,9 +809,9 @@ private struct RoutineReadyFace: View {
     private func routineCoverHero(_ image: UIImage) -> some View {
         Image(uiImage: image)
             .resizable()
-            .scaledToFill()
+            .scaledToFit()
             .frame(maxWidth: .infinity)
-            .frame(height: 168)
+            .aspectRatio(image.routineCoverAspectRatio, contentMode: .fit)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
                 LinearGradient(
@@ -703,7 +831,7 @@ private struct RoutineReadyFace: View {
     private var routineStats: some View {
         HStack(spacing: 8) {
             statPill(value: routine.durationLabel, label: "TIME", icon: "clock")
-            statPill(value: routine.difficultyTier.displayName.uppercased(), label: "RANK", icon: "shield.lefthalf.filled")
+            statPill(value: routine.difficultyTier.displayName.uppercased(), label: "DEPTH", icon: "shield.lefthalf.filled")
             statPill(value: "\(runCount)", label: "STEPS", icon: "list.bullet")
             statPill(value: canEarnLevelXP ? "PROOF" : "LOGGED", label: "LVL XP", icon: "sparkles")
         }
@@ -711,13 +839,13 @@ private struct RoutineReadyFace: View {
 
     private var stepPreview: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("MISSION PLAN")
+            Text("DUNGEON PLAN")
                 .font(Font.unbound.captionS.weight(.heavy))
                 .tracking(1.7)
                 .foregroundStyle(Color.unbound.textTertiary)
 
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(routine.steps.prefix(6).enumerated()), id: \.offset) { index, step in
+                ForEach(Array(planRun.enumerated()), id: \.offset) { index, step in
                     HStack(alignment: .top, spacing: 12) {
                         Text("\(index + 1)")
                             .font(Font.unbound.monoS.weight(.heavy))
@@ -725,26 +853,18 @@ private struct RoutineReadyFace: View {
                             .frame(width: 20, alignment: .trailing)
                             .padding(.top, 1)
 
-                        Text(routineStepPreview(step))
+                        Text(routineRunStepPreview(step))
                             .font(Font.unbound.bodyS)
                             .foregroundStyle(Color.unbound.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.vertical, 11)
 
-                    if index < min(routine.steps.count, 6) - 1 {
+                    if index < planRun.count - 1 {
                         Divider()
                             .background(Color.unbound.borderSubtle)
                             .padding(.leading, 32)
                     }
-                }
-
-                if routine.steps.count > 6 {
-                    Text("+\(routine.steps.count - 6) more steps")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .padding(.top, 12)
-                        .padding(.leading, 32)
                 }
             }
             .padding(14)
@@ -768,7 +888,7 @@ private struct RoutineReadyFace: View {
                 HStack(spacing: 10) {
                     Image(systemName: "play.fill")
                         .font(.system(size: 13, weight: .bold))
-                    Text("START ROUTINE")
+                    Text("START DUNGEON")
                         .font(Font.unbound.bodyMStrong)
                         .tracking(1.6)
                 }
@@ -839,6 +959,10 @@ private struct RoutinePreviewSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var didComplete: Bool = false
 
+    private var planRun: [RoutineRunStep] {
+        RoutineRun.build(routine.steps).run
+    }
+
     var body: some View {
         ZStack {
             Color.unbound.bg.ignoresSafeArea()
@@ -869,9 +993,9 @@ private struct RoutinePreviewSheet: View {
                     if let image = UIImage(named: routine.coverAssetName) {
                         Image(uiImage: image)
                             .resizable()
-                            .scaledToFill()
+                            .scaledToFit()
                             .frame(maxWidth: .infinity)
-                            .frame(height: 172)
+                            .aspectRatio(image.routineCoverAspectRatio, contentMode: .fit)
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             .overlay(
                                 LinearGradient(
@@ -901,7 +1025,7 @@ private struct RoutinePreviewSheet: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    if !routine.steps.isEmpty {
+                    if !planRun.isEmpty {
                         VStack(alignment: .leading, spacing: 0) {
                             Text("HOW TO DO IT")
                                 .font(.system(size: 9, weight: .heavy, design: .monospaced))
@@ -909,20 +1033,20 @@ private struct RoutinePreviewSheet: View {
                                 .foregroundStyle(Color.unbound.textTertiary)
                                 .padding(.bottom, 10)
 
-                            ForEach(Array(routine.steps.enumerated()), id: \.offset) { i, step in
+                            ForEach(Array(planRun.enumerated()), id: \.offset) { i, step in
                                 HStack(alignment: .top, spacing: 12) {
                                     Text("\(i + 1)")
                                         .font(.system(size: 11, weight: .heavy, design: .monospaced))
                                         .foregroundStyle(routine.category.color)
                                         .frame(width: 20, alignment: .trailing)
                                         .padding(.top, 1)
-                                    Text(routineStepPreview(step))
+                                    Text(routineRunStepPreview(step))
                                         .font(Font.unbound.bodyM)
                                         .foregroundStyle(Color.unbound.textPrimary)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                                 .padding(.vertical, 10)
-                                if i < routine.steps.count - 1 {
+                                if i < planRun.count - 1 {
                                     Divider()
                                         .background(Color.unbound.borderSubtle)
                                 }

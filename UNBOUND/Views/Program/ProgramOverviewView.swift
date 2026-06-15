@@ -4,11 +4,11 @@ import SwiftUI
 //
 // Three-tab surface for the user's training plan.
 //
-//   PROGRAM  — current-week strip + selected-day card (workout preview,
+//   DAILY    — current-week strip + selected-day card (workout preview,
 //              exercise list, BEGIN button for today).
-//   ROUTINES — curated library of off-day / variety routines
-//              (cardio, mobility, challenges, alt circuits). Placeholder
-//              content until a real RoutineLibrary service ships.
+//   DUNGEONS — curated library of off-day quests
+//              (cardio, mobility, dungeons, loadouts). Placeholder
+//              content until a real quest library service ships.
 //   RANKS    — current skill and exercise rank library.
 //
 // Taps on day tiles open DayDetailView as a preview (always preview-first,
@@ -70,10 +70,11 @@ struct ProgramOverviewView: View {
     // Travel override (user hit the TRAVEL coach action)
     @State var activeTravelOverride: TravelOverride?
 
-    // Routines view state
+    // Dungeon/quest view state
     @State var activeRoutinePlayer: RoutineDef?
     @State var selectedChallengeId: String = "daily-quest"
     @State var selectedRoutineIdsByCategory: [RoutineCategory: String] = [:]
+    @State var routineAccessTier: SkillTier = .initiate
     @State var travelingRoutine: RoutineDef?
     @State var routineTravelProgress: CGFloat = 0
     #if DEBUG

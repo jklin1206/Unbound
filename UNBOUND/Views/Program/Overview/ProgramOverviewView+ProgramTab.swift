@@ -1,7 +1,7 @@
 import SwiftUI
 
 extension ProgramOverviewView {
-    // MARK: - PROGRAM tab
+    // MARK: - DAILY tab
 
     @ViewBuilder
     var programTab: some View {

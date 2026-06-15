@@ -97,6 +97,7 @@ struct SideQuestPlayerView: View {
             repsDone = currentExercise.defaultRepCount
         }
         .onReceive(clock) { _ in
+            guard !isComplete else { return }
             elapsedSeconds += 1
             guard isResting else { return }
             if restSecondsRemaining <= 1 {

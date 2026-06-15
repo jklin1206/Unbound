@@ -1,5 +1,76 @@
 import Foundation
 
+struct BodyLoadRegionStatus: Equatable {
+    let region: BodyRegion
+    var load: Double
+    var lastTrainedAt: Date?
+
+    init(region: BodyRegion, load: Double = 0, lastTrainedAt: Date? = nil) {
+        self.region = region
+        self.load = load
+        self.lastTrainedAt = lastTrainedAt
+    }
+
+    var recoveryHours: Int {
+        let displayedLoad = load < 1 ? load : Double(Int(load.rounded()))
+        switch displayedLoad {
+        case ..<0.5:
+            return 0
+        case ..<6:
+            return 24
+        case ..<13:
+            return 36
+        case ..<22:
+            return 48
+        default:
+            return 72
+        }
+    }
+
+    var recoveryReadyAt: Date? {
+        guard let lastTrainedAt else { return nil }
+        return lastTrainedAt.addingTimeInterval(TimeInterval(recoveryHours) * 60 * 60)
+    }
+
+    func lastTrainedText(relativeTo now: Date = .now) -> String {
+        guard let lastTrainedAt else { return "No recent session" }
+        return "Last trained \(Self.relativeText(since: lastTrainedAt, now: now))"
+    }
+
+    func recoveryText(relativeTo now: Date = .now) -> String {
+        guard let recoveryReadyAt else { return "Ready now" }
+        let remaining = recoveryReadyAt.timeIntervalSince(now)
+        guard remaining > 0 else { return "Ready now" }
+        return "Ready in \(Self.durationText(remaining))"
+    }
+
+    private static func relativeText(since date: Date, now: Date) -> String {
+        let seconds = max(0, now.timeIntervalSince(date))
+        if seconds < 60 * 60 {
+            return "\(max(1, Int(seconds / 60)))m ago"
+        }
+        if seconds < 24 * 60 * 60 {
+            return "\(max(1, Int(seconds / (60 * 60))))h ago"
+        }
+        let days = max(1, Int(seconds / (24 * 60 * 60)))
+        return days == 1 ? "yesterday" : "\(days)d ago"
+    }
+
+    private static func durationText(_ seconds: TimeInterval) -> String {
+        let minutes = Int(ceil(seconds / 60))
+        if minutes < 60 {
+            return "\(max(1, minutes))m"
+        }
+        let hours = Int(ceil(Double(minutes) / 60.0))
+        if hours < 24 {
+            return "\(hours)h"
+        }
+        let days = hours / 24
+        let remainingHours = hours % 24
+        return remainingHours == 0 ? "\(days)d" : "\(days)d \(remainingHours)h"
+    }
+}
+
 /// Pure, dependency-free derivations from a single recent-logs fetch.
 /// Exists so the Home load can dedupe three `workout_logs` fetches into one
 /// and still be unit-tested. The week logic is lifted verbatim from the
@@ -14,30 +85,50 @@ enum HomeLoadDerivations {
                                 now: Date = .now,
                                 calendar baseCal: Calendar = .current,
                                 recentDays: Int = 7) -> [BodyRegion: Double] {
+        bodyRegionStatuses(logs, now: now, calendar: baseCal, recentDays: recentDays)
+            .reduce(into: [:]) { result, entry in
+                if entry.value.load > 0.05 {
+                    result[entry.key] = entry.value.load
+                }
+            }
+    }
+
+    static func bodyRegionStatuses(_ logs: [WorkoutLog],
+                                   now: Date = .now,
+                                   calendar baseCal: Calendar = .current,
+                                   recentDays: Int = 7) -> [BodyRegion: BodyLoadRegionStatus] {
         guard recentDays > 0 else { return [:] }
 
-        var loads: [BodyRegion: Double] = [:]
+        var statuses: [BodyRegion: BodyLoadRegionStatus] = [:]
         let cutoff = baseCal.date(byAdding: .day, value: -recentDays, to: now)
             ?? now.addingTimeInterval(-TimeInterval(recentDays) * 24 * 60 * 60)
         let window = max(1, now.timeIntervalSince(cutoff))
 
-        for log in logs where log.startedAt >= cutoff && log.startedAt <= now {
+        for log in logs where log.startedAt <= now {
             let age = max(0, now.timeIntervalSince(log.startedAt))
             let recency = max(0.55, 1.0 - (age / window) * 0.45)
+            let shouldCountRecentLoad = log.startedAt >= cutoff
 
             for entry in log.exerciseEntries where !entry.skipped {
                 let completedSets = entry.sets.filter { !$0.isWarmup }.count
                 let setCount = completedSets > 0 ? completedSets : entry.plannedSets
                 guard setCount > 0 else { continue }
 
-                let score = Double(setCount) * recency * rpeMultiplier(for: entry)
+                let score = shouldCountRecentLoad
+                    ? Double(setCount) * recency * rpeMultiplier(for: entry)
+                    : 0
                 for region in bodyRegions(for: entry) {
-                    loads[region, default: 0] += score
+                    var status = statuses[region] ?? BodyLoadRegionStatus(region: region)
+                    status.load += score
+                    if status.lastTrainedAt.map({ log.startedAt > $0 }) ?? true {
+                        status.lastTrainedAt = log.startedAt
+                    }
+                    statuses[region] = status
                 }
             }
         }
 
-        return loads
+        return statuses
     }
 
     /// Monday-indexed (Mon=1 … Sun=7) set of weekdays with a session this

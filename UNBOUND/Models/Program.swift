@@ -148,6 +148,10 @@ struct ProgramDay: Codable, Identifiable, Hashable {
         savedWorkoutId != nil || userWorkoutDraft != nil
     }
 
+    var canStartWorkoutSession: Bool {
+        !isRestDay && (workout != nil || isUserOwnedWorkout)
+    }
+
     private enum CodingKeys: String, CodingKey {
         case id
         case dayNumber

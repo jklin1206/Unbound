@@ -36,44 +36,49 @@ struct TrialCardView: View {
                 kindBadge
             }
 
-            Spacer().frame(height: 20)
+            Spacer().frame(height: 14)
 
             WeeklyVowProofAsset(kind: card.kind, tint: tint)
-                .frame(width: 76, height: 76)
+                .frame(width: 60, height: 60)
                 .accessibilityHidden(true)
 
-            Spacer().frame(height: 18)
+            Spacer().frame(height: 10)
 
             // ── Big title ─────────────────────────────────────────────
             Text(card.displayName)
-                .font(.system(size: 36, weight: .black))
+                .font(.system(size: 30, weight: .black))
                 .foregroundStyle(Color.unbound.textPrimary)
                 .lineLimit(2)
                 .minimumScaleFactor(0.72)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Spacer().frame(height: 14)
+            Spacer().frame(height: 10)
 
             // ── Blurb ─────────────────────────────────────────────────
             Text(card.blurb)
-                .font(Font.unbound.bodyM)
+                .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
-                .lineSpacing(3)
+                .lineSpacing(2)
+                .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Spacer().frame(height: 24)
+            Spacer().frame(height: 14)
 
             // ── Session prescription pills ───────────────────────────
             vowPrescription
 
-            Spacer(minLength: 20)
+            Spacer().frame(height: 10)
+
+            vowTerms
+
+            Spacer(minLength: 12)
 
             // ── Standard divider ─────────────────────────────────────
             Rectangle()
                 .fill(Color.white.opacity(0.07))
                 .frame(height: 0.5)
 
-            Spacer().frame(height: 16)
+            Spacer().frame(height: 12)
 
             // ── Standard hint ────────────────────────────────────────
             proofHint
@@ -151,7 +156,7 @@ struct TrialCardView: View {
 
     private func vowPill(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+            .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
             .tracking(1.2)
             .foregroundStyle(tint)
             .lineLimit(1)
@@ -162,6 +167,51 @@ struct TrialCardView: View {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(tint.opacity(0.14))
             )
+    }
+
+    private var vowTerms: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            vowTermRow(label: "WHEN", text: windowSummary)
+            vowTermRow(label: "PROOF", text: proofSummary)
+            vowTermRow(label: "STAKES", text: "\(card.kind.rewardSummary) · \(card.kind.missDebtSummary)")
+        }
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.30))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(tint.opacity(card.kind == .apex ? 0.36 : 0.18), lineWidth: 1)
+        )
+    }
+
+    private var windowSummary: String {
+        if let prescription = card.prescription {
+            return "\(prescription.placement.vowDisplayLabel) · opens Sat"
+        }
+        return "Opens Sat"
+    }
+
+    private var proofSummary: String {
+        card.kind == .apex ? card.kind.proofRuleSummary : card.capstone.description
+    }
+
+    private func vowTermRow(label: String, text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(label)
+                .font(.system(size: 7.5, weight: .black, design: .monospaced))
+                .tracking(1.0)
+                .foregroundStyle(tint)
+                .frame(width: 42, alignment: .leading)
+
+            Text(text)
+                .font(.system(size: 9.5, weight: .semibold))
+                .foregroundStyle(Color.unbound.textSecondary)
+                .lineLimit(label == "PROOF" ? 2 : 1)
+                .minimumScaleFactor(0.76)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var proofHint: some View {
@@ -178,7 +228,7 @@ struct TrialCardView: View {
                 Text(card.capstone.displayName)
                     .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(2)
+                    .lineLimit(1)
                     .minimumScaleFactor(0.80)
             }
 
@@ -276,6 +326,19 @@ struct WeeklyVowCoachValidationStrip: View {
                         .strokeBorder(tint.opacity(0.24), lineWidth: 1)
                 )
             }
+        }
+    }
+}
+
+private extension WeeklyVowPrescription.Placement {
+    var vowDisplayLabel: String {
+        switch self {
+        case .recoveryDay:
+            return "Recovery day"
+        case .afterWorkout:
+            return "After workout"
+        case .dedicatedSession:
+            return "Dedicated session"
         }
     }
 }
