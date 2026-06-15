@@ -592,12 +592,12 @@ private struct HomeCommandStripButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .center, spacing: 6) {
+            VStack(alignment: .center, spacing: 7) {
                 HomeCommandMiniGlyph(kind: artwork, tint: tint)
-                    .frame(width: 30, height: 30)
+                    .frame(width: 38, height: 38)
 
                 Text(title.uppercased())
-                    .font(.system(size: 8.2, weight: .black, design: .monospaced))
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
                     .tracking(0.7)
                     .foregroundStyle(Color.unbound.textTertiary)
                     .lineLimit(2)
@@ -606,7 +606,7 @@ private struct HomeCommandStripButton: View {
                     .frame(height: 20, alignment: .top)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 62)
+            .frame(height: 74)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
