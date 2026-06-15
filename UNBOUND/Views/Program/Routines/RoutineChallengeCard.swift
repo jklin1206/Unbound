@@ -11,6 +11,12 @@ struct RoutineChallengeCard: View {
         RoutineUnlockPolicy.state(for: routine, currentTier: currentTier)
     }
 
+    // Size the cover to the art's real aspect ratio so the full image shows
+    // (no fixed-height crop / dead sky). Matches the native-surfaces layout.
+    private var coverAspectRatio: CGFloat {
+        UIImage(named: routine.coverAssetName)?.routineCoverAspectRatio ?? RoutineDungeonLayout.fallbackCoverAspectRatio
+    }
+
     private var canComplete: Bool {
         RoutineHistoryStore.shared.canComplete(routineId: routine.id)
     }
@@ -19,15 +25,12 @@ struct RoutineChallengeCard: View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack(alignment: .bottomLeading) {
                 routineCover
-                    .frame(height: 198)
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
                 LinearGradient(
                     colors: [.clear, Color.unbound.bg.opacity(0.70), Color.unbound.bg.opacity(0.92)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 8) {
                     statusChip
@@ -44,6 +47,8 @@ struct RoutineChallengeCard: View {
                 }
                 .padding(18)
             }
+            .aspectRatio(coverAspectRatio, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 8) {
@@ -134,6 +139,8 @@ struct RoutineChallengeCard: View {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
                 .saturation(canComplete ? 1 : 0.25)
                 .opacity(canComplete ? 0.9 : 0.48)
         } else {
@@ -244,5 +251,17 @@ struct RoutineChallengeCard: View {
                 .strokeBorder(tier.rewardTextTint.opacity(0.24), lineWidth: 1)
         )
         .accessibilityLabel("\(tier.displayName) routine rank")
+    }
+}
+
+enum RoutineDungeonLayout {
+    static let cardHeight: CGFloat = 352
+    static let fallbackCoverAspectRatio: CGFloat = 2688.0 / 1520.0
+}
+
+private extension UIImage {
+    var routineCoverAspectRatio: CGFloat {
+        guard size.height > 0 else { return RoutineDungeonLayout.fallbackCoverAspectRatio }
+        return size.width / size.height
     }
 }

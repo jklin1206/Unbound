@@ -58,7 +58,7 @@ struct ProgramRoutinesTab: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 356)
+            .frame(height: RoutineDungeonLayout.cardHeight)
 
             RoutineChallengeDots(challenges: challenges, selectedId: selectedChallengeId)
         }
@@ -98,7 +98,7 @@ struct ProgramRoutinesTab: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 356)
+            .frame(height: RoutineDungeonLayout.cardHeight)
 
             RoutineChallengeDots(challenges: items, selectedId: selection.wrappedValue)
         }
