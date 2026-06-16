@@ -16,7 +16,7 @@ protocol VowDebtLedger: AnyObject {
 final class LiveVowDebtLedger: VowDebtLedger {
     private let store: WeeklyVowsStore
 
-    init(store: WeeklyVowsStore = .shared) {
+    nonisolated init(store: WeeklyVowsStore = .shared) {
         self.store = store
     }
 

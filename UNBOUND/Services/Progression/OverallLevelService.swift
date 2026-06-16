@@ -3,6 +3,13 @@ import Foundation
 final class OverallLevelService {
     static let shared = OverallLevelService()
 
+    /// Consulted to garnish earned training XP against broken-vow debt (spec §5).
+    var vowDebtLedger: any VowDebtLedger = LiveVowDebtLedger()
+
+    #if DEBUG
+    static func makeForTesting() -> OverallLevelService { OverallLevelService() }
+    #endif
+
     private init() {}
 
     /// Last-known persisted progress per user, kept in memory so the reward
@@ -164,9 +171,13 @@ final class OverallLevelService {
             return VelocityWeighting.comebackMultiplier(daysSinceLastSession: days)
         }()
 
-        let xpGained = RewardLedgerQuantizer.wholePoints(
+        let earnedXP = RewardLedgerQuantizer.wholePoints(
             from: effectiveAP * max(1.0, noveltyMultiplier) * comeback
         ) + bolus
+        // Spec §5: broken-vow debt is paid out of earned training XP before it
+        // reaches the bar. Total XP never decreases; the bar simply pauses.
+        let withheld = await vowDebtLedger.consumeDebt(upTo: Int(earnedXP), userId: userId)
+        let xpGained = max(0, earnedXP - Double(withheld))
         progress.apply(xpGained: xpGained, sourceLogId: sourceLogId, at: date)
 
         let reward = OverallLevelReward(
@@ -177,7 +188,8 @@ final class OverallLevelService {
             previousLevel: previousLevel,
             currentLevel: progress.level,
             previousProgressToNextLevel: previousProgress,
-            currentProgressToNextLevel: progress.progressToNextLevel
+            currentProgressToNextLevel: progress.progressToNextLevel,
+            xpWithheldToVowDebt: Double(withheld)
         )
         progress.processedSourceRewards[sourceLogId] = reward
         try await persistOverallProgress(
