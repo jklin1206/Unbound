@@ -5,7 +5,7 @@ import Foundation
 /// Deterministic in (weekNumber, completionsByLane). Guarantees the most
 /// neglected lane appears, then fills to 3 spanning lanes/bets.
 enum VowWeeklyDraw {
-    static func cards(weekNumber: Int, completionsByLane: [VowLane: Int]) -> [WeeklyVowCard] {
+    static func cards(weekNumber: Int, yearForWeekOfYear: Int, completionsByLane: [VowLane: Int]) -> [WeeklyVowCard] {
         let pool = VowBankPool.all
         guard !pool.isEmpty else { return [] }
 
@@ -47,7 +47,7 @@ enum VowWeeklyDraw {
 
         return chosen.prefix(3).map { template in
             WeeklyVowCard(
-                id: "weekly-vow-W\(weekNumber)-\(template.templateId)",
+                id: "weekly-vow-\(yearForWeekOfYear)-W\(weekNumber)-\(template.templateId)",
                 lane: template.lane,
                 bet: template.bet,
                 displayName: template.displayName,

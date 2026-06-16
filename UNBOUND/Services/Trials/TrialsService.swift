@@ -66,8 +66,10 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         // Cards come from the curated bank pool draw, seeded by the lane the user
         // has kept least. Auto-detection (recovery/engine) seals elsewhere.
         let weekNumber = isoWeekNumber(for: newWeekStart)
+        let yearForWeekOfYear = Calendar.current.component(.yearForWeekOfYear, from: newWeekStart)
         let cards = VowWeeklyDraw.cards(
             weekNumber: weekNumber,
+            yearForWeekOfYear: yearForWeekOfYear,
             completionsByLane: state.completionsByLane
         )
 
