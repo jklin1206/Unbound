@@ -307,11 +307,10 @@ struct WeeklyVowRewardCallout: Identifiable, Equatable, Sendable {
     let id: String
     var vowId: String
     var performanceLogId: String
-    var cardKind: WeeklyVowKind
-    var theme: WeeklyVowTheme
+    var lane: VowLane
+    var bet: VowBet
     var title: String
     var subtitle: String
-    var proofName: String
     var receiptLine: String
     var shareTitle: String
     var shareSubtitle: String

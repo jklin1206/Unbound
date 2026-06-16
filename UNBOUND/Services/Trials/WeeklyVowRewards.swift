@@ -17,7 +17,7 @@ enum WeeklyVowPenaltyCatalog {
         state.weeklyVowPenaltyLedger.append(
             WeeklyVowPenaltyLedgerEntry(
                 vowId: vow.id,
-                cardKind: vow.chosenCard.kind,
+                lane: vow.chosenCard.lane,
                 weekStart: vow.weekStart,
                 missedAt: missedAt,
                 penaltyXP: owedXP
@@ -38,43 +38,27 @@ enum WeeklyVowCompletionBonusCatalog {
         performanceLog: PerformanceLog,
         completionCountAfter: Int
     ) -> WeeklyVowCompletionBonus {
-        let kind = vow.chosenCard.kind
+        let lane = vow.chosenCard.lane
         let awardedOverallLevelXP = vow.chosenCard.bet.winXP
         let badgeTarget = 3
         let cosmeticTarget = 5
         let badgeProgress = min(badgeTarget, ((completionCountAfter - 1) % badgeTarget) + 1)
         let cosmeticProgress = min(cosmeticTarget, ((completionCountAfter - 1) % cosmeticTarget) + 1)
-        let shareCard: WeeklyVowShareCardDescriptor?
-
-        if kind == .apex {
-            shareCard = WeeklyVowShareCardDescriptor(
-                id: "apex-vow-share-\(vow.id)-\(performanceLog.id)",
-                title: "\(vow.chosenCard.displayName) Cleared",
-                subtitle: "Binding Vow - \(vow.chosenCard.capstone.displayName)",
-                metadata: [
-                    "vowId": vow.id,
-                    "performanceLogId": performanceLog.id,
-                    "cardKind": kind.vowIdComponent,
-                    "completedAt": ISO8601DateFormatter().string(from: performanceLog.completedAt)
-                ]
-            )
-        } else {
-            shareCard = nil
-        }
+        let laneLabel = lane.displayLabel.capitalized
 
         return WeeklyVowCompletionBonus(
             overallLevelXP: awardedOverallLevelXP,
             badgeProgress: WeeklyVowProgressDescriptor(
-                title: "\(kind.displayName) I",
+                title: "\(laneLabel) I",
                 current: badgeProgress,
                 target: badgeTarget
             ),
             cosmeticProgress: WeeklyVowProgressDescriptor(
-                title: "\(kind.displayName) Mark",
+                title: "\(laneLabel) Mark",
                 current: cosmeticProgress,
                 target: cosmeticTarget
             ),
-            shareCard: shareCard,
+            shareCard: nil,
             baseOverallLevelXP: nil,
             penaltyAppliedXP: nil
         )

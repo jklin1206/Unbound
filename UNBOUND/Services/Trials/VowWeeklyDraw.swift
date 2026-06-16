@@ -48,18 +48,10 @@ enum VowWeeklyDraw {
         return chosen.prefix(3).map { template in
             WeeklyVowCard(
                 id: "weekly-vow-W\(weekNumber)-\(template.templateId)",
-                kind: .apex,                 // transient back-compat; retired in Core-3
-                theme: .wildcard,            // transient back-compat
-                displayName: template.displayName,
-                blurb: template.blurb,
-                capstone: WeeklyVowProof(
-                    displayName: template.displayName,
-                    description: template.blurb,
-                    evaluation: .manualClaim
-                ),
-                prescription: nil,
                 lane: template.lane,
                 bet: template.bet,
+                displayName: template.displayName,
+                blurb: template.blurb,
                 target: template.target
             )
         }
