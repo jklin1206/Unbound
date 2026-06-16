@@ -147,7 +147,11 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(state.pendingVowDebtXP, overdrive.bet.oweXP)
     }
 
-    func testRepickingAfterPickedVowAddsPenaltyForAbandonedVow() async {
+    /// Spec §10 switching grace (Binding Vows v2 Core-2): switching away from an
+    /// UNTOUCHED vow is free (mis-tap protection). Both legacy cards carry no
+    /// in-app progress, so the repick must NOT owe a stake. (Pre-Core-2 this
+    /// penalized unconditionally; the grace rule supersedes that.)
+    func testRepickingAfterUntouchedVowIsFree() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
         let overdrive = seedLegacyWeekCard(.overdrive)
@@ -158,9 +162,8 @@ final class WeeklyVowsServiceTests: XCTestCase {
 
         let state = service.state(userId: "u-1")
         XCTAssertEqual(state.currentVow?.id, apex.id)
-        XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 1)
-        XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.vowId, overdrive.id)
-        XCTAssertEqual(state.pendingVowDebtXP, overdrive.bet.oweXP)
+        XCTAssertTrue(state.weeklyVowPenaltyLedger.isEmpty)
+        XCTAssertEqual(state.pendingVowDebtXP, 0)
     }
 
     // MARK: - trainable vow routing
@@ -931,6 +934,156 @@ final class WeeklyVowsServiceTests: XCTestCase {
         let titleId = TitleID(path: .axis(.power), tier: .gold)
         service.equipTitle(titleId, userId: "u-1")
         XCTAssertNil(service.state(userId: "u-1").equippedTitle)
+    }
+
+    // MARK: - Core-2: lane completion (seal / fuel / auto-verify / switching grace)
+
+    /// Seed the given card as the current week's offer and commit it.
+    private func pickLaneVow(_ card: WeeklyVowCard, userId: String = "u-1") {
+        var state = service.state(userId: userId)
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [card]
+        store.save(state, userId: userId)
+        service.pickVowCard(card, userId: userId)
+    }
+
+    func testFuelTapIncrementsAndSealsAtTarget() {
+        let card = makeVowCard(lane: .fuel, bet: .small, target: VowTarget(count: 3, noun: "fuel anchor"))
+        pickLaneVow(card)
+
+        service.logFuelAnchor(userId: "u-1")
+        XCTAssertEqual(service.fuelAnchorCount(userId: "u-1"), 1)
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
+
+        service.logFuelAnchor(userId: "u-1")
+        XCTAssertEqual(service.fuelAnchorCount(userId: "u-1"), 2)
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
+
+        service.logFuelAnchor(userId: "u-1")
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed)
+        XCTAssertEqual(service.state(userId: "u-1").completionsByLane[.fuel], 1)
+    }
+
+    func testFuelTapDoesNothingForNonFuelVow() {
+        let card = makeVowCard(lane: .recovery, bet: .small, target: VowTarget(count: 1, noun: "recovery reset"))
+        pickLaneVow(card)
+
+        service.logFuelAnchor(userId: "u-1")
+        XCTAssertEqual(service.fuelAnchorCount(userId: "u-1"), 0)
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
+    }
+
+    func testSealVowPaysBetWinAndMarksCompleted() {
+        let card = makeVowCard(lane: .recovery, bet: .medium, target: VowTarget(count: 1, noun: "recovery reset"))
+        pickLaneVow(card)
+        guard let vow = service.state(userId: "u-1").currentVow else {
+            return XCTFail("expected a current vow")
+        }
+
+        service.sealVow(userId: "u-1", vow: vow, at: Date(timeIntervalSince1970: 1_700_001_000))
+        let state = service.state(userId: "u-1")
+        XCTAssertEqual(state.currentVow?.capstoneState, .completed)
+        XCTAssertNotNil(state.currentVow?.completedAt)
+        XCTAssertEqual(state.completionsByLane[.recovery], 1)
+    }
+
+    func testSealVowIsIdempotent() {
+        let card = makeVowCard(lane: .recovery, bet: .medium, target: VowTarget(count: 1, noun: "recovery reset"))
+        pickLaneVow(card)
+        guard let vow = service.state(userId: "u-1").currentVow else {
+            return XCTFail("expected a current vow")
+        }
+        service.sealVow(userId: "u-1", vow: vow, at: Date())
+        service.sealVow(userId: "u-1", vow: vow, at: Date())
+        XCTAssertEqual(service.state(userId: "u-1").completionsByLane[.recovery], 1)
+    }
+
+    func testRefreshAutoVerifiedVowSealsWhenLogsQualify() {
+        let recoveryLog = WorkoutLog(
+            id: "rec-1", userId: "u-1", programId: "p", dayNumber: 1,
+            plannedWorkoutName: "Recovery Reset",
+            startedAt: Date(timeIntervalSince1970: 1_700_000_300),
+            completedAt: Date(timeIntervalSince1970: 1_700_000_900),
+            exerciseEntries: [], overallNotes: nil, overallRPE: 3, durationMinutes: 10
+        )
+        let autoService = WeeklyVowsService(
+            store: store,
+            attribute: attribute,
+            recentLogsProvider: { _ in [recoveryLog] }
+        )
+        let card = makeVowCard(lane: .recovery, bet: .small, target: VowTarget(count: 1, noun: "recovery reset"))
+        var state = autoService.state(userId: "u-1")
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [card]
+        store.save(state, userId: "u-1")
+        autoService.pickVowCard(card, userId: "u-1")
+
+        let exp = expectation(description: "auto-verify")
+        Task { await autoService.refreshAutoVerifiedVow(userId: "u-1"); exp.fulfill() }
+        wait(for: [exp], timeout: 5)
+
+        XCTAssertEqual(autoService.state(userId: "u-1").currentVow?.capstoneState, .completed)
+        XCTAssertEqual(autoService.state(userId: "u-1").completionsByLane[.recovery], 1)
+    }
+
+    func testRefreshAutoVerifiedVowDoesNotSealBelowTarget() {
+        let recoveryLog = WorkoutLog(
+            id: "rec-1", userId: "u-1", programId: "p", dayNumber: 1,
+            plannedWorkoutName: "Recovery Reset",
+            startedAt: Date(timeIntervalSince1970: 1_700_000_300),
+            completedAt: Date(timeIntervalSince1970: 1_700_000_900),
+            exerciseEntries: [], overallNotes: nil, overallRPE: 3, durationMinutes: 10
+        )
+        let autoService = WeeklyVowsService(
+            store: store,
+            attribute: attribute,
+            recentLogsProvider: { _ in [recoveryLog] }  // only 1 log, target needs 2
+        )
+        let card = makeVowCard(lane: .recovery, bet: .medium, target: VowTarget(count: 2, noun: "recovery reset"))
+        var state = autoService.state(userId: "u-1")
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [card]
+        store.save(state, userId: "u-1")
+        autoService.pickVowCard(card, userId: "u-1")
+
+        let exp = expectation(description: "auto-verify-below")
+        Task { await autoService.refreshAutoVerifiedVow(userId: "u-1"); exp.fulfill() }
+        wait(for: [exp], timeout: 5)
+
+        XCTAssertEqual(autoService.state(userId: "u-1").currentVow?.capstoneState, .pending)
+    }
+
+    func testSwitchingBeforeProgressIsFree() {
+        // Distinct ids: makeVowCard keys id on lane+bet.
+        let a = makeVowCard(lane: .recovery, bet: .small, target: VowTarget(count: 1, noun: "recovery reset"))
+        let b = makeVowCard(lane: .engine, bet: .large, target: VowTarget(count: 1, noun: "easy cardio session"))
+        var state = service.state(userId: "u-1")
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [a, b]
+        store.save(state, userId: "u-1")
+
+        service.pickVowCard(a, userId: "u-1")
+        service.pickVowCard(b, userId: "u-1")  // no progress on A → free switch
+
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.id, b.id)
+        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, 0)
+    }
+
+    func testSwitchingAfterProgressOwesStake() {
+        // Distinct ids: makeVowCard keys id on lane+bet.
+        let a = makeVowCard(lane: .fuel, bet: .medium, target: VowTarget(count: 5, noun: "fuel anchor"))
+        let b = makeVowCard(lane: .recovery, bet: .small, target: VowTarget(count: 1, noun: "recovery reset"))
+        var state = service.state(userId: "u-1")
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [a, b]
+        store.save(state, userId: "u-1")
+
+        service.pickVowCard(a, userId: "u-1")
+        service.logFuelAnchor(userId: "u-1")  // progress on A
+        service.pickVowCard(b, userId: "u-1") // bound switch → owes A's stake
+
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.id, b.id)
+        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, VowBet.medium.oweXP) // 250
     }
 
 }

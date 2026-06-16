@@ -101,11 +101,16 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         var state = store.load(userId: userId)
         if let existingVow = state.currentVow {
             guard existingVow.id != card.id else { return }
-            WeeklyVowPenaltyCatalog.applyMissedPenaltyIfNeeded(
-                for: existingVow,
-                missedAt: Date(),
-                state: &state
-            )
+            // Switching grace (spec §10): switching away from an untouched vow is
+            // free (mis-tap protection). A vow with progress is bound — abandoning
+            // it owes the stake.
+            if hasProgress(existingVow, in: state) {
+                WeeklyVowPenaltyCatalog.applyMissedPenaltyIfNeeded(
+                    for: existingVow,
+                    missedAt: Date(),
+                    state: &state
+                )
+            }
         }
         let vow = WeeklyVow(
             id: card.id,
@@ -135,6 +140,89 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         state.currentVow = nil
         store.save(state, userId: userId)
         WeeklyVowsNotificationScheduler.cancelAll()
+    }
+
+    /// True if a picked vow has any progress that binds the stake on a switch.
+    /// Auto-verified lanes (recovery/engine) have no in-app counter, so this is
+    /// false for them — switching a recovery/engine pick is always free (a
+    /// qualifying session logged elsewhere still counts toward whichever vow is
+    /// bound at week close). See spec §10.
+    private func hasProgress(_ vow: WeeklyVow, in state: WeeklyVowsState) -> Bool {
+        if vow.capstoneState == .completed { return true }
+        if (state.fuelAnchorsByVowId[vow.id] ?? 0) > 0 { return true }
+        return false
+    }
+
+    // MARK: - Lane completion (spec §5/§7)
+
+    /// Seal a vow as cleared: increment the lane counter, pay the bet's win token
+    /// (flat XP, never garnished — spec §5), and notify. Idempotent against an
+    /// already-completed/missed vow.
+    func sealVow(userId: String, vow: WeeklyVow, at date: Date) {
+        var state = store.load(userId: userId)
+        guard var current = state.currentVow, current.id == vow.id,
+              current.capstoneState != .completed, current.capstoneState != .missed
+        else { return }
+        current.capstoneState = .completed
+        current.completedAt = date
+        state.currentVow = current
+        state.completionsByLane[current.chosenCard.lane, default: 0] += 1
+        store.save(state, userId: userId)
+
+        // Token win — paid in full, never garnished (spec §5).
+        Task {
+            try? await OverallLevelService.shared.grantFlatXPStrict(
+                amount: current.chosenCard.bet.winXP,
+                sourceId: "weeklyVowWin:\(current.id)",
+                userId: userId,
+                at: date
+            )
+        }
+        NotificationCenter.default.post(name: .weeklyVowCompleted, object: current)
+        AnalyticsService.shared.track(.bindingVowCleared(vowId: current.id))
+    }
+
+    /// Auto-complete an auto-verified vow when enough qualifying sessions are
+    /// logged in-week. No-op for Fuel (self-report) vows.
+    func refreshAutoVerifiedVow(userId: String) async {
+        let state = store.load(userId: userId)
+        guard let vow = state.currentVow,
+              vow.capstoneState == .pending || vow.capstoneState == .windowOpen,
+              vow.chosenCard.lane.verification == .autoFromLog,
+              let weekStart = state.currentWeekStart
+        else { return }
+        let logs = await recentLogsProvider(userId)
+        let count = VowLogMatcher.qualifyingCount(
+            lane: vow.chosenCard.lane,
+            weekStart: weekStart,
+            logs: logs
+        )
+        guard count >= vow.chosenCard.target.count else { return }
+        sealVow(userId: userId, vow: vow, at: Date())
+    }
+
+    /// Self-report tap for a Fuel vow. Increments the vow-scoped anchor tally
+    /// (never XP/rank/attributes — spec §7 guardrail) and seals at target.
+    func logFuelAnchor(userId: String) {
+        var state = store.load(userId: userId)
+        guard let vow = state.currentVow,
+              vow.chosenCard.lane == .fuel,
+              vow.capstoneState == .pending || vow.capstoneState == .windowOpen
+        else { return }
+        let next = (state.fuelAnchorsByVowId[vow.id] ?? 0) + 1
+        state.fuelAnchorsByVowId[vow.id] = next
+        store.save(state, userId: userId)
+        NotificationCenter.default.post(name: .weeklyVowProgressUpdated, object: vow)
+        if next >= vow.chosenCard.target.count {
+            sealVow(userId: userId, vow: vow, at: Date())
+        }
+    }
+
+    /// Current Fuel anchor tally for the active vow (0 for non-Fuel vows).
+    func fuelAnchorCount(userId: String) -> Int {
+        let state = store.load(userId: userId)
+        guard let vow = state.currentVow, vow.chosenCard.lane == .fuel else { return 0 }
+        return state.fuelAnchorsByVowId[vow.id] ?? 0
     }
 
     // MARK: - Trainable vow work
