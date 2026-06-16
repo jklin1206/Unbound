@@ -4,48 +4,52 @@ import Foundation
 /// Counts logged sessions that qualify for an auto-verified vow lane within the
 /// bound week (spec §7). Recovery/Engine only; Fuel is self-report.
 ///
-/// Lane → log qualifier (recon, Binding Vows v2 Core-2):
-/// `WorkoutLog` has **no `source` field** — its only durable lane signal is
-/// `plannedWorkoutName` (copied from `PerformanceLog.title` in
-/// `TrainingSessionAdapters.workoutLog(from:)`). So we match on the title string
-/// that the real recovery / cardio logging stamps:
-///   - Recovery sessions title as "Recovery Day" / "Recovery Reset" / "Mobility flow"
-///     → match `recovery` or `mobility`.
-///   - Cardio sessions title as "<Type> Session" (Run / Cycling / Row / …) and
-///     the in-app logger reads "cardio" → match `cardio` or a known cardio modality.
+/// Read-only detection source (Binding Vows v2 Core-3): recovery days and
+/// standalone cardio never reach the `workoutLogs` stream —
+///   - Recovery sessions persist as `PerformanceLog`s with `source == .routine`
+///     (e.g. titles "Recovery Day" / "Recovery Reset" / "Mobility flow"), which
+///     `TrainingSessionAdapters.workoutLog(from:)` drops (no strength/skill blocks).
+///   - Standalone cardio persists to the separate `cardio_sessions` collection as
+///     `CardioSession`, never a `WorkoutLog`.
+/// So auto-detection reads those sources directly (read-only) and counts here.
 /// Fuel never log-matches (self-report taps only).
-///
-/// NOTE for Core-3: recovery days (logged as `.routine` blocks) and standalone
-/// cardio (stored as `CardioSession`, never a `WorkoutLog`) are currently
-/// filtered out of `WorkoutLogService.fetchRecentLogs` upstream, so this matcher
-/// only fires on data that already reaches the `[WorkoutLog]` stream. Wiring the
-/// recovery/cardio completion sources into that stream is Core-3 / Phase-4 work.
 enum VowLogMatcher {
-    static func qualifyingCount(lane: VowLane, weekStart: Date, logs: [WorkoutLog]) -> Int {
+
+    // MARK: - Recovery (PerformanceLog, source == .routine)
+
+    /// In-week qualifying recovery completions. `recoveryLogs` are the
+    /// routine-sourced `PerformanceLog`s read from the `performanceLogs`
+    /// collection; we match on the title string the recovery logging stamps
+    /// (recovery / mobility).
+    static func qualifyingRecoveryCount(
+        weekStart: Date,
+        recoveryLogs: [PerformanceLog]
+    ) -> Int {
         let weekEnd = weekStart.addingTimeInterval(7 * 86_400)
-        return logs.filter { log in
-            guard let completedAt = log.completedAt else { return false }
-            return completedAt >= weekStart
-                && completedAt < weekEnd
-                && qualifies(lane: lane, log: log)
+        return recoveryLogs.filter { log in
+            log.completedAt >= weekStart
+                && log.completedAt < weekEnd
+                && recoveryQualifies(log)
         }.count
     }
 
-    private static func qualifies(lane: VowLane, log: WorkoutLog) -> Bool {
-        let name = log.plannedWorkoutName.lowercased()
-        switch lane {
-        case .recovery:
-            return recoveryKeywords.contains { name.contains($0) }
-        case .engine:
-            return engineKeywords.contains { name.contains($0) }
-        case .fuel:
-            return false  // self-report, never log-matched
-        }
+    private static func recoveryQualifies(_ log: PerformanceLog) -> Bool {
+        let title = log.title.lowercased()
+        return recoveryKeywords.contains { title.contains($0) }
+    }
+
+    // MARK: - Engine (CardioSession)
+
+    /// In-week qualifying cardio completions, counted by `CardioSession.date`.
+    static func qualifyingCardioCount(
+        weekStart: Date,
+        cardioSessions: [CardioSession]
+    ) -> Int {
+        let weekEnd = weekStart.addingTimeInterval(7 * 86_400)
+        return cardioSessions.filter { session in
+            session.date >= weekStart && session.date < weekEnd
+        }.count
     }
 
     private static let recoveryKeywords = ["recovery", "mobility"]
-    private static let engineKeywords = [
-        "cardio", "run", "jog", "walk", "bike", "cycle", "cycling",
-        "row", "swim", "conditioning"
-    ]
 }

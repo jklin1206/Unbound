@@ -6,29 +6,42 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
     static let shared = WeeklyVowsService()
 
     private let store: WeeklyVowsStore
-    private let recentLogsProvider: (String) async -> [WorkoutLog]
+    // Read-only auto-detection sources (Core-3). Recovery reads routine-sourced
+    // PerformanceLogs; engine reads CardioSessions. Both default to the existing
+    // read APIs; tests inject stub closures returning canned data.
+    private let recoveryCompletionsProvider: (String) async -> [PerformanceLog]
+    private let cardioSessionsProvider: (String) async -> [CardioSession]
 
     convenience init() {
         self.init(
             store: .shared,
-            recentLogsProvider: nil
+            recoveryCompletionsProvider: nil,
+            cardioSessionsProvider: nil
         )
     }
 
     init(
         store: WeeklyVowsStore,
-        recentLogsProvider: ((String) async -> [WorkoutLog])?
+        recoveryCompletionsProvider: ((String) async -> [PerformanceLog])? = nil,
+        cardioSessionsProvider: ((String) async -> [CardioSession])? = nil
     ) {
         self.store = store
-        // Default closure forwards to WorkoutLogService.shared.fetchRecentLogs(userId:limit:).
-        // WorkoutLogServiceProtocol: fetchRecentLogs(userId:limit:) async throws -> [WorkoutLog]
-        // Tests inject a stub closure that returns canned data.
-        if let recentLogsProvider {
-            self.recentLogsProvider = recentLogsProvider
-        } else {
-            self.recentLogsProvider = { userId in
-                (try? await WorkoutLogService.shared.fetchRecentLogs(userId: userId, limit: 30)) ?? []
-            }
+        // Recovery: read routine-sourced PerformanceLogs from the shared
+        // `performanceLogs` collection (read-only — never a write path).
+        self.recoveryCompletionsProvider = recoveryCompletionsProvider ?? { userId in
+            let logs: [PerformanceLog] = (try? await DatabaseService.shared.query(
+                collection: "performanceLogs",
+                field: "userId",
+                isEqualTo: userId,
+                orderBy: "completedAt",
+                descending: true,
+                limit: nil
+            )) ?? []
+            return logs.filter { $0.source == .routine }
+        }
+        // Engine: read standalone cardio from CardioLogService (read-only).
+        self.cardioSessionsProvider = cardioSessionsProvider ?? { userId in
+            await CardioLogService.shared.all(userId: userId)
         }
     }
 
@@ -51,7 +64,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         }
 
         // Cards come from the curated bank pool draw, seeded by the lane the user
-        // has kept least. `recentLogsProvider` powers auto-detection elsewhere.
+        // has kept least. Auto-detection (recovery/engine) seals elsewhere.
         let weekNumber = isoWeekNumber(for: newWeekStart)
         let cards = VowWeeklyDraw.cards(
             weekNumber: weekNumber,
@@ -124,7 +137,10 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
 
     func skipThisWeek(userId: String) {
         var state = store.load(userId: userId)
-        if let existingVow = state.currentVow {
+        // Skip grace (spec §10): consistent with pickVowCard — skipping an
+        // untouched vow is free (mis-tap protection). Only a vow with progress
+        // is bound, so abandoning it owes the stake.
+        if let existingVow = state.currentVow, hasProgress(existingVow, in: state) {
             WeeklyVowPenaltyCatalog.applyMissedPenaltyIfNeeded(
                 for: existingVow,
                 missedAt: Date(),
@@ -178,7 +194,9 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
     }
 
     /// Auto-complete an auto-verified vow when enough qualifying sessions are
-    /// logged in-week. No-op for Fuel (self-report) vows.
+    /// logged in-week. Reads the lane's read-only completion source (recovery →
+    /// routine-sourced PerformanceLogs; engine → CardioSessions). No-op for Fuel
+    /// (self-report) vows.
     func refreshAutoVerifiedVow(userId: String) async {
         let state = store.load(userId: userId)
         guard let vow = state.currentVow,
@@ -186,12 +204,25 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
               vow.chosenCard.lane.verification == .autoFromLog,
               let weekStart = state.currentWeekStart
         else { return }
-        let logs = await recentLogsProvider(userId)
-        let count = VowLogMatcher.qualifyingCount(
-            lane: vow.chosenCard.lane,
-            weekStart: weekStart,
-            logs: logs
-        )
+
+        let count: Int
+        switch vow.chosenCard.lane {
+        case .recovery:
+            let recoveryLogs = await recoveryCompletionsProvider(userId)
+            count = VowLogMatcher.qualifyingRecoveryCount(
+                weekStart: weekStart,
+                recoveryLogs: recoveryLogs
+            )
+        case .engine:
+            let cardioSessions = await cardioSessionsProvider(userId)
+            count = VowLogMatcher.qualifyingCardioCount(
+                weekStart: weekStart,
+                cardioSessions: cardioSessions
+            )
+        case .fuel:
+            return  // self-report; never auto-sealed
+        }
+
         guard count >= vow.chosenCard.target.count else { return }
         sealVow(userId: userId, vow: vow, at: Date())
     }
