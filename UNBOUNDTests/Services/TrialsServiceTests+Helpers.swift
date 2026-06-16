@@ -91,6 +91,35 @@ extension WeeklyVowsServiceTests {
         )
     }
 
+    /// EXPAND step (Binding Vows v2 Core-1): `ensureCurrentWeek` now draws from
+    /// the bank pool (all cards `kind: .apex`), so the legacy routed-training
+    /// tests can no longer fish an `.ember`/`.overdrive` card out of the live
+    /// draw. This seeds the SAME legacy 3-card set the old generator produced and
+    /// returns the requested kind, keeping those tests exercising the kept
+    /// routed-training machinery. Retired in Core-3 along with the routed path.
+    @discardableResult
+    @MainActor
+    func seedLegacyWeekCard(
+        _ kind: WeeklyVowKind,
+        weekStart: Date = Date(timeIntervalSince1970: 1_700_000_000),
+        userId: String = "u-1"
+    ) -> WeeklyVowCard {
+        let profile = attribute.snapshot(userId: userId, asOf: .now)
+        let legacyCards = WeeklyVowGenerator.cards(
+            profile: profile,
+            history: [],
+            weekStart: weekStart,
+            weekNumber: 1
+        )
+        var state = service.state(userId: userId)
+        state.currentWeekStart = weekStart
+        state.currentWeekCards = legacyCards
+        state.currentTrial = nil
+        state.skippedCurrentWeek = false
+        store.save(state, userId: userId)
+        return legacyCards.first { $0.kind == kind }!
+    }
+
     func makeAxisCard(kind: WeeklyVowKind, axis: AttributeKey) -> WeeklyVowCard {
         WeeklyVowCard(
             id: "weekly-vow-test-\(kind.rawValue)-\(axis.rawValue)",
@@ -110,6 +139,32 @@ extension WeeklyVowsServiceTests {
                 minRPE: kind == .ember ? 3 : 7,
                 maxRPE: kind == .ember ? 5 : 8
             )
+        )
+    }
+
+    /// Build a v2 lane/bet/target card carrying the transient back-compat old
+    /// fields (kind/theme/capstone). Used by Core-1 economics tests.
+    func makeVowCard(
+        lane: VowLane,
+        bet: VowBet,
+        target: VowTarget? = nil
+    ) -> WeeklyVowCard {
+        let resolvedTarget = target ?? VowTarget(count: 1, noun: "session")
+        return WeeklyVowCard(
+            id: "weekly-vow-test-\(lane.rawValue)-\(bet.rawValue)",
+            kind: .apex,
+            theme: .wildcard,
+            displayName: "\(lane.displayLabel) · \(bet.displayLabel)",
+            blurb: "A bound vow for \(lane.displayLabel.lowercased()).",
+            capstone: WeeklyVowProof(
+                displayName: "Proof",
+                description: "Complete the vow.",
+                evaluation: .manualClaim
+            ),
+            prescription: nil,
+            lane: lane,
+            bet: bet,
+            target: resolvedTarget
         )
     }
 

@@ -54,16 +54,13 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
             state.currentVow = vow
         }
 
-        // Snapshot the user's profile + history for card generation.
-        let profile = attribute.snapshot(userId: userId, asOf: now)
-        let history = await recentLogsProvider(userId)
+        // EXPAND step (Binding Vows v2 Core-1): cards now come from the curated
+        // bank pool draw. `attribute`/`recentLogsProvider` are kept (Core-2 uses
+        // the logs provider for auto-detection; Core-3 cleans up any leftover).
         let weekNumber = isoWeekNumber(for: newWeekStart)
-
-        let cards = WeeklyVowGenerator.cards(
-            profile: profile,
-            history: history,
-            weekStart: newWeekStart,
-            weekNumber: weekNumber
+        let cards = VowWeeklyDraw.cards(
+            weekNumber: weekNumber,
+            completionsByLane: state.completionsByLane
         )
 
         state.currentWeekStart = newWeekStart

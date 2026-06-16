@@ -11,7 +11,7 @@ enum WeeklyVowPenaltyCatalog {
         guard vow.capstoneState != .completed, vow.capstoneState != .missed else { return }
         guard !state.weeklyVowPenaltyLedger.contains(where: { $0.vowId == vow.id && $0.weekStart == vow.weekStart }) else { return }
 
-        let owedXP = vow.chosenCard.kind.missedPenaltyOverallLevelXP
+        let owedXP = vow.chosenCard.bet.oweXP
         guard owedXP > 0 else { return }
 
         state.weeklyVowPenaltyLedger.append(
@@ -39,7 +39,7 @@ enum WeeklyVowCompletionBonusCatalog {
         completionCountAfter: Int
     ) -> WeeklyVowCompletionBonus {
         let kind = vow.chosenCard.kind
-        let awardedOverallLevelXP = kind.completionBonusOverallLevelXP
+        let awardedOverallLevelXP = vow.chosenCard.bet.winXP
         let badgeTarget = 3
         let cosmeticTarget = 5
         let badgeProgress = min(badgeTarget, ((completionCountAfter - 1) % badgeTarget) + 1)

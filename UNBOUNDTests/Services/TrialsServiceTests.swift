@@ -67,8 +67,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testPickCardPersistsWeeklyVow() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let cards = service.state(userId: "u-1").currentWeekCards
-        let overdrive = cards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
 
         service.pickVowCard(overdrive, userId: "u-1")
         let state = service.state(userId: "u-1")
@@ -81,8 +80,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testPickCardFiresNotification() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let cards = service.state(userId: "u-1").currentWeekCards
-        let overdrive = cards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
 
         let exp = expectation(forNotification: .weeklyVowPicked, object: nil)
         service.pickVowCard(overdrive, userId: "u-1")
@@ -106,7 +104,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testCompleteVowDoesNotSealWithoutSavedWorkoutReceipt() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
         service.pickVowCard(overdrive, userId: "u-1")
         openCurrentVow()
 
@@ -122,7 +120,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testCompleteVowDoesNotFireCompletionNotification() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
         service.pickVowCard(overdrive, userId: "u-1")
         openCurrentVow()
 
@@ -135,7 +133,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testSkippingPickedVowAddsPenalty() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
         service.pickVowCard(overdrive, userId: "u-1")
 
         service.skipThisWeek(userId: "u-1")
@@ -146,14 +144,14 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 1)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.vowId, overdrive.id)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.weekStart, state.currentWeekStart)
-        XCTAssertEqual(state.pendingVowDebtXP, overdrive.kind.missedPenaltyOverallLevelXP)
+        XCTAssertEqual(state.pendingVowDebtXP, overdrive.bet.oweXP)
     }
 
     func testRepickingAfterPickedVowAddsPenaltyForAbandonedVow() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        let apex = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .apex })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
+        let apex = seedLegacyWeekCard(.apex)
         service.pickVowCard(overdrive, userId: "u-1")
 
         service.pickVowCard(apex, userId: "u-1")
@@ -162,7 +160,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(state.currentVow?.id, apex.id)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 1)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.vowId, overdrive.id)
-        XCTAssertEqual(state.pendingVowDebtXP, overdrive.kind.missedPenaltyOverallLevelXP)
+        XCTAssertEqual(state.pendingVowDebtXP, overdrive.bet.oweXP)
     }
 
     // MARK: - trainable vow routing
@@ -170,7 +168,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testTrainingDraftForCurrentVowUsesWeeklyVowRouteAndRealWork() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
         service.pickVowCard(overdrive, userId: "u-1")
 
         let draft = service.trainingDraftForCurrentVow(userId: "u-1", date: Date(timeIntervalSince1970: 1_700_000_000))
@@ -352,7 +350,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testRecordCompletedVowWorkWaitsForSavedPerformanceLog() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
         service.pickVowCard(overdrive, userId: "u-1")
 
         let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
@@ -378,7 +376,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testRecordCompletedVowWorkRequiresOpenWindowBeforeSavedWorkCanSeal() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
         service.pickVowCard(overdrive, userId: "u-1")
 
         let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
@@ -395,7 +393,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testRecordCompletedVowWorkOpensWindowForSavedLogAfterSaturday() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
         let weekStart = Date(timeIntervalSince1970: 1_700_000_000)
         let completedAt = weekStart.addingTimeInterval((5 * 86_400) + 60)
         var state = WeeklyVowsState.empty
@@ -428,7 +426,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testRecordCompletedVowWorkRejectsAutoLogProofMiss() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
         service.pickVowCard(overdrive, userId: "u-1")
         openCurrentVow()
 
@@ -454,7 +452,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testRecordCompletedVowWorkReturnsReceiptBasedVowBonusForMatchingSavedLog() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
         service.pickVowCard(overdrive, userId: "u-1")
         openCurrentVow()
 
@@ -485,7 +483,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
             unwrapped.callout.shareTitle,
             unwrapped.callout.shareSubtitle
         ])
-        XCTAssertEqual(unwrapped.completionBonus.overallLevelXP, 120)
+        XCTAssertEqual(unwrapped.completionBonus.overallLevelXP, overdrive.bet.winXP)
         XCTAssertEqual(unwrapped.completionBonus.badgeProgress.displayText, "Finisher Vow I 1/3")
         XCTAssertEqual(unwrapped.completionBonus.cosmeticProgress.displayText, "Finisher Vow Mark 1/5")
         XCTAssertNil(unwrapped.completionBonus.shareCard)
@@ -506,7 +504,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testRecordCompletedApexVowCarriesShareCardMetadataOnlyAfterSavedLog() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let apex = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .apex })!
+        let apex = seedLegacyWeekCard(.apex)
         service.pickVowCard(apex, userId: "u-1")
         openCurrentVow()
 
@@ -548,7 +546,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testRecordCompletedApexVowRequiresRealSavedWorkBeforeShareCard() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let apex = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .apex })!
+        let apex = seedLegacyWeekCard(.apex)
         service.pickVowCard(apex, userId: "u-1")
         openCurrentVow()
 
@@ -574,7 +572,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testRecordCompletedApexVowRequiresEveryPrescribedMovement() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let apex = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .apex })!
+        let apex = seedLegacyWeekCard(.apex)
         service.pickVowCard(apex, userId: "u-1")
         openCurrentVow()
 
@@ -593,7 +591,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testRecordCompletedApexVowRequiresPrescribedSetVolume() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let apex = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .apex })!
+        let apex = seedLegacyWeekCard(.apex)
         service.pickVowCard(apex, userId: "u-1")
         openCurrentVow()
 
@@ -614,7 +612,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testRecordCompletedVowWorkIgnoresUnrelatedPerformanceLog() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
         service.pickVowCard(overdrive, userId: "u-1")
         openCurrentVow()
 
@@ -634,7 +632,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testRecordCompletedVowWorkIgnoresSavedLogWithoutActualCompletedWork() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
         service.pickVowCard(overdrive, userId: "u-1")
         openCurrentVow()
 
@@ -652,7 +650,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testRecordCompletedVowWorkDoesNotDuplicateCompletionOrBonusForSameReceipt() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        let overdrive = seedLegacyWeekCard(.overdrive)
         service.pickVowCard(overdrive, userId: "u-1")
         openCurrentVow()
 
@@ -673,12 +671,14 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(service.state(userId: "u-1").completionsByCardKind[.overdrive], 1)
         XCTAssertEqual(service.state(userId: "u-1").completionsByAxis[.power], 1)
         XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.count, 1)
-        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.bonus.overallLevelXP, 120)
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.bonus.overallLevelXP, overdrive.bet.winXP)
         XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.bonus, first?.completionBonus)
     }
 
     func testMissedPickedVowAddsPenaltyThatTaxesNextVowBonus() async {
         seedAttribute()
+        // EXPAND step (Core-1): debt now comes from the card's VowBet, not the
+        // legacy kind. Give the missed card an explicit large bet.
         let missedCard = WeeklyVowCard(
             id: "weekly-vow-W1-apex",
             kind: .apex,
@@ -696,7 +696,10 @@ final class WeeklyVowsServiceTests: XCTestCase {
                 maxMinutes: 45,
                 minRPE: 8,
                 maxRPE: 9
-            )
+            ),
+            lane: .engine,
+            bet: .large,
+            target: VowTarget(count: 1, noun: "session")
         )
         var stale = WeeklyVowsState.empty
         stale.currentWeekStart = Date(timeIntervalSince1970: 0)
@@ -715,10 +718,11 @@ final class WeeklyVowsServiceTests: XCTestCase {
         var state = service.state(userId: "u-1")
         XCTAssertNil(state.currentVow)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 1)
-        XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.penaltyXP, WeeklyVowKind.apex.missedPenaltyOverallLevelXP)
-        XCTAssertEqual(state.pendingVowDebtXP, WeeklyVowKind.apex.missedPenaltyOverallLevelXP)
+        XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.penaltyXP, VowBet.large.oweXP)
+        XCTAssertEqual(state.pendingVowDebtXP, VowBet.large.oweXP)
 
-        let overdrive = state.currentWeekCards.first(where: { $0.kind == .overdrive })!
+        // The generator's overdrive card carries the default medium bet.
+        let overdrive = seedLegacyWeekCard(.overdrive)
         service.pickVowCard(overdrive, userId: "u-1")
         openCurrentVow()
 
@@ -730,12 +734,13 @@ final class WeeklyVowsServiceTests: XCTestCase {
 
         let receipt = try! XCTUnwrap(service.recordCompletedVowWork(performanceLog: log, completionResult: result))
 
-        // v2: win pays full bonus; debt is NOT deducted from the win (cleared only by earned training XP).
+        // v2: win pays the card's bet winXP in full; debt is NOT deducted from the
+        // win (cleared only by earned training XP).
         XCTAssertNil(receipt.completionBonus.baseOverallLevelXP)
         XCTAssertNil(receipt.completionBonus.penaltyAppliedXP)
-        XCTAssertEqual(receipt.completionBonus.overallLevelXP, WeeklyVowKind.overdrive.completionBonusOverallLevelXP)
+        XCTAssertEqual(receipt.completionBonus.overallLevelXP, overdrive.bet.winXP)
         state = service.state(userId: "u-1")
-        XCTAssertEqual(state.pendingVowDebtXP, WeeklyVowKind.apex.missedPenaltyOverallLevelXP)
+        XCTAssertEqual(state.pendingVowDebtXP, VowBet.large.oweXP)
     }
 
     func testPenaltyDedupeIncludesVowWeekStart() async {
@@ -777,17 +782,17 @@ final class WeeklyVowsServiceTests: XCTestCase {
                 cardKind: card.kind,
                 weekStart: priorWeekStart,
                 missedAt: priorWeekStart,
-                penaltyXP: card.kind.missedPenaltyOverallLevelXP
+                penaltyXP: card.bet.oweXP
             )
         ]
-        stale.pendingVowDebtXP = card.kind.missedPenaltyOverallLevelXP
+        stale.pendingVowDebtXP = card.bet.oweXP
         store.save(stale, userId: "u-1")
 
         await service.ensureCurrentWeek(userId: "u-1")
 
         let state = service.state(userId: "u-1")
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 2)
-        XCTAssertEqual(state.pendingVowDebtXP, card.kind.missedPenaltyOverallLevelXP * 2)
+        XCTAssertEqual(state.pendingVowDebtXP, card.bet.oweXP * 2)
     }
 
     // MARK: - evaluateVowProofFromLog + checkVowWindow
@@ -796,7 +801,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
         // Force the Overdrive card to use a known autoFromLog criterion.
-        var overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        var overdrive = seedLegacyWeekCard(.overdrive)
         overdrive = WeeklyVowCard(
             id: overdrive.id, kind: overdrive.kind, theme: overdrive.theme,
             displayName: overdrive.displayName, blurb: overdrive.blurb,
@@ -843,14 +848,32 @@ final class WeeklyVowsServiceTests: XCTestCase {
 
         XCTAssertEqual(
             service.state(userId: "u-1").pendingVowDebtXP,
-            card.kind.missedPenaltyOverallLevelXP
+            card.bet.oweXP
         )
+    }
+
+    // MARK: - Core-1: broken-vow debt comes from the bet, not the kind
+
+    func testBrokenVowDebtUsesBetOweXP() {
+        let card = makeVowCard(lane: .engine, bet: .large)
+        var state = service.state(userId: "u-1")
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [card]
+        store.save(state, userId: "u-1")
+        service.pickVowCard(card, userId: "u-1")
+        var picked = service.state(userId: "u-1")
+        picked.currentWeekStart = Date(timeIntervalSince1970: 1)
+        store.save(picked, userId: "u-1")
+        let exp = expectation(description: "rolled")
+        Task { await service.ensureCurrentWeek(userId: "u-1"); exp.fulfill() }
+        wait(for: [exp], timeout: 5)
+        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, VowBet.large.oweXP) // 300
     }
 
     func testEvaluateCapstoneFromLogDoesNotCompleteWhenWindowOpenWithoutSavedReceipt() async {
         seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
-        var overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
+        var overdrive = seedLegacyWeekCard(.overdrive)
         overdrive = WeeklyVowCard(
             id: overdrive.id, kind: overdrive.kind, theme: overdrive.theme,
             displayName: overdrive.displayName, blurb: overdrive.blurb,
