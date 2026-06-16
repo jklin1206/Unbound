@@ -41,7 +41,7 @@ final class LocalSquadDirectory {
             affinityAxis: nil,
             affinitySetAt: nil,
             inviteCode: inviteCode,
-            maxSize: 10,
+            maxSize: 8,
             squadStreakWeeks: 0,
             createdAt: now,
             logoId: SquadLogoCatalog.defaultId

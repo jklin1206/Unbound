@@ -124,6 +124,8 @@ struct OverallLevelReward: Codable, Hashable, Sendable {
     var currentLevel: Int
     var previousProgressToNextLevel: Double
     var currentProgressToNextLevel: Double
+    /// Earned XP siphoned to pay down broken-vow debt this event (spec §5).
+    var xpWithheldToVowDebt: Double = 0
 
     var didLevelUp: Bool {
         currentLevel > previousLevel

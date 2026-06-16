@@ -24,9 +24,7 @@ struct WorkoutReadyView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         header
-                        if draft.isWeeklyVowDraft {
-                            weeklyProofWorkSummary
-                        } else if isRankTrialDraft {
+                        if isRankTrialDraft {
                             rankTrialProtocolSummary
                         } else {
                             recentDraftsSection

@@ -21,19 +21,17 @@ struct CreateSquadSheet: View {
                         .foregroundStyle(Color.unbound.textPrimary)
                     VStack(alignment: .leading, spacing: 8) {
                         TextField("Squad name", text: $name)
+                            .textFieldStyle(.roundedBorder)
                             .focused($isNameFocused)
                             .submitLabel(.done)
                             .onSubmit { submitIfReady() }
                             .onChange(of: name) { _, newValue in
                                 if newValue.count > 30 { name = String(newValue.prefix(30)) }
                             }
-                            .squadInputChrome(isFocused: isNameFocused)
 
                         Text("\(name.count)/30")
-                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                            .tracking(0.8)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .font(.caption)
+                            .foregroundStyle(Color.unbound.textSecondary)
                     }
 
                     SquadLogoPicker(selectedLogoId: $selectedLogoId)
@@ -128,38 +126,4 @@ struct CreateSquadSheet: View {
 #Preview {
     CreateSquadSheet()
         .environmentObject(ServiceContainer.mock)
-}
-
-// MARK: - Branded squad input chrome
-//
-// App-native text field chrome shared by the Create / Join sheets — replaces
-// the stock `.roundedBorder` look with a surface-filled, continuous-radius
-// field whose border lights to accent on focus.
-extension View {
-    func squadInputChrome(isFocused: Bool) -> some View {
-        self
-            .textFieldStyle(.plain)
-            .foregroundStyle(Color.unbound.textPrimary)
-            .tint(Color.unbound.accent)
-            .padding(.horizontal, 16)
-            .frame(height: 56)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.unbound.surfaceElevated.opacity(0.9))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(
-                        isFocused ? Color.unbound.accent.opacity(0.75) : Color.unbound.border,
-                        lineWidth: isFocused ? 1.5 : 1
-                    )
-            )
-            .shadow(
-                color: isFocused ? Color.unbound.accent.opacity(0.18) : Color.clear,
-                radius: 12,
-                y: 4
-            )
-            .animation(.easeOut(duration: 0.16), value: isFocused)
-    }
 }

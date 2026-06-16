@@ -8,7 +8,6 @@ final class WeeklyVowsServiceTests: XCTestCase {
     var suiteName: String!
     var defaults: UserDefaults!
     var store: WeeklyVowsStore!
-    var attribute: MockAttributeService!
     var service: WeeklyVowsService!
 
     override func setUp() {
@@ -16,11 +15,10 @@ final class WeeklyVowsServiceTests: XCTestCase {
         suiteName = "WeeklyVowsServiceTests-\(UUID().uuidString)"
         defaults = UserDefaults(suiteName: suiteName)!
         store = WeeklyVowsStore(defaults: defaults)
-        attribute = MockAttributeService()
         service = WeeklyVowsService(
             store: store,
-            attribute: attribute,
-            recentLogsProvider: { _ in [] }
+            recoveryCompletionsProvider: { _ in [] },
+            cardioSessionsProvider: { _ in [] }
         )
     }
     override func tearDown() {
@@ -28,25 +26,18 @@ final class WeeklyVowsServiceTests: XCTestCase {
         super.tearDown()
     }
 
-    func seedAttribute(power: Double = 70, control: Double = 30) {
-        var profile = AttributeProfile.empty(userId: "u-1", at: .now)
-        for axis in AttributeKey.allCases {
-            let value: Double = {
-                switch axis {
-                case .power: return power
-                case .control: return control
-                default: return 50
-                }
-            }()
-            profile.set(axis, AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: Int(value)), lastContributionAt: .now))
-        }
-        attribute.profileByUser["u-1"] = profile
+    /// Seed the given card as the current week's only offer and commit it.
+    private func pickLaneVow(_ card: WeeklyVowCard, userId: String = "u-1") {
+        var state = service.state(userId: userId)
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [card]
+        store.save(state, userId: userId)
+        service.pickVowCard(card, userId: userId)
     }
 
-    // MARK: - T6.2 ensureCurrentWeek
+    // MARK: - ensureCurrentWeek
 
     func testEnsureCurrentWeekGenerates3Cards() async {
-        seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
         let state = service.state(userId: "u-1")
         XCTAssertEqual(state.currentWeekCards.count, 3)
@@ -54,7 +45,6 @@ final class WeeklyVowsServiceTests: XCTestCase {
     }
 
     func testEnsureCurrentWeekIdempotentWithinWeek() async {
-        seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
         let stateA = service.state(userId: "u-1")
         await service.ensureCurrentWeek(userId: "u-1")
@@ -62,35 +52,31 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(stateA, stateB)
     }
 
-    // MARK: - T6.3 pickCard + skipThisWeek
+    // MARK: - pickCard + skipThisWeek
 
-    func testPickCardPersistsWeeklyVow() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let cards = service.state(userId: "u-1").currentWeekCards
-        let overdrive = cards.first(where: { $0.kind == .overdrive })!
-
-        service.pickVowCard(overdrive, userId: "u-1")
+    func testPickCardPersistsWeeklyVow() {
+        let card = makeVowCard(lane: .engine, bet: .medium)
+        pickLaneVow(card)
         let state = service.state(userId: "u-1")
 
         XCTAssertNotNil(state.currentVow)
-        XCTAssertEqual(state.currentVow?.chosenCard.id, overdrive.id)
+        XCTAssertEqual(state.currentVow?.chosenCard.id, card.id)
         XCTAssertEqual(state.currentVow?.capstoneState, .pending)
     }
 
-    func testPickCardFiresNotification() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let cards = service.state(userId: "u-1").currentWeekCards
-        let overdrive = cards.first(where: { $0.kind == .overdrive })!
+    func testPickCardFiresNotification() {
+        let card = makeVowCard(lane: .engine, bet: .medium)
+        var state = service.state(userId: "u-1")
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [card]
+        store.save(state, userId: "u-1")
 
         let exp = expectation(forNotification: .weeklyVowPicked, object: nil)
-        service.pickVowCard(overdrive, userId: "u-1")
-        await fulfillment(of: [exp], timeout: 1.0)
+        service.pickVowCard(card, userId: "u-1")
+        wait(for: [exp], timeout: 1.0)
     }
 
     func testSkipThisWeekSetsFlag() async {
-        seedAttribute()
         await service.ensureCurrentWeek(userId: "u-1")
         service.skipThisWeek(userId: "u-1")
         let state = service.state(userId: "u-1")
@@ -98,45 +84,14 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertTrue(state.skippedCurrentWeek)
         XCTAssertNil(state.currentVow)
         XCTAssertTrue(state.weeklyVowPenaltyLedger.isEmpty)
-        XCTAssertEqual(state.pendingVowPenaltyXP, 0)
+        XCTAssertEqual(state.pendingVowDebtXP, 0)
     }
 
-    // MARK: - completeVow
-
-    func testCompleteVowDoesNotSealWithoutSavedWorkoutReceipt() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        service.pickVowCard(overdrive, userId: "u-1")
-        openCurrentVow()
-
-        service.completeVow(userId: "u-1", at: .now)
-
-        let state = service.state(userId: "u-1")
-        XCTAssertEqual(state.currentVow?.capstoneState, .windowOpen)
-        XCTAssertNil(state.completionsByAxis[.power])
-        XCTAssertNil(state.completionsByCardKind[.overdrive])
-        XCTAssertTrue(state.weeklyVowCompletionLedger.isEmpty)
-    }
-
-    func testCompleteVowDoesNotFireCompletionNotification() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        service.pickVowCard(overdrive, userId: "u-1")
-        openCurrentVow()
-
-        let exp = expectation(forNotification: .weeklyVowCompleted, object: nil)
-        exp.isInverted = true
-        service.completeVow(userId: "u-1", at: .now)
-        await fulfillment(of: [exp], timeout: 0.1)
-    }
-
-    func testSkippingPickedVowAddsPenalty() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        service.pickVowCard(overdrive, userId: "u-1")
+    func testSkippingPickedVowAddsPenalty() {
+        let card = makeVowCard(lane: .fuel, bet: .medium, target: VowTarget(count: 5, noun: "fuel anchor"))
+        pickLaneVow(card)
+        // Make the vow touched so the skip binds the stake.
+        service.logFuelAnchor(userId: "u-1")
 
         service.skipThisWeek(userId: "u-1")
 
@@ -144,560 +99,35 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertTrue(state.skippedCurrentWeek)
         XCTAssertNil(state.currentVow)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 1)
-        XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.vowId, overdrive.id)
+        XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.vowId, card.id)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.weekStart, state.currentWeekStart)
-        XCTAssertEqual(state.pendingVowPenaltyXP, overdrive.kind.missedPenaltyOverallLevelXP)
+        XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.lane, .fuel)
+        XCTAssertEqual(state.pendingVowDebtXP, card.bet.oweXP)
     }
 
-    func testRepickingAfterPickedVowAddsPenaltyForAbandonedVow() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        let apex = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .apex })!
-        service.pickVowCard(overdrive, userId: "u-1")
-
-        service.pickVowCard(apex, userId: "u-1")
-
-        let state = service.state(userId: "u-1")
-        XCTAssertEqual(state.currentVow?.id, apex.id)
-        XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 1)
-        XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.vowId, overdrive.id)
-        XCTAssertEqual(state.pendingVowPenaltyXP, overdrive.kind.missedPenaltyOverallLevelXP)
-    }
-
-    // MARK: - trainable vow routing
-
-    func testTrainingDraftForCurrentVowUsesWeeklyVowRouteAndRealWork() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        service.pickVowCard(overdrive, userId: "u-1")
-
-        let draft = service.trainingDraftForCurrentVow(userId: "u-1", date: Date(timeIntervalSince1970: 1_700_000_000))
-
-        let unwrapped = try! XCTUnwrap(draft)
-        XCTAssertEqual(unwrapped.userId, "u-1")
-        XCTAssertEqual(unwrapped.source, .vow)
-        XCTAssertEqual(unwrapped.programId, "weekly-vow:\(overdrive.id)")
-        XCTAssertFalse(unwrapped.blocks.isEmpty)
-        XCTAssertFalse(unwrapped.blocks.flatMap(\.prescriptions).isEmpty)
-        XCTAssertTrue(unwrapped.blocks.flatMap(\.prescriptions).allSatisfy { !$0.exerciseName.isEmpty })
-        XCTAssertGreaterThan(unwrapped.estimatedMinutes, 0)
-    }
-
-    func testTrainingDraftPrescriptionsCarryMovementCatalogMetadataAndVowCopy() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-
-        for card in service.state(userId: "u-1").currentWeekCards {
-            let vow = WeeklyVow(
-                id: card.id,
-                userId: "u-1",
-                weekStart: service.state(userId: "u-1").currentWeekStart!,
-                chosenCard: card,
-                capstoneState: .pending,
-                completedAt: nil
-            )
-            let draft = service.trainingDraft(for: vow, date: Date(timeIntervalSince1970: 1_700_000_000))
-            let prescriptions = draft.blocks.flatMap(\.prescriptions)
-
-            XCTAssertFalse(prescriptions.isEmpty)
-            assertNoLegacyWeeklyCopy(
-                [draft.title] +
-                draft.blocks.flatMap { [$0.title, $0.subtitle ?? "", $0.notes ?? ""] } +
-                prescriptions.flatMap { [$0.exerciseName, $0.notes ?? ""] }
-            )
-
-            for prescription in prescriptions {
-                let movementId = try! XCTUnwrap(prescription.movementId)
-                let definition = try! XCTUnwrap(MovementCatalog.definition(for: movementId))
-
-                XCTAssertEqual(prescription.rankStandardMovementId, definition.rankStandardMovementId)
-                XCTAssertEqual(prescription.exerciseName, definition.displayName)
-                XCTAssertEqual(prescription.muscleGroups, definition.muscleGroups)
-                XCTAssertFalse(movementId.hasPrefix("unresolved."))
-
-                if definition.role == .canonicalExercise {
-                    XCTAssertTrue(
-                        MovementCatalog.isProgramCompatible(definition, style: .hybrid, userEquipment: [.fullGym]),
-                        "\(definition.displayName) should remain full-gym compatible."
-                    )
-                }
-            }
-        }
-    }
-
-    func testExplosivenessOverdriveUsesSameSlotCatalogFallbackForBoxJumpIntent() {
-        let card = WeeklyVowCard(
-            id: "weekly-vow-W5-overdrive",
-            kind: .overdrive,
-            theme: .axis(.explosiveness),
-            displayName: "One Strike",
-            blurb: "A controlled finisher after training.",
-            capstone: WeeklyVowProof(
-                displayName: "Output Proof",
-                description: "8 max-effort box jumps.",
-                evaluation: .autoFromLog(.reps(8, exerciseName: "box jump"))
-            ),
-            prescription: WeeklyVowPrescription(
-                placement: .afterWorkout,
-                minMinutes: 6,
-                maxMinutes: 12,
-                minRPE: 7,
-                maxRPE: 8
-            )
-        )
-        let vow = WeeklyVow(
-            id: card.id,
-            userId: "u-1",
-            weekStart: Date(timeIntervalSince1970: 1_700_000_000),
-            chosenCard: card,
-            capstoneState: .pending,
-            completedAt: nil
-        )
-
-        let draft = service.trainingDraft(for: vow, date: Date(timeIntervalSince1970: 1_700_000_000))
-        let prescription = try! XCTUnwrap(draft.blocks.flatMap(\.prescriptions).first)
-        let movementId = try! XCTUnwrap(prescription.movementId)
-        let definition = try! XCTUnwrap(MovementCatalog.definition(for: movementId))
-
-        XCTAssertEqual(definition.id, "exercise.jump-squat")
-        XCTAssertEqual(definition.movementSlot, .squat)
-        XCTAssertEqual(prescription.rankStandardMovementId, definition.rankStandardMovementId)
-        XCTAssertEqual(prescription.rpe, 7)
-        XCTAssertEqual(draft.estimatedMinutes, 9)
-        XCTAssertTrue(MovementCatalog.isProgramCompatible(definition, style: .hybrid, userEquipment: [.bodyweight]))
-    }
-
-    func testAxisVowDraftsUseCatalogBackedMultiMovementTemplates() {
-        for axis in AttributeKey.allCases {
-            for kind in [WeeklyVowKind.ember, .overdrive] {
-                let card = makeAxisCard(kind: kind, axis: axis)
-                let vow = WeeklyVow(
-                    id: card.id,
-                    userId: "u-1",
-                    weekStart: Date(timeIntervalSince1970: 1_700_000_000),
-                    chosenCard: card,
-                    capstoneState: .pending,
-                    completedAt: nil
-                )
-
-                let draft = service.trainingDraft(for: vow, date: Date(timeIntervalSince1970: 1_700_000_000))
-                let prescriptions = draft.blocks.flatMap(\.prescriptions)
-
-                XCTAssertGreaterThanOrEqual(prescriptions.count, 2, "\(kind.displayName) \(axis.displayName) should not collapse into one generic movement.")
-                XCTAssertLessThanOrEqual(draft.estimatedMinutes, card.prescription?.maxMinutes ?? 60)
-                assertNoLegacyWeeklyCopy(
-                    [draft.title] +
-                    draft.blocks.flatMap { [$0.title, $0.subtitle ?? "", $0.notes ?? ""] } +
-                    prescriptions.flatMap { [$0.exerciseName, $0.notes ?? ""] }
-                )
-
-                for prescription in prescriptions {
-                    let movementId = try! XCTUnwrap(prescription.movementId)
-                    let definition = try! XCTUnwrap(MovementCatalog.definition(for: movementId))
-                    XCTAssertFalse(definition.id.hasPrefix("unresolved."))
-                    XCTAssertEqual(prescription.exerciseName, definition.displayName)
-                }
-            }
-        }
-    }
-
-    func testApexDraftsFollowTheRotatingWorkoutInsteadOfOneGenericCircuit() {
-        var signatures: Set<String> = []
-
-        for workout in PrestigeCapstoneCatalog.rotation {
-            let card = WeeklyVowCard(
-                id: "weekly-vow-test-apex-\(workout.displayName)",
-                kind: .apex,
-                theme: .wildcard,
-                displayName: "\(workout.displayName) Standard",
-                blurb: "A dedicated weekend workout.",
-                capstone: workout,
-                prescription: WeeklyVowPrescription(
-                    placement: .dedicatedSession,
-                    minMinutes: 20,
-                    maxMinutes: 45,
-                    minRPE: 8,
-                    maxRPE: 9
-                )
-            )
-            let vow = WeeklyVow(
-                id: card.id,
-                userId: "u-1",
-                weekStart: Date(timeIntervalSince1970: 1_700_000_000),
-                chosenCard: card,
-                capstoneState: .pending,
-                completedAt: nil
-            )
-
-            let draft = service.trainingDraft(for: vow, date: Date(timeIntervalSince1970: 1_700_000_000))
-            let prescriptions = draft.blocks.flatMap(\.prescriptions)
-            let signature = prescriptions.map(\.exerciseName).joined(separator: "|")
-            signatures.insert(signature)
-
-            XCTAssertFalse(prescriptions.isEmpty)
-            XCTAssertGreaterThanOrEqual(prescriptions.count, 3)
-            XCTAssertEqual(workout.evaluation, .manualClaim)
-            XCTAssertFalse(workout.description.localizedCaseInsensitiveContains("proof"))
-            for prescription in prescriptions {
-                let movementId = try! XCTUnwrap(prescription.movementId)
-                XCTAssertNotNil(MovementCatalog.definition(for: movementId), "Missing catalog definition for \(prescription.exerciseName)")
-            }
-        }
-
-        XCTAssertGreaterThanOrEqual(signatures.count, 4)
-    }
-
-    func testRecordCompletedVowWorkWaitsForSavedPerformanceLog() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        service.pickVowCard(overdrive, userId: "u-1")
-
-        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
-        let log = makePerformanceLog(from: draft)
-
-        var unsavedResult = TrainingCompletionResult()
-        XCTAssertNil(service.recordCompletedVowWork(performanceLog: log, completionResult: unsavedResult))
-        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
-
-        openCurrentVow()
-        let exp = expectation(forNotification: .weeklyVowCompleted, object: nil)
-        unsavedResult.savedPerformanceLogId = log.id
-        unsavedResult.bodyweightKg = 70
-        let completed = service.recordCompletedVowWork(performanceLog: log, completionResult: unsavedResult)
-        await fulfillment(of: [exp], timeout: 1.0)
-
-        XCTAssertEqual(completed?.vow.capstoneState, .completed)
-        XCTAssertEqual(service.state(userId: "u-1").currentVow?.completedAt, log.completedAt)
-        XCTAssertEqual(service.state(userId: "u-1").completionsByCardKind[.overdrive], 1)
-        XCTAssertEqual(service.state(userId: "u-1").completionsByAxis[.power], 1)
-    }
-
-    func testRecordCompletedVowWorkRequiresOpenWindowBeforeSavedWorkCanSeal() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        service.pickVowCard(overdrive, userId: "u-1")
-
-        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
-        let log = makePerformanceLog(from: draft)
-        var result = TrainingCompletionResult()
-        result.savedPerformanceLogId = log.id
-        result.bodyweightKg = 70
-
-        XCTAssertNil(service.recordCompletedVowWork(performanceLog: log, completionResult: result))
-        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
-        XCTAssertTrue(service.state(userId: "u-1").weeklyVowCompletionLedger.isEmpty)
-    }
-
-    func testRecordCompletedVowWorkOpensWindowForSavedLogAfterSaturday() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        let weekStart = Date(timeIntervalSince1970: 1_700_000_000)
-        let completedAt = weekStart.addingTimeInterval((5 * 86_400) + 60)
-        var state = WeeklyVowsState.empty
-        state.currentWeekStart = weekStart
-        state.currentWeekCards = [overdrive]
-        state.currentVow = WeeklyVow(
-            id: overdrive.id,
-            userId: "u-1",
-            weekStart: weekStart,
-            chosenCard: overdrive,
-            capstoneState: .pending,
-            completedAt: nil
-        )
+    /// Spec §10 switching grace: switching away from an UNTOUCHED vow is free
+    /// (mis-tap protection).
+    func testRepickingAfterUntouchedVowIsFree() {
+        let a = makeVowCard(lane: .recovery, bet: .small, target: VowTarget(count: 1, noun: "recovery reset"))
+        let b = makeVowCard(lane: .engine, bet: .large, target: VowTarget(count: 1, noun: "engine session"))
+        var state = service.state(userId: "u-1")
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [a, b]
         store.save(state, userId: "u-1")
 
-        let vow = try! XCTUnwrap(service.state(userId: "u-1").currentVow)
-        let draft = service.trainingDraft(for: vow, date: completedAt)
-        let log = makePerformanceLog(from: draft, completedAt: completedAt)
-        var result = TrainingCompletionResult()
-        result.savedPerformanceLogId = log.id
-        result.bodyweightKg = 70
+        service.pickVowCard(a, userId: "u-1")
+        service.pickVowCard(b, userId: "u-1")
 
-        let receipt = service.recordCompletedVowWork(performanceLog: log, completionResult: result)
-
-        XCTAssertEqual(receipt?.vow.capstoneState, .completed)
-        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed)
-        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.performanceLogId, log.id)
+        let final = service.state(userId: "u-1")
+        XCTAssertEqual(final.currentVow?.id, b.id)
+        XCTAssertTrue(final.weeklyVowPenaltyLedger.isEmpty)
+        XCTAssertEqual(final.pendingVowDebtXP, 0)
     }
 
-    func testRecordCompletedVowWorkRejectsAutoLogProofMiss() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        service.pickVowCard(overdrive, userId: "u-1")
-        openCurrentVow()
+    // MARK: - Missed vow rolls into debt (ensureCurrentWeek)
 
-        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
-        var log = makePerformanceLog(from: draft)
-        for setIndex in log.blocks[0].exercises[0].sets.indices {
-            log.blocks[0].exercises[0].sets[setIndex].reps = 1
-            log.blocks[0].exercises[0].sets[setIndex].weightKg = 5
-            log.blocks[0].exercises[0].sets[setIndex].holdSeconds = 1
-            log.blocks[0].exercises[0].sets[setIndex].durationSeconds = 1
-            log.blocks[0].exercises[0].sets[setIndex].distanceMeters = 1
-            log.blocks[0].exercises[0].sets[setIndex].calories = 1
-        }
-        var result = TrainingCompletionResult()
-        result.savedPerformanceLogId = log.id
-        result.bodyweightKg = 70
-
-        XCTAssertNil(service.recordCompletedVowWork(performanceLog: log, completionResult: result))
-        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .windowOpen)
-        XCTAssertTrue(service.state(userId: "u-1").weeklyVowCompletionLedger.isEmpty)
-    }
-
-    func testRecordCompletedVowWorkReturnsReceiptBasedVowBonusForMatchingSavedLog() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        service.pickVowCard(overdrive, userId: "u-1")
-        openCurrentVow()
-
-        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
-        let log = makePerformanceLog(from: draft)
-        var result = TrainingCompletionResult()
-        result.savedPerformanceLogId = log.id
-        result.bodyweightKg = 70
-
-        let receipt = service.recordCompletedVowWork(performanceLog: log, completionResult: result)
-
-        let unwrapped = try! XCTUnwrap(receipt)
-        XCTAssertEqual(unwrapped.vow.id, overdrive.id)
-        XCTAssertEqual(unwrapped.vow.capstoneState, .completed)
-        XCTAssertEqual(unwrapped.performanceLogId, log.id)
-        XCTAssertEqual(unwrapped.callout.vowId, overdrive.id)
-        XCTAssertEqual(unwrapped.callout.performanceLogId, log.id)
-        XCTAssertEqual(unwrapped.callout.cardKind, .overdrive)
-        XCTAssertEqual(unwrapped.callout.title, "\(overdrive.displayName) Cleared")
-        XCTAssertEqual(unwrapped.callout.shareTitle, "Binding Vow Cleared")
-        XCTAssertEqual(unwrapped.callout.shareSubtitle, "\(overdrive.displayName) - \(overdrive.capstone.displayName)")
-        XCTAssertEqual(unwrapped.callout.proofName, overdrive.capstone.displayName)
-        XCTAssertEqual(unwrapped.callout.completionBonus, unwrapped.completionBonus)
-        assertNoLegacyWeeklyCopy([
-            unwrapped.callout.title,
-            unwrapped.callout.subtitle,
-            unwrapped.callout.proofName,
-            unwrapped.callout.shareTitle,
-            unwrapped.callout.shareSubtitle
-        ])
-        XCTAssertEqual(unwrapped.completionBonus.overallLevelXP, 120)
-        XCTAssertEqual(unwrapped.completionBonus.badgeProgress.displayText, "Finisher Vow I 1/3")
-        XCTAssertEqual(unwrapped.completionBonus.cosmeticProgress.displayText, "Finisher Vow Mark 1/5")
-        XCTAssertNil(unwrapped.completionBonus.shareCard)
-        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.count, 1)
-        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.performanceLogId, log.id)
-
-        let summary = WorkoutRewardSequenceSummary.trainingReceipt(
-            performanceLog: log,
-            completionResult: result,
-            sourceName: "Binding Vow",
-            weeklyVowCallout: unwrapped.callout
-        )
-        XCTAssertEqual(summary.weeklyVowCallout, unwrapped.callout)
-        XCTAssertFalse(summary.hasShareableMoment)
-        XCTAssertTrue(summary.attributeDeltas.isEmpty)
-    }
-
-    func testRecordCompletedApexVowCarriesShareCardMetadataOnlyAfterSavedLog() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let apex = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .apex })!
-        service.pickVowCard(apex, userId: "u-1")
-        openCurrentVow()
-
-        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
-        let log = makePerformanceLog(from: draft)
-        var result = TrainingCompletionResult()
-
-        XCTAssertNil(service.recordCompletedVowWork(performanceLog: log, completionResult: result))
-
-        result.savedPerformanceLogId = log.id
-        result.bodyweightKg = 70
-        let receipt = service.recordCompletedVowWork(performanceLog: log, completionResult: result)
-
-        let unwrapped = try! XCTUnwrap(receipt)
-        let shareCard = try! XCTUnwrap(unwrapped.completionBonus.shareCard)
-        XCTAssertEqual(unwrapped.completionBonus.overallLevelXP, 240)
-        XCTAssertEqual(unwrapped.callout.shareSubtitle, "\(apex.displayName) - \(apex.capstone.displayName)")
-        XCTAssertEqual(shareCard.title, "\(apex.displayName) Cleared")
-        XCTAssertEqual(shareCard.subtitle, "Binding Vow - \(apex.capstone.displayName)")
-        XCTAssertEqual(shareCard.metadata["performanceLogId"], log.id)
-        XCTAssertEqual(shareCard.metadata["cardKind"], "apex")
-        assertNoLegacyWeeklyCopy([
-            unwrapped.callout.title,
-            unwrapped.callout.shareTitle,
-            unwrapped.callout.shareSubtitle,
-            shareCard.title,
-            shareCard.subtitle
-        ])
-
-        let summary = WorkoutRewardSequenceSummary.trainingReceipt(
-            performanceLog: log,
-            completionResult: result,
-            sourceName: "Binding Vow",
-            weeklyVowCallout: unwrapped.callout
-        )
-        XCTAssertTrue(summary.hasShareableMoment)
-    }
-
-    func testRecordCompletedApexVowRequiresRealSavedWorkBeforeShareCard() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let apex = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .apex })!
-        service.pickVowCard(apex, userId: "u-1")
-        openCurrentVow()
-
-        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
-        let emptyLog = makeEmptyPerformanceLog(from: draft)
-        var result = TrainingCompletionResult()
-        result.savedPerformanceLogId = emptyLog.id
-        result.bodyweightKg = 70
-
-        XCTAssertNil(service.recordCompletedVowWork(performanceLog: emptyLog, completionResult: result))
-        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .windowOpen)
-        XCTAssertTrue(service.state(userId: "u-1").weeklyVowCompletionLedger.isEmpty)
-
-        let summary = WorkoutRewardSequenceSummary.trainingReceipt(
-            performanceLog: emptyLog,
-            completionResult: result,
-            sourceName: "Binding Vow",
-            weeklyVowCallout: nil
-        )
-        XCTAssertFalse(summary.hasShareableMoment)
-    }
-
-    func testRecordCompletedApexVowRequiresEveryPrescribedMovement() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let apex = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .apex })!
-        service.pickVowCard(apex, userId: "u-1")
-        openCurrentVow()
-
-        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
-        var partialLog = makePerformanceLog(from: draft)
-        partialLog.blocks[0].exercises.removeLast()
-        var result = TrainingCompletionResult()
-        result.savedPerformanceLogId = partialLog.id
-        result.bodyweightKg = 70
-
-        XCTAssertNil(service.recordCompletedVowWork(performanceLog: partialLog, completionResult: result))
-        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .windowOpen)
-        XCTAssertTrue(service.state(userId: "u-1").weeklyVowCompletionLedger.isEmpty)
-    }
-
-    func testRecordCompletedApexVowRequiresPrescribedSetVolume() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let apex = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .apex })!
-        service.pickVowCard(apex, userId: "u-1")
-        openCurrentVow()
-
-        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
-        var partialLog = makePerformanceLog(from: draft)
-        for exerciseIndex in partialLog.blocks[0].exercises.indices {
-            partialLog.blocks[0].exercises[exerciseIndex].sets = Array(partialLog.blocks[0].exercises[exerciseIndex].sets.prefix(1))
-        }
-        var result = TrainingCompletionResult()
-        result.savedPerformanceLogId = partialLog.id
-        result.bodyweightKg = 70
-
-        XCTAssertNil(service.recordCompletedVowWork(performanceLog: partialLog, completionResult: result))
-        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .windowOpen)
-        XCTAssertTrue(service.state(userId: "u-1").weeklyVowCompletionLedger.isEmpty)
-    }
-
-    func testRecordCompletedVowWorkIgnoresUnrelatedPerformanceLog() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        service.pickVowCard(overdrive, userId: "u-1")
-        openCurrentVow()
-
-        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
-        var unrelated = makePerformanceLog(from: draft)
-        unrelated.programId = "custom-workout"
-        var result = TrainingCompletionResult()
-        result.savedPerformanceLogId = unrelated.id
-        result.bodyweightKg = 70
-
-        XCTAssertNil(service.recordCompletedVowWork(performanceLog: unrelated, completionResult: result))
-        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .windowOpen)
-        XCTAssertNil(service.state(userId: "u-1").completionsByCardKind[.overdrive])
-        XCTAssertTrue(service.state(userId: "u-1").weeklyVowCompletionLedger.isEmpty)
-    }
-
-    func testRecordCompletedVowWorkIgnoresSavedLogWithoutActualCompletedWork() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        service.pickVowCard(overdrive, userId: "u-1")
-        openCurrentVow()
-
-        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
-        let log = makeEmptyPerformanceLog(from: draft)
-        var result = TrainingCompletionResult()
-        result.savedPerformanceLogId = log.id
-        result.bodyweightKg = 70
-
-        XCTAssertNil(service.recordCompletedVowWork(performanceLog: log, completionResult: result))
-        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .windowOpen)
-        XCTAssertTrue(service.state(userId: "u-1").weeklyVowCompletionLedger.isEmpty)
-    }
-
-    func testRecordCompletedVowWorkDoesNotDuplicateCompletionOrBonusForSameReceipt() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        let overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        service.pickVowCard(overdrive, userId: "u-1")
-        openCurrentVow()
-
-        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
-        let log = makePerformanceLog(from: draft)
-        var result = TrainingCompletionResult()
-        result.savedPerformanceLogId = log.id
-        result.bodyweightKg = 70
-
-        let first = service.recordCompletedVowWork(performanceLog: log, completionResult: result)
-        var duplicateResult = result
-        duplicateResult.wasAlreadyCompleted = true
-        let duplicate = service.recordCompletedVowWork(performanceLog: log, completionResult: duplicateResult)
-
-        XCTAssertNotNil(first)
-        XCTAssertNil(duplicate)
-        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed)
-        XCTAssertEqual(service.state(userId: "u-1").completionsByCardKind[.overdrive], 1)
-        XCTAssertEqual(service.state(userId: "u-1").completionsByAxis[.power], 1)
-        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.count, 1)
-        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.bonus.overallLevelXP, 120)
-        XCTAssertEqual(service.state(userId: "u-1").weeklyVowCompletionLedger.first?.bonus, first?.completionBonus)
-    }
-
-    func testMissedPickedVowAddsPenaltyThatTaxesNextVowBonus() async {
-        seedAttribute()
-        let missedCard = WeeklyVowCard(
-            id: "weekly-vow-W1-apex",
-            kind: .apex,
-            theme: .wildcard,
-            displayName: "Gauntlet Vow",
-            blurb: "A hard standalone workout.",
-            capstone: WeeklyVowProof(
-                displayName: "Iron Gauntlet",
-                description: "A hard full-body workout.",
-                evaluation: .manualClaim
-            ),
-            prescription: WeeklyVowPrescription(
-                placement: .dedicatedSession,
-                minMinutes: 20,
-                maxMinutes: 45,
-                minRPE: 8,
-                maxRPE: 9
-            )
-        )
+    func testMissedPickedVowAddsBetDebtOnWeekRoll() async {
+        let missedCard = makeVowCard(lane: .engine, bet: .large, target: VowTarget(count: 1, noun: "engine session"))
         var stale = WeeklyVowsState.empty
         stale.currentWeekStart = Date(timeIntervalSince1970: 0)
         stale.currentVow = WeeklyVow(
@@ -712,53 +142,16 @@ final class WeeklyVowsServiceTests: XCTestCase {
 
         await service.ensureCurrentWeek(userId: "u-1")
 
-        var state = service.state(userId: "u-1")
+        let state = service.state(userId: "u-1")
         XCTAssertNil(state.currentVow)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 1)
-        XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.penaltyXP, WeeklyVowKind.apex.missedPenaltyOverallLevelXP)
-        XCTAssertEqual(state.pendingVowPenaltyXP, WeeklyVowKind.apex.missedPenaltyOverallLevelXP)
-
-        let overdrive = state.currentWeekCards.first(where: { $0.kind == .overdrive })!
-        service.pickVowCard(overdrive, userId: "u-1")
-        openCurrentVow()
-
-        let draft = try! XCTUnwrap(service.trainingDraftForCurrentVow(userId: "u-1", date: .now))
-        let log = makePerformanceLog(from: draft)
-        var result = TrainingCompletionResult()
-        result.savedPerformanceLogId = log.id
-        result.bodyweightKg = 70
-
-        let receipt = try! XCTUnwrap(service.recordCompletedVowWork(performanceLog: log, completionResult: result))
-
-        XCTAssertEqual(receipt.completionBonus.baseOverallLevelXP, WeeklyVowKind.overdrive.completionBonusOverallLevelXP)
-        XCTAssertEqual(receipt.completionBonus.penaltyAppliedXP, WeeklyVowKind.apex.missedPenaltyOverallLevelXP)
-        XCTAssertEqual(receipt.completionBonus.overallLevelXP, 0)
-        state = service.state(userId: "u-1")
-        XCTAssertEqual(state.pendingVowPenaltyXP, 0)
-        XCTAssertEqual(state.weeklyVowCompletionLedger.first?.bonus.penaltyAppliedXP, WeeklyVowKind.apex.missedPenaltyOverallLevelXP)
+        XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.penaltyXP, VowBet.large.oweXP)
+        XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.lane, .engine)
+        XCTAssertEqual(state.pendingVowDebtXP, VowBet.large.oweXP)
     }
 
     func testPenaltyDedupeIncludesVowWeekStart() async {
-        seedAttribute()
-        let card = WeeklyVowCard(
-            id: "weekly-vow-W1-apex",
-            kind: .apex,
-            theme: .wildcard,
-            displayName: "Gauntlet Vow",
-            blurb: "A hard standalone workout.",
-            capstone: WeeklyVowProof(
-                displayName: "Iron Gauntlet",
-                description: "A hard full-body workout.",
-                evaluation: .manualClaim
-            ),
-            prescription: WeeklyVowPrescription(
-                placement: .dedicatedSession,
-                minMinutes: 20,
-                maxMinutes: 45,
-                minRPE: 8,
-                maxRPE: 9
-            )
-        )
+        let card = makeVowCard(lane: .engine, bet: .large, target: VowTarget(count: 1, noun: "engine session"))
         var stale = WeeklyVowsState.empty
         let priorWeekStart = Date(timeIntervalSince1970: 0)
         let repeatedWeekStart = Date(timeIntervalSince1970: 1_000)
@@ -774,88 +167,45 @@ final class WeeklyVowsServiceTests: XCTestCase {
         stale.weeklyVowPenaltyLedger = [
             WeeklyVowPenaltyLedgerEntry(
                 vowId: card.id,
-                cardKind: card.kind,
+                lane: card.lane,
                 weekStart: priorWeekStart,
                 missedAt: priorWeekStart,
-                penaltyXP: card.kind.missedPenaltyOverallLevelXP
+                penaltyXP: card.bet.oweXP
             )
         ]
-        stale.pendingVowPenaltyXP = card.kind.missedPenaltyOverallLevelXP
+        stale.pendingVowDebtXP = card.bet.oweXP
         store.save(stale, userId: "u-1")
 
         await service.ensureCurrentWeek(userId: "u-1")
 
         let state = service.state(userId: "u-1")
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 2)
-        XCTAssertEqual(state.pendingVowPenaltyXP, card.kind.missedPenaltyOverallLevelXP * 2)
+        XCTAssertEqual(state.pendingVowDebtXP, card.bet.oweXP * 2)
     }
 
-    // MARK: - evaluateVowProofFromLog + checkVowWindow
+    // MARK: - Broken-vow debt comes from the bet
 
-    func testEvaluateCapstoneFromLogNoOpWhenPending() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        // Force the Overdrive card to use a known autoFromLog criterion.
-        var overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        overdrive = WeeklyVowCard(
-            id: overdrive.id, kind: overdrive.kind, theme: overdrive.theme,
-            displayName: overdrive.displayName, blurb: overdrive.blurb,
-            capstone: TrialCapstone(
-                displayName: "Test",
-                description: "Test",
-                evaluation: .autoFromLog(.reps(5, exerciseName: "pullup"))
-            ),
-            prescription: overdrive.prescription
-        )
-        service.pickVowCard(overdrive, userId: "u-1")
-        // currentVow.capstoneState is .pending, so this should not fire.
-        let history = [
-            ExerciseLogEntry(
-                id: "e1", exerciseName: "pullup",
-                plannedSets: 1, plannedReps: "10",
-                sets: [SetLog(id: "s1", setNumber: 1, weightKg: nil, reps: 10, rpe: nil, isWarmup: false)],
-                skipped: false, notes: nil
-            )
-        ]
-        await service.evaluateVowProofFromLog(userId: "u-1", history: history, bodyweightKg: 70)
-        XCTAssertNotEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed)
-    }
-
-    func testEvaluateCapstoneFromLogDoesNotCompleteWhenWindowOpenWithoutSavedReceipt() async {
-        seedAttribute()
-        await service.ensureCurrentWeek(userId: "u-1")
-        var overdrive = service.state(userId: "u-1").currentWeekCards.first(where: { $0.kind == .overdrive })!
-        overdrive = WeeklyVowCard(
-            id: overdrive.id, kind: overdrive.kind, theme: overdrive.theme,
-            displayName: overdrive.displayName, blurb: overdrive.blurb,
-            capstone: TrialCapstone(
-                displayName: "Test",
-                description: "Test",
-                evaluation: .autoFromLog(.reps(5, exerciseName: "pullup"))
-            ),
-            prescription: overdrive.prescription
-        )
-        service.pickVowCard(overdrive, userId: "u-1")
-
-        // Force vow window open by directly mutating state.
+    func testBrokenVowAddsDebtFromBet() {
+        let card = makeVowCard(lane: .engine, bet: .large)
         var state = service.state(userId: "u-1")
-        state.currentVow?.capstoneState = .windowOpen
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [card]
         store.save(state, userId: "u-1")
+        service.pickVowCard(card, userId: "u-1")
 
-        let history = [
-            ExerciseLogEntry(
-                id: "e1", exerciseName: "pullup",
-                plannedSets: 1, plannedReps: "10",
-                sets: [SetLog(id: "s1", setNumber: 1, weightKg: nil, reps: 10, rpe: nil, isWarmup: false)],
-                skipped: false, notes: nil
-            )
-        ]
-        await service.evaluateVowProofFromLog(userId: "u-1", history: history, bodyweightKg: 70)
-        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .windowOpen)
-        XCTAssertTrue(service.state(userId: "u-1").weeklyVowCompletionLedger.isEmpty)
+        // Force a stale week so ensureCurrentWeek rolls + marks missed.
+        var picked = service.state(userId: "u-1")
+        picked.currentWeekStart = Date(timeIntervalSince1970: 1)
+        store.save(picked, userId: "u-1")
+
+        let exp = expectation(description: "rolled")
+        Task { await service.ensureCurrentWeek(userId: "u-1"); exp.fulfill() }
+        wait(for: [exp], timeout: 5)
+
+        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, VowBet.large.oweXP)
     }
 
-    // MARK: - T6.6 equipTitle
+    // MARK: - equipTitle
 
     func testEquipTitleSetsEquippedField() {
         var state = WeeklyVowsState.empty
@@ -884,4 +234,215 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertNil(service.state(userId: "u-1").equippedTitle)
     }
 
+    // MARK: - Lane completion (seal / fuel / auto-verify / switching grace)
+
+    func testFuelTapIncrementsAndSealsAtTarget() {
+        let card = makeVowCard(lane: .fuel, bet: .small, target: VowTarget(count: 3, noun: "fuel anchor"))
+        pickLaneVow(card)
+
+        service.logFuelAnchor(userId: "u-1")
+        XCTAssertEqual(service.fuelAnchorCount(userId: "u-1"), 1)
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
+
+        service.logFuelAnchor(userId: "u-1")
+        XCTAssertEqual(service.fuelAnchorCount(userId: "u-1"), 2)
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
+
+        service.logFuelAnchor(userId: "u-1")
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed)
+        XCTAssertEqual(service.state(userId: "u-1").completionsByLane[.fuel], 1)
+    }
+
+    func testFuelTapDoesNothingForNonFuelVow() {
+        let card = makeVowCard(lane: .recovery, bet: .small, target: VowTarget(count: 1, noun: "recovery reset"))
+        pickLaneVow(card)
+
+        service.logFuelAnchor(userId: "u-1")
+        XCTAssertEqual(service.fuelAnchorCount(userId: "u-1"), 0)
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
+    }
+
+    func testSealVowPaysBetWinAndMarksCompleted() {
+        let card = makeVowCard(lane: .recovery, bet: .medium, target: VowTarget(count: 1, noun: "recovery reset"))
+        pickLaneVow(card)
+        guard let vow = service.state(userId: "u-1").currentVow else {
+            return XCTFail("expected a current vow")
+        }
+
+        service.sealVow(userId: "u-1", vow: vow, at: Date(timeIntervalSince1970: 1_700_001_000))
+        let state = service.state(userId: "u-1")
+        XCTAssertEqual(state.currentVow?.capstoneState, .completed)
+        XCTAssertNotNil(state.currentVow?.completedAt)
+        XCTAssertEqual(state.completionsByLane[.recovery], 1)
+    }
+
+    func testSealVowIsIdempotent() {
+        let card = makeVowCard(lane: .recovery, bet: .medium, target: VowTarget(count: 1, noun: "recovery reset"))
+        pickLaneVow(card)
+        guard let vow = service.state(userId: "u-1").currentVow else {
+            return XCTFail("expected a current vow")
+        }
+        service.sealVow(userId: "u-1", vow: vow, at: Date())
+        service.sealVow(userId: "u-1", vow: vow, at: Date())
+        XCTAssertEqual(service.state(userId: "u-1").completionsByLane[.recovery], 1)
+    }
+
+    // MARK: - Auto-verify: recovery source (routine-sourced PerformanceLogs)
+
+    /// A routine-sourced recovery PerformanceLog completed in-week.
+    private func recoveryPerfLog(
+        titled title: String = "Recovery Reset",
+        completedAt t: TimeInterval = 1_700_000_900
+    ) -> PerformanceLog {
+        PerformanceLog(
+            id: UUID().uuidString,
+            userId: "u-1",
+            source: .routine,
+            title: title,
+            startedAt: Date(timeIntervalSince1970: t - 600),
+            completedAt: Date(timeIntervalSince1970: t),
+            blocks: []
+        )
+    }
+
+    private func cardioSession(at t: TimeInterval = 1_700_000_900) -> CardioSession {
+        CardioSession(
+            userId: "u-1",
+            type: .run,
+            durationMinutes: 20,
+            perceivedEffort: 5,
+            date: Date(timeIntervalSince1970: t)
+        )
+    }
+
+    private func makeAutoService(
+        recovery: @escaping (String) async -> [PerformanceLog] = { _ in [] },
+        cardio: @escaping (String) async -> [CardioSession] = { _ in [] }
+    ) -> WeeklyVowsService {
+        WeeklyVowsService(
+            store: store,
+            recoveryCompletionsProvider: recovery,
+            cardioSessionsProvider: cardio
+        )
+    }
+
+    private func pick(_ card: WeeklyVowCard, on autoService: WeeklyVowsService, userId: String = "u-1") {
+        var state = autoService.state(userId: userId)
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [card]
+        store.save(state, userId: userId)
+        autoService.pickVowCard(card, userId: userId)
+    }
+
+    private func runRefresh(on autoService: WeeklyVowsService, userId: String = "u-1") {
+        let exp = expectation(description: "auto-verify")
+        Task { await autoService.refreshAutoVerifiedVow(userId: userId); exp.fulfill() }
+        wait(for: [exp], timeout: 5)
+    }
+
+    func testRefreshAutoVerifiedVowSealsWhenRecoveryLogsQualify() {
+        let autoService = makeAutoService(recovery: { _ in [self.recoveryPerfLog()] })
+        let card = makeVowCard(lane: .recovery, bet: .small, target: VowTarget(count: 1, noun: "recovery reset"))
+        pick(card, on: autoService)
+
+        runRefresh(on: autoService)
+
+        XCTAssertEqual(autoService.state(userId: "u-1").currentVow?.capstoneState, .completed)
+        XCTAssertEqual(autoService.state(userId: "u-1").completionsByLane[.recovery], 1)
+    }
+
+    func testRefreshAutoVerifiedVowSealsWhenCardioQualifies() {
+        let autoService = makeAutoService(cardio: { _ in [self.cardioSession()] })
+        let card = makeVowCard(lane: .engine, bet: .small, target: VowTarget(count: 1, noun: "easy cardio session"))
+        pick(card, on: autoService)
+
+        runRefresh(on: autoService)
+
+        XCTAssertEqual(autoService.state(userId: "u-1").currentVow?.capstoneState, .completed)
+        XCTAssertEqual(autoService.state(userId: "u-1").completionsByLane[.engine], 1)
+    }
+
+    func testRefreshAutoVerifiedVowIsNoOpForFuel() {
+        // Even if recovery/cardio sources are non-empty, a Fuel vow never auto-seals.
+        let autoService = makeAutoService(
+            recovery: { _ in [self.recoveryPerfLog()] },
+            cardio: { _ in [self.cardioSession()] }
+        )
+        let card = makeVowCard(lane: .fuel, bet: .small, target: VowTarget(count: 1, noun: "fuel anchor"))
+        pick(card, on: autoService)
+
+        runRefresh(on: autoService)
+
+        XCTAssertEqual(autoService.state(userId: "u-1").currentVow?.capstoneState, .pending)
+        XCTAssertNil(autoService.state(userId: "u-1").completionsByLane[.fuel])
+    }
+
+    func testRefreshAutoVerifiedVowDoesNotSealBelowTarget() {
+        // Only 1 recovery log, target needs 2.
+        let autoService = makeAutoService(recovery: { _ in [self.recoveryPerfLog()] })
+        let card = makeVowCard(lane: .recovery, bet: .medium, target: VowTarget(count: 2, noun: "recovery reset"))
+        pick(card, on: autoService)
+
+        runRefresh(on: autoService)
+
+        XCTAssertEqual(autoService.state(userId: "u-1").currentVow?.capstoneState, .pending)
+    }
+
+    func testSwitchingBeforeProgressIsFree() {
+        let a = makeVowCard(lane: .recovery, bet: .small, target: VowTarget(count: 1, noun: "recovery reset"))
+        let b = makeVowCard(lane: .engine, bet: .large, target: VowTarget(count: 1, noun: "easy cardio session"))
+        var state = service.state(userId: "u-1")
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [a, b]
+        store.save(state, userId: "u-1")
+
+        service.pickVowCard(a, userId: "u-1")
+        service.pickVowCard(b, userId: "u-1")  // no progress on A → free switch
+
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.id, b.id)
+        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, 0)
+    }
+
+    func testSwitchingAfterProgressOwesStake() {
+        let a = makeVowCard(lane: .fuel, bet: .medium, target: VowTarget(count: 5, noun: "fuel anchor"))
+        let b = makeVowCard(lane: .recovery, bet: .small, target: VowTarget(count: 1, noun: "recovery reset"))
+        var state = service.state(userId: "u-1")
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [a, b]
+        store.save(state, userId: "u-1")
+
+        service.pickVowCard(a, userId: "u-1")
+        service.logFuelAnchor(userId: "u-1")  // progress on A
+        service.pickVowCard(b, userId: "u-1") // bound switch → owes A's stake
+
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.id, b.id)
+        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, VowBet.medium.oweXP) // 250
+    }
+
+    // MARK: - skipThisWeek grace (spec §10)
+
+    func testSkipUntouchedVowIsFree() {
+        // An untouched recovery vow (no in-app progress) is unbound; skipping it
+        // owes no debt — consistent with pickVowCard's mis-tap grace.
+        let card = makeVowCard(lane: .recovery, bet: .large, target: VowTarget(count: 1, noun: "recovery reset"))
+        pickLaneVow(card)
+
+        service.skipThisWeek(userId: "u-1")
+
+        XCTAssertTrue(service.state(userId: "u-1").skippedCurrentWeek)
+        XCTAssertNil(service.state(userId: "u-1").currentVow)
+        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, 0)
+    }
+
+    func testSkipVowWithProgressOwesStake() {
+        // A Fuel vow with a logged anchor is bound; skipping it owes the stake.
+        let card = makeVowCard(lane: .fuel, bet: .medium, target: VowTarget(count: 5, noun: "fuel anchor"))
+        pickLaneVow(card)
+        service.logFuelAnchor(userId: "u-1")  // progress binds the vow
+
+        service.skipThisWeek(userId: "u-1")
+
+        XCTAssertTrue(service.state(userId: "u-1").skippedCurrentWeek)
+        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, VowBet.medium.oweXP)
+    }
 }
