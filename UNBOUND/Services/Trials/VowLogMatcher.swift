@@ -19,8 +19,16 @@ enum VowLogMatcher {
 
     /// In-week qualifying recovery completions. `recoveryLogs` are the
     /// routine-sourced `PerformanceLog`s read from the `performanceLogs`
-    /// collection; we match on the title string the recovery logging stamps
-    /// (recovery / mobility).
+    /// collection.
+    ///
+    /// Two-signal qualifier (hybrid):
+    ///   1. Title keyword — catches program rest-days titled "Recovery Day" /
+    ///      "Recovery Reset", which carry no special block notes.
+    ///   2. Mobility category label on any block — catches standalone mobility
+    ///      routines (e.g. "Hip Reset", "Evening Stretch", "Shoulder + Spine Reset",
+    ///      "Ankle + Squat Prep") that stamp `RoutineCategory.mobility.label`
+    ///      ("MOBILITY WING") onto their block notes but whose titles contain no
+    ///      keyword.
     static func qualifyingRecoveryCount(
         weekStart: Date,
         recoveryLogs: [PerformanceLog]
@@ -34,8 +42,11 @@ enum VowLogMatcher {
     }
 
     private static func recoveryQualifies(_ log: PerformanceLog) -> Bool {
+        // Signal 1: title keyword (case-insensitive) — program rest-day path.
         let title = log.title.lowercased()
-        return recoveryKeywords.contains { title.contains($0) }
+        if recoveryKeywords.contains(where: { title.contains($0) }) { return true }
+        // Signal 2: any block carries the mobility category label — standalone routine path.
+        return log.blocks.contains { ($0.notes ?? "") == RoutineCategory.mobility.label }
     }
 
     // MARK: - Engine (CardioSession)
