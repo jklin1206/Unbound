@@ -203,7 +203,7 @@ struct WorkoutRewardSequenceView: View {
         if let pr = summary.personalRecords.first { return pr.family.tint }
         if let attribute = summary.attributeDeltas.first(where: \.didAdvanceTier) { return attribute.tint }
         if let rankTrial = summary.rankTrialCallout { return rankTrial.passed ? Color.unbound.rankGold : Color.unbound.alert }
-        if let vow = summary.weeklyVowCallout { return vow.theme.tintColor }
+        if let vow = summary.weeklyVowCallout { return vow.lane.tintColor }
         return Color.rewardBlue
     }
 

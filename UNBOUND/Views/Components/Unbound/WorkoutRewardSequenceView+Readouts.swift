@@ -135,7 +135,7 @@ extension WorkoutRewardSequenceView {
     }
 
     func weeklyVowShareChip(_ callout: WeeklyVowRewardCallout) -> some View {
-        let tint = callout.theme.tintColor
+        let tint = callout.lane.tintColor
         let chipTitle = callout.completionBonus?.shareCard?.title ?? callout.shareTitle
         return HStack(spacing: 10) {
             Image(systemName: "checkmark.seal.fill")

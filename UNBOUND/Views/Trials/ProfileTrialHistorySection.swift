@@ -60,10 +60,10 @@ struct ProfileTrialHistorySection: View {
     }
 
     private func currentTrialRow(trial: Trial) -> some View {
-        let tint = trial.chosenCard.theme.tintColor
+        let tint = trial.chosenCard.lane.tintColor
 
         return HStack(spacing: 12) {
-            WeeklyVowProofAsset(kind: trial.chosenCard.kind, tint: tint, compact: true)
+            WeeklyVowProofAsset(lane: trial.chosenCard.lane, tint: tint, compact: true)
                 .frame(width: 38, height: 38)
                 .accessibilityHidden(true)
 
@@ -73,7 +73,7 @@ struct ProfileTrialHistorySection: View {
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
                 HStack(spacing: 6) {
-                    Text(trial.chosenCard.theme.displayLabel)
+                    Text(trial.chosenCard.lane.displayLabel)
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .tracking(1.2)
                         .foregroundStyle(tint)
@@ -96,19 +96,19 @@ struct ProfileTrialHistorySection: View {
     }
 
     private var completionStats: some View {
-        let totalCompletions = trialsState.completionsByCardKind.values.reduce(0, +)
-        let emberCount = trialsState.completionsByCardKind[.ember] ?? 0
-        let overdriveCount = trialsState.completionsByCardKind[.overdrive] ?? 0
-        let apexCount = trialsState.completionsByCardKind[.apex] ?? 0
+        let totalCompletions = trialsState.completionsByLane.values.reduce(0, +)
+        let recoveryCount = trialsState.completionsByLane[.recovery] ?? 0
+        let fuelCount = trialsState.completionsByLane[.fuel] ?? 0
+        let engineCount = trialsState.completionsByLane[.engine] ?? 0
 
         return HStack(spacing: 0) {
             statCell(value: "\(totalCompletions)", label: "COMPLETED")
             statDivider
-            statCell(value: "\(emberCount)", label: "RECOVERY")
+            statCell(value: "\(recoveryCount)", label: "RECOVERY")
             statDivider
-            statCell(value: "\(overdriveCount)", label: "FINISHER")
+            statCell(value: "\(fuelCount)", label: "FUEL")
             statDivider
-            statCell(value: "\(apexCount)", label: "LIMIT")
+            statCell(value: "\(engineCount)", label: "ENGINE")
         }
         .padding(.vertical, 4)
         .background(
@@ -221,17 +221,16 @@ extension CapstoneState {
                 userId: "preview",
                 weekStart: Date(),
                 chosenCard: TrialCard(
-                    id: "weekly-vow-W20-ember",
-                    kind: .ember,
-                    theme: .axis(.power),
+                    id: "weekly-vow-W20-recovery",
+                    lane: .recovery,
+                    bet: .small,
                     displayName: "Iron Reset",
-                    blurb: "A low-day proof for clean power work.",
-                    capstone: TrialCapstone(displayName: "Low-Day Proof", description: "Complete easy power work.", evaluation: .manualClaim)
+                    blurb: "A low-day reset for clean recovery.",
+                    target: VowTarget(count: 1, noun: "recovery reset")
                 ),
                 capstoneState: .windowOpen
             ),
-            completionsByAxis: [.power: 3, .mobility: 1],
-            completionsByCardKind: [.ember: 3, .overdrive: 1, .apex: 0],
+            completionsByLane: [.recovery: 3, .fuel: 1, .engine: 0],
             unlockedTitles: [],
             equippedTitle: nil,
             skippedCurrentWeek: false

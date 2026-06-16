@@ -219,7 +219,7 @@ extension DevBuildBootstrapper {
         WeeklyVowsStore.shared.save(.empty, userId: userId)
         await TrialsService.shared.ensureCurrentWeek(userId: userId)
         let cards = TrialsService.shared.state(userId: userId).currentWeekCards
-        if let card = cards.first(where: { $0.kind == .overdrive }) ?? cards.first {
+        if let card = cards.first(where: { $0.lane == .engine }) ?? cards.first {
             TrialsService.shared.pickVowCard(card, userId: userId)
         }
     }

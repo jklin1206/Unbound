@@ -8,10 +8,9 @@ struct ActiveTrialCard: View {
     let trial: Trial
 
     @EnvironmentObject private var services: ServiceContainer
-    @State private var trainingDraft: TrainingSessionDraft?
 
     private var card: TrialCard { trial.chosenCard }
-    private var tint: Color { card.theme.tintColor }
+    private var tint: Color { card.lane.tintColor }
     private var canLaunchTraining: Bool {
         trial.capstoneState == .windowOpen
     }
@@ -28,30 +27,20 @@ struct ActiveTrialCard: View {
     }
 
     var body: some View {
-        Button {
-            startTraining()
-        } label: {
-            cardContent
-        }
-        .buttonStyle(.plain)
-        .disabled(!canLaunchTraining)
-        .accessibilityIdentifier("weeklyVow.activeCard.startTraining")
-        .accessibilityLabel("Start Binding Vow training")
-        .fullScreenCover(item: $trainingDraft) { draft in
-            WorkoutReadyView(draft: draft)
-                .environmentObject(services)
-        }
+        cardContent
+            .accessibilityIdentifier("weeklyVow.activeCard")
+            .accessibilityLabel("Active Binding Vow")
     }
 
     private var cardContent: some View {
         HStack(alignment: .center, spacing: 14) {
-            WeeklyVowProofAsset(kind: card.kind, tint: tint, compact: true)
+            WeeklyVowProofAsset(lane: card.lane, tint: tint, compact: true)
                 .frame(width: 54, height: 54)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
-                    Text(card.theme.displayLabel.uppercased())
+                    Text(card.lane.displayLabel.uppercased())
                         .font(.system(size: 9, weight: .heavy, design: .monospaced))
                         .tracking(1.4)
                         .foregroundStyle(tint)
@@ -76,7 +65,7 @@ struct ActiveTrialCard: View {
                         .tracking(1.2)
                         .foregroundStyle(Color.unbound.textTertiary)
                         .lineLimit(1)
-                    Text(card.capstone.displayName.uppercased())
+                    Text(card.target.displayText.uppercased())
                         .font(.system(size: 9, weight: .heavy, design: .monospaced))
                         .tracking(0.8)
                         .foregroundStyle(tint)
@@ -136,11 +125,9 @@ struct ActiveTrialCard: View {
             .background(Capsule().fill(Color.unbound.success.opacity(0.14)))
         } else if canLaunchTraining {
             HStack(spacing: 5) {
-                Text("TRAIN")
+                Text("READY")
                     .font(.system(size: 9, weight: .heavy, design: .monospaced))
                     .tracking(1.2)
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 10, weight: .black))
             }
             .foregroundStyle(Color.unbound.bg)
             .frame(width: 64, height: 30)
@@ -157,12 +144,6 @@ struct ActiveTrialCard: View {
             .frame(width: 64, height: 30)
             .background(Capsule().fill(tint.opacity(0.13)))
         }
-    }
-
-    private func startTraining() {
-        guard canLaunchTraining else { return }
-        UnboundHaptics.medium()
-        trainingDraft = services.trials.trainingDraft(for: trial, date: Date())
     }
 
     private var capstoneStateLabel: String {
@@ -231,12 +212,12 @@ private struct TrialActiveCutShape: Shape {
                 userId: "preview",
                 weekStart: Date(),
                 chosenCard: TrialCard(
-                    id: "weekly-vow-W20-ember",
-                    kind: .ember,
-                    theme: .axis(.power),
+                    id: "weekly-vow-W20-recovery",
+                    lane: .recovery,
+                    bet: .small,
                     displayName: "Iron Reset",
-                    blurb: "A low-day proof for clean power work.",
-                    capstone: TrialCapstone(displayName: "Low-Day Proof", description: "Complete easy power work.", evaluation: .manualClaim)
+                    blurb: "A low-day reset for clean recovery.",
+                    target: VowTarget(count: 1, noun: "recovery reset")
                 ),
                 capstoneState: .windowOpen
             )

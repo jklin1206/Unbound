@@ -5,24 +5,19 @@ import SwiftUI
 // Single card in the weekly Binding Vow pick tray. Sized ~460pt tall so it fills
 // most of the viewport in a TabView/.page swiper without clipping.
 //
-// Layout top → bottom:
-//   1. Theme tag (axis name or WILDCARD) + kind badge
-//   2. Custom vow mark
-//   3. Display name (big title)
-//   4. Blurb (narrative subtitle)
-//   5. Session prescription pills
-//   6. Standard hint footer
+// Binding Vows v2: a card is lane + bet + target. Phase 5 owns the premium
+// sigil/seal styling; this is the minimal compile-correct treatment.
 
 struct TrialCardView: View {
     let card: TrialCard
 
-    private var tint: Color { card.theme.tintColor }
+    private var tint: Color { card.lane.tintColor }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // ── Theme tag row ──────────────────────────────────────────
+            // ── Lane tag row ───────────────────────────────────────────
             HStack(spacing: 8) {
-                Text(card.theme.displayLabel)
+                Text(card.lane.displayLabel)
                     .font(.system(size: 10, weight: .heavy, design: .monospaced))
                     .tracking(1.6)
                     .foregroundStyle(tint)
@@ -33,12 +28,12 @@ struct TrialCardView: View {
 
                 Spacer(minLength: 0)
 
-                kindBadge
+                betBadge
             }
 
             Spacer().frame(height: 14)
 
-            WeeklyVowProofAsset(kind: card.kind, tint: tint)
+            WeeklyVowProofAsset(lane: card.lane, tint: tint)
                 .frame(width: 60, height: 60)
                 .accessibilityHidden(true)
 
@@ -64,11 +59,6 @@ struct TrialCardView: View {
 
             Spacer().frame(height: 14)
 
-            // ── Session prescription pills ───────────────────────────
-            vowPrescription
-
-            Spacer().frame(height: 10)
-
             vowTerms
 
             Spacer(minLength: 12)
@@ -80,7 +70,7 @@ struct TrialCardView: View {
 
             Spacer().frame(height: 12)
 
-            // ── Standard hint ────────────────────────────────────────
+            // ── Target footer ────────────────────────────────────────
             proofHint
         }
         .padding(22)
@@ -89,7 +79,6 @@ struct TrialCardView: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(Color.unbound.surface)
-                // Subtle tint wash in top-leading corner
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(
                         LinearGradient(
@@ -116,64 +105,24 @@ struct TrialCardView: View {
 
     // MARK: - Sub-views
 
-    private var kindBadge: some View {
-        let badgeTint: Color
-        switch card.kind {
-        case .ember:
-            badgeTint = Color.unbound.accent
-        case .overdrive:
-            badgeTint = Color(red: 0.3, green: 0.75, blue: 0.5)
-        case .apex:
-            badgeTint = Color(red: 0.9, green: 0.75, blue: 0.3)
-        }
-        return Text(card.kind.displayName.uppercased())
+    private var betBadge: some View {
+        Text("\(card.bet.displayLabel) BET")
             .font(.system(size: 9, weight: .bold, design: .monospaced))
             .tracking(1.4)
-            .foregroundStyle(badgeTint)
+            .foregroundStyle(tint)
             .padding(.horizontal, 9)
             .padding(.vertical, 4)
             .background(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(badgeTint.opacity(0.12))
-            )
-    }
-
-    @ViewBuilder
-    private var vowPrescription: some View {
-        if let prescription = card.prescription {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("SESSION")
-                    .font(.system(size: 9, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                HStack(spacing: 8) {
-                    vowPill(card.kind.shortDescription.uppercased())
-                    vowPill(prescription.summary.uppercased())
-                }
-            }
-        }
-    }
-
-    private func vowPill(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 9.5, weight: .heavy, design: .monospaced))
-            .tracking(1.2)
-            .foregroundStyle(tint)
-            .lineLimit(1)
-            .minimumScaleFactor(0.72)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(tint.opacity(0.14))
+                    .fill(tint.opacity(0.12))
             )
     }
 
     private var vowTerms: some View {
         VStack(alignment: .leading, spacing: 5) {
+            vowTermRow(label: "TARGET", text: card.target.displayText)
             vowTermRow(label: "WHEN", text: windowSummary)
-            vowTermRow(label: "PROOF", text: proofSummary)
-            vowTermRow(label: "STAKES", text: "\(card.kind.rewardSummary) · \(card.kind.missDebtSummary)")
+            vowTermRow(label: "STAKES", text: "+\(card.bet.winXP) XP · Miss: \(card.bet.oweXP) XP debt")
         }
         .padding(8)
         .background(
@@ -182,19 +131,15 @@ struct TrialCardView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(tint.opacity(card.kind == .apex ? 0.36 : 0.18), lineWidth: 1)
+                .strokeBorder(tint.opacity(0.18), lineWidth: 1)
         )
     }
 
     private var windowSummary: String {
-        if let prescription = card.prescription {
-            return "\(prescription.placement.vowDisplayLabel) · opens Sat"
+        switch card.lane.verification {
+        case .autoFromLog: return "Auto-detected from your logs"
+        case .selfReport:  return "Self-report this week"
         }
-        return "Opens Sat"
-    }
-
-    private var proofSummary: String {
-        card.kind == .apex ? card.kind.proofRuleSummary : card.capstone.description
     }
 
     private func vowTermRow(label: String, text: String) -> some View {
@@ -203,12 +148,12 @@ struct TrialCardView: View {
                 .font(.system(size: 7.5, weight: .black, design: .monospaced))
                 .tracking(1.0)
                 .foregroundStyle(tint)
-                .frame(width: 42, alignment: .leading)
+                .frame(width: 48, alignment: .leading)
 
             Text(text)
                 .font(.system(size: 9.5, weight: .semibold))
                 .foregroundStyle(Color.unbound.textSecondary)
-                .lineLimit(label == "PROOF" ? 2 : 1)
+                .lineLimit(2)
                 .minimumScaleFactor(0.76)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -221,11 +166,11 @@ struct TrialCardView: View {
                 .foregroundStyle(tint.opacity(0.8))
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("STANDARD")
+                Text("TO CLEAR")
                     .font(.system(size: 9, weight: .bold))
                     .tracking(1.6)
                     .foregroundStyle(Color.unbound.textTertiary)
-                Text(card.capstone.displayName)
+                Text(card.target.displayText)
                     .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
@@ -238,13 +183,13 @@ struct TrialCardView: View {
 }
 
 struct WeeklyVowProofAsset: View {
-    let kind: WeeklyVowKind
+    let lane: VowLane
     let tint: Color
     var compact: Bool = false
 
     var body: some View {
         ZStack {
-            if let image = UIImage(named: kind.proofAssetName) {
+            if let image = UIImage(named: lane.sealAssetName) {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
@@ -277,7 +222,7 @@ struct WeeklyVowProofAsset: View {
                 .inset(by: compact ? 7 : 10)
                 .stroke(tint.opacity(0.22), lineWidth: 1)
 
-            Image(systemName: kind.proofAssetSymbolName)
+            Image(systemName: lane.sealSymbolName)
                 .font(.system(size: compact ? 18 : 28, weight: .black))
                 .foregroundStyle(tint)
                 .shadow(color: tint.opacity(0.35), radius: compact ? 8 : 14)
@@ -330,19 +275,6 @@ struct WeeklyVowCoachValidationStrip: View {
     }
 }
 
-private extension WeeklyVowPrescription.Placement {
-    var vowDisplayLabel: String {
-        switch self {
-        case .recoveryDay:
-            return "Recovery day"
-        case .afterWorkout:
-            return "After workout"
-        case .dedicatedSession:
-            return "Dedicated session"
-        }
-    }
-}
-
 private struct VowFacetShape: InsettableShape {
     var insetAmount: CGFloat = 0
 
@@ -371,53 +303,31 @@ private struct VowFacetShape: InsettableShape {
 
 // MARK: - Previews
 
-#Preview("Aligned card") {
+#Preview("Recovery card") {
     ZStack {
         Color.unbound.bg.ignoresSafeArea()
         TrialCardView(card: TrialCard(
-            id: "weekly-vow-W20-ember",
-            kind: .ember,
-            theme: .axis(.power),
+            id: "weekly-vow-W20-recovery",
+            lane: .recovery,
+            bet: .small,
             displayName: "Iron Reset",
-            blurb: "A low-day proof for clean power work.",
-            capstone: TrialCapstone(
-                displayName: "Low-Day Proof",
-                description: "Complete easy power work at RPE 3-5.",
-                evaluation: .manualClaim
-            ),
-            prescription: WeeklyVowPrescription(
-                placement: .recoveryDay,
-                minMinutes: 8,
-                maxMinutes: 12,
-                minRPE: 3,
-                maxRPE: 5
-            )
+            blurb: "A low-day reset that protects recovery.",
+            target: VowTarget(count: 1, noun: "recovery reset")
         ))
         .padding(20)
     }
 }
 
-#Preview("Prestige card") {
+#Preview("Engine card") {
     ZStack {
         Color.unbound.bg.ignoresSafeArea()
         TrialCardView(card: TrialCard(
-            id: "weekly-vow-W20-apex",
-            kind: .apex,
-            theme: .wildcard,
-            displayName: "Pull-Up Standard",
-            blurb: "A dedicated weekend proof.",
-            capstone: TrialCapstone(
-                displayName: "Circuit Finisher",
-                description: "Complete a 20-minute AMRAP with at least 4 movements.",
-                evaluation: .manualClaim
-            ),
-            prescription: WeeklyVowPrescription(
-                placement: .dedicatedSession,
-                minMinutes: 20,
-                maxMinutes: 45,
-                minRPE: 8,
-                maxRPE: 9
-            )
+            id: "weekly-vow-W20-engine",
+            lane: .engine,
+            bet: .large,
+            displayName: "Engine Build",
+            blurb: "Conditioning work that builds the engine.",
+            target: VowTarget(count: 3, noun: "engine session")
         ))
         .padding(20)
     }

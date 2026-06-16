@@ -701,7 +701,7 @@ struct ProfileView: View {
     }
 
     private var vowsCompletedCount: Int {
-        trialsState.completionsByCardKind.values.reduce(0, +)
+        trialsState.completionsByLane.values.reduce(0, +)
     }
 
     private var vowMetricDetail: String {

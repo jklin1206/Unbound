@@ -13,7 +13,7 @@ struct TrialPickerPromptCard: View {
             onTap()
         }) {
             HStack(spacing: 13) {
-                WeeklyVowProofAsset(kind: .overdrive, tint: Color.unbound.accent, compact: true)
+                WeeklyVowProofAsset(lane: .engine, tint: Color.unbound.accent, compact: true)
                     .frame(width: 42, height: 42)
                     .accessibilityHidden(true)
 
