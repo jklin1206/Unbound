@@ -98,7 +98,7 @@ extension SquadDetailView {
                     HStack(spacing: 8) {
                         squadMetaPill(
                             icon: "person.2.fill",
-                            value: "\(state.roster.count)/8",
+                            value: "\(state.roster.count)/\(state.currentSquad?.maxSize ?? 10)",
                             label: "CREW",
                             tint: Color.unbound.accent
                         )

@@ -124,7 +124,7 @@ struct JoinSquadSheet: View {
         } catch SquadError.invalidInviteCode {
             error = "Invalid invite code. Double-check and try again."
         } catch SquadError.squadFull {
-            error = "That squad is full (max 8 members)."
+            error = "That squad is full (max 10 members)."
         } catch SquadError.alreadyInSquad {
             error = "You're already in a squad."
         } catch {
