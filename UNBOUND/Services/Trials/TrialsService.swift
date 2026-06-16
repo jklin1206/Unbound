@@ -177,7 +177,9 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         current.capstoneState = .completed
         current.completedAt = date
         state.currentVow = current
+        let priorKept = VowBadgeTrack.totalKept(state.completionsByLane)
         state.completionsByLane[current.chosenCard.lane, default: 0] += 1
+        let currentKept = VowBadgeTrack.totalKept(state.completionsByLane)
         store.save(state, userId: userId)
 
         // Token win — paid in full, never garnished (spec §5).
@@ -190,6 +192,9 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
             )
         }
         NotificationCenter.default.post(name: .weeklyVowCompleted, object: current)
+        for milestone in VowBadgeTrack.crossings(priorKept: priorKept, currentKept: currentKept) {
+            NotificationCenter.default.post(name: .vowBadgeUnlocked, object: milestone)
+        }
         AnalyticsService.shared.track(.bindingVowCleared(vowId: current.id))
     }
 
