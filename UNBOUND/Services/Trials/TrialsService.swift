@@ -6,24 +6,20 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
     static let shared = WeeklyVowsService()
 
     private let store: WeeklyVowsStore
-    private let attribute: AttributeServiceProtocol
     private let recentLogsProvider: (String) async -> [WorkoutLog]
 
     convenience init() {
         self.init(
             store: .shared,
-            attribute: AttributeService.shared,
             recentLogsProvider: nil
         )
     }
 
     init(
         store: WeeklyVowsStore,
-        attribute: AttributeServiceProtocol,
         recentLogsProvider: ((String) async -> [WorkoutLog])?
     ) {
         self.store = store
-        self.attribute = attribute
         // Default closure forwards to WorkoutLogService.shared.fetchRecentLogs(userId:limit:).
         // WorkoutLogServiceProtocol: fetchRecentLogs(userId:limit:) async throws -> [WorkoutLog]
         // Tests inject a stub closure that returns canned data.
@@ -54,9 +50,8 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
             state.currentVow = vow
         }
 
-        // EXPAND step (Binding Vows v2 Core-1): cards now come from the curated
-        // bank pool draw. `attribute`/`recentLogsProvider` are kept (Core-2 uses
-        // the logs provider for auto-detection; Core-3 cleans up any leftover).
+        // Cards come from the curated bank pool draw, seeded by the lane the user
+        // has kept least. `recentLogsProvider` powers auto-detection elsewhere.
         let weekNumber = isoWeekNumber(for: newWeekStart)
         let cards = VowWeeklyDraw.cards(
             weekNumber: weekNumber,
@@ -225,132 +220,6 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         return state.fuelAnchorsByVowId[vow.id] ?? 0
     }
 
-    // MARK: - Trainable vow work
-
-    func trainingDraft(for vow: WeeklyVow, date: Date) -> TrainingSessionDraft {
-        WeeklyVowTrainingBuilder.draft(for: vow, date: date)
-    }
-
-    func trainingDraftForCurrentVow(userId: String, date: Date) -> TrainingSessionDraft? {
-        guard let vow = store.load(userId: userId).currentVow,
-              vow.capstoneState != .completed,
-              vow.capstoneState != .missed
-        else { return nil }
-        return trainingDraft(for: vow, date: date)
-    }
-
-    @discardableResult
-    func recordCompletedVowWork(
-        performanceLog: PerformanceLog,
-        completionResult: TrainingCompletionResult
-    ) -> WeeklyVowCompletionReceipt? {
-        guard completionResult.savedPerformanceLogId == performanceLog.id else { return nil }
-        guard WeeklyVowTrainingRoute.hasCompletedWork(performanceLog) else { return nil }
-        guard let vowId = WeeklyVowTrainingRoute.vowId(from: performanceLog.programId) else { return nil }
-
-        checkVowWindow(userId: performanceLog.userId, now: performanceLog.completedAt)
-        let state = store.load(userId: performanceLog.userId)
-        guard !state.weeklyVowCompletionLedger.contains(where: { $0.performanceLogId == performanceLog.id }) else {
-            return nil
-        }
-        guard let vow = state.currentVow,
-              vow.id == vowId,
-              vow.capstoneState == .windowOpen,
-              Self.savedWorkSatisfiesProof(
-                performanceLog,
-                vow: vow,
-                bodyweightKg: completionResult.bodyweightKg
-              )
-        else { return nil }
-
-        let completionCountAfter = (state.completionsByCardKind[vow.chosenCard.kind] ?? 0) + 1
-        let bonus = WeeklyVowCompletionBonusCatalog.bonus(
-            for: vow,
-            performanceLog: performanceLog,
-            completionCountAfter: completionCountAfter
-        )
-        let ledgerEntry = WeeklyVowCompletionLedgerEntry(
-            vowId: vow.id,
-            performanceLogId: performanceLog.id,
-            completedAt: performanceLog.completedAt,
-            bonus: bonus
-        )
-
-        guard let completedVow = sealCompletedVow(
-            userId: performanceLog.userId,
-            at: performanceLog.completedAt,
-            ledgerEntry: ledgerEntry
-        ) else { return nil }
-
-        CurrencyWalletStore.shared.bind(userId: performanceLog.userId)
-        CurrencyWalletStore.shared.grant(
-            250 + max(0, bonus.overallLevelXP / 2),
-            sourceId: "weeklyVow:\(performanceLog.id)"
-        )
-
-        return WeeklyVowCompletionReceipt(
-            vow: completedVow,
-            performanceLog: performanceLog,
-            completionBonus: bonus
-        )
-    }
-
-    // MARK: - Complete vow
-
-    func completeVow(userId: String, at date: Date) {
-        // Completion is intentionally sealed only by recordCompletedVowWork(_:completionResult:).
-        // Legacy callers cannot bypass the saved-work receipt requirement.
-    }
-
-    @discardableResult
-    private func sealCompletedVow(
-        userId: String,
-        at date: Date,
-        ledgerEntry: WeeklyVowCompletionLedgerEntry
-    ) -> WeeklyVow? {
-        var state = store.load(userId: userId)
-        guard var vow = state.currentVow else { return nil }
-        guard vow.id == ledgerEntry.vowId else { return nil }
-        guard vow.capstoneState == .windowOpen else { return nil }
-        if state.weeklyVowCompletionLedger.contains(where: { $0.performanceLogId == ledgerEntry.performanceLogId }) {
-            return nil
-        }
-
-        let prior = state
-
-        vow.capstoneState = .completed
-        vow.completedAt = date
-        state.currentVow = vow
-
-        // Increment axis counter (only for axis-themed cards, not wildcard Apex).
-        if case .axis(let axis) = vow.chosenCard.theme {
-            state.completionsByAxis[axis, default: 0] += 1
-        }
-        state.completionsByCardKind[vow.chosenCard.kind, default: 0] += 1
-
-        // Title threshold detection — fires .titleUnlocked per crossing.
-        let crossings = TitleThresholdEvaluator.crossings(prior: prior, current: state)
-        for titleId in crossings {
-            if !state.unlockedTitles.contains(titleId) {
-                state.unlockedTitles.append(titleId)
-            }
-        }
-        state.weeklyVowCompletionLedger.append(ledgerEntry)
-        if state.weeklyVowCompletionLedger.count > 100 {
-            state.weeklyVowCompletionLedger.removeFirst(state.weeklyVowCompletionLedger.count - 100)
-        }
-
-        store.save(state, userId: userId)
-
-        for titleId in crossings {
-            NotificationCenter.default.post(name: .titleUnlocked, object: titleId)
-        }
-        NotificationCenter.default.post(name: .weeklyVowCompleted, object: vow)
-        NotificationCenter.default.post(name: .trialCompleted, object: vow)
-        AnalyticsService.shared.track(.bindingVowCleared(vowId: vow.id))
-        return vow
-    }
-
     /// Grant the wearable title earned by unlocking a badge. Idempotent; fires
     /// `.titleUnlocked` for the new title so the UI can surface it.
     func unlockBadgeTitle(badgeId: String, userId: String) {
@@ -368,16 +237,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         NotificationCenter.default.post(name: .titleUnlocked, object: titleId)
     }
 
-    // MARK: - evaluateVowProofFromLog + checkVowWindow
-
-    func evaluateVowProofFromLog(
-        userId: String,
-        history: [ExerciseLogEntry],
-        bodyweightKg: Double
-    ) async {
-        // Raw history can hint at readiness, but it cannot seal a vow. The
-        // saved PerformanceLog route is the single completion authority.
-    }
+    // MARK: - checkVowWindow
 
     func checkVowWindow(userId: String, now: Date = .now) {
         var state = store.load(userId: userId)

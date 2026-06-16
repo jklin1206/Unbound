@@ -730,17 +730,7 @@ struct ActiveWorkoutContainerView: View {
         let performanceLog = session.assemblePerformanceLog(userId: uid)
         #endif
         do {
-            var completionResult = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
-            let weeklyVowReceipt = services.trials.recordCompletedVowWork(
-                performanceLog: performanceLog,
-                completionResult: completionResult
-            )
-            if let weeklyVowReceipt {
-                completionResult = await applyWeeklyVowBonus(
-                    weeklyVowReceipt,
-                    to: completionResult
-                )
-            }
+            let completionResult = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
             let rankTrialResult = OverallRankTrialRunner.shared.recordCompletedAttempt(
                 performanceLog: performanceLog,
                 completionResult: completionResult,
@@ -756,8 +746,7 @@ struct ActiveWorkoutContainerView: View {
             let summary = makeRewardSequenceSummary(
                 performanceLog: performanceLog,
                 completionResult: completionResult,
-                rankTrialResult: rankTrialResult,
-                weeklyVowReceipt: weeklyVowReceipt
+                rankTrialResult: rankTrialResult
             )
             if totalLoggedWorkingSets > 0
                 || summary.progression?.hasContent == true
@@ -774,33 +763,6 @@ struct ActiveWorkoutContainerView: View {
             saving = false
             saveError = true   // surface it + offer Retry / Leave — never trap
         }
-    }
-
-    private func applyWeeklyVowBonus(
-        _ receipt: WeeklyVowCompletionReceipt,
-        to completionResult: TrainingCompletionResult
-    ) async -> TrainingCompletionResult {
-        var updated = completionResult
-        do {
-            let reward = try await OverallLevelService.shared.grantFlatXPStrict(
-                amount: receipt.completionBonus.overallLevelXP,
-                sourceId: "weekly-vow-bonus:\(receipt.performanceLogId)",
-                userId: receipt.vow.userId,
-                at: receipt.completedAt,
-                database: services.database
-            )
-            updated.appendOverallLevelReward(reward)
-        } catch {
-            LoggingService.shared.log(
-                "Weekly Vow bonus XP persistence failed: \(error)",
-                level: .warning,
-                context: [
-                    "vowId": receipt.vow.id,
-                    "performanceLogId": receipt.performanceLogId
-                ]
-            )
-        }
-        return updated
     }
 
     private func finishDismiss() {
@@ -821,8 +783,7 @@ struct ActiveWorkoutContainerView: View {
     private func makeRewardSequenceSummary(
         performanceLog: PerformanceLog,
         completionResult: TrainingCompletionResult,
-        rankTrialResult: OverallRankTrialRunResult?,
-        weeklyVowReceipt: WeeklyVowCompletionReceipt?
+        rankTrialResult: OverallRankTrialRunResult?
     ) -> WorkoutRewardSequenceSummary {
         let loggedSets = session.exercises
             .filter { !$0.skipped }
@@ -843,8 +804,7 @@ struct ActiveWorkoutContainerView: View {
             completionResult: completionResult,
             rewardSummary: rewardSummary,
             fallbackXP: workSets * 12,
-            sourceName: weeklyVowReceipt == nil ? session.source.rawValue.capitalized : "Binding Vow",
-            weeklyVowCallout: weeklyVowReceipt?.callout
+            sourceName: session.source.rawValue.capitalized
         )
         summary.rankTrialCallout = rankTrialResult.map(rankTrialCallout)
         return summary
