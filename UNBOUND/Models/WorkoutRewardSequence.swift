@@ -245,33 +245,25 @@ struct CosmeticUnlockReward {
 struct WeeklyVowCompletionBonus: Codable, Equatable, Sendable {
     var overallLevelXP: Int
     var badgeProgress: WeeklyVowProgressDescriptor
-    var cosmeticProgress: WeeklyVowProgressDescriptor
     var shareCard: WeeklyVowShareCardDescriptor?
-    var baseOverallLevelXP: Int?
     var penaltyAppliedXP: Int?
 
     init(
         overallLevelXP: Int,
         badgeProgress: WeeklyVowProgressDescriptor,
-        cosmeticProgress: WeeklyVowProgressDescriptor,
-        shareCard: WeeklyVowShareCardDescriptor?,
-        baseOverallLevelXP: Int? = nil,
+        shareCard: WeeklyVowShareCardDescriptor? = nil,
         penaltyAppliedXP: Int? = nil
     ) {
         self.overallLevelXP = overallLevelXP
         self.badgeProgress = badgeProgress
-        self.cosmeticProgress = cosmeticProgress
         self.shareCard = shareCard
-        self.baseOverallLevelXP = baseOverallLevelXP
         self.penaltyAppliedXP = penaltyAppliedXP
     }
 
     private enum CodingKeys: String, CodingKey {
         case overallLevelXP
         case badgeProgress
-        case cosmeticProgress
         case shareCard
-        case baseOverallLevelXP
         case penaltyAppliedXP
     }
 
@@ -279,9 +271,7 @@ struct WeeklyVowCompletionBonus: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         overallLevelXP = try container.decode(Int.self, forKey: .overallLevelXP)
         badgeProgress = try container.decode(WeeklyVowProgressDescriptor.self, forKey: .badgeProgress)
-        cosmeticProgress = try container.decode(WeeklyVowProgressDescriptor.self, forKey: .cosmeticProgress)
         shareCard = try container.decodeIfPresent(WeeklyVowShareCardDescriptor.self, forKey: .shareCard)
-        baseOverallLevelXP = try container.decodeIfPresent(Int.self, forKey: .baseOverallLevelXP)
         penaltyAppliedXP = try container.decodeIfPresent(Int.self, forKey: .penaltyAppliedXP)
     }
 }

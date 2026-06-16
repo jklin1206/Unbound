@@ -439,7 +439,6 @@ extension WorkoutRewardSequenceView {
                                 rewardLine(label: "Vow Fracture", value: "-\(penaltyXP) LVL XP", tint: Color.unbound.alert)
                             }
                             rewardLine(label: "Vow Badge", value: bonus.badgeProgress.displayText, tint: tint)
-                            rewardLine(label: "Vow Cosmetic", value: bonus.cosmeticProgress.displayText, tint: tint)
                         }
                         rewardLine(label: "Lane", value: callout.lane.displayLabel, tint: tint)
                         rewardLine(label: "Receipt", value: callout.receiptLine, tint: Color.rewardBlue)

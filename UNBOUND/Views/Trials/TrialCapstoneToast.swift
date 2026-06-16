@@ -49,7 +49,7 @@ struct TrialCapstoneToast: View {
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.textTertiary)
                     .lineLimit(1)
-                Text("Vow Sealed")
+                Text("Vow Sealed · +\(trial.chosenCard.bet.winXP) XP")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.unbound.textPrimary)
             }

@@ -35,9 +35,7 @@ final class WeeklyVowsStoreTests: XCTestCase {
                 completedAt: Date(timeIntervalSince1970: 1_700_000_000),
                 bonus: WeeklyVowCompletionBonus(
                     overallLevelXP: 120,
-                    badgeProgress: WeeklyVowProgressDescriptor(title: "Finisher Vow I", current: 1, target: 3),
-                    cosmeticProgress: WeeklyVowProgressDescriptor(title: "Finisher Vow Mark", current: 1, target: 5),
-                    shareCard: nil
+                    badgeProgress: WeeklyVowProgressDescriptor(title: "Finisher Vow I", current: 1, target: 5)
                 )
             )
         ]
