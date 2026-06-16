@@ -35,4 +35,8 @@ Plain data/model types for UNBOUND, grouped by domain. No views or services live
 
 | File | Why |
 | --- | --- |
+| `VowBet.swift` | `VowBet` — vow bet size (small / medium / large) with associated oweXP and winXP values. |
+| `VowLane.swift` | `VowLane` — vow lane enum (recovery / fuel / engine etc.) with per-lane tint colour. |
+| `VowSigil.swift` | `VowSigil` — vow sigil model carrying the sigil identifier and render data. |
+| `VowTarget.swift` | `VowTarget` — vow target value type (the numeric goal a vow tracks against). |
 | `WorkingWeight.swift` | `WorkingWeight` — per-exercise working-weight record (kg, last reps/RPE, per user). Not assigned to a subfolder in the modularization map; it straddles Program (prescription) and Sessions (logging). Flagged for a future owner decision. |

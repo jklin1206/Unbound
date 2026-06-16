@@ -11,7 +11,6 @@ The PROFILE tab — the ARCHIVE counterpart to Home: identity, lifetime state, c
 | `ProfileSheets.swift` | `EditProfileSheet`, `RankInfoSheet`, `RankTrialFlowStrip`. |
 | `ProfileBuildCard.swift` | `ProfileBuildCard` — the build (attribute hex) card. |
 | `BuildAttributeCell.swift` | One attribute cell within the build card. |
-| `OverallRankTrialReadinessCard.swift` | Overall rank-trial readiness card. |
 | `PhotoCalendarView.swift` | Identity log calendar of captured photos; owns the capture action and promotes it into a scan when the milestone window is open. |
 | `ProfileScanRow.swift` | Scan entry row (last-scan date / first-scan CTA) opening `PhotoCaptureFlow` via parent state. |
 | `CameraPicker.swift` | Minimal `UIImagePickerController` camera sheet returning a `UIImage`. |

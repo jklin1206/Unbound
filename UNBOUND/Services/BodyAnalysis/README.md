@@ -8,7 +8,6 @@ Provides two distinct analysis surfaces: on-device body-shape inference via Appl
 | `BodyAnalysisService.swift` | Production conformer that delegates to `ScanPayoffFlavorService.shared` to generate one-line Build Identity flavor copy backed by Anthropic Haiku |
 | `MockBodyAnalysisService.swift` | Test-only conformer that returns a fixed placeholder string; used to inject into previews and unit tests |
 | `LocalBodyInsightsService.swift` | On-device Vision-based analyzer that extracts shoulder/hip ratio, torso/leg ratio, frame category, and posture flags from a front-facing photo; gracefully returns `nil` if keypoints are below confidence threshold |
-| `BodyAnalysisPrompt.swift` | Empty enum stub retained for source compatibility; the old LLM grading prompt has been removed and flavor copy is now fully handled by `ScanPayoffFlavorService` |
 
 ## Where to find X
 

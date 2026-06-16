@@ -6,6 +6,7 @@ Per-lift RankTier and skill-tier state, the overall rank-trial system (the gym e
 
 | File | Purpose |
 | --- | --- |
+| `GateKeys.swift` | Gate-key definitions: the consumable keys that unlock rank-trial attempts (`GateKey`, `GateKeyType`, inventory helpers). |
 | `LiftTierService.swift` | UserDefaults persistence of the current `SkillTier` per (lift, userId). |
 | `OverallRankTrialDefinitions.swift` | Static catalog of the rank-trial definitions: stations, movement options, equipment requirements, performance standards per `RankTitle`. |
 | `OverallRankTrialProgress.swift` | Codable progress model: `highestPassedRank` + attempt history (`OverallRankTrialAttempt`). |
