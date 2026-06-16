@@ -31,6 +31,11 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
     var completionsByAxis: [AttributeKey: Int]
     /// Per-vow-kind Title progress counter.
     var completionsByCardKind: [WeeklyVowKind: Int]
+    /// Per-lane kept-vow counter (badge track + draw targeting).
+    var completionsByLane: [VowLane: Int]
+    /// Vow-scoped Fuel self-report tallies, keyed by vow id. Feeds only the
+    /// vow's completion — never XP/rank/attributes (spec §7 guardrail).
+    var fuelAnchorsByVowId: [String: Int]
     /// Append-only list of unlocked Titles, ordered by unlock time.
     var unlockedTitles: [TitleID]
     /// User's chosen headline title (must be in unlockedTitles to equip).
@@ -61,6 +66,8 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         currentTrial: nil,
         completionsByAxis: [:],
         completionsByCardKind: [:],
+        completionsByLane: [:],
+        fuelAnchorsByVowId: [:],
         unlockedTitles: [],
         equippedTitle: nil,
         skippedCurrentWeek: false,
@@ -75,6 +82,8 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         currentTrial: WeeklyVow?,
         completionsByAxis: [AttributeKey: Int],
         completionsByCardKind: [WeeklyVowKind: Int],
+        completionsByLane: [VowLane: Int] = [:],
+        fuelAnchorsByVowId: [String: Int] = [:],
         unlockedTitles: [TitleID],
         equippedTitle: TitleID?,
         skippedCurrentWeek: Bool,
@@ -87,6 +96,8 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         self.currentTrial = currentTrial
         self.completionsByAxis = completionsByAxis
         self.completionsByCardKind = completionsByCardKind
+        self.completionsByLane = completionsByLane
+        self.fuelAnchorsByVowId = fuelAnchorsByVowId
         self.unlockedTitles = unlockedTitles
         self.equippedTitle = equippedTitle
         self.skippedCurrentWeek = skippedCurrentWeek
@@ -101,6 +112,8 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         case currentTrial
         case completionsByAxis
         case completionsByCardKind
+        case completionsByLane
+        case fuelAnchorsByVowId
         case unlockedTitles
         case equippedTitle
         case skippedCurrentWeek
@@ -121,6 +134,8 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         currentTrial = try container.decodeIfPresent(WeeklyVow.self, forKey: .currentTrial)
         completionsByAxis = try container.decodeIfPresent([AttributeKey: Int].self, forKey: .completionsByAxis) ?? [:]
         completionsByCardKind = try container.decodeIfPresent([WeeklyVowKind: Int].self, forKey: .completionsByCardKind) ?? [:]
+        completionsByLane = try container.decodeIfPresent([VowLane: Int].self, forKey: .completionsByLane) ?? [:]
+        fuelAnchorsByVowId = try container.decodeIfPresent([String: Int].self, forKey: .fuelAnchorsByVowId) ?? [:]
         unlockedTitles = try container.decodeIfPresent([TitleID].self, forKey: .unlockedTitles) ?? []
         equippedTitle = try container.decodeIfPresent(TitleID.self, forKey: .equippedTitle)
         skippedCurrentWeek = try container.decodeIfPresent(Bool.self, forKey: .skippedCurrentWeek) ?? false
