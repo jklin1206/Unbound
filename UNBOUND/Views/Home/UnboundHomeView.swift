@@ -71,6 +71,7 @@ struct UnboundHomeView: View {
     @State var showScanCaptureFlow = false
 
     @State var showTrialPicker = false
+    @State var showActiveVow = false
 
     init(services: ServiceContainer) {
         _model = StateObject(wrappedValue: HomeViewModel(services: services))
@@ -337,6 +338,18 @@ struct UnboundHomeView: View {
                     model.trialsState = services.trials.state(userId: userId)
                 }
             )
+        }
+        .sheet(isPresented: $showActiveVow, onDismiss: {
+            // A Fuel self-report or auto-seal inside the card may have advanced
+            // the vow; pull the latest state so the command label stays in sync.
+            if let userId = services.auth.currentUserId {
+                model.trialsState = services.trials.state(userId: userId)
+            }
+        }) {
+            if let trial = model.trialsState.currentTrial {
+                ActiveVowSheet(trial: trial)
+                    .environmentObject(services)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .weeklyVowCompleted)) { _ in
             if let userId = services.auth.currentUserId {
