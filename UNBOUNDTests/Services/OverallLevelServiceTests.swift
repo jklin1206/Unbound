@@ -1,6 +1,37 @@
 import XCTest
 @testable import UNBOUND
 
+/// Regression: an `OverallLevelReward` persisted before the vow-debt garnish
+/// feature (no `xpWithheldToVowDebt` key) must still decode — otherwise existing
+/// users' progress reads throw and reset them to fresh progress.
+final class OverallLevelRewardDecodeTests: XCTestCase {
+    func testDecodesRewardMissingVowDebtFieldAsZero() throws {
+        let legacyJSON = """
+        {
+          "xpGained": 42.0, "noveltyMultiplier": 1.0,
+          "previousXP": 100.0, "currentXP": 142.0,
+          "previousLevel": 2, "currentLevel": 2,
+          "previousProgressToNextLevel": 0.1, "currentProgressToNextLevel": 0.5
+        }
+        """.data(using: .utf8)!
+        let reward = try JSONDecoder().decode(OverallLevelReward.self, from: legacyJSON)
+        XCTAssertEqual(reward.xpGained, 42.0)
+        XCTAssertEqual(reward.xpWithheldToVowDebt, 0)
+    }
+
+    func testRoundTripsVowDebtField() throws {
+        var reward = OverallLevelReward(
+            xpGained: 10, noveltyMultiplier: 1, previousXP: 0, currentXP: 10,
+            previousLevel: 1, currentLevel: 1,
+            previousProgressToNextLevel: 0, currentProgressToNextLevel: 0.2
+        )
+        reward.xpWithheldToVowDebt = 7
+        let data = try JSONEncoder().encode(reward)
+        let decoded = try JSONDecoder().decode(OverallLevelReward.self, from: data)
+        XCTAssertEqual(decoded.xpWithheldToVowDebt, 7)
+    }
+}
+
 @MainActor
 final class OverallLevelServiceGarnishTests: XCTestCase {
 

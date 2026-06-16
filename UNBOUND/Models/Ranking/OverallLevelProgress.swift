@@ -130,4 +130,32 @@ struct OverallLevelReward: Codable, Hashable, Sendable {
     var didLevelUp: Bool {
         currentLevel > previousLevel
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case xpGained, noveltyMultiplier, previousXP, currentXP
+        case previousLevel, currentLevel
+        case previousProgressToNextLevel, currentProgressToNextLevel
+        case xpWithheldToVowDebt
+    }
+}
+
+extension OverallLevelReward {
+    /// Tolerant decode: `xpWithheldToVowDebt` was added with the vow-debt garnish
+    /// feature, so rewards persisted before it lack the key. Decode it optionally
+    /// (defaulting to 0) so existing `OverallLevelProgress` / replay documents keep
+    /// loading instead of throwing and resetting the user to fresh progress.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            xpGained: try c.decode(Double.self, forKey: .xpGained),
+            noveltyMultiplier: try c.decode(Double.self, forKey: .noveltyMultiplier),
+            previousXP: try c.decode(Double.self, forKey: .previousXP),
+            currentXP: try c.decode(Double.self, forKey: .currentXP),
+            previousLevel: try c.decode(Int.self, forKey: .previousLevel),
+            currentLevel: try c.decode(Int.self, forKey: .currentLevel),
+            previousProgressToNextLevel: try c.decode(Double.self, forKey: .previousProgressToNextLevel),
+            currentProgressToNextLevel: try c.decode(Double.self, forKey: .currentProgressToNextLevel),
+            xpWithheldToVowDebt: try c.decodeIfPresent(Double.self, forKey: .xpWithheldToVowDebt) ?? 0
+        )
+    }
 }
