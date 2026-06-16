@@ -43,7 +43,7 @@ enum WeeklyVowCompletionBonusCatalog {
         // Badge milestones are driven by VowBadgeTrack thresholds. The progress
         // descriptor here is a rolling display counter (e.g., "Power I 3/5") until
         // Phase 5b wires the real milestone-based badge award.
-        let badgeTarget = 5
+        let badgeTarget = VowBadgeTrack.thresholds.first ?? 5
         let badgeProgress = min(badgeTarget, ((completionCountAfter - 1) % badgeTarget) + 1)
         let laneLabel = lane.displayLabel.capitalized
 
