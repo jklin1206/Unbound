@@ -75,18 +75,24 @@ extension ActiveWorkoutContainerView {
 
     var workoutModeBadge: some View {
         let tint = workoutHeaderTint
-        let text = session.progressSummary.isComplete
-            ? "FINISH"
-            : (isRankTrial ? "TRIAL" : "LIVE")
+        let text: String = {
+            // An empty Quick Log counts as "complete" (0 of 0 sets) but there's
+            // nothing to finish yet — show it as LIVE, not FINISH.
+            if isCustomSession && visibleExerciseCount == 0 { return "LIVE" }
+            if session.progressSummary.isComplete { return "FINISH" }
+            return isRankTrial ? "TRIAL" : "LIVE"
+        }()
         return Text(text)
             .font(Font.unbound.captionS.weight(.bold))
             .tracking(1.4)
+            .lineLimit(1)
             .foregroundStyle(tint)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(Capsule().fill(tint.opacity(0.15)))
             .overlay(Capsule().strokeBorder(tint.opacity(0.35), lineWidth: 1))
-            .frame(width: 64)
+            .frame(minWidth: 64)
+            .fixedSize(horizontal: true, vertical: false)
             .accessibilityLabel(text == "FINISH" ? "Ready to finish" : text)
     }
 

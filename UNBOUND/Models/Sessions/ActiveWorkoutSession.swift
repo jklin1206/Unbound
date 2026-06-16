@@ -251,6 +251,61 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
         }
     }
 
+    /// Append a catalog exercise to a live free/Quick-Log session. Mirrors the
+    /// CatalogExercise→ActiveExercise mapping in replaceExercise, with sensible
+    /// default sets/reps/rest since a fresh exercise carries no prescription.
+    func appendCatalogExercise(_ catalog: CatalogExercise) {
+        let definition = Self.movementDefinition(for: catalog.displayName)
+            ?? MovementCatalog.canonicalExercise(named: catalog.name)
+        let resolved = MovementResolver.resolve(catalog.displayName)
+        let plannedSets = 3
+        let plannedReps = "8-12"
+        let targetRPE = 8
+        let restSeconds = 90
+        let metricKind = Self.metricKind(for: plannedReps, definitionDefault: definition?.defaultMetric)
+        let blockKind = definition?.blockKind ?? .strength
+        let lowerBound = RepRange.lowerBound(plannedReps)
+
+        let exercise = ActiveExercise(
+            id: UUID().uuidString,
+            name: catalog.displayName,
+            plannedSets: plannedSets,
+            plannedReps: plannedReps,
+            restSeconds: restSeconds,
+            muscleGroups: catalog.muscleGroups,
+            sets: (0..<plannedSets).map { _ in
+                ActiveSet(
+                    id: UUID().uuidString,
+                    weightKg: nil,
+                    reps: nil,
+                    rpe: nil,
+                    isWarmup: false,
+                    logged: false,
+                    suggestedReps: metricKind == .reps ? lowerBound : nil,
+                    suggestedHoldSeconds: metricKind == .holdSeconds ? lowerBound : nil,
+                    suggestedDurationSeconds: metricKind == .durationSeconds ? lowerBound : nil,
+                    suggestedDistanceMeters: metricKind == .distanceMeters ? lowerBound : nil,
+                    suggestedCalories: metricKind == .calories ? lowerBound : nil,
+                    suggestedRPE: targetRPE,
+                    suggestedRestSeconds: restSeconds
+                )
+            },
+            skipped: false,
+            notes: "",
+            movementId: definition?.id ?? resolved.movementId,
+            rankStandardMovementId: definition?.rankStandardMovementId ?? resolved.rankStandardMovementId,
+            targetRPE: targetRPE,
+            blockKind: blockKind,
+            skillId: definition?.skillId,
+            cardioType: definition?.cardioType,
+            tracksHold: blockKind == .carry || metricKind == .holdSeconds || metricKind == .durationSeconds,
+            metricKind: metricKind
+        )
+
+        objectWillChange.send()
+        exercises.append(exercise)
+    }
+
     func markCurrentExerciseStarted(at date: Date = Date()) {
         markExerciseStarted(exerciseIndex: currentExerciseIndex, at: date)
     }
