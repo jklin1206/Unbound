@@ -41,8 +41,9 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
     var weeklyVowCompletionLedger: [WeeklyVowCompletionLedgerEntry]
     /// Missed picked vows. Skipping before picking still has no penalty.
     var weeklyVowPenaltyLedger: [WeeklyVowPenaltyLedgerEntry]
-    /// Outstanding XP tax applied against future vow completion bonuses.
-    var pendingVowPenaltyXP: Int
+    /// Outstanding XP debt from broken vows. Withheld from the user's next
+    /// earned training XP (never subtracts existing total, never de-levels).
+    var pendingVowDebtXP: Int
 
     var currentVow: WeeklyVow? {
         get { currentTrial }
@@ -65,7 +66,7 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         skippedCurrentWeek: false,
         weeklyVowCompletionLedger: [],
         weeklyVowPenaltyLedger: [],
-        pendingVowPenaltyXP: 0
+        pendingVowDebtXP: 0
     )
 
     init(
@@ -79,7 +80,7 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         skippedCurrentWeek: Bool,
         weeklyVowCompletionLedger: [WeeklyVowCompletionLedgerEntry] = [],
         weeklyVowPenaltyLedger: [WeeklyVowPenaltyLedgerEntry] = [],
-        pendingVowPenaltyXP: Int = 0
+        pendingVowDebtXP: Int = 0
     ) {
         self.currentWeekStart = currentWeekStart
         self.currentWeekCards = currentWeekCards
@@ -91,7 +92,7 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         self.skippedCurrentWeek = skippedCurrentWeek
         self.weeklyVowCompletionLedger = weeklyVowCompletionLedger
         self.weeklyVowPenaltyLedger = weeklyVowPenaltyLedger
-        self.pendingVowPenaltyXP = max(0, pendingVowPenaltyXP)
+        self.pendingVowDebtXP = max(0, pendingVowDebtXP)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -105,6 +106,11 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         case skippedCurrentWeek
         case weeklyVowCompletionLedger
         case weeklyVowPenaltyLedger
+        case pendingVowDebtXP
+    }
+
+    /// Legacy v1 key, decode-only for migration.
+    private enum LegacyCodingKeys: String, CodingKey {
         case pendingVowPenaltyXP
     }
 
@@ -126,7 +132,18 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
             [WeeklyVowPenaltyLedgerEntry].self,
             forKey: .weeklyVowPenaltyLedger
         ) ?? []
-        pendingVowPenaltyXP = try container.decodeIfPresent(Int.self, forKey: .pendingVowPenaltyXP) ?? 0
+        let legacyContainer = try decoder.container(keyedBy: LegacyCodingKeys.self)
+        pendingVowDebtXP = try container.decodeIfPresent(Int.self, forKey: .pendingVowDebtXP)
+            ?? legacyContainer.decodeIfPresent(Int.self, forKey: .pendingVowPenaltyXP)
+            ?? 0
+    }
+}
+
+extension WeeklyVowsState {
+    /// Temporary Phase-1 shim. Removed in Task 1.4.
+    var pendingVowPenaltyXP: Int {
+        get { pendingVowDebtXP }
+        set { pendingVowDebtXP = max(0, newValue) }
     }
 }
 

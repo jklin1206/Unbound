@@ -96,4 +96,27 @@ final class WeeklyVowsStoreTests: XCTestCase {
         XCTAssertEqual(loaded.completionsByCardKind[.ember], 2)
         XCTAssertNotNil(defaults.data(forKey: "unbound.weeklyVowsState.\(userId)"))
     }
+
+    func testDecodesLegacyPendingPenaltyAsDebt() throws {
+        // A v1 state blob carried `pendingVowPenaltyXP`. v2 must surface that owed
+        // amount as collectible debt under `pendingVowDebtXP`.
+        // [AttributeKey: Int] and [WeeklyVowKind: Int] encode as JSON arrays (not
+        // objects) because their key types are not String/Int — empty is [].
+        var base = WeeklyVowsState.empty
+        let baseData = try JSONEncoder().encode(base)
+        var dict = try JSONSerialization.jsonObject(with: baseData) as! [String: Any]
+        dict["pendingVowPenaltyXP"] = 120
+        dict.removeValue(forKey: "pendingVowDebtXP")
+        let legacyData = try JSONSerialization.data(withJSONObject: dict)
+        let state = try JSONDecoder().decode(WeeklyVowsState.self, from: legacyData)
+        XCTAssertEqual(state.pendingVowDebtXP, 120)
+    }
+
+    func testDebtSurvivesEncodeRoundTrip() throws {
+        var state = WeeklyVowsState.empty
+        state.pendingVowDebtXP = 250
+        let data = try JSONEncoder().encode(state)
+        let decoded = try JSONDecoder().decode(WeeklyVowsState.self, from: data)
+        XCTAssertEqual(decoded.pendingVowDebtXP, 250)
+    }
 }
