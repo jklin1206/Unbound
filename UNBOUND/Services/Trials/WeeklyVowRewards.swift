@@ -1,7 +1,6 @@
 import Foundation
 
 enum WeeklyVowPenaltyCatalog {
-    private static let maxPendingPenaltyXP = 240
     private static let maxLedgerEntries = 100
 
     static func applyMissedPenaltyIfNeeded(
@@ -12,8 +11,8 @@ enum WeeklyVowPenaltyCatalog {
         guard vow.capstoneState != .completed, vow.capstoneState != .missed else { return }
         guard !state.weeklyVowPenaltyLedger.contains(where: { $0.vowId == vow.id && $0.weekStart == vow.weekStart }) else { return }
 
-        let penaltyXP = vow.chosenCard.kind.missedPenaltyOverallLevelXP
-        guard penaltyXP > 0 else { return }
+        let owedXP = vow.chosenCard.kind.missedPenaltyOverallLevelXP
+        guard owedXP > 0 else { return }
 
         state.weeklyVowPenaltyLedger.append(
             WeeklyVowPenaltyLedgerEntry(
@@ -21,17 +20,15 @@ enum WeeklyVowPenaltyCatalog {
                 cardKind: vow.chosenCard.kind,
                 weekStart: vow.weekStart,
                 missedAt: missedAt,
-                penaltyXP: penaltyXP
+                penaltyXP: owedXP
             )
         )
         if state.weeklyVowPenaltyLedger.count > maxLedgerEntries {
             state.weeklyVowPenaltyLedger.removeFirst(state.weeklyVowPenaltyLedger.count - maxLedgerEntries)
         }
-        state.pendingVowPenaltyXP = min(maxPendingPenaltyXP, state.pendingVowPenaltyXP + penaltyXP)
-    }
-
-    static func remainingPenaltyXP(afterApplying appliedXP: Int, to pendingXP: Int) -> Int {
-        max(0, pendingXP - max(0, appliedXP))
+        // Spec §5: a broken vow becomes collectible debt, withheld from future
+        // earned training XP — not a deduction from the next vow win.
+        state.pendingVowDebtXP = max(0, state.pendingVowDebtXP + owedXP)
     }
 }
 
@@ -39,13 +36,10 @@ enum WeeklyVowCompletionBonusCatalog {
     static func bonus(
         for vow: WeeklyVow,
         performanceLog: PerformanceLog,
-        completionCountAfter: Int,
-        pendingPenaltyXP: Int
+        completionCountAfter: Int
     ) -> WeeklyVowCompletionBonus {
         let kind = vow.chosenCard.kind
-        let baseOverallLevelXP = kind.completionBonusOverallLevelXP
-        let penaltyAppliedXP = min(max(0, pendingPenaltyXP), baseOverallLevelXP)
-        let awardedOverallLevelXP = max(0, baseOverallLevelXP - penaltyAppliedXP)
+        let awardedOverallLevelXP = kind.completionBonusOverallLevelXP
         let badgeTarget = 3
         let cosmeticTarget = 5
         let badgeProgress = min(badgeTarget, ((completionCountAfter - 1) % badgeTarget) + 1)
@@ -81,8 +75,8 @@ enum WeeklyVowCompletionBonusCatalog {
                 target: cosmeticTarget
             ),
             shareCard: shareCard,
-            baseOverallLevelXP: penaltyAppliedXP > 0 ? baseOverallLevelXP : nil,
-            penaltyAppliedXP: penaltyAppliedXP > 0 ? penaltyAppliedXP : nil
+            baseOverallLevelXP: nil,
+            penaltyAppliedXP: nil
         )
     }
 }

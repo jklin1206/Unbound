@@ -98,7 +98,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertTrue(state.skippedCurrentWeek)
         XCTAssertNil(state.currentVow)
         XCTAssertTrue(state.weeklyVowPenaltyLedger.isEmpty)
-        XCTAssertEqual(state.pendingVowPenaltyXP, 0)
+        XCTAssertEqual(state.pendingVowDebtXP, 0)
     }
 
     // MARK: - completeVow
@@ -146,7 +146,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 1)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.vowId, overdrive.id)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.weekStart, state.currentWeekStart)
-        XCTAssertEqual(state.pendingVowPenaltyXP, overdrive.kind.missedPenaltyOverallLevelXP)
+        XCTAssertEqual(state.pendingVowDebtXP, overdrive.kind.missedPenaltyOverallLevelXP)
     }
 
     func testRepickingAfterPickedVowAddsPenaltyForAbandonedVow() async {
@@ -162,7 +162,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(state.currentVow?.id, apex.id)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 1)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.vowId, overdrive.id)
-        XCTAssertEqual(state.pendingVowPenaltyXP, overdrive.kind.missedPenaltyOverallLevelXP)
+        XCTAssertEqual(state.pendingVowDebtXP, overdrive.kind.missedPenaltyOverallLevelXP)
     }
 
     // MARK: - trainable vow routing
@@ -716,7 +716,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertNil(state.currentVow)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 1)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.penaltyXP, WeeklyVowKind.apex.missedPenaltyOverallLevelXP)
-        XCTAssertEqual(state.pendingVowPenaltyXP, WeeklyVowKind.apex.missedPenaltyOverallLevelXP)
+        XCTAssertEqual(state.pendingVowDebtXP, WeeklyVowKind.apex.missedPenaltyOverallLevelXP)
 
         let overdrive = state.currentWeekCards.first(where: { $0.kind == .overdrive })!
         service.pickVowCard(overdrive, userId: "u-1")
@@ -730,12 +730,12 @@ final class WeeklyVowsServiceTests: XCTestCase {
 
         let receipt = try! XCTUnwrap(service.recordCompletedVowWork(performanceLog: log, completionResult: result))
 
-        XCTAssertEqual(receipt.completionBonus.baseOverallLevelXP, WeeklyVowKind.overdrive.completionBonusOverallLevelXP)
-        XCTAssertEqual(receipt.completionBonus.penaltyAppliedXP, WeeklyVowKind.apex.missedPenaltyOverallLevelXP)
-        XCTAssertEqual(receipt.completionBonus.overallLevelXP, 0)
+        // v2: win pays full bonus; debt is NOT deducted from the win (cleared only by earned training XP).
+        XCTAssertNil(receipt.completionBonus.baseOverallLevelXP)
+        XCTAssertNil(receipt.completionBonus.penaltyAppliedXP)
+        XCTAssertEqual(receipt.completionBonus.overallLevelXP, WeeklyVowKind.overdrive.completionBonusOverallLevelXP)
         state = service.state(userId: "u-1")
-        XCTAssertEqual(state.pendingVowPenaltyXP, 0)
-        XCTAssertEqual(state.weeklyVowCompletionLedger.first?.bonus.penaltyAppliedXP, WeeklyVowKind.apex.missedPenaltyOverallLevelXP)
+        XCTAssertEqual(state.pendingVowDebtXP, WeeklyVowKind.apex.missedPenaltyOverallLevelXP)
     }
 
     func testPenaltyDedupeIncludesVowWeekStart() async {
@@ -780,14 +780,14 @@ final class WeeklyVowsServiceTests: XCTestCase {
                 penaltyXP: card.kind.missedPenaltyOverallLevelXP
             )
         ]
-        stale.pendingVowPenaltyXP = card.kind.missedPenaltyOverallLevelXP
+        stale.pendingVowDebtXP = card.kind.missedPenaltyOverallLevelXP
         store.save(stale, userId: "u-1")
 
         await service.ensureCurrentWeek(userId: "u-1")
 
         let state = service.state(userId: "u-1")
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 2)
-        XCTAssertEqual(state.pendingVowPenaltyXP, card.kind.missedPenaltyOverallLevelXP * 2)
+        XCTAssertEqual(state.pendingVowDebtXP, card.kind.missedPenaltyOverallLevelXP * 2)
     }
 
     // MARK: - evaluateVowProofFromLog + checkVowWindow
@@ -819,6 +819,32 @@ final class WeeklyVowsServiceTests: XCTestCase {
         ]
         await service.evaluateVowProofFromLog(userId: "u-1", history: history, bodyweightKg: 70)
         XCTAssertNotEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed)
+    }
+
+    // MARK: - Task 1.4: broken vow writes debt; completion no longer pays debt
+
+    func testBrokenVowAddsDebtNotNextVowPenalty() {
+        // Pick a vow, then roll the week without completing → debt accrues.
+        let card = makeAxisCard(kind: .apex, axis: .power)
+        var state = service.state(userId: "u-1")
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [card]
+        store.save(state, userId: "u-1")
+        service.pickVowCard(card, userId: "u-1")
+
+        // Force a stale week so ensureCurrentWeek rolls + marks missed.
+        var picked = service.state(userId: "u-1")
+        picked.currentWeekStart = Date(timeIntervalSince1970: 1) // ancient
+        store.save(picked, userId: "u-1")
+
+        let exp = expectation(description: "rolled")
+        Task { await service.ensureCurrentWeek(userId: "u-1"); exp.fulfill() }
+        wait(for: [exp], timeout: 5)
+
+        XCTAssertEqual(
+            service.state(userId: "u-1").pendingVowDebtXP,
+            card.kind.missedPenaltyOverallLevelXP
+        )
     }
 
     func testEvaluateCapstoneFromLogDoesNotCompleteWhenWindowOpenWithoutSavedReceipt() async {

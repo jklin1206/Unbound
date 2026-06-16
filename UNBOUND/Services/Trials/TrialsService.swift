@@ -182,8 +182,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         let bonus = WeeklyVowCompletionBonusCatalog.bonus(
             for: vow,
             performanceLog: performanceLog,
-            completionCountAfter: completionCountAfter,
-            pendingPenaltyXP: state.pendingVowPenaltyXP
+            completionCountAfter: completionCountAfter
         )
         let ledgerEntry = WeeklyVowCompletionLedgerEntry(
             vowId: vow.id,
@@ -252,10 +251,6 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
             }
         }
         state.weeklyVowCompletionLedger.append(ledgerEntry)
-        state.pendingVowPenaltyXP = WeeklyVowPenaltyCatalog.remainingPenaltyXP(
-            afterApplying: ledgerEntry.bonus.penaltyAppliedXP ?? 0,
-            to: state.pendingVowPenaltyXP
-        )
         if state.weeklyVowCompletionLedger.count > 100 {
             state.weeklyVowCompletionLedger.removeFirst(state.weeklyVowCompletionLedger.count - 100)
         }

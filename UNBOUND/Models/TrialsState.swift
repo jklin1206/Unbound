@@ -139,12 +139,4 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
     }
 }
 
-extension WeeklyVowsState {
-    /// Temporary Phase-1 shim. Removed in Task 1.4.
-    var pendingVowPenaltyXP: Int {
-        get { pendingVowDebtXP }
-        set { pendingVowDebtXP = max(0, newValue) }
-    }
-}
-
 typealias TrialsState = WeeklyVowsState
