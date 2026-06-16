@@ -325,8 +325,8 @@ struct BodyWeightHistoryScreen: View {
                     .padding(.vertical, 8)
             } else {
                 VStack(spacing: 0) {
-                    ForEach(recentLogs.indices, id: \.self) { index in
-                        recentLogRow(recentLogs[index])
+                    ForEach(Array(recentLogs.enumerated()), id: \.element.id) { index, log in
+                        recentLogRow(log)
 
                         if index < recentLogs.count - 1 {
                             Rectangle()

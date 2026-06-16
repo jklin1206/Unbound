@@ -71,7 +71,7 @@ struct RoutinePlayerView: View {
                 }
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             startedAt = Date()
             performanceEntries = []

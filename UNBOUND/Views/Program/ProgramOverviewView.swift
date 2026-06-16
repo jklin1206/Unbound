@@ -224,7 +224,7 @@ struct ProgramOverviewView: View {
                 .zIndex(5)
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             await loadProgramSurface()
 

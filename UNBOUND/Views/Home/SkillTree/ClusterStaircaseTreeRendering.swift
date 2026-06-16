@@ -119,7 +119,7 @@ extension ClusterStaircaseView {
     ) -> UIImage {
         let size = CGSize(width: contentWidth, height: treeHeight)
         let format = UIGraphicsImageRendererFormat()
-        format.scale = UIScreen.main.scale
+        format.scale = ScreenMetrics.scale
         format.opaque = false
         let renderer = UIGraphicsImageRenderer(size: size, format: format)
         return renderer.image { ctx in
@@ -150,10 +150,10 @@ extension ClusterStaircaseView {
     /// avoids the black empty space that appears when the frame is taller
     /// than the actual zoomed content.
     func mapViewportHeight(contentWidth: CGFloat, for treeHeight: CGFloat) -> CGFloat {
-        let screenWidth = UIScreen.main.bounds.width
+        let screenWidth = ScreenMetrics.bounds.width
         let initialZoom = min(1.0, max(minZoom, screenWidth / max(contentWidth, 1)))
         let renderedHeight = ceil(treeHeight * initialZoom)
-        let screenHeight = UIScreen.main.bounds.height
+        let screenHeight = ScreenMetrics.bounds.height
         return min(max(renderedHeight, 400), min(screenHeight * 0.72, 760))
     }
 

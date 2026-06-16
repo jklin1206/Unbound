@@ -35,7 +35,7 @@ struct TrialPickerSheet: View {
                     }
                 }
             }
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
