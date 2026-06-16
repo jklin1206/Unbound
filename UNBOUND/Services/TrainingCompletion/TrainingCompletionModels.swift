@@ -18,6 +18,13 @@ struct TrainingCompletionResult: Sendable {
     var bodyMapRegionRewards: [BodyMapRegionReward] = []
     var overallLevelReward: OverallLevelReward?
     var overallLevelXPGained: Double = 0
+    /// XP the session earned BEFORE any was siphoned to pay down vow debt.
+    /// Completion gates (daily quest / routine) must use this, not
+    /// `overallLevelXPGained`: a session that paid off debt has `xpGained == 0`
+    /// yet is still a real completion that should be claimable.
+    var overallLevelXPEarnedBeforeDebt: Double {
+        overallLevelXPGained + (overallLevelReward?.xpWithheldToVowDebt ?? 0)
+    }
     var skillXPGained: Int = 0
     /// Currency earned for the session. Legacy storage still uses "vows" keys,
     /// but the surfaced shop currency is Arcs.

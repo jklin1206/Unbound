@@ -29,7 +29,7 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
 
     /// Seal a vow as cleared: pay the bet's win token (flat XP), increment the
     /// lane counter, and notify. Idempotent against an already-closed vow.
-    func sealVow(userId: String, vow: WeeklyVow, at date: Date)
+    func sealVow(userId: String, vow: WeeklyVow, at date: Date) async
 
     /// Auto-complete an auto-verified (recovery/engine) vow when enough
     /// qualifying sessions are logged in-week. No-op for Fuel vows.
@@ -37,7 +37,7 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
 
     /// Self-report tap for a Fuel vow. Increments the vow-scoped anchor tally
     /// and seals the vow at target.
-    func logFuelAnchor(userId: String)
+    func logFuelAnchor(userId: String) async
 
     /// Current Fuel anchor tally for the active vow (0 for non-Fuel vows).
     func fuelAnchorCount(userId: String) -> Int

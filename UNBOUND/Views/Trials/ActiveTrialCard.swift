@@ -191,8 +191,10 @@ struct ActiveTrialCard: View {
     private func logFuelAnchor() {
         guard let userId = services.auth.currentUserId else { return }
         UnboundHaptics.tick()
-        services.trials.logFuelAnchor(userId: userId)
-        fuelCount = services.trials.fuelAnchorCount(userId: userId)
+        Task { @MainActor in
+            await services.trials.logFuelAnchor(userId: userId)
+            fuelCount = services.trials.fuelAnchorCount(userId: userId)
+        }
     }
 }
 

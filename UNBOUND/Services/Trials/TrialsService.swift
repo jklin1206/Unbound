@@ -171,7 +171,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
     /// Seal a vow as cleared: increment the lane counter, pay the bet's win token
     /// (flat XP, never garnished — spec §5), and notify. Idempotent against an
     /// already-completed/missed vow.
-    func sealVow(userId: String, vow: WeeklyVow, at date: Date) {
+    func sealVow(userId: String, vow: WeeklyVow, at date: Date) async {
         var state = store.load(userId: userId)
         guard var current = state.currentVow, current.id == vow.id,
               current.capstoneState != .completed, current.capstoneState != .missed
@@ -184,15 +184,16 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         let currentKept = VowBadgeTrack.totalKept(state.completionsByLane)
         store.save(state, userId: userId)
 
-        // Token win — paid in full, never garnished (spec §5).
-        Task {
-            try? await OverallLevelService.shared.grantFlatXPStrict(
-                amount: current.chosenCard.bet.winXP,
-                sourceId: "weeklyVowWin:\(current.id)",
-                userId: userId,
-                at: date
-            )
-        }
+        // Token win — paid in full, never garnished (spec §5). Awaited (not a
+        // detached Task) so the grant is part of the seal's completion path and
+        // isn't dropped if the app backgrounds immediately after sealing. The
+        // grant is idempotent by sourceId.
+        try? await OverallLevelService.shared.grantFlatXPStrict(
+            amount: current.chosenCard.bet.winXP,
+            sourceId: "weeklyVowWin:\(current.id)",
+            userId: userId,
+            at: date
+        )
         NotificationCenter.default.post(name: .weeklyVowCompleted, object: current)
         for milestone in VowBadgeTrack.crossings(priorKept: priorKept, currentKept: currentKept) {
             NotificationCenter.default.post(name: .vowBadgeUnlocked, object: milestone)
@@ -231,12 +232,12 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         }
 
         guard count >= vow.chosenCard.target.count else { return }
-        sealVow(userId: userId, vow: vow, at: Date())
+        await sealVow(userId: userId, vow: vow, at: Date())
     }
 
     /// Self-report tap for a Fuel vow. Increments the vow-scoped anchor tally
     /// (never XP/rank/attributes — spec §7 guardrail) and seals at target.
-    func logFuelAnchor(userId: String) {
+    func logFuelAnchor(userId: String) async {
         var state = store.load(userId: userId)
         guard let vow = state.currentVow,
               vow.chosenCard.lane == .fuel,
@@ -247,7 +248,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         store.save(state, userId: userId)
         NotificationCenter.default.post(name: .weeklyVowProgressUpdated, object: vow)
         if next >= vow.chosenCard.target.count {
-            sealVow(userId: userId, vow: vow, at: Date())
+            await sealVow(userId: userId, vow: vow, at: Date())
         }
     }
 
