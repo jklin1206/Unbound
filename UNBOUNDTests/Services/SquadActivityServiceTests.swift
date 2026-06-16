@@ -72,15 +72,11 @@ final class SquadActivityServiceTests: XCTestCase {
     private func makeWeeklyVowCard() -> WeeklyVowCard {
         WeeklyVowCard(
             id: "weekly-vow-test-W01",
-            kind: .overdrive,
-            theme: .axis(.power),
+            lane: .engine,
+            bet: .medium,
             displayName: "Power Finish",
             blurb: "A controlled finisher after training.",
-            capstone: WeeklyVowProof(
-                displayName: "Hit a new PR",
-                description: "Hit a new one-rep max this week.",
-                evaluation: .manualClaim
-            )
+            target: VowTarget(count: 2, noun: "engine session")
         )
     }
 
