@@ -53,11 +53,10 @@ struct TrialPickerSheet: View {
             Text("Choose your vow")
                 .font(.system(size: 24, weight: .black))
                 .foregroundStyle(Color.unbound.textPrimary)
-            Text("Pick or skip now. Tap to log toward your vow's target all week — hit the target and the vow seals. Abandon a bound vow and its stake becomes XP debt.")
+            Text("Log toward the target all week — hit it and the vow seals.")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
-                .lineSpacing(2)
                 .padding(.horizontal, 28)
         }
         .padding(.top, 24)

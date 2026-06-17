@@ -4,9 +4,9 @@ import SwiftUI
 // MARK: - VowDemoHarness
 //
 // Dev harness (`-vowDemo`) that renders the redesigned Binding Vow surfaces with
-// seeded state, so the active card (incl. the debt strip + progress meter), the
-// sealed state, and the profile history can be screenshot without driving the
-// whole app to Home. Seeds WeeklyVowsStore.shared for the mock user the mock
+// seeded state, so the active card (progress bar + log affordance), the sealed
+// state, and the profile history can be screenshot without driving the whole app
+// to Home. Seeds WeeklyVowsStore.shared for the mock user the mock
 // ServiceContainer authenticates as.
 
 struct VowDemoHarness: View {
@@ -99,8 +99,7 @@ struct VowDemoHarness: View {
         state.currentWeekStart = weekStart
         state.currentWeekCards = [activeCard]
         state.currentVow = activeVow
-        state.fuelAnchorsByVowId[activeCard.id] = 1
-        state.lastVowLogByVowId[activeCard.id] = Date()  // shows the once-a-day "LOGGED TODAY" state
+        state.fuelAnchorsByVowId[activeCard.id] = 1  // partial progress, still loggable today (shows the LOG row)
         state.completionsByLane = [.recovery: 3, .fuel: 4, .engine: 2]
         WeeklyVowsStore.shared.save(state, userId: userId)
     }

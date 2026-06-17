@@ -1,7 +1,7 @@
 import Foundation
 
-/// The size of a Binding Vow bet (spec §5). `oweXP` is withheld from future
-/// earned training XP on a break; `winXP` is the token paid on a clear.
+/// The size of a Binding Vow bet (spec §5). `oweXP` is docked straight off your
+/// XP on a break; `winXP` is the token paid on a clear.
 enum VowBet: String, CaseIterable, Codable, Sendable {
     case small
     case medium

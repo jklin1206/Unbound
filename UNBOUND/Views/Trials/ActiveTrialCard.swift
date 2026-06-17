@@ -51,40 +51,24 @@ struct ActiveTrialCard: View {
                     .frame(width: 54, height: 54)
                     .accessibilityHidden(true)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
                         Text(card.lane.displayLabel)
-                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                            .tracking(1.4)
                             .foregroundStyle(tint)
-                            .lineLimit(1)
-
-                        Text(card.bet.displayLabel)
-                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                            .tracking(1.1)
+                        Text("·")
                             .foregroundStyle(Color.unbound.textTertiary)
-                            .lineLimit(1)
+                        Text(card.bet.displayLabel)
+                            .foregroundStyle(Color.unbound.textTertiary)
                     }
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.2)
+                    .lineLimit(1)
 
                     Text(card.displayName)
                         .font(.system(size: 22, weight: .black))
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
-
-                    HStack(spacing: 7) {
-                        Text("VOW")
-                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                            .tracking(1.2)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                            .lineLimit(1)
-                        Text(card.target.displayText.uppercased())
-                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                            .tracking(0.8)
-                            .foregroundStyle(tint)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.64)
-                    }
                 }
                 .layoutPriority(1)
 
@@ -113,13 +97,13 @@ struct ActiveTrialCard: View {
             sealedRow
         } else {
             VStack(spacing: 10) {
+                progressRow
                 metaLine
                 if canLogToday {
                     vowLogRow
                 } else {
                     loggedTodayRow
                 }
-                progressMeter
             }
         }
     }
@@ -135,10 +119,6 @@ struct ActiveTrialCard: View {
                 .tracking(1.2)
                 .foregroundStyle(Color.unbound.textSecondary)
             Spacer(minLength: 0)
-            Text("\(progressCount)/\(card.target.count)")
-                .font(.system(size: 14, weight: .black, design: .monospaced))
-                .foregroundStyle(tint)
-                .monospacedDigit()
         }
         .padding(.horizontal, 12)
         .frame(height: 44)
@@ -151,8 +131,8 @@ struct ActiveTrialCard: View {
         .accessibilityLabel("Logged today, \(progressCount) of \(card.target.count). Come back tomorrow.")
     }
 
-    /// Days-left this week — the week framing the bare log row was missing.
-    /// (Stakes/debt live on the XP rail — one place for the XP economy.)
+    /// Days-left this week — the week framing for the log row.
+    /// (Stakes live on the XP rail — one place for the XP economy.)
     private var metaLine: some View {
         HStack(spacing: 7) {
             Image(systemName: "hourglass")
@@ -166,18 +146,25 @@ struct ActiveTrialCard: View {
         }
     }
 
-    /// Slim progress track mirroring the count toward target.
-    private var progressMeter: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.unbound.surfaceElevated)
-                Capsule()
-                    .fill(tint)
-                    .frame(width: max(5, geo.size.width * progressFraction))
+    /// Progress track + count — the single place the target count is shown.
+    private var progressRow: some View {
+        HStack(spacing: 12) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.unbound.surfaceElevated)
+                    Capsule()
+                        .fill(tint)
+                        .frame(width: max(5, geo.size.width * progressFraction))
+                }
             }
+            .frame(height: 6)
+            Text("\(progressCount)/\(card.target.count)")
+                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .foregroundStyle(tint)
+                .monospacedDigit()
         }
-        .frame(height: 5)
-        .accessibilityHidden(true)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(progressCount) of \(card.target.count) logged.")
     }
 
     private var sealedRow: some View {
@@ -215,10 +202,9 @@ struct ActiveTrialCard: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Spacer(minLength: 0)
-                Text("\(progressCount)/\(card.target.count)")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(tint)
-                    .monospacedDigit()
             }
             .padding(.horizontal, 12)
             .frame(height: 44)
