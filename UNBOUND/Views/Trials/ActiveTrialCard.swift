@@ -2,21 +2,19 @@ import SwiftUI
 
 // MARK: - ActiveTrialCard
 //
-// Shows the current active Binding Vow in the Home contextualStack, with its
-// in-context seal affordance:
-//   - Fuel (self-report): a tap-to-log anchor row that increments toward target
-//     and seals the vow at target via WeeklyVowsService.logFuelAnchor.
-//   - Recovery/Engine (auto-from-log): a calm hint that the vow auto-seals when
-//     a qualifying recovery/cardio session is logged this week.
+// Shows the current active Binding Vow in the Home contextualStack with its
+// in-context seal affordance: a tap-to-log row that increments toward the
+// target and seals the vow at target via WeeklyVowsService.logVowProgress.
+// Every lane self-reports the same way.
 
 struct ActiveTrialCard: View {
     let trial: Trial
 
     @EnvironmentObject private var services: ServiceContainer
 
-    /// Fuel anchor tally for the active vow, kept in sync after each self-report
-    /// tap so the row reflects progress without a full state reload.
-    @State private var fuelCount: Int = 0
+    /// Self-report tally for the active vow, kept in sync after each tap so the
+    /// row reflects progress without a full state reload.
+    @State private var progressCount: Int = 0
 
     private var card: TrialCard { trial.chosenCard }
     private var tint: Color { card.lane.tintColor }
@@ -24,7 +22,7 @@ struct ActiveTrialCard: View {
 
     var body: some View {
         cardContent
-            .onAppear(perform: refreshFuelCount)
+            .onAppear(perform: refreshProgressCount)
             .accessibilityIdentifier("weeklyVow.activeCard")
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Active Binding Vow")
@@ -97,10 +95,8 @@ struct ActiveTrialCard: View {
     private var affordance: some View {
         if isSealed {
             sealedRow
-        } else if card.lane.verification == .selfReport {
-            fuelLogRow
         } else {
-            autoSealHint
+            vowLogRow
         }
     }
 
@@ -124,10 +120,10 @@ struct ActiveTrialCard: View {
         )
     }
 
-    /// Fuel self-report: each tap logs one anchor toward target; the service
-    /// seals the vow once the tally reaches the target count.
-    private var fuelLogRow: some View {
-        Button(action: logFuelAnchor) {
+    /// Self-report: each tap logs one toward target; the service seals the vow
+    /// once the tally reaches the target count.
+    private var vowLogRow: some View {
+        Button(action: logProgress) {
             HStack(spacing: 10) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 18, weight: .bold))
@@ -139,7 +135,7 @@ struct ActiveTrialCard: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 Spacer(minLength: 0)
-                Text("\(fuelCount)/\(card.target.count)")
+                Text("\(progressCount)/\(card.target.count)")
                     .font(.system(size: 14, weight: .black, design: .monospaced))
                     .foregroundStyle(tint)
                     .monospacedDigit()
@@ -153,47 +149,22 @@ struct ActiveTrialCard: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Log one \(card.target.noun). \(fuelCount) of \(card.target.count) so far.")
-    }
-
-    /// Recovery/Engine: verified from logged sessions, so there is no manual
-    /// button — just a calm hint of what seals it.
-    private var autoSealHint: some View {
-        HStack(spacing: 8) {
-            Image(systemName: card.lane.sealSymbolName)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(tint)
-            Text("Auto-seals when you log \(card.target.displayText) this week")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Color.unbound.textSecondary)
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 40)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.unbound.surfaceElevated.opacity(0.6))
-        )
+        .accessibilityLabel("Log one \(card.target.noun). \(progressCount) of \(card.target.count) so far.")
     }
 
     // MARK: - Actions
 
-    private func refreshFuelCount() {
-        guard card.lane.verification == .selfReport,
-              let userId = services.auth.currentUserId
-        else { return }
-        fuelCount = services.trials.fuelAnchorCount(userId: userId)
+    private func refreshProgressCount() {
+        guard let userId = services.auth.currentUserId else { return }
+        progressCount = services.trials.vowProgressCount(userId: userId)
     }
 
-    private func logFuelAnchor() {
+    private func logProgress() {
         guard let userId = services.auth.currentUserId else { return }
         UnboundHaptics.tick()
         Task { @MainActor in
-            await services.trials.logFuelAnchor(userId: userId)
-            fuelCount = services.trials.fuelAnchorCount(userId: userId)
+            await services.trials.logVowProgress(userId: userId)
+            progressCount = services.trials.vowProgressCount(userId: userId)
         }
     }
 }

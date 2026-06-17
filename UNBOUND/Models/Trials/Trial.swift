@@ -8,11 +8,6 @@ struct WeeklyVow: Codable, Identifiable, Equatable, Sendable {
     let chosenCard: WeeklyVowCard
     var capstoneState: WeeklyVowState
     var completedAt: Date?
-    /// When the user committed to this vow. Auto-verification only counts
-    /// qualifying logs at or after this moment, so a session logged before the
-    /// commitment can't retroactively seal the vow. Optional for backward
-    /// decode of vows persisted before this field (falls back to weekStart).
-    var pickedAt: Date? = nil
 
     var vowState: WeeklyVowState {
         get { capstoneState }

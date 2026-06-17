@@ -6,43 +6,13 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
     static let shared = WeeklyVowsService()
 
     private let store: WeeklyVowsStore
-    // Read-only auto-detection sources (Core-3). Recovery reads routine-sourced
-    // PerformanceLogs; engine reads CardioSessions. Both default to the existing
-    // read APIs; tests inject stub closures returning canned data.
-    private let recoveryCompletionsProvider: (String) async -> [PerformanceLog]
-    private let cardioSessionsProvider: (String) async -> [CardioSession]
 
     convenience init() {
-        self.init(
-            store: .shared,
-            recoveryCompletionsProvider: nil,
-            cardioSessionsProvider: nil
-        )
+        self.init(store: .shared)
     }
 
-    init(
-        store: WeeklyVowsStore,
-        recoveryCompletionsProvider: ((String) async -> [PerformanceLog])? = nil,
-        cardioSessionsProvider: ((String) async -> [CardioSession])? = nil
-    ) {
+    init(store: WeeklyVowsStore) {
         self.store = store
-        // Recovery: read routine-sourced PerformanceLogs from the shared
-        // `performanceLogs` collection (read-only — never a write path).
-        self.recoveryCompletionsProvider = recoveryCompletionsProvider ?? { userId in
-            let logs: [PerformanceLog] = (try? await DatabaseService.shared.query(
-                collection: "performanceLogs",
-                field: "userId",
-                isEqualTo: userId,
-                orderBy: "completedAt",
-                descending: true,
-                limit: nil
-            )) ?? []
-            return logs.filter { $0.source == .routine }
-        }
-        // Engine: read standalone cardio from CardioLogService (read-only).
-        self.cardioSessionsProvider = cardioSessionsProvider ?? { userId in
-            await CardioLogService.shared.all(userId: userId)
-        }
     }
 
     // MARK: - ensureCurrentWeek
@@ -128,8 +98,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
             weekStart: state.currentWeekStart ?? Date(),
             chosenCard: card,
             capstoneState: .pending,
-            completedAt: nil,
-            pickedAt: Date()
+            completedAt: nil
         )
         state.currentVow = vow
         state.skippedCurrentWeek = false
@@ -156,11 +125,9 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         WeeklyVowsNotificationScheduler.cancelAll()
     }
 
-    /// True if a picked vow has any progress that binds the stake on a switch.
-    /// Auto-verified lanes (recovery/engine) have no in-app counter, so this is
-    /// false for them — switching a recovery/engine pick is always free (a
-    /// qualifying session logged elsewhere still counts toward whichever vow is
-    /// bound at week close). See spec §10.
+    /// True if a picked vow has any progress that binds the stake on a switch:
+    /// it's sealed, or at least one self-report tap has been logged. An untouched
+    /// vow switches for free (mis-tap grace, spec §10).
     private func hasProgress(_ vow: WeeklyVow, in state: WeeklyVowsState) -> Bool {
         if vow.capstoneState == .completed { return true }
         if (state.fuelAnchorsByVowId[vow.id] ?? 0) > 0 { return true }
@@ -202,49 +169,11 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         AnalyticsService.shared.track(.bindingVowCleared(vowId: current.id))
     }
 
-    /// Auto-complete an auto-verified vow when enough qualifying sessions are
-    /// logged in-week. Reads the lane's read-only completion source (recovery →
-    /// routine-sourced PerformanceLogs; engine → CardioSessions). No-op for Fuel
-    /// (self-report) vows.
-    func refreshAutoVerifiedVow(userId: String) async {
-        let state = store.load(userId: userId)
-        guard let vow = state.currentVow,
-              vow.capstoneState == .pending || vow.capstoneState == .windowOpen,
-              vow.chosenCard.lane.verification == .autoFromLog,
-              let weekStart = state.currentWeekStart
-        else { return }
-
-        let committedAt = vow.pickedAt ?? weekStart
-        let count: Int
-        switch vow.chosenCard.lane {
-        case .recovery:
-            let recoveryLogs = await recoveryCompletionsProvider(userId)
-            count = VowLogMatcher.qualifyingRecoveryCount(
-                weekStart: weekStart,
-                committedAt: committedAt,
-                recoveryLogs: recoveryLogs
-            )
-        case .engine:
-            let cardioSessions = await cardioSessionsProvider(userId)
-            count = VowLogMatcher.qualifyingCardioCount(
-                weekStart: weekStart,
-                committedAt: committedAt,
-                cardioSessions: cardioSessions
-            )
-        case .fuel:
-            return  // self-report; never auto-sealed
-        }
-
-        guard count >= vow.chosenCard.target.count else { return }
-        await sealVow(userId: userId, vow: vow, at: Date())
-    }
-
-    /// Self-report tap for a Fuel vow. Increments the vow-scoped anchor tally
-    /// (never XP/rank/attributes — spec §7 guardrail) and seals at target.
-    func logFuelAnchor(userId: String) async {
+    /// Self-report tap for the active vow (any lane). Increments the vow-scoped
+    /// tally (never XP/rank/attributes — spec §7 guardrail) and seals at target.
+    func logVowProgress(userId: String) async {
         var state = store.load(userId: userId)
         guard let vow = state.currentVow,
-              vow.chosenCard.lane == .fuel,
               vow.capstoneState == .pending || vow.capstoneState == .windowOpen
         else { return }
         let next = (state.fuelAnchorsByVowId[vow.id] ?? 0) + 1
@@ -256,10 +185,10 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         }
     }
 
-    /// Current Fuel anchor tally for the active vow (0 for non-Fuel vows).
-    func fuelAnchorCount(userId: String) -> Int {
+    /// Current self-report tally for the active vow (0 if none).
+    func vowProgressCount(userId: String) -> Int {
         let state = store.load(userId: userId)
-        guard let vow = state.currentVow, vow.chosenCard.lane == .fuel else { return 0 }
+        guard let vow = state.currentVow else { return 0 }
         return state.fuelAnchorsByVowId[vow.id] ?? 0
     }
 

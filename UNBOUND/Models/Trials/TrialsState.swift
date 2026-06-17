@@ -17,10 +17,6 @@ struct WeeklyVowPenaltyLedgerEntry: Codable, Equatable, Identifiable, Sendable {
     let weekStart: Date
     let missedAt: Date
     let penaltyXP: Int
-    /// Lifetime kept-vow count at the moment this vow broke. The profile sigil
-    /// mends this fracture once `VowSigil.healAfterKept` further keeps accrue.
-    /// Optional for backward decode of entries written before this field.
-    var keptAtBreak: Int? = nil
 }
 
 /// Persisted Weekly Vows state per user. Lives in WeeklyVowsStore.
@@ -33,8 +29,8 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
     var currentTrial: WeeklyVow?
     /// Per-lane kept-vow counter (badge track + draw targeting).
     var completionsByLane: [VowLane: Int]
-    /// Vow-scoped Fuel self-report tallies, keyed by vow id. Feeds only the
-    /// vow's completion — never XP/rank/attributes (spec §7 guardrail).
+    /// Vow-scoped self-report tallies, keyed by vow id (all lanes). Feeds only
+    /// the vow's completion — never XP/rank/attributes (spec §7 guardrail).
     var fuelAnchorsByVowId: [String: Int]
     /// Append-only list of unlocked Titles, ordered by unlock time.
     var unlockedTitles: [TitleID]

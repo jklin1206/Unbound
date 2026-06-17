@@ -1,20 +1,12 @@
 import Foundation
 import SwiftUI
 
-/// A Binding Vow lane. Determines how a vow is verified and its accent.
+/// A Binding Vow lane. Pure flavor (label / accent / seal glyph) — every lane
+/// seals the same way: self-report taps toward the target.
 enum VowLane: String, CaseIterable, Codable, Sendable {
     case recovery
     case fuel
     case engine
-
-    enum Verification: Equatable, Sendable { case autoFromLog, selfReport }
-
-    var verification: Verification {
-        switch self {
-        case .recovery, .engine: return .autoFromLog
-        case .fuel: return .selfReport
-        }
-    }
 
     var displayLabel: String {
         switch self {

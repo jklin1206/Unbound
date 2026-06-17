@@ -2,11 +2,9 @@ import SwiftUI
 
 // MARK: - VowSigilView
 //
-// Functional vector render of the evolving profile oath-mark (spec §8). A radial
-// ring of wedges: `sigil.sealedSegments` lit in `accent`, the rest a dim surface
-// tone. The center `seal.fill` glyph softens (never cracks) while fractures are
-// still active, so the mark reads as "healing", not "broken". Final illustrated
-// art is deferred — this is the token-only interim.
+// Functional vector render of the profile oath-mark (spec §8). A radial ring of
+// wedges: `sigil.sealedSegments` lit in `accent`, the rest a dim surface tone.
+// Final illustrated art is deferred — this is the token-only interim.
 //
 // Reduced-motion safe: no required animation; the render is fully static.
 
@@ -18,7 +16,6 @@ struct VowSigilView: View {
     private let segmentCount = 12
 
     private var litCount: Int { min(segmentCount, sigil.sealedSegments) }
-    private var isHealing: Bool { sigil.activeFractures > 0 }
 
     var body: some View {
         ZStack {
@@ -39,16 +36,10 @@ struct VowSigilView: View {
             Image(systemName: "seal.fill")
                 .font(.system(size: 24, weight: .black))
                 .foregroundStyle(accent)
-                // Healing softens the seal rather than fracturing it — never negging.
-                .opacity(isHealing ? 0.62 : 1)
         }
         .frame(width: 72, height: 72)
         .accessibilityElement()
-        .accessibilityLabel(
-            isHealing
-                ? "Vow sigil. \(sigil.sealedSegments) vows sealed, mending."
-                : "Vow sigil. \(sigil.sealedSegments) vows sealed."
-        )
+        .accessibilityLabel("Vow sigil. \(sigil.sealedSegments) vows sealed.")
     }
 }
 
@@ -58,9 +49,9 @@ struct VowSigilView: View {
     ZStack {
         Color.unbound.bg.ignoresSafeArea()
         HStack(spacing: 28) {
-            VowSigilView(sigil: VowSigil(keptVows: 7, breakKeptSnapshots: []))
-            VowSigilView(sigil: VowSigil(keptVows: 2, breakKeptSnapshots: [0]))
-            VowSigilView(sigil: VowSigil(keptVows: 0, breakKeptSnapshots: []), accent: Color.unbound.coachCyan)
+            VowSigilView(sigil: VowSigil(keptVows: 7))
+            VowSigilView(sigil: VowSigil(keptVows: 2))
+            VowSigilView(sigil: VowSigil(keptVows: 0), accent: Color.unbound.coachCyan)
         }
     }
 }

@@ -1,6 +1,6 @@
 # Trials (Weekly Vows)
 
-The Weekly Vows system — historically named "Trials", and most types here carry the newer `WeeklyVow*` names (`typealias TrialsService = WeeklyVowsService`). Covers generating the three weekly vow cards, building/recognizing vow training sessions, completion rewards and missed-vow penalties, the title thresholds they feed, and persistence.
+The Weekly Vows system — historically named "Trials", and most types here carry the newer `WeeklyVow*` names (`typealias TrialsService = WeeklyVowsService`). Covers generating the three weekly vow cards, self-report sealing, completion rewards and missed-vow penalties, the title thresholds they feed, and persistence.
 
 ## Files
 
@@ -15,15 +15,13 @@ The Weekly Vows system — historically named "Trials", and most types here carr
 | `VowBadgeTrack.swift` | Vow badge milestone thresholds and crossing detection for badge unlocks tied to vow streaks. |
 | `VowBankPool.swift` | Curated weekly vow card bank pool — the universe of cards the weekly draw selects from. |
 | `VowDebtLedger.swift` | Consume-debt abstraction for applying broken-vow XP garnish against the user's ledger. |
-| `VowLogMatcher.swift` | Auto-detects recovery / engine vow completion from workout logs; no manual route encoding required. |
 | `VowWeeklyDraw.swift` | Deterministic weekly 3-card draw from the bank pool, keyed to the user + ISO week. |
 | `WeeklyVowRewards.swift` | Reward + penalty policy: `WeeklyVowPenaltyCatalog` applies missed-vow XP penalties to a capped ledger. |
 
 ## Where to find X
 
 - **How the 3 weekly cards are picked** → `VowWeeklyDraw.swift` (draw) + `VowBankPool.swift` (card universe).
-- **Detecting a vow log** → `VowLogMatcher.swift`.
-- **Completion bonus or missed penalty** → `WeeklyVowRewards.swift`; receipt shape in `TrialsServiceProtocol.swift`.
+- **Sealing a vow (self-report taps) + completion/penalty** → `TrialsService.swift`; reward/penalty policy in `WeeklyVowRewards.swift`.
 - **Broken-vow XP garnish** → `VowDebtLedger.swift`.
 - **Vow lifecycle orchestration + state** → `TrialsService.swift` + `TrialsStore.swift`.
 - **Titles earned from vows** → `TitleCatalog.swift`.

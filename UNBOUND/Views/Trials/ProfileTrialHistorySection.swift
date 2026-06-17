@@ -13,10 +13,7 @@ struct ProfileTrialHistorySection: View {
     let trialsState: TrialsState
 
     private var sigil: VowSigil {
-        VowSigil(
-            keptVows: VowBadgeTrack.totalKept(trialsState.completionsByLane),
-            breakKeptSnapshots: trialsState.weeklyVowPenaltyLedger.map { $0.keptAtBreak ?? 0 }
-        )
+        VowSigil(keptVows: VowBadgeTrack.totalKept(trialsState.completionsByLane))
     }
 
     private var badgeProgress: VowBadgeTrack.Progress {

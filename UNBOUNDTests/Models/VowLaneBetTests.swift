@@ -11,12 +11,6 @@ final class VowLaneBetTests: XCTestCase {
         XCTAssertEqual(VowBet.large.winXP, 150)
     }
 
-    func testLaneVerificationKind() {
-        XCTAssertEqual(VowLane.recovery.verification, .autoFromLog)
-        XCTAssertEqual(VowLane.engine.verification, .autoFromLog)
-        XCTAssertEqual(VowLane.fuel.verification, .selfReport)
-    }
-
     func testCodableRoundTrips() throws {
         for lane in VowLane.allCases {
             let data = try JSONEncoder().encode(lane)

@@ -136,10 +136,7 @@ struct TrialCardView: View {
     }
 
     private var windowSummary: String {
-        switch card.lane.verification {
-        case .autoFromLog: return "Auto-detected from your logs"
-        case .selfReport:  return "Self-report this week"
-        }
+        "Self-report this week"
     }
 
     private func vowTermRow(label: String, text: String) -> some View {

@@ -31,16 +31,12 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
     /// lane counter, and notify. Idempotent against an already-closed vow.
     func sealVow(userId: String, vow: WeeklyVow, at date: Date) async
 
-    /// Auto-complete an auto-verified (recovery/engine) vow when enough
-    /// qualifying sessions are logged in-week. No-op for Fuel vows.
-    func refreshAutoVerifiedVow(userId: String) async
+    /// Self-report tap for the active vow (any lane). Increments the vow-scoped
+    /// tally and seals the vow at target.
+    func logVowProgress(userId: String) async
 
-    /// Self-report tap for a Fuel vow. Increments the vow-scoped anchor tally
-    /// and seals the vow at target.
-    func logFuelAnchor(userId: String) async
-
-    /// Current Fuel anchor tally for the active vow (0 for non-Fuel vows).
-    func fuelAnchorCount(userId: String) -> Int
+    /// Current self-report tally for the active vow (0 if none).
+    func vowProgressCount(userId: String) -> Int
 }
 
 typealias TrialsServiceProtocol = WeeklyVowsServiceProtocol
