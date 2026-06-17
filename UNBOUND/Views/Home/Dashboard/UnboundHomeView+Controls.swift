@@ -193,15 +193,13 @@ extension UnboundHomeView {
     }
 
     func handleTrialCommand() {
-        if model.trialsState.currentTrial != nil {
-            // An active vow seals via a self-report tap toward its target. Open
-            // the active-vow sheet so that affordance (ActiveTrialCard) is
-            // reachable from Home.
-            UnboundHaptics.medium()
-            showActiveVow = true
+        // An active vow is logged inline on the Home feed (ActiveTrialCard in the
+        // contextual stack), so the tile is just its status here. Only the pick
+        // entry (no active vow yet) opens anything.
+        guard model.trialsState.currentTrial == nil else {
+            UnboundHaptics.soft()
             return
         }
-
         guard !model.trialsState.skippedCurrentWeek,
               !model.trialsState.currentWeekCards.isEmpty
         else {
@@ -329,6 +327,10 @@ extension UnboundHomeView {
     var contextualStack: some View {
         VStack(spacing: 12) {
             RecalibratingBanner()
+
+            if let trial = model.trialsState.currentTrial, trial.capstoneState != .missed {
+                ActiveTrialCard(trial: trial)
+            }
 
             if model.shouldShowCalibrationCard {
                 DayOneCalibrationCard(style: .slim) {

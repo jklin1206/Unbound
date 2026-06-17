@@ -100,6 +100,7 @@ struct VowDemoHarness: View {
         state.currentWeekCards = [activeCard]
         state.currentVow = activeVow
         state.fuelAnchorsByVowId[activeCard.id] = 1
+        state.lastVowLogByVowId[activeCard.id] = Date()  // shows the once-a-day "LOGGED TODAY" state
         state.completionsByLane = [.recovery: 3, .fuel: 4, .engine: 2]
         WeeklyVowsStore.shared.save(state, userId: userId)
     }

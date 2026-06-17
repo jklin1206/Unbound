@@ -33,12 +33,15 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
     /// lane counter, and notify. Idempotent against an already-closed vow.
     func sealVow(userId: String, vow: WeeklyVow, at date: Date) async
 
-    /// Self-report tap for the active vow (any lane). Increments the vow-scoped
-    /// tally and seals the vow at target.
-    func logVowProgress(userId: String) async
+    /// Self-report tap for the active vow (any lane). Seals at target. Gated to
+    /// once per calendar day.
+    func logVowProgress(userId: String, at date: Date) async
 
     /// Current self-report tally for the active vow (0 if none).
     func vowProgressCount(userId: String) -> Int
+
+    /// True if the active vow can still be logged today (once-a-day gate).
+    func canLogVowToday(userId: String, now: Date) -> Bool
 }
 
 typealias TrialsServiceProtocol = WeeklyVowsServiceProtocol

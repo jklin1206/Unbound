@@ -31,11 +31,12 @@ enum WeeklyVowPenaltyCatalog {
             state.weeklyVowPenaltyLedger.removeFirst(state.weeklyVowPenaltyLedger.count - maxLedgerEntries)
         }
 
-        // A Fuel vow's self-report anchors are keyed by the (stable) weekly card
-        // id. Now that the vow is broken, clear its tally so re-picking the same
-        // card id can't resume the old count and re-seal an already-charged vow —
-        // which would pay its win token a second time. No-op for non-Fuel lanes.
+        // A vow's self-report tally is keyed by the (stable) weekly card id. Now
+        // that the vow is broken, clear its tally and once-a-day log clock so
+        // re-picking the same card id starts fresh and can't resume the old count
+        // to re-seal an already-charged vow (paying its win token a second time).
         state.fuelAnchorsByVowId[vow.id] = nil
+        state.lastVowLogByVowId[vow.id] = nil
 
         return owedXP
     }

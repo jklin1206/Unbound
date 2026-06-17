@@ -113,8 +113,9 @@ final class WeeklyVowsServiceTests: XCTestCase {
         store.save(state, userId: "u-1")
 
         service.pickVowCard(a, userId: "u-1")
-        await service.logVowProgress(userId: "u-1")
-        await service.logVowProgress(userId: "u-1")  // 2/3 — touched, not sealed
+        let d1 = Date(timeIntervalSince1970: 1_700_000_000)
+        await service.logVowProgress(userId: "u-1", at: d1)
+        await service.logVowProgress(userId: "u-1", at: d1.addingTimeInterval(86_400))  // 2/3
         XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 2)
 
         // Bound switch A → B charges A's stake (and must clear A's anchors).
@@ -125,7 +126,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         service.pickVowCard(a, userId: "u-1")
         XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 0,
                        "abandoned fuel anchors must not resume on re-pick")
-        await service.logVowProgress(userId: "u-1")
+        await service.logVowProgress(userId: "u-1", at: d1.addingTimeInterval(2 * 86_400))
         XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 1)
         XCTAssertNotEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed,
                           "must not re-seal from resumed anchors")
@@ -263,18 +264,42 @@ final class WeeklyVowsServiceTests: XCTestCase {
     func testFuelTapIncrementsAndSealsAtTarget() async {
         let card = makeVowCard(lane: .fuel, bet: .small, target: VowTarget(count: 3, noun: "fuel anchor"))
         pickLaneVow(card)
+        // One log per day — a 3-anchor vow takes three days to clear.
+        let d1 = Date(timeIntervalSince1970: 1_700_000_000)
+        let d2 = d1.addingTimeInterval(86_400)
+        let d3 = d2.addingTimeInterval(86_400)
 
-        await service.logVowProgress(userId: "u-1")
+        await service.logVowProgress(userId: "u-1", at: d1)
         XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 1)
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
 
-        await service.logVowProgress(userId: "u-1")
+        await service.logVowProgress(userId: "u-1", at: d2)
         XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 2)
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
 
-        await service.logVowProgress(userId: "u-1")
+        await service.logVowProgress(userId: "u-1", at: d3)
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed)
         XCTAssertEqual(service.state(userId: "u-1").completionsByLane[.fuel], 1)
+    }
+
+    func testLogIsGatedToOncePerDay() async {
+        let card = makeVowCard(lane: .fuel, bet: .small, target: VowTarget(count: 3, noun: "fuel anchor"))
+        pickLaneVow(card)
+        let day = Date(timeIntervalSince1970: 1_700_000_000)
+
+        await service.logVowProgress(userId: "u-1", at: day)
+        XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 1)
+        XCTAssertFalse(service.canLogVowToday(userId: "u-1", now: day))
+
+        // Same day again → ignored.
+        await service.logVowProgress(userId: "u-1", at: day.addingTimeInterval(60))
+        XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 1, "second same-day log is ignored")
+
+        // Next day → allowed again.
+        let nextDay = day.addingTimeInterval(86_400)
+        XCTAssertTrue(service.canLogVowToday(userId: "u-1", now: nextDay))
+        await service.logVowProgress(userId: "u-1", at: nextDay)
+        XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 2)
     }
 
     /// Every lane self-reports the same way now — a recovery vow seals from a

@@ -205,17 +205,23 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
 
     /// Self-report tap for the active vow (any lane). Increments the vow-scoped
     /// tally (never XP/rank/attributes — spec §7 guardrail) and seals at target.
-    func logVowProgress(userId: String) async {
+    /// Gated to once per calendar day — a vow is a slow weekly commitment.
+    func logVowProgress(userId: String, at date: Date = Date()) async {
         var state = store.load(userId: userId)
         guard let vow = state.currentVow,
               vow.capstoneState == .pending || vow.capstoneState == .windowOpen
         else { return }
+        if let last = state.lastVowLogByVowId[vow.id],
+           Calendar.current.isDate(last, inSameDayAs: date) {
+            return  // already logged today
+        }
         let next = (state.fuelAnchorsByVowId[vow.id] ?? 0) + 1
         state.fuelAnchorsByVowId[vow.id] = next
+        state.lastVowLogByVowId[vow.id] = date
         store.save(state, userId: userId)
         NotificationCenter.default.post(name: .weeklyVowProgressUpdated, object: vow)
         if next >= vow.chosenCard.target.count {
-            await sealVow(userId: userId, vow: vow, at: Date())
+            await sealVow(userId: userId, vow: vow, at: date)
         }
     }
 
@@ -224,6 +230,16 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         let state = store.load(userId: userId)
         guard let vow = state.currentVow else { return 0 }
         return state.fuelAnchorsByVowId[vow.id] ?? 0
+    }
+
+    /// True if the active vow can still be logged today (once-a-day gate).
+    func canLogVowToday(userId: String, now: Date = Date()) -> Bool {
+        let state = store.load(userId: userId)
+        guard let vow = state.currentVow,
+              vow.capstoneState == .pending || vow.capstoneState == .windowOpen
+        else { return false }
+        guard let last = state.lastVowLogByVowId[vow.id] else { return true }
+        return !Calendar.current.isDate(last, inSameDayAs: now)
     }
 
     /// Grant the wearable title earned by unlocking a badge. Idempotent; fires

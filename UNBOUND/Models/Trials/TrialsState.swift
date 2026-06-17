@@ -42,6 +42,8 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
     /// Vow-scoped self-report tallies, keyed by vow id (all lanes). Feeds only
     /// the vow's completion — never XP/rank/attributes (spec §7 guardrail).
     var fuelAnchorsByVowId: [String: Int]
+    /// Last self-report time per vow id. Logging is gated to once a day.
+    var lastVowLogByVowId: [String: Date]
     /// Append-only list of unlocked Titles, ordered by unlock time.
     var unlockedTitles: [TitleID]
     /// User's chosen headline title (must be in unlockedTitles to equip).
@@ -66,6 +68,7 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         currentTrial: nil,
         completionsByLane: [:],
         fuelAnchorsByVowId: [:],
+        lastVowLogByVowId: [:],
         unlockedTitles: [],
         equippedTitle: nil,
         skippedCurrentWeek: false,
@@ -80,6 +83,7 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         currentTrial: WeeklyVow?,
         completionsByLane: [VowLane: Int] = [:],
         fuelAnchorsByVowId: [String: Int] = [:],
+        lastVowLogByVowId: [String: Date] = [:],
         unlockedTitles: [TitleID],
         equippedTitle: TitleID?,
         skippedCurrentWeek: Bool,
@@ -92,6 +96,7 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         self.currentTrial = currentTrial
         self.completionsByLane = completionsByLane
         self.fuelAnchorsByVowId = fuelAnchorsByVowId
+        self.lastVowLogByVowId = lastVowLogByVowId
         self.unlockedTitles = unlockedTitles
         self.equippedTitle = equippedTitle
         self.skippedCurrentWeek = skippedCurrentWeek
@@ -106,6 +111,7 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         case currentTrial
         case completionsByLane
         case fuelAnchorsByVowId
+        case lastVowLogByVowId
         case unlockedTitles
         case equippedTitle
         case skippedCurrentWeek
@@ -127,6 +133,7 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         // Counters/titles always carry forward regardless of card-shape version.
         completionsByLane = try container.decodeIfPresent([VowLane: Int].self, forKey: .completionsByLane) ?? [:]
         fuelAnchorsByVowId = try container.decodeIfPresent([String: Int].self, forKey: .fuelAnchorsByVowId) ?? [:]
+        lastVowLogByVowId = try container.decodeIfPresent([String: Date].self, forKey: .lastVowLogByVowId) ?? [:]
         unlockedTitles = try container.decodeIfPresent([TitleID].self, forKey: .unlockedTitles) ?? []
         equippedTitle = try container.decodeIfPresent(TitleID.self, forKey: .equippedTitle)
         weeklyVowCompletionLedger = try container.decodeIfPresent(

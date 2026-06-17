@@ -15,6 +15,8 @@ struct ActiveTrialCard: View {
     /// Self-report tally, kept in sync after each tap so the card reflects
     /// progress without a full state reload.
     @State private var progressCount: Int = 0
+    /// Whether the once-a-day log is still available today.
+    @State private var canLogToday: Bool = true
 
     private var card: TrialCard { trial.chosenCard }
     private var tint: Color { card.lane.tintColor }
@@ -112,10 +114,41 @@ struct ActiveTrialCard: View {
         } else {
             VStack(spacing: 10) {
                 metaLine
-                vowLogRow
+                if canLogToday {
+                    vowLogRow
+                } else {
+                    loggedTodayRow
+                }
                 progressMeter
             }
         }
+    }
+
+    /// Once-a-day gate hit — a calm "come back tomorrow" state.
+    private var loggedTodayRow: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(Color.unbound.success)
+            Text("LOGGED TODAY")
+                .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                .tracking(1.2)
+                .foregroundStyle(Color.unbound.textSecondary)
+            Spacer(minLength: 0)
+            Text("\(progressCount)/\(card.target.count)")
+                .font(.system(size: 14, weight: .black, design: .monospaced))
+                .foregroundStyle(tint)
+                .monospacedDigit()
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 44)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.unbound.surfaceElevated.opacity(0.5))
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Logged today, \(progressCount) of \(card.target.count). Come back tomorrow.")
     }
 
     /// Days-left this week — the week framing the bare log row was missing.
@@ -204,57 +237,16 @@ struct ActiveTrialCard: View {
     private func refreshState() {
         guard let userId = services.auth.currentUserId else { return }
         progressCount = services.trials.vowProgressCount(userId: userId)
+        canLogToday = services.trials.canLogVowToday(userId: userId, now: Date())
     }
 
     private func logProgress() {
         guard let userId = services.auth.currentUserId else { return }
         UnboundHaptics.tick()
         Task { @MainActor in
-            await services.trials.logVowProgress(userId: userId)
+            await services.trials.logVowProgress(userId: userId, at: Date())
             refreshState()
         }
-    }
-}
-
-// MARK: - ActiveVowSheet
-//
-// Bottom sheet wrapper for the active vow, presented from the Home Binding Vow
-// command. Surfaces the vow's blurb and the in-context seal affordance.
-
-struct ActiveVowSheet: View {
-    let trial: Trial
-
-    @Environment(\.dismiss) private var dismiss
-
-    private var card: TrialCard { trial.chosenCard }
-
-    var body: some View {
-        ZStack {
-            Color.unbound.bg.ignoresSafeArea()
-
-            VStack(alignment: .leading, spacing: 16) {
-                Text("BINDING VOW")
-                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                    .tracking(2.0)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .frame(maxWidth: .infinity)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 28)
-
-                ActiveTrialCard(trial: trial)
-
-                Text(card.blurb)
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .lineSpacing(2)
-
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 20)
-        }
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.visible)
-        .presentationBackground(Color.unbound.bg)
     }
 }
 
