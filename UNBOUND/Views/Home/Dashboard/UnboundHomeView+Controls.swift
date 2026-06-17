@@ -194,9 +194,8 @@ extension UnboundHomeView {
 
     func handleTrialCommand() {
         if model.trialsState.currentTrial != nil {
-            // Binding Vows v2: an active vow seals via auto-detection (recovery/
-            // engine) or a Fuel self-report tap. Open the active-vow surface so
-            // the in-context seal/self-report affordance (ActiveTrialCard) is
+            // An active vow seals via a self-report tap toward its target. Open
+            // the active-vow sheet so that affordance (ActiveTrialCard) is
             // reachable from Home.
             UnboundHaptics.medium()
             showActiveVow = true
