@@ -34,12 +34,6 @@ struct ShopItemCard: View {
                     .foregroundStyle(Color.unbound.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                     .layoutPriority(1)
-
-                Text(item.subtitle)
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .layoutPriority(1)
             }
 
             Spacer(minLength: 0)
