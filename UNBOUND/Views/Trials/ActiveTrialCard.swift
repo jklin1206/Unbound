@@ -12,10 +12,9 @@ struct ActiveTrialCard: View {
 
     @EnvironmentObject private var services: ServiceContainer
 
-    /// Self-report tally + outstanding vow debt, kept in sync after each tap so
-    /// the card reflects progress without a full state reload.
+    /// Self-report tally, kept in sync after each tap so the card reflects
+    /// progress without a full state reload.
     @State private var progressCount: Int = 0
-    @State private var debtXP: Int = 0
 
     private var card: TrialCard { trial.chosenCard }
     private var tint: Color { card.lane.tintColor }
@@ -29,9 +28,6 @@ struct ActiveTrialCard: View {
         if days == 1 { return "1 DAY LEFT" }
         return "\(days) DAYS LEFT"
     }
-
-    /// The stake at risk this week: win on a clear, debt on a break.
-    private var stakesText: String { "+\(card.bet.winXP) / −\(card.bet.oweXP) XP" }
 
     private var progressFraction: Double {
         guard card.target.count > 0 else { return 0 }
@@ -94,7 +90,6 @@ struct ActiveTrialCard: View {
             }
 
             affordance
-            debtStrip
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -123,8 +118,8 @@ struct ActiveTrialCard: View {
         }
     }
 
-    /// Days-left this week + the stake at risk — the week framing the bare log
-    /// row was missing.
+    /// Days-left this week — the week framing the bare log row was missing.
+    /// (Stakes/debt live on the XP rail — one place for the XP economy.)
     private var metaLine: some View {
         HStack(spacing: 7) {
             Image(systemName: "hourglass")
@@ -135,12 +130,6 @@ struct ActiveTrialCard: View {
                 .tracking(1.0)
                 .foregroundStyle(Color.unbound.textTertiary)
             Spacer(minLength: 0)
-            Text(stakesText)
-                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                .tracking(0.4)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
         }
     }
 
@@ -156,42 +145,6 @@ struct ActiveTrialCard: View {
         }
         .frame(height: 5)
         .accessibilityHidden(true)
-    }
-
-    /// Outstanding broken-vow debt. Surfaced calmly (attention, not alarm) with
-    /// the reassurance that training pays it down — never negging.
-    @ViewBuilder
-    private var debtStrip: some View {
-        if debtXP > 0 {
-            HStack(spacing: 8) {
-                Image(systemName: "arrow.down.forward.circle.fill")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color.unbound.warnOrange)
-                Text("VOW DEBT")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.warnOrange)
-                Text("\(debtXP) XP")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .monospacedDigit()
-                Spacer(minLength: 0)
-                Text("clears as you train")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .padding(.horizontal, 12)
-            .frame(height: 36)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.unbound.warnOrange.opacity(0.10))
-            )
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Vow debt \(debtXP) XP, clears as you train.")
-        }
     }
 
     private var sealedRow: some View {
@@ -251,7 +204,6 @@ struct ActiveTrialCard: View {
     private func refreshState() {
         guard let userId = services.auth.currentUserId else { return }
         progressCount = services.trials.vowProgressCount(userId: userId)
-        debtXP = services.trials.state(userId: userId).pendingVowDebtXP
     }
 
     private func logProgress() {

@@ -28,10 +28,28 @@ struct VowDemoHarness: View {
             Color.unbound.bg.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    label("ACTIVE · IN PROGRESS + DEBT")
+                    label("XP RAIL · DEBT IN ONE PLACE")
+                    HomeTrainingRankRail(
+                        level: 12,
+                        xpInLevel: 340,
+                        xpForLevel: 800,
+                        fraction: 0.42,
+                        aggregateTier: .veteran,
+                        rankColor: RankTier.veteran.rewardTint,
+                        vowDebtXP: 250
+                    )
+                    .frame(height: 210)
+                    .frame(maxWidth: .infinity)
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.unbound.surface)
+                    )
+
+                    label("ACTIVE VOW · CALM")
                     ActiveTrialCard(trial: activeVow)
 
-                    label("SEALED · LINGERING DEBT")
+                    label("SEALED")
                     ActiveTrialCard(trial: sealedVow)
 
                     label("PROFILE HISTORY")

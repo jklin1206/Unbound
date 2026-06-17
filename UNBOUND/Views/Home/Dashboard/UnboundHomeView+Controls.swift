@@ -165,21 +165,18 @@ extension UnboundHomeView {
     }
 
     var trialCommandDetail: String {
-        let debt = model.trialsState.pendingVowDebtXP
+        // Debt is surfaced once, on the XP rail — not echoed here.
         if let activeTrial = model.trialsState.currentTrial {
             switch activeTrial.capstoneState {
             case .pending:
-                return debt > 0 ? "Log to seal · \(debt) XP debt" : "Log to seal · stake at risk"
+                return "Log to seal this week"
             case .windowOpen:
                 return "Final days to seal"
             case .completed:
-                return debt > 0 ? "Sealed · \(debt) XP debt left" : "Reward sealed this week"
+                return "Reward sealed this week"
             case .missed:
-                return debt > 0 ? "Missed · \(debt) XP debt" : "Missed this week"
+                return "Missed this week"
             }
-        }
-        if debt > 0 {
-            return "Vow debt · \(debt) XP"
         }
         if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
             return "Pick one vow or skip free"
