@@ -237,9 +237,9 @@ extension UnboundHomeView {
     func capstoneStateLabel(for state: WeeklyVowState) -> String {
         switch state {
         case .pending:
-            return "SAT"
+            return "ACTIVE"
         case .windowOpen:
-            return "TRAIN"
+            return "DUE"
         case .completed:
             return "DONE"
         case .missed:
