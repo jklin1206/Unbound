@@ -49,7 +49,7 @@ struct ProfileView: View {
     @State private var afterPhoto: ProgressPhoto?
     @State private var isLoading = true
     @State private var trialsState: TrialsState = .empty
-    @State private var profileHeaderWidth: CGFloat = UIScreen.main.bounds.width
+    @State private var profileHeaderWidth: CGFloat = ScreenMetrics.bounds.width
 
     @ObservedObject private var photoStore = ProfilePhotoStore.shared
     @State private var showPhotoOptions = false
@@ -85,7 +85,7 @@ struct ProfileView: View {
                 }
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .task(id: services.auth.currentUserId ?? "anonymous") { await load() }
         .confirmationDialog("Profile picture",
                             isPresented: $showPhotoOptions,
@@ -686,7 +686,7 @@ struct ProfileView: View {
     }
 
     private var vowsCompletedCount: Int {
-        trialsState.completionsByCardKind.values.reduce(0, +)
+        trialsState.completionsByLane.values.reduce(0, +)
     }
 
     private var vowMetricDetail: String {

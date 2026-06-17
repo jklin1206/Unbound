@@ -6,7 +6,6 @@ Shared, screen-agnostic UI components: toasts, badges, charts, shapes, and small
 
 | File | What it is |
 |---|---|
-| `ActionUndoToast.swift` | `ActionUndoToast` — undoable-action toast. |
 | `AnimatedProgressBar.swift` | `AnimatedProgressBar` — animated horizontal progress bar. |
 | `AttributeHex.swift` | `AttributeHex` radar hex + `AttributeRankBadge`. |
 | `AttributeRankUpToast.swift` | Attribute rank-up toast modifier; `.tier` accent vs `.aTier` impact styling (aTier also fires the chain-shatter cinematic). |

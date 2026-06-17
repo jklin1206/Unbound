@@ -1,6 +1,9 @@
 import Foundation
 
-/// Which vow slot in the 3-card weekly trio.
+/// Legacy weekly-vow slot identifier. Binding Vows v2 models a vow by lane/bet,
+/// not by this enum — it survives ONLY as the persisted associated value of
+/// `TitleID.Path.cardKind` (and its `TitleCatalog` display names). Do not wire
+/// new behavior to it.
 enum WeeklyVowKind: String, CaseIterable, Sendable {
     case ember
     case overdrive
@@ -31,98 +34,13 @@ extension WeeklyVowKind: Codable {
 }
 
 extension WeeklyVowKind {
+    /// Display label for the persisted `cardKind` Title path.
     var displayName: String {
         switch self {
         case .ember: return "Recovery Vow"
         case .overdrive: return "Finisher Vow"
         case .apex: return "Limit Vow"
         }
-    }
-
-    var shortDescription: String {
-        switch self {
-        case .ember:
-            return "Recovery-safe binding"
-        case .overdrive:
-            return "Post-workout binding"
-        case .apex:
-            return "Dedicated binding"
-        }
-    }
-
-    var commitmentSummary: String {
-        switch self {
-        case .ember:
-            return "Low-risk reset that protects recovery."
-        case .overdrive:
-            return "Focused finisher added after training."
-        case .apex:
-            return "Hard dedicated session. Every prescribed set must be logged."
-        }
-    }
-
-    var proofRuleSummary: String {
-        switch self {
-        case .ember:
-            return "Save the routed recovery work to clear it."
-        case .overdrive:
-            return "Save the routed finisher work to clear it."
-        case .apex:
-            return "No partial clears: all prescribed movements and set volume required."
-        }
-    }
-
-    var rewardSummary: String {
-        "+\(completionBonusOverallLevelXP) LVL XP"
-    }
-
-    var missDebtSummary: String {
-        "Miss: \(missedPenaltyOverallLevelXP) XP debt"
-    }
-
-    var proofAssetSymbolName: String {
-        switch self {
-        case .ember: return "leaf.fill"
-        case .overdrive: return "bolt.fill"
-        case .apex: return "scope"
-        }
-    }
-
-    var proofAssetName: String {
-        switch self {
-        case .ember: return "binding_vow_recovery_emblem"
-        case .overdrive: return "binding_vow_finisher_emblem"
-        case .apex: return "binding_vow_apex_emblem"
-        }
-    }
-
-    static func kind(fromWeeklyVowRoute route: String?) -> WeeklyVowKind? {
-        guard let route = route?.lowercased() else { return nil }
-        if route.contains("apex") || route.contains("prestige") { return .apex }
-        if route.contains("overdrive") || route.contains("growth") { return .overdrive }
-        if route.contains("ember") || route.contains("aligned") { return .ember }
-        return nil
-    }
-
-    // Temporary adapters for old call sites and persisted raw values.
-    static var aligned: WeeklyVowKind { .ember }
-    static var growth: WeeklyVowKind { .overdrive }
-    static var prestige: WeeklyVowKind { .apex }
-
-    var completionBonusOverallLevelXP: Int {
-        switch self {
-        case .ember: return 60
-        case .overdrive: return 120
-        case .apex: return 240
-        }
-    }
-
-    var missedPenaltyOverallLevelXP: Int {
-        completionBonusOverallLevelXP / 2
-    }
-
-    var vowIdComponent: String {
-        rawValue
     }
 }
 

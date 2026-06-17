@@ -129,7 +129,7 @@ extension UnboundHomeView {
         if let activeTrial = model.trialsState.currentTrial {
             if activeTrial.capstoneState == .completed { return Color.unbound.success }
             if activeTrial.capstoneState == .missed { return Color.unbound.alert }
-            return activeTrial.chosenCard.theme.tintColor
+            return activeTrial.chosenCard.lane.tintColor
         }
         if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
             return Color.unbound.accent
@@ -192,13 +192,13 @@ extension UnboundHomeView {
     }
 
     func handleTrialCommand() {
-        if let activeTrial = model.trialsState.currentTrial {
-            guard activeTrial.capstoneState == .windowOpen else {
-                UnboundHaptics.soft()
-                return
-            }
+        if model.trialsState.currentTrial != nil {
+            // Binding Vows v2: an active vow seals via auto-detection (recovery/
+            // engine) or a Fuel self-report tap. Open the active-vow surface so
+            // the in-context seal/self-report affordance (ActiveTrialCard) is
+            // reachable from Home.
             UnboundHaptics.medium()
-            workoutReadyDraft = services.trials.trainingDraft(for: activeTrial, date: Date())
+            showActiveVow = true
             return
         }
 

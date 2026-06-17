@@ -293,7 +293,7 @@ extension ClusterStaircaseView {
 
         let viewportH = mapViewportHeight(contentWidth: contentWidth, for: treeHeight)
         let initialOffset: CGPoint? = activePos.map { pt in
-            let viewportW = UIScreen.main.bounds.width
+            let viewportW = ScreenMetrics.bounds.width
             let scaledX = pt.x * activeZoom - viewportW / 2
             let scaledY = pt.y * activeZoom - viewportH / 2
             let maxOffX = max(0, contentWidth * activeZoom - viewportW)

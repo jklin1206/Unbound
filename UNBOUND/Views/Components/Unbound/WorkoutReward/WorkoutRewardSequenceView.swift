@@ -113,7 +113,7 @@ struct WorkoutRewardSequenceView: View {
                 ScrollView(showsIndicators: false) {
                     currentRewardPage
                         .frame(maxWidth: .infinity)
-                        .frame(minHeight: max(420, UIScreen.main.bounds.height - 250), alignment: .center)
+                        .frame(minHeight: max(420, ScreenMetrics.bounds.height - 250), alignment: .center)
                         .padding(.horizontal, 24)
                         .padding(.top, 8)
                         .padding(.bottom, 190)
@@ -168,7 +168,7 @@ struct WorkoutRewardSequenceView: View {
                 .resizable()
                 .scaledToFill()
                 .scaleEffect(1.08)
-                .position(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2)
+                .position(x: ScreenMetrics.bounds.width / 2, y: ScreenMetrics.bounds.height / 2)
                 .ignoresSafeArea()
             Color.black.opacity(0.72).ignoresSafeArea()
             LinearGradient(
@@ -203,7 +203,7 @@ struct WorkoutRewardSequenceView: View {
         if let pr = summary.personalRecords.first { return pr.family.tint }
         if let attribute = summary.attributeDeltas.first(where: \.didAdvanceTier) { return attribute.tint }
         if let rankTrial = summary.rankTrialCallout { return rankTrial.passed ? Color.unbound.rankGold : Color.unbound.alert }
-        if let vow = summary.weeklyVowCallout { return vow.theme.tintColor }
+        if let vow = summary.weeklyVowCallout { return vow.lane.tintColor }
         return Color.rewardBlue
     }
 

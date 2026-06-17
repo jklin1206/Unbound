@@ -387,7 +387,7 @@ final class ProfileViewModel: ObservableObject {
     // MARK: - Derived
 
     var vowsCompletedCount: Int {
-        trialsState.completionsByCardKind.values.reduce(0, +)
+        trialsState.completionsByLane.values.reduce(0, +)
     }
 
     var profileIdentityName: String {

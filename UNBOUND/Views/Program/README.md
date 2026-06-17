@@ -36,8 +36,6 @@ The Program tab: the three-tab training-plan surface (`ProgramOverviewView`) plu
 | `ProgramOverviewView.swift` | Root three-tab Program surface: PROGRAM (week strip + selected-day card), ROUTINES, RANKS; day tiles open `DayDetailView` preview-first. |
 | `ProgramRankLibraryView.swift` | Rank library list screen — searchable, filterable `ProgramRankLibraryRow`s opening into the RankLibrary detail views. |
 | `RecoveryView.swift` | Recovery plan screen — sleep-target card and activities list for a `RecoveryPlan`. |
-| `ScheduleSavedWorkoutSheet.swift` | Sheet for scheduling a `SavedWorkout` onto program day numbers (multi-select, minimum-day floor, preselection). |
-| `SkillBlockPickerSheet.swift` | Sheet picking a `SkillNode` + `SkillBlockKind` (e.g. primer) to add a skill block, with search scoped by program focus IDs. |
 | `TowerTrialReadyPreview.swift` | Tower-trial preview visual — floor list + tower silhouette built from the trial's `TrainingBlock`s. |
 | `WhyThisProgramView.swift` | "Why this program" explainer rendering a `ProgramRationale` (hero + summary blocks). |
 | `WorkoutDetailView.swift` | Workout detail screen; optional `ProgramViewModel` enables edit mode (swap exercises, adjust sets) persisting to the program doc, and it can launch WorkoutReady. |

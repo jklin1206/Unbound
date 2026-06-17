@@ -2,26 +2,34 @@ import SwiftUI
 
 // MARK: - ProfileTrialHistorySection
 //
-// Profile section that shows:
-//   - Equipped title (if any)
-//   - This week's active Binding Vow (if any)
-//   - Lifetime completion counters from WeeklyVowsState
+// Profile section that shows the evolving Vow Sigil, the badge-track progress
+// line, and a calm row of the three lane seals (lit/dim by lifetime keeps).
+// Equipped + unlocked Titles still surface here when present.
 //
 // NOTE: Full multi-week history is not persisted in v1 (WeeklyVowsState only
-// holds the current week). This section surfaces what we have.
+// holds the current week's vow). This section surfaces lifetime counters.
 
 struct ProfileTrialHistorySection: View {
     let trialsState: TrialsState
 
+    private var sigil: VowSigil {
+        VowSigil(
+            keptVows: VowBadgeTrack.totalKept(trialsState.completionsByLane),
+            breakKeptSnapshots: trialsState.weeklyVowPenaltyLedger.map { $0.keptAtBreak ?? 0 }
+        )
+    }
+
+    private var badgeProgress: VowBadgeTrack.Progress {
+        VowBadgeTrack.progress(totalKept: sigil.sealedSegments)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             sectionHeader
 
-            if let trial = trialsState.currentTrial {
-                currentTrialRow(trial: trial)
-            }
+            sigilRow
 
-            completionStats
+            laneSealRow
 
             if !trialsState.unlockedTitles.isEmpty {
                 titlesRow
@@ -39,13 +47,13 @@ struct ProfileTrialHistorySection: View {
         )
     }
 
-    // MARK: - Sub-views
+    // MARK: - Header
 
     private var sectionHeader: some View {
         HStack(spacing: 8) {
-            Image(systemName: "flag.2.crossed.fill")
+            Image(systemName: "seal.fill")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.unbound.accent)
+                .foregroundStyle(Color.unbound.rankGold)
             Text("BINDING VOWS")
                 .font(.system(size: 10, weight: .heavy, design: .monospaced))
                 .tracking(1.8)
@@ -59,85 +67,79 @@ struct ProfileTrialHistorySection: View {
         }
     }
 
-    private func currentTrialRow(trial: Trial) -> some View {
-        let tint = trial.chosenCard.theme.tintColor
+    // MARK: - Sigil + progress line
 
-        return HStack(spacing: 12) {
-            WeeklyVowProofAsset(kind: trial.chosenCard.kind, tint: tint, compact: true)
-                .frame(width: 38, height: 38)
-                .accessibilityHidden(true)
+    private var sigilRow: some View {
+        HStack(spacing: 16) {
+            VowSigilView(sigil: sigil)
+                .accessibilityHidden(false)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(trial.chosenCard.displayName)
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                HStack(spacing: 6) {
-                    Text(trial.chosenCard.theme.displayLabel)
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .tracking(1.2)
-                        .foregroundStyle(tint)
-                    Text("·")
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text(trial.capstoneState.label)
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .tracking(1.2)
-                        .foregroundStyle(capstoneStateTint(trial.capstoneState))
+            VStack(alignment: .leading, spacing: 8) {
+                progressStat(
+                    label: "VOWS KEPT",
+                    value: "\(badgeProgress.current)"
+                )
+                if let next = badgeProgress.nextThreshold {
+                    progressStat(label: "NEXT", value: "\(next)")
+                } else {
+                    progressStat(label: "MILESTONES", value: "PEAK")
                 }
             }
 
             Spacer(minLength: 0)
         }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(0.04))
-        )
     }
 
-    private var completionStats: some View {
-        let totalCompletions = trialsState.completionsByCardKind.values.reduce(0, +)
-        let emberCount = trialsState.completionsByCardKind[.ember] ?? 0
-        let overdriveCount = trialsState.completionsByCardKind[.overdrive] ?? 0
-        let apexCount = trialsState.completionsByCardKind[.apex] ?? 0
-
-        return HStack(spacing: 0) {
-            statCell(value: "\(totalCompletions)", label: "COMPLETED")
-            statDivider
-            statCell(value: "\(emberCount)", label: "RECOVERY")
-            statDivider
-            statCell(value: "\(overdriveCount)", label: "FINISHER")
-            statDivider
-            statCell(value: "\(apexCount)", label: "LIMIT")
-        }
-        .padding(.vertical, 4)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.white.opacity(0.035))
-        )
-    }
-
-    private func statCell(value: String, label: String) -> some View {
-        VStack(spacing: 3) {
+    private func progressStat(label: String, value: String) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
             Text(value)
-                .font(Font.unbound.monoM.weight(.semibold))
+                .font(.system(size: 15, weight: .black, design: .monospaced))
                 .foregroundStyle(Color.unbound.textPrimary)
                 .monospacedDigit()
-            Text(label)
-                .font(.system(size: 8, weight: .bold))
-                .tracking(1.2)
-                .foregroundStyle(Color.unbound.textTertiary)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
     }
 
-    private var statDivider: some View {
-        Rectangle()
-            .fill(Color.unbound.borderSubtle)
-            .frame(width: 0.5)
-            .padding(.vertical, 8)
+    // MARK: - Lane seals
+
+    private var laneSealRow: some View {
+        HStack(spacing: 8) {
+            ForEach(VowLane.allCases, id: \.self) { lane in
+                laneSeal(lane)
+            }
+        }
     }
+
+    private func laneSeal(_ lane: VowLane) -> some View {
+        let count = trialsState.completionsByLane[lane] ?? 0
+        let isLit = count > 0
+        let tint = lane.tintColor
+        return VStack(spacing: 6) {
+            Image(systemName: lane.sealSymbolName)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(isLit ? tint : Color.unbound.textTertiary)
+                .opacity(isLit ? 1 : 0.55)
+            Text(lane.displayLabel)
+                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .tracking(1.0)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text("\(count)")
+                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .foregroundStyle(isLit ? Color.unbound.textPrimary : Color.unbound.textTertiary)
+                .monospacedDigit()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.unbound.surfaceElevated.opacity(isLit ? 0.9 : 0.5))
+        )
+    }
+
+    // MARK: - Titles
 
     private var titlesRow: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -182,30 +184,6 @@ struct ProfileTrialHistorySection: View {
         .padding(.vertical, 4)
         .background(Capsule().fill(Color.unbound.rankGold.opacity(0.13)))
     }
-
-    // MARK: - Helpers
-
-    private func capstoneStateTint(_ state: CapstoneState) -> Color {
-        switch state {
-        case .pending:    return Color.unbound.textTertiary
-        case .windowOpen: return Color.unbound.warnOrange
-        case .completed:  return Color.unbound.success
-        case .missed:     return Color.unbound.textTertiary
-        }
-    }
-}
-
-// MARK: - CapstoneState display helper
-
-extension CapstoneState {
-    fileprivate var label: String {
-        switch self {
-        case .pending:    return "ACTIVE"
-        case .windowOpen: return "VOW READY"
-        case .completed:  return "COMPLETE"
-        case .missed:     return "MISSED"
-        }
-    }
 }
 
 // MARK: - Preview
@@ -216,22 +194,8 @@ extension CapstoneState {
         ProfileTrialHistorySection(trialsState: TrialsState(
             currentWeekStart: Date(),
             currentWeekCards: [],
-            currentTrial: Trial(
-                id: "weekly-vow-W20-ember",
-                userId: "preview",
-                weekStart: Date(),
-                chosenCard: TrialCard(
-                    id: "weekly-vow-W20-ember",
-                    kind: .ember,
-                    theme: .axis(.power),
-                    displayName: "Iron Reset",
-                    blurb: "A low-day proof for clean power work.",
-                    capstone: TrialCapstone(displayName: "Low-Day Proof", description: "Complete easy power work.", evaluation: .manualClaim)
-                ),
-                capstoneState: .windowOpen
-            ),
-            completionsByAxis: [.power: 3, .mobility: 1],
-            completionsByCardKind: [.ember: 3, .overdrive: 1, .apex: 0],
+            currentTrial: nil,
+            completionsByLane: [.recovery: 3, .fuel: 4, .engine: 0],
             unlockedTitles: [],
             equippedTitle: nil,
             skippedCurrentWeek: false

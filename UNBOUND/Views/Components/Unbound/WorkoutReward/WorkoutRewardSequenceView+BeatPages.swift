@@ -398,7 +398,7 @@ extension WorkoutRewardSequenceView {
     @ViewBuilder
     var weeklyVowBeat: some View {
         if let callout = summary.weeklyVowCallout {
-            let tint = callout.theme.tintColor
+            let tint = callout.lane.tintColor
             RewardPanel(tint: tint, active: currentBeatKind == .weeklyVow) {
                 VStack(alignment: .leading, spacing: 18) {
                     beatHeader(kicker: "BINDING VOW BONUS", title: callout.title.uppercased(), tint: tint)
@@ -439,9 +439,8 @@ extension WorkoutRewardSequenceView {
                                 rewardLine(label: "Vow Fracture", value: "-\(penaltyXP) LVL XP", tint: Color.unbound.alert)
                             }
                             rewardLine(label: "Vow Badge", value: bonus.badgeProgress.displayText, tint: tint)
-                            rewardLine(label: "Vow Cosmetic", value: bonus.cosmeticProgress.displayText, tint: tint)
                         }
-                        rewardLine(label: "Standard", value: callout.proofName, tint: tint)
+                        rewardLine(label: "Lane", value: callout.lane.displayLabel, tint: tint)
                         rewardLine(label: "Receipt", value: callout.receiptLine, tint: Color.rewardBlue)
                     }
 
@@ -511,7 +510,7 @@ extension WorkoutRewardSequenceView {
                         arcYieldToken(amount: summary.arcsEarned)
                     }
                     yieldToken(value: "\(summary.liftProgress.filter(\.didAdvanceTier).count + summary.tally.ranksAdvanced)", label: "RANK UPS", tint: dominantLiftTint)
-                    yieldToken(value: "\(featCount)", label: featLabel, tint: proofCount > 0 ? proofTint : (summary.weeklyVowCallout?.theme.tintColor ?? Color.unbound.impact))
+                    yieldToken(value: "\(featCount)", label: featLabel, tint: proofCount > 0 ? proofTint : (summary.weeklyVowCallout?.lane.tintColor ?? Color.unbound.impact))
                 }
 
                 XPReceiptStrip(

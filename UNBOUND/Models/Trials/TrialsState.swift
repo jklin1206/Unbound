@@ -13,10 +13,14 @@ struct WeeklyVowPenaltyLedgerEntry: Codable, Equatable, Identifiable, Sendable {
     var id: String { "\(vowId)-\(Int(weekStart.timeIntervalSince1970))" }
 
     let vowId: String
-    let cardKind: WeeklyVowKind
+    let lane: VowLane
     let weekStart: Date
     let missedAt: Date
     let penaltyXP: Int
+    /// Lifetime kept-vow count at the moment this vow broke. The profile sigil
+    /// mends this fracture once `VowSigil.healAfterKept` further keeps accrue.
+    /// Optional for backward decode of entries written before this field.
+    var keptAtBreak: Int? = nil
 }
 
 /// Persisted Weekly Vows state per user. Lives in WeeklyVowsStore.
@@ -27,10 +31,11 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
     var currentWeekCards: [WeeklyVowCard]
     /// The user's pick. nil = not picked yet or skipped this week.
     var currentTrial: WeeklyVow?
-    /// Per-axis Title progress counter. Increments on completion.
-    var completionsByAxis: [AttributeKey: Int]
-    /// Per-vow-kind Title progress counter.
-    var completionsByCardKind: [WeeklyVowKind: Int]
+    /// Per-lane kept-vow counter (badge track + draw targeting).
+    var completionsByLane: [VowLane: Int]
+    /// Vow-scoped Fuel self-report tallies, keyed by vow id. Feeds only the
+    /// vow's completion — never XP/rank/attributes (spec §7 guardrail).
+    var fuelAnchorsByVowId: [String: Int]
     /// Append-only list of unlocked Titles, ordered by unlock time.
     var unlockedTitles: [TitleID]
     /// User's chosen headline title (must be in unlockedTitles to equip).
@@ -41,92 +46,138 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
     var weeklyVowCompletionLedger: [WeeklyVowCompletionLedgerEntry]
     /// Missed picked vows. Skipping before picking still has no penalty.
     var weeklyVowPenaltyLedger: [WeeklyVowPenaltyLedgerEntry]
-    /// Outstanding XP tax applied against future vow completion bonuses.
-    var pendingVowPenaltyXP: Int
+    /// Outstanding XP debt from broken vows. Withheld from the user's next
+    /// earned training XP (never subtracts existing total, never de-levels).
+    var pendingVowDebtXP: Int
 
     var currentVow: WeeklyVow? {
         get { currentTrial }
         set { currentTrial = newValue }
     }
 
-    var completionsByVowKind: [WeeklyVowKind: Int] {
-        get { completionsByCardKind }
-        set { completionsByCardKind = newValue }
-    }
-
     static let empty = WeeklyVowsState(
         currentWeekStart: nil,
         currentWeekCards: [],
         currentTrial: nil,
-        completionsByAxis: [:],
-        completionsByCardKind: [:],
+        completionsByLane: [:],
+        fuelAnchorsByVowId: [:],
         unlockedTitles: [],
         equippedTitle: nil,
         skippedCurrentWeek: false,
         weeklyVowCompletionLedger: [],
         weeklyVowPenaltyLedger: [],
-        pendingVowPenaltyXP: 0
+        pendingVowDebtXP: 0
     )
 
     init(
         currentWeekStart: Date?,
         currentWeekCards: [WeeklyVowCard],
         currentTrial: WeeklyVow?,
-        completionsByAxis: [AttributeKey: Int],
-        completionsByCardKind: [WeeklyVowKind: Int],
+        completionsByLane: [VowLane: Int] = [:],
+        fuelAnchorsByVowId: [String: Int] = [:],
         unlockedTitles: [TitleID],
         equippedTitle: TitleID?,
         skippedCurrentWeek: Bool,
         weeklyVowCompletionLedger: [WeeklyVowCompletionLedgerEntry] = [],
         weeklyVowPenaltyLedger: [WeeklyVowPenaltyLedgerEntry] = [],
-        pendingVowPenaltyXP: Int = 0
+        pendingVowDebtXP: Int = 0
     ) {
         self.currentWeekStart = currentWeekStart
         self.currentWeekCards = currentWeekCards
         self.currentTrial = currentTrial
-        self.completionsByAxis = completionsByAxis
-        self.completionsByCardKind = completionsByCardKind
+        self.completionsByLane = completionsByLane
+        self.fuelAnchorsByVowId = fuelAnchorsByVowId
         self.unlockedTitles = unlockedTitles
         self.equippedTitle = equippedTitle
         self.skippedCurrentWeek = skippedCurrentWeek
         self.weeklyVowCompletionLedger = weeklyVowCompletionLedger
         self.weeklyVowPenaltyLedger = weeklyVowPenaltyLedger
-        self.pendingVowPenaltyXP = max(0, pendingVowPenaltyXP)
+        self.pendingVowDebtXP = max(0, pendingVowDebtXP)
     }
 
     private enum CodingKeys: String, CodingKey {
         case currentWeekStart
         case currentWeekCards
         case currentTrial
-        case completionsByAxis
-        case completionsByCardKind
+        case completionsByLane
+        case fuelAnchorsByVowId
         case unlockedTitles
         case equippedTitle
         case skippedCurrentWeek
         case weeklyVowCompletionLedger
         case weeklyVowPenaltyLedger
+        case pendingVowDebtXP
+    }
+
+    /// Legacy keys, decode-only for migration detection. `completionsByCardKind`
+    /// is the pre-v2 marker that triggers discarding a stale in-flight vow (spec §9);
+    /// `pendingVowPenaltyXP` is the v1 debt field renamed in Core-1.
+    private enum LegacyCodingKeys: String, CodingKey {
         case pendingVowPenaltyXP
+        case completionsByCardKind
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        currentWeekStart = try container.decodeIfPresent(Date.self, forKey: .currentWeekStart)
-        currentWeekCards = try container.decodeIfPresent([WeeklyVowCard].self, forKey: .currentWeekCards) ?? []
-        currentTrial = try container.decodeIfPresent(WeeklyVow.self, forKey: .currentTrial)
-        completionsByAxis = try container.decodeIfPresent([AttributeKey: Int].self, forKey: .completionsByAxis) ?? [:]
-        completionsByCardKind = try container.decodeIfPresent([WeeklyVowKind: Int].self, forKey: .completionsByCardKind) ?? [:]
+        let legacyContainer = try decoder.container(keyedBy: LegacyCodingKeys.self)
+
+        // Counters/titles always carry forward regardless of card-shape version.
+        completionsByLane = try container.decodeIfPresent([VowLane: Int].self, forKey: .completionsByLane) ?? [:]
+        fuelAnchorsByVowId = try container.decodeIfPresent([String: Int].self, forKey: .fuelAnchorsByVowId) ?? [:]
         unlockedTitles = try container.decodeIfPresent([TitleID].self, forKey: .unlockedTitles) ?? []
         equippedTitle = try container.decodeIfPresent(TitleID.self, forKey: .equippedTitle)
-        skippedCurrentWeek = try container.decodeIfPresent(Bool.self, forKey: .skippedCurrentWeek) ?? false
         weeklyVowCompletionLedger = try container.decodeIfPresent(
             [WeeklyVowCompletionLedgerEntry].self,
             forKey: .weeklyVowCompletionLedger
         ) ?? []
-        weeklyVowPenaltyLedger = try container.decodeIfPresent(
+        // Penalty entries changed shape in Core-3 (cardKind -> lane); tolerate a
+        // pre-v2 ledger that can't decode under the new shape.
+        weeklyVowPenaltyLedger = ((try? container.decodeIfPresent(
             [WeeklyVowPenaltyLedgerEntry].self,
             forKey: .weeklyVowPenaltyLedger
-        ) ?? []
-        pendingVowPenaltyXP = try container.decodeIfPresent(Int.self, forKey: .pendingVowPenaltyXP) ?? 0
+        )) ?? nil) ?? []
+        pendingVowDebtXP = try container.decodeIfPresent(Int.self, forKey: .pendingVowDebtXP)
+            ?? legacyContainer.decodeIfPresent(Int.self, forKey: .pendingVowPenaltyXP)
+            ?? 0
+
+        // Spec §9 migration: a pre-v2 blob carries the old card shape under an
+        // in-flight vow. If we detect the legacy `completionsByCardKind` marker,
+        // or the in-flight cards/vow fail to decode under the new lean card shape,
+        // discard the in-flight vow (no broken half-migrated vow) while keeping
+        // every durable counter/title above.
+        //
+        // `cardsDecodeFailed`/`vowDecodeFailed` are true ONLY when a present value
+        // throws under the new shape — an absent/null key is fine and decodes to
+        // an empty week / no vow, which is the normal post-roll state.
+        let hasLegacyMarker = legacyContainer.contains(.completionsByCardKind)
+
+        var cardsDecodeFailed = false
+        var decodedCards: [WeeklyVowCard] = []
+        do {
+            decodedCards = try container.decodeIfPresent([WeeklyVowCard].self, forKey: .currentWeekCards) ?? []
+        } catch {
+            cardsDecodeFailed = true
+        }
+
+        var vowDecodeFailed = false
+        var decodedVow: WeeklyVow?
+        do {
+            decodedVow = try container.decodeIfPresent(WeeklyVow.self, forKey: .currentTrial)
+        } catch {
+            vowDecodeFailed = true
+        }
+
+        if hasLegacyMarker || cardsDecodeFailed || vowDecodeFailed {
+            currentWeekStart = nil
+            currentWeekCards = []
+            currentTrial = nil
+            skippedCurrentWeek = true
+        } else {
+            currentWeekStart = try container.decodeIfPresent(Date.self, forKey: .currentWeekStart)
+            currentWeekCards = decodedCards
+            currentTrial = decodedVow
+            skippedCurrentWeek = try container.decodeIfPresent(Bool.self, forKey: .skippedCurrentWeek) ?? false
+        }
     }
 }
 

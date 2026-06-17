@@ -5,7 +5,6 @@ Weekly Vow model types (the user's committed weekly challenge). Every type here 
 | File | Contents |
 | --- | --- |
 | `Trial.swift` | `WeeklyVow` (the committed vow for the current week) + `WeeklyVowState`; typealiases `Trial`, `CapstoneState`. |
-| `TrialCapstone.swift` | `WeeklyVowProof` + `WeeklyVowProofEvaluation` — evidence a vow was met and its evaluation; typealiases `TrialCapstone`, `CapstoneEvaluation`. |
 | `TrialCard.swift` | `WeeklyVowPrescription` (with `Placement`) + `WeeklyVowCard` — the offered card a user can commit to; typealias `TrialCard`. |
 | `TrialCardKind.swift` | `WeeklyVowKind` — the kinds of vow cards (Codable + helpers); typealias `TrialCardKind`. |
 | `TrialsState.swift` | `WeeklyVowsState` overall state plus completion/penalty ledger entries; typealias `TrialsState`. |
@@ -15,5 +14,4 @@ Weekly Vow model types (the user's committed weekly challenge). Every type here 
 
 - The committed vow itself and its lifecycle state → `Trial.swift`.
 - The card offers shown before committing → `TrialCard.swift`; kinds in `TrialCardKind.swift`.
-- Proof / completion evaluation → `TrialCapstone.swift`.
 - Persisted weekly-vow state + completion/penalty ledgers → `TrialsState.swift`.

@@ -3,6 +3,13 @@ import Foundation
 final class OverallLevelService {
     static let shared = OverallLevelService()
 
+    /// Consulted to garnish earned training XP against broken-vow debt (spec §5).
+    var vowDebtLedger: any VowDebtLedger = LiveVowDebtLedger()
+
+    #if DEBUG
+    static func makeForTesting() -> OverallLevelService { OverallLevelService() }
+    #endif
+
     private init() {}
 
     /// Last-known persisted progress per user, kept in memory so the reward
@@ -23,6 +30,7 @@ final class OverallLevelService {
         at date: Date,
         gains: [MovementAPGain] = [],
         rankUpEvents: Int = 0,
+        consumesVowDebt: Bool = false,
         database: any DatabaseServiceProtocol = SyncedDatabase.shared
     ) async -> OverallLevelReward {
         do {
@@ -34,6 +42,7 @@ final class OverallLevelService {
                 at: date,
                 gains: gains,
                 rankUpEvents: rankUpEvents,
+                consumesVowDebt: consumesVowDebt,
                 database: database,
                 persistenceMode: .bestEffort
             )
@@ -65,6 +74,7 @@ final class OverallLevelService {
         at date: Date,
         gains: [MovementAPGain] = [],
         rankUpEvents: Int = 0,
+        consumesVowDebt: Bool = false,
         database: any DatabaseServiceProtocol = SyncedDatabase.shared
     ) async throws -> OverallLevelReward {
         try await ingest(
@@ -75,6 +85,7 @@ final class OverallLevelService {
             at: date,
             gains: gains,
             rankUpEvents: rankUpEvents,
+            consumesVowDebt: consumesVowDebt,
             database: database,
             persistenceMode: .strict
         )
@@ -106,6 +117,7 @@ final class OverallLevelService {
         at date: Date,
         gains: [MovementAPGain],
         rankUpEvents: Int,
+        consumesVowDebt: Bool = false,
         database: any DatabaseServiceProtocol,
         persistenceMode: ProgressionPersistenceMode
     ) async throws -> OverallLevelReward {
@@ -164,9 +176,17 @@ final class OverallLevelService {
             return VelocityWeighting.comebackMultiplier(daysSinceLastSession: days)
         }()
 
-        let xpGained = RewardLedgerQuantizer.wholePoints(
+        let earnedXP = RewardLedgerQuantizer.wholePoints(
             from: effectiveAP * max(1.0, noveltyMultiplier) * comeback
         ) + bolus
+        // Spec §5: broken-vow debt is paid out of earned TRAINING XP before it
+        // reaches the bar (total XP never decreases; the bar simply pauses).
+        // Gated to training sources so non-training awards (e.g. daily photo/scan
+        // XP) can't quietly pay off vow debt.
+        let withheld = consumesVowDebt
+            ? await vowDebtLedger.consumeDebt(upTo: Int(earnedXP), userId: userId)
+            : 0
+        let xpGained = max(0, earnedXP - Double(withheld))
         progress.apply(xpGained: xpGained, sourceLogId: sourceLogId, at: date)
 
         let reward = OverallLevelReward(
@@ -177,7 +197,8 @@ final class OverallLevelService {
             previousLevel: previousLevel,
             currentLevel: progress.level,
             previousProgressToNextLevel: previousProgress,
-            currentProgressToNextLevel: progress.progressToNextLevel
+            currentProgressToNextLevel: progress.progressToNextLevel,
+            xpWithheldToVowDebt: Double(withheld)
         )
         progress.processedSourceRewards[sourceLogId] = reward
         try await persistOverallProgress(

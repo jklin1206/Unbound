@@ -104,6 +104,12 @@ struct RootView: View {
                         // Backfill the 6-axis hex from existing logs on first launch
                         // (no-op if the profile already exists in the store).
                         await services.attribute.backfillFromExistingLogs(userId: userId)
+                        // Auto-detection FIRST: seal a recovery/engine vow whose
+                        // qualifying logs landed in the still-current (prior) week,
+                        // BEFORE the week roll can mark that uncompleted vow .missed
+                        // and wrongly charge broken-vow debt to a user who hit target
+                        // but didn't foreground before the Monday boundary.
+                        await services.trials.refreshAutoVerifiedVow(userId: userId)
                         // Trials: roll week on Monday or first launch. Marks prior
                         // uncompleted trial as .missed and generates 3 fresh cards.
                         await services.trials.ensureCurrentWeek(userId: userId)

@@ -9,8 +9,7 @@ extension ActiveWorkoutContainerView {
     func makeRewardSequenceSummary(
         performanceLog: PerformanceLog,
         completionResult: TrainingCompletionResult,
-        rankTrialResult: OverallRankTrialRunResult?,
-        weeklyVowReceipt: WeeklyVowCompletionReceipt?
+        rankTrialResult: OverallRankTrialRunResult?
     ) -> WorkoutRewardSequenceSummary {
         let loggedSets = session.exercises
             .filter { !$0.skipped }
@@ -31,8 +30,7 @@ extension ActiveWorkoutContainerView {
             completionResult: completionResult,
             rewardSummary: rewardSummary,
             fallbackXP: workSets * 12,
-            sourceName: weeklyVowReceipt == nil ? session.source.rawValue.capitalized : "Binding Vow",
-            weeklyVowCallout: weeklyVowReceipt?.callout
+            sourceName: session.source.rawValue.capitalized
         )
         summary.rankTrialCallout = rankTrialResult.map(rankTrialCallout)
         return summary

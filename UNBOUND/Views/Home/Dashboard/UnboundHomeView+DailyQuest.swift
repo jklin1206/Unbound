@@ -143,7 +143,7 @@ extension UnboundHomeView {
                 services: services
             )
             RoutineHistoryStore.shared.record(record)
-            if canClaimDailyReward, completionResult.overallLevelXPGained > 0 {
+            if canClaimDailyReward, completionResult.overallLevelXPEarnedBeforeDebt > 0 {
                 RoutineHistoryStore.shared.complete(routine)
             }
 

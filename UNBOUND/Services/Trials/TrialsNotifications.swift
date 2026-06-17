@@ -5,6 +5,8 @@ extension Notification.Name {
     static let weeklyVowPicked         = Notification.Name("unbound.weeklyVowPicked")
     static let weeklyVowWindowOpen     = Notification.Name("unbound.weeklyVowWindowOpen")
     static let weeklyVowCompleted      = Notification.Name("unbound.weeklyVowCompleted")
+    static let weeklyVowProgressUpdated = Notification.Name("unbound.weeklyVowProgressUpdated")
+    static let vowBadgeUnlocked        = Notification.Name("unbound.vowBadgeUnlocked")
 
     // Temporary adapters for existing observers and stored tests.
     static let trialWeekRolled         = Notification.Name("unbound.trialWeekRolled")

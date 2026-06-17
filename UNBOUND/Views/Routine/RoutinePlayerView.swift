@@ -91,7 +91,7 @@ struct SideQuestPlayerView: View {
         }
         .animation(.spring(response: 0.42, dampingFraction: 0.82), value: isResting)
         .animation(.easeInOut(duration: 0.3), value: isComplete)
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             startedAt = Date()
             repsDone = currentExercise.defaultRepCount

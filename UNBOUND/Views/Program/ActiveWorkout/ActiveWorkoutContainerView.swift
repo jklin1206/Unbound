@@ -21,6 +21,7 @@ struct ActiveWorkoutContainerView: View {
     @State var swapExerciseIndex: Int? = nil
     @State var swapAlternatives: [CatalogExercise] = []
     @State private var showingCustomBuilder = false
+    @State private var showingAddExercise = false
 
     // Notes editing state
     @State var notesEditingIndex: Int? = nil
@@ -129,35 +130,40 @@ struct ActiveWorkoutContainerView: View {
                     draftAutosaveWarning
                 }
 
-                WorkoutLogGridView(
-                    session: session,
-                    rankTrialDefinition: rankTrialDefinition,
-                    onIntent: { ei, intent in handleIntent(ei, intent) },
-                    onEditWeight: { ei, si in beginEdit(ei: ei, si: si, field: .weight) },
-                    onEditReps:   { ei, si in beginEdit(ei: ei, si: si, field: .metric) },
-                    onPickRPE: { ei, si in beginEdit(ei: ei, si: si, field: .rpe) },
-                    onConfirmAsPlanned: { ei, si in
-                        session.confirmAsPlanned(exerciseIndex: ei, setIndex: si)
-                        saveDraft()
-                        // Rank trials auto-finish into the verdict / Crossing once every
-                        // station is logged — no manual "Complete Trial" tap.
-                        if isRankTrial && !session.hasUnloggedWorkingSets {
-                            restTimer.stop()
-                            Task { await complete() }
-                        } else {
-                            transition(ei: ei, si: si)
+                if isCustomSession && visibleExerciseCount == 0 {
+                    emptyQuickLogState
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    WorkoutLogGridView(
+                        session: session,
+                        rankTrialDefinition: rankTrialDefinition,
+                        onIntent: { ei, intent in handleIntent(ei, intent) },
+                        onEditWeight: { ei, si in beginEdit(ei: ei, si: si, field: .weight) },
+                        onEditReps:   { ei, si in beginEdit(ei: ei, si: si, field: .metric) },
+                        onPickRPE: { ei, si in beginEdit(ei: ei, si: si, field: .rpe) },
+                        onConfirmAsPlanned: { ei, si in
+                            session.confirmAsPlanned(exerciseIndex: ei, setIndex: si)
+                            saveDraft()
+                            // Rank trials auto-finish into the verdict / Crossing once every
+                            // station is logged — no manual "Complete Trial" tap.
+                            if isRankTrial && !session.hasUnloggedWorkingSets {
+                                restTimer.stop()
+                                Task { await complete() }
+                            } else {
+                                transition(ei: ei, si: si)
+                            }
+                        },
+                        onToggleQualityFlag: { ei, si, flag in
+                            session.toggleQualityFlag(flag, exerciseIndex: ei, setIndex: si)
+                            saveDraft()
+                        },
+                        onAddSet: { ei in
+                            session.addSet(toExerciseIndex: ei)
+                            saveDraft()
                         }
-                    },
-                    onToggleQualityFlag: { ei, si, flag in
-                        session.toggleQualityFlag(flag, exerciseIndex: ei, setIndex: si)
-                        saveDraft()
-                    },
-                    onAddSet: { ei in
-                        session.addSet(toExerciseIndex: ei)
-                        saveDraft()
-                    }
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -166,6 +172,10 @@ struct ActiveWorkoutContainerView: View {
             if !keypad.isActive {
                 if isRankTrial {
                     trialRestFooter
+                } else if isCustomSession && visibleExerciseCount == 0 {
+                    // Empty Quick Log: the body shows the Add Exercise CTA, so the
+                    // finish footer is hidden — there's nothing to finish yet.
+                    EmptyView()
                 } else {
                     completionFooter
                 }
@@ -271,6 +281,24 @@ struct ActiveWorkoutContainerView: View {
             }
                 .environmentObject(services)
         }
+        // Live "Add Exercise" picker for free/Quick-Log sessions — reuses the
+        // same catalog picker the session editor uses.
+        .sheet(isPresented: $showingAddExercise) {
+            ExerciseSwapSheet(
+                mode: .add,
+                currentExerciseName: "Quick Log",
+                alternatives: addExerciseCatalog,
+                onSelect: { exercise in
+                    session.appendCatalogExercise(exercise)
+                    showingAddExercise = false
+                    saveDraft()
+                },
+                onCreateCustom: {
+                    showingAddExercise = false
+                    showingCustomBuilder = true
+                }
+            )
+        }
         // Notes editing sheet — simple inline text entry
         .sheet(isPresented: $showNotesSheet) {
             NotesEditSheet(
@@ -354,6 +382,61 @@ struct ActiveWorkoutContainerView: View {
         .allowsHitTesting(restTimer.isVisible)
     }
 
+    /// Free / Quick-Log session — the only mode that supports adding exercises
+    /// live. Program days and rank trials have a fixed prescription.
+    var isCustomSession: Bool {
+        session.source == .custom && !isRankTrial
+    }
+
+    var visibleExerciseCount: Int {
+        session.exercises.filter { !$0.skipped }.count
+    }
+
+    /// Same catalog the session editor's ADD EXERCISE picker draws from.
+    private var addExerciseCatalog: [CatalogExercise] {
+        MovementCatalog.legacyExercises.compactMap(MovementCatalog.catalogExercise(for:))
+    }
+
+    private var emptyQuickLogState: some View {
+        VStack(spacing: 18) {
+            Spacer()
+            Image(systemName: "dumbbell")
+                .font(.system(size: 34, weight: .regular))
+                .foregroundStyle(Color.unbound.textTertiary)
+            VStack(spacing: 6) {
+                Text("No exercises yet")
+                    .font(Font.unbound.titleS)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                Text("Add what you just trained.")
+                    .font(Font.unbound.bodyM)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            Button {
+                UnboundHaptics.soft()
+                showingAddExercise = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .bold))
+                    Text("ADD EXERCISE")
+                        .font(Font.unbound.bodyMStrong)
+                        .tracking(1.4)
+                }
+                .foregroundStyle(Color.unbound.bg)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(Capsule().fill(Color.unbound.accent))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("workout.addExercise.empty")
+            Spacer()
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 32)
+    }
+
     private var completionFooter: some View {
         let progress = session.progressSummary
         return VStack(spacing: 10) {
@@ -397,6 +480,34 @@ struct ActiveWorkoutContainerView: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("workout.debug.fillPlannedSets")
             #endif
+
+            if isCustomSession {
+                Button {
+                    UnboundHaptics.soft()
+                    showingAddExercise = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 13, weight: .bold))
+                        Text("ADD EXERCISE")
+                            .font(Font.unbound.captionS.weight(.bold))
+                            .tracking(1.4)
+                    }
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.unbound.surfaceElevated)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("workout.addExercise")
+            }
 
             Button(action: requestComplete) {
                 HStack(spacing: 10) {
@@ -551,17 +662,7 @@ struct ActiveWorkoutContainerView: View {
         let performanceLog = session.assemblePerformanceLog(userId: uid)
         #endif
         do {
-            var completionResult = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
-            let weeklyVowReceipt = services.trials.recordCompletedVowWork(
-                performanceLog: performanceLog,
-                completionResult: completionResult
-            )
-            if let weeklyVowReceipt {
-                completionResult = await applyWeeklyVowBonus(
-                    weeklyVowReceipt,
-                    to: completionResult
-                )
-            }
+            let completionResult = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
             let rankTrialResult = OverallRankTrialRunner.shared.recordCompletedAttempt(
                 performanceLog: performanceLog,
                 completionResult: completionResult,
@@ -577,8 +678,7 @@ struct ActiveWorkoutContainerView: View {
             let summary = makeRewardSequenceSummary(
                 performanceLog: performanceLog,
                 completionResult: completionResult,
-                rankTrialResult: rankTrialResult,
-                weeklyVowReceipt: weeklyVowReceipt
+                rankTrialResult: rankTrialResult
             )
             let hasReward = totalLoggedWorkingSets > 0
                 || summary.progression?.hasContent == true
@@ -635,33 +735,6 @@ struct ActiveWorkoutContainerView: View {
             || !tail.badges.isEmpty
             || tail.xp.total > 0
         return hasTailReward ? tail : nil
-    }
-
-    private func applyWeeklyVowBonus(
-        _ receipt: WeeklyVowCompletionReceipt,
-        to completionResult: TrainingCompletionResult
-    ) async -> TrainingCompletionResult {
-        var updated = completionResult
-        do {
-            let reward = try await OverallLevelService.shared.grantFlatXPStrict(
-                amount: receipt.completionBonus.overallLevelXP,
-                sourceId: "weekly-vow-bonus:\(receipt.performanceLogId)",
-                userId: receipt.vow.userId,
-                at: receipt.completedAt,
-                database: services.database
-            )
-            updated.appendOverallLevelReward(reward)
-        } catch {
-            LoggingService.shared.log(
-                "Weekly Vow bonus XP persistence failed: \(error)",
-                level: .warning,
-                context: [
-                    "vowId": receipt.vow.id,
-                    "performanceLogId": receipt.performanceLogId
-                ]
-            )
-        }
-        return updated
     }
 
     private func finishDismiss() {

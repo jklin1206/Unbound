@@ -21,7 +21,6 @@ The live in-workout logging screen: `ActiveWorkoutContainerView` owns the `Activ
 | `RPEPickerSheet.swift` | Optional per-set RPE picker (real 6–10 scale with reps-in-reserve meaning); returns `Int?` (nil = Clear). |
 | `SetLogGridRow.swift` | One set row: SUGGESTED (dim program values, hollow confirm ring) vs LOGGED (solid actuals, quiet check). |
 | `StepperControl.swift` | Glove-friendly numeric stepper (tap to type, step arrows, per-tick haptic). |
-| `TowerTrialAscentView.swift` | `TowerTrialAscentView` — tower-trial floor-climb stage view. |
 | `WorkoutLogGridView.swift` | `WorkoutLogGridView` — the scrolling grid of exercise log cards. |
 
 ## Where to find X
@@ -31,4 +30,4 @@ The live in-workout logging screen: `ActiveWorkoutContainerView` owns the `Activ
 - **Add set / skip / swap / notes actions** → `ExerciseOverflowMenu.swift` + `ActiveWorkoutContainerView+Intents.swift`.
 - **Rest timer** → `RestTimerPill.swift`.
 - **Screenshot/verify the screen on sim** → `ActiveWorkoutDemoHarness.swift` (`-activeWorkoutDemo`).
-- **Trial-specific stages** → `DeckOfProofDrawStage.swift`, `TowerTrialAscentView.swift` (more modes in `../RankTrials/`).
+- **Trial-specific stages** → `DeckOfProofDrawStage.swift` (more modes in `../RankTrials/`).

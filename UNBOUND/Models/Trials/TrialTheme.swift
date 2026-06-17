@@ -7,6 +7,19 @@ enum WeeklyVowTheme: Codable, Hashable, Sendable {
     case wildcard
 }
 
+extension WeeklyVowTheme {
+    /// Bridges a Binding Vows v2 lane to the Squad activity feed's legacy theme
+    /// tag. The squad row renders only the vow name, so this preserves the
+    /// persisted payload shape without reintroducing the retired card `theme`.
+    init(lane: VowLane) {
+        switch lane {
+        case .recovery: self = .axis(.mobility)
+        case .fuel:     self = .axis(.vitality)
+        case .engine:   self = .axis(.endurance)
+        }
+    }
+}
+
 // MARK: - UI helpers
 
 extension WeeklyVowTheme {

@@ -7,7 +7,6 @@ UNBOUND's brand component library: the buttons, cards, pickers, list rows, badge
 | File | What's inside |
 |---|---|
 | `BlurredPreviewOverlay.swift` | `BlurredPreviewOverlay` — blurs + darkens content behind a floating CTA block; the paywall teaser over the full protocol preview. |
-| `BodyAlignmentGuide.swift` | `BodyAlignmentGuide` — live-scan camera overlay (dashed frame, corner brackets, HEAD/FEET labels, silhouette) kept in lockstep with `BodyAlignmentThresholds.default`; shared by onboarding scan and re-scan camera. |
 | `CalmList.swift` | Calm-list language primitives, starting with `MetaLine` (plain `·`-joined metadata text replacing pill rows). Enforces the no-box-soup rules from the 2026-06-08 program-frontend redesign spec. |
 | `EmberView.swift` | `EmberView` — animated ember glow with `.dormant` / `.active` / `.igniting` states; core onboarding visual motif (silhouette chest, chapter ignition, stage runes). |
 | `InlineNumberPad.swift` | `InlineNumberPad` + `NumberPadKey` — the stateless bottom-docked numeric keypad that pops when a set value is tapped (calm-list Phase 1b); parent owns the typed buffer. |
@@ -18,7 +17,6 @@ UNBOUND's brand component library: the buttons, cards, pickers, list rows, badge
 | `OnboardingProgressBar.swift` | `OnboardingProgressBar` — thin 2pt progress bar under the back chevron on onboarding screens; violet fill springs between steps. |
 | `OnboardingScaffold.swift` | `OnboardingScaffold` — shared chrome for every onboarding screen (title/subtitle, back button, progress, CTA), with a default mode and an anime-HUD mode (`hudStep != nil`). |
 | `PressableCardStyle.swift` | `PressableCardStyle` — the ButtonStyle all selectable cards/chips use; defers to ScrollView gesture arbitration (fixes "can't scroll over cards") while mirroring `isPressed` into a binding so cards keep their spring/haptic feel. |
-| `RewardCelebrationView.swift` | `RewardCelebrationView` — modal reward sheet after a logged set / finished session / achievement; stacks cards per non-nil reward in `RewardSummary` (rank-up hero, PR, badges, XP). Distinct from `WorkoutReward/`'s full sequence. |
 | `RewardShareCard.swift` | `RewardShareCard` — 9:16 portrait card rendered to UIImage for social sharing; layout varies by celebration type (rank-up / first-set / PR / badge) and reuses `RewardSummary`. |
 | `RulerPicker.swift` | `RulerPicker` — horizontal ruler drag picker with fixed center needle, major/minor tick hierarchy, haptics, and a `format` closure for custom readouts (e.g. feet-and-inches). |
 | `ScanLineSweep.swift` | `ScanLineSweep` — looping 1pt violet scan line that sweeps vertically with a glow; used on processing screens and the Day 2 scan animation. |
@@ -38,11 +36,11 @@ UNBOUND's brand component library: the buttons, cards, pickers, list rows, badge
 
 - **Buttons / cards / sliders / pickers (brand primitives)** → `UnboundButton`, `UnboundCard`, `UnboundSlider`, `RulerPicker`, `ScrollWheelPicker`.
 - **Selection rows and chips (onboarding questionnaires)** → `SelectionListRow` (single), `MultiSelectListRow` / `MultiSelectChip` (multi), all pressed via `PressableCardStyle`.
-- **Onboarding chrome** → `OnboardingScaffold`, `OnboardingProgressBar`, `EmberView`, `ScanLineSweep`, `BodyAlignmentGuide`.
+- **Onboarding chrome** → `OnboardingScaffold`, `OnboardingProgressBar`, `EmberView`, `ScanLineSweep`.
 - **Set logging keypads** → `InlineNumberPad` (the dumb keypad view), `NumberPadEditor.swift` (the shared editing state machine both logging surfaces use).
 - **Calm-list metadata text** → `MetaLine` in `CalmList.swift`.
 - **Badges / pills** → `TierBadge` (skill tier), `TitleBadge` (earned title), `SquadTitleBadge` (squad title).
 - **Skill tree rendering + node unlock moment** → `SkillTreeView`, `NodeUnlockedOverlay`.
-- **Post-set/session celebration + share asset** → `RewardCelebrationView`, `RewardShareCard`.
+- **Post-set/session celebration + share asset** → `RewardShareCard`.
 - **Workout-end payout sequence** → `WorkoutReward/`.
 - **Paywall blur teaser** → `BlurredPreviewOverlay`.
