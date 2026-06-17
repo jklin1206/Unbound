@@ -123,7 +123,7 @@ struct BodyWeightOverTimeChart: View {
                         .shadow(color: Color.unbound.accent.opacity(index == points.count - 1 ? 0.38 : 0), radius: 5)
                 }
             } else {
-                Text(values.isEmpty ? "NO CHECK-INS" : "ONE CHECK-IN")
+                Text(values.isEmpty ? "NO LOGS" : "ONE LOG")
                     .font(.system(size: 10, weight: .heavy, design: .monospaced))
                     .tracking(1.0)
                     .foregroundStyle(Color.unbound.textTertiary)
@@ -250,15 +250,10 @@ struct BodyWeightHistoryScreen: View {
                 .font(.system(size: 18, weight: .black))
                 .foregroundStyle(Color.unbound.success)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("LOGGED")
-                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.success)
-                Text("Your bodyweight trend updated below.")
-                    .font(Font.unbound.monoS.weight(.semibold))
-                    .foregroundStyle(Color.unbound.textSecondary)
-            }
+            Text("LOGGED")
+                .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.success)
 
             Spacer()
         }
@@ -311,7 +306,7 @@ struct BodyWeightHistoryScreen: View {
     private var recentLogsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("RECENT CHECK-INS")
+                Text("RECENT LOGS")
                     .font(Font.unbound.captionS.weight(.black))
                     .tracking(1.6)
                     .foregroundStyle(Color.unbound.textTertiary)
@@ -319,7 +314,7 @@ struct BodyWeightHistoryScreen: View {
             }
 
             if logs.isEmpty {
-                Text("Log your first bodyweight to start the graph.")
+                Text("No logs yet.")
                     .font(Font.unbound.monoS.weight(.semibold))
                     .foregroundStyle(Color.unbound.textSecondary)
                     .padding(.vertical, 8)
@@ -477,10 +472,10 @@ struct BodyWeightLogSheet: View {
                             .foregroundStyle(Color.unbound.textSecondary)
                     }
 
-                    Text(validityText)
+                    Text(parsedWeightKg == nil ? "OUT OF RANGE" : " ")
                         .font(Font.unbound.monoS.weight(.semibold))
                         .tracking(0.5)
-                        .foregroundStyle(parsedWeightKg == nil ? Color.unbound.alert : Color.unbound.textTertiary)
+                        .foregroundStyle(Color.unbound.alert)
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity)
@@ -576,10 +571,6 @@ struct BodyWeightLogSheet: View {
 
     private var parsedWeightKg: Double? {
         parsedDisplayWeight.map { unit.kilograms(fromDisplayValue: $0) }
-    }
-
-    private var validityText: String {
-        parsedWeightKg == nil ? "OUT OF RANGE" : "READY TO LOG"
     }
 
     private static func defaultDisplayWeight(for unit: TrainingWeightUnit) -> Double {
