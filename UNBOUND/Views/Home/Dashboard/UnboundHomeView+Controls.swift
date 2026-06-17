@@ -30,15 +30,27 @@ extension UnboundHomeView {
                 HomeBandHeader(title: "Trials", tint: homeControlTint)
                     .padding(.bottom, 4)
 
-                HomePriorityCommand(
-                    artwork: .trialKey,
-                    title: "Rank Trial",
-                    detail: rankTrialCommandDetail,
-                    value: rankTrialCommandValue,
-                    tint: Color.unbound.rankGold,
-                    accessibilityLabel: "Open rank trial"
-                ) {
-                    handleRankTrialCommand()
+                // Rank trial as a card too — enter the gate or tap for details.
+                if let readiness = model.overallRankTrialReadiness, readiness.definition != nil {
+                    RankTrialInlineCard(
+                        readiness: readiness,
+                        statusText: rankTrialCommandValue,
+                        tint: rankTrialCommandTint,
+                        onEnter: { handleEnterRankTrial() },
+                        onDetails: { handleRankTrialCommand() }
+                    )
+                    .padding(.top, 8)
+                } else {
+                    HomePriorityCommand(
+                        artwork: .trialKey,
+                        title: "Rank Trial",
+                        detail: rankTrialCommandDetail,
+                        value: rankTrialCommandValue,
+                        tint: Color.unbound.rankGold,
+                        accessibilityLabel: "Open rank trial"
+                    ) {
+                        handleRankTrialCommand()
+                    }
                 }
 
                 UnboundNativeDivider(opacity: 0.42)
@@ -227,6 +239,28 @@ extension UnboundHomeView {
         }
         UnboundHaptics.medium()
         NotificationCenter.default.post(name: .requestOpenRankInfo, object: nil)
+    }
+
+    /// Start the rank trial straight from the inline card's ENTER button — same
+    /// draft path the details sheet uses.
+    func handleEnterRankTrial() {
+        guard let readiness = model.overallRankTrialReadiness,
+              let definition = readiness.definition,
+              let userId = services.auth.currentUserId
+        else {
+            UnboundHaptics.soft()
+            return
+        }
+        UnboundHaptics.medium()
+        let resolvedTrial = readiness.resolvedTrial?.definitionId == definition.id
+            ? readiness.resolvedTrial
+            : nil
+        workoutReadyDraft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: userId,
+            resolvedTrial: resolvedTrial,
+            bodyweightKg: model.profile?.weightKg
+        )
     }
 
     func handleBodyWeightCommand() {
