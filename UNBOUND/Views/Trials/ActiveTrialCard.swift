@@ -12,17 +12,35 @@ struct ActiveTrialCard: View {
 
     @EnvironmentObject private var services: ServiceContainer
 
-    /// Self-report tally for the active vow, kept in sync after each tap so the
-    /// row reflects progress without a full state reload.
+    /// Self-report tally + outstanding vow debt, kept in sync after each tap so
+    /// the card reflects progress without a full state reload.
     @State private var progressCount: Int = 0
+    @State private var debtXP: Int = 0
 
     private var card: TrialCard { trial.chosenCard }
     private var tint: Color { card.lane.tintColor }
     private var isSealed: Bool { trial.capstoneState == .completed }
 
+    /// Days remaining in the vow week (weekStart + 7).
+    private var daysLeftText: String {
+        let weekEnd = trial.weekStart.addingTimeInterval(7 * 86_400)
+        let days = Calendar.current.dateComponents([.day], from: Date(), to: weekEnd).day ?? 0
+        if days <= 0 { return "FINAL DAY" }
+        if days == 1 { return "1 DAY LEFT" }
+        return "\(days) DAYS LEFT"
+    }
+
+    /// The stake at risk this week: win on a clear, debt on a break.
+    private var stakesText: String { "+\(card.bet.winXP) / −\(card.bet.oweXP) XP" }
+
+    private var progressFraction: Double {
+        guard card.target.count > 0 else { return 0 }
+        return min(1, Double(progressCount) / Double(card.target.count))
+    }
+
     var body: some View {
         cardContent
-            .onAppear(perform: refreshProgressCount)
+            .onAppear(perform: refreshState)
             .accessibilityIdentifier("weeklyVow.activeCard")
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Active Binding Vow")
@@ -76,6 +94,7 @@ struct ActiveTrialCard: View {
             }
 
             affordance
+            debtStrip
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -96,7 +115,82 @@ struct ActiveTrialCard: View {
         if isSealed {
             sealedRow
         } else {
-            vowLogRow
+            VStack(spacing: 10) {
+                metaLine
+                vowLogRow
+                progressMeter
+            }
+        }
+    }
+
+    /// Days-left this week + the stake at risk — the week framing the bare log
+    /// row was missing.
+    private var metaLine: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "hourglass")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(daysLeftText)
+                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                .tracking(1.0)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Spacer(minLength: 0)
+            Text(stakesText)
+                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                .tracking(0.4)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+    }
+
+    /// Slim progress track mirroring the count toward target.
+    private var progressMeter: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.unbound.surfaceElevated)
+                Capsule()
+                    .fill(tint)
+                    .frame(width: max(5, geo.size.width * progressFraction))
+            }
+        }
+        .frame(height: 5)
+        .accessibilityHidden(true)
+    }
+
+    /// Outstanding broken-vow debt. Surfaced calmly (attention, not alarm) with
+    /// the reassurance that training pays it down — never negging.
+    @ViewBuilder
+    private var debtStrip: some View {
+        if debtXP > 0 {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.down.forward.circle.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.unbound.warnOrange)
+                Text("VOW DEBT")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.warnOrange)
+                Text("\(debtXP) XP")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .monospacedDigit()
+                Spacer(minLength: 0)
+                Text("clears as you train")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 36)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.unbound.warnOrange.opacity(0.10))
+            )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Vow debt \(debtXP) XP, clears as you train.")
         }
     }
 
@@ -154,9 +248,10 @@ struct ActiveTrialCard: View {
 
     // MARK: - Actions
 
-    private func refreshProgressCount() {
+    private func refreshState() {
         guard let userId = services.auth.currentUserId else { return }
         progressCount = services.trials.vowProgressCount(userId: userId)
+        debtXP = services.trials.state(userId: userId).pendingVowDebtXP
     }
 
     private func logProgress() {
@@ -164,7 +259,7 @@ struct ActiveTrialCard: View {
         UnboundHaptics.tick()
         Task { @MainActor in
             await services.trials.logVowProgress(userId: userId)
-            progressCount = services.trials.vowProgressCount(userId: userId)
+            refreshState()
         }
     }
 }

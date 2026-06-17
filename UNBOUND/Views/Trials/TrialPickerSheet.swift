@@ -53,7 +53,7 @@ struct TrialPickerSheet: View {
             Text("Choose your vow")
                 .font(.system(size: 24, weight: .black))
                 .foregroundStyle(Color.unbound.textPrimary)
-            Text("Pick or skip now. Log toward your vow's target all week — qualifying sessions seal it automatically, and fuel vows seal as you check in. Abandon a bound vow and its stake becomes XP debt.")
+            Text("Pick or skip now. Tap to log toward your vow's target all week — hit the target and the vow seals. Abandon a bound vow and its stake becomes XP debt.")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
