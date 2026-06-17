@@ -10,9 +10,9 @@ enum VowLane: String, CaseIterable, Codable, Sendable {
 
     var displayLabel: String {
         switch self {
-        case .recovery: return "RECOVERY"
+        case .recovery: return "REST"
         case .fuel: return "FUEL"
-        case .engine: return "ENGINE"
+        case .engine: return "CARDIO"
         }
     }
 

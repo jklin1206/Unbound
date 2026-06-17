@@ -16,8 +16,8 @@ struct VowDemoHarness: View {
         id: "demo-fuel",
         lane: .fuel,
         bet: .medium,
-        displayName: "Fuel Anchor",
-        blurb: "Hit three clean fuel anchors before the week closes.",
+        displayName: "First Spark Vow",
+        blurb: "Bind three fuel anchors this week — protein, water, or a real meal. Tap each as you hit it.",
         target: VowTarget(count: 3, noun: "fuel anchor")
     )
 
@@ -68,8 +68,8 @@ struct VowDemoHarness: View {
             id: "demo-recovery",
             lane: .recovery,
             bet: .small,
-            displayName: "Iron Reset",
-            blurb: "A low-day reset that protects recovery.",
+            displayName: "Still Water Vow",
+            blurb: "Bind one recovery reset this week. Protect the arc; let the body catch up.",
             target: VowTarget(count: 1, noun: "recovery reset")
         )
         return WeeklyVow(

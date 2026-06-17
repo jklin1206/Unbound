@@ -25,9 +25,9 @@ enum VowBet: String, CaseIterable, Codable, Sendable {
 
     var displayLabel: String {
         switch self {
-        case .small: return "SMALL"
-        case .medium: return "MEDIUM"
-        case .large: return "LARGE"
+        case .small: return "LIGHT"
+        case .medium: return "BOUND"
+        case .large: return "BLOOD"
         }
     }
 }
