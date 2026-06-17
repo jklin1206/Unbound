@@ -17,6 +17,10 @@ struct WeeklyVowPenaltyLedgerEntry: Codable, Equatable, Identifiable, Sendable {
     let weekStart: Date
     let missedAt: Date
     let penaltyXP: Int
+    /// Lifetime kept-vow count at the moment this vow broke. The profile sigil
+    /// mends this fracture once `VowSigil.healAfterKept` further keeps accrue.
+    /// Optional for backward decode of entries written before this field.
+    var keptAtBreak: Int? = nil
 }
 
 /// Persisted Weekly Vows state per user. Lives in WeeklyVowsStore.

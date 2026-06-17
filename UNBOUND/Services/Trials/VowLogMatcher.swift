@@ -31,11 +31,15 @@ enum VowLogMatcher {
     ///      keyword.
     static func qualifyingRecoveryCount(
         weekStart: Date,
+        committedAt: Date,
         recoveryLogs: [PerformanceLog]
     ) -> Int {
         let weekEnd = weekStart.addingTimeInterval(7 * 86_400)
+        // Only sessions at or after the commitment count, so a log from earlier
+        // in the week can't retroactively seal a vow the user picked later.
+        let lowerBound = max(weekStart, committedAt)
         return recoveryLogs.filter { log in
-            log.completedAt >= weekStart
+            log.completedAt >= lowerBound
                 && log.completedAt < weekEnd
                 && recoveryQualifies(log)
         }.count
@@ -54,11 +58,13 @@ enum VowLogMatcher {
     /// In-week qualifying cardio completions, counted by `CardioSession.date`.
     static func qualifyingCardioCount(
         weekStart: Date,
+        committedAt: Date,
         cardioSessions: [CardioSession]
     ) -> Int {
         let weekEnd = weekStart.addingTimeInterval(7 * 86_400)
+        let lowerBound = max(weekStart, committedAt)
         return cardioSessions.filter { session in
-            session.date >= weekStart && session.date < weekEnd
+            session.date >= lowerBound && session.date < weekEnd
         }.count
     }
 

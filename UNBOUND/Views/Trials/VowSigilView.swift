@@ -58,9 +58,9 @@ struct VowSigilView: View {
     ZStack {
         Color.unbound.bg.ignoresSafeArea()
         HStack(spacing: 28) {
-            VowSigilView(sigil: VowSigil(keptVows: 7, brokenVows: 0))
-            VowSigilView(sigil: VowSigil(keptVows: 2, brokenVows: 1))
-            VowSigilView(sigil: VowSigil(keptVows: 0, brokenVows: 0), accent: Color.unbound.coachCyan)
+            VowSigilView(sigil: VowSigil(keptVows: 7, breakKeptSnapshots: []))
+            VowSigilView(sigil: VowSigil(keptVows: 2, breakKeptSnapshots: [0]))
+            VowSigilView(sigil: VowSigil(keptVows: 0, breakKeptSnapshots: []), accent: Color.unbound.coachCyan)
         }
     }
 }

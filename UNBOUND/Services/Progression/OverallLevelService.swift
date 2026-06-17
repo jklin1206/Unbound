@@ -30,6 +30,7 @@ final class OverallLevelService {
         at date: Date,
         gains: [MovementAPGain] = [],
         rankUpEvents: Int = 0,
+        consumesVowDebt: Bool = false,
         database: any DatabaseServiceProtocol = SyncedDatabase.shared
     ) async -> OverallLevelReward {
         do {
@@ -41,6 +42,7 @@ final class OverallLevelService {
                 at: date,
                 gains: gains,
                 rankUpEvents: rankUpEvents,
+                consumesVowDebt: consumesVowDebt,
                 database: database,
                 persistenceMode: .bestEffort
             )
@@ -72,6 +74,7 @@ final class OverallLevelService {
         at date: Date,
         gains: [MovementAPGain] = [],
         rankUpEvents: Int = 0,
+        consumesVowDebt: Bool = false,
         database: any DatabaseServiceProtocol = SyncedDatabase.shared
     ) async throws -> OverallLevelReward {
         try await ingest(
@@ -82,6 +85,7 @@ final class OverallLevelService {
             at: date,
             gains: gains,
             rankUpEvents: rankUpEvents,
+            consumesVowDebt: consumesVowDebt,
             database: database,
             persistenceMode: .strict
         )
@@ -113,6 +117,7 @@ final class OverallLevelService {
         at date: Date,
         gains: [MovementAPGain],
         rankUpEvents: Int,
+        consumesVowDebt: Bool = false,
         database: any DatabaseServiceProtocol,
         persistenceMode: ProgressionPersistenceMode
     ) async throws -> OverallLevelReward {
@@ -174,9 +179,13 @@ final class OverallLevelService {
         let earnedXP = RewardLedgerQuantizer.wholePoints(
             from: effectiveAP * max(1.0, noveltyMultiplier) * comeback
         ) + bolus
-        // Spec §5: broken-vow debt is paid out of earned training XP before it
-        // reaches the bar. Total XP never decreases; the bar simply pauses.
-        let withheld = await vowDebtLedger.consumeDebt(upTo: Int(earnedXP), userId: userId)
+        // Spec §5: broken-vow debt is paid out of earned TRAINING XP before it
+        // reaches the bar (total XP never decreases; the bar simply pauses).
+        // Gated to training sources so non-training awards (e.g. daily photo/scan
+        // XP) can't quietly pay off vow debt.
+        let withheld = consumesVowDebt
+            ? await vowDebtLedger.consumeDebt(upTo: Int(earnedXP), userId: userId)
+            : 0
         let xpGained = max(0, earnedXP - Double(withheld))
         progress.apply(xpGained: xpGained, sourceLogId: sourceLogId, at: date)
 

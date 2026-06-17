@@ -332,6 +332,12 @@ final class WeeklyVowsServiceTests: XCTestCase {
         state.currentWeekCards = [card]
         store.save(state, userId: userId)
         autoService.pickVowCard(card, userId: userId)
+        // pickVowCard stamps pickedAt = now; pin it to the controlled test week so
+        // the fixed-timestamp recovery/cardio logs (just after weekStart) count as
+        // post-commitment under the pick-time filter.
+        var picked = store.load(userId: userId)
+        picked.currentVow?.pickedAt = Date(timeIntervalSince1970: 1_700_000_001)
+        store.save(picked, userId: userId)
     }
 
     private func runRefresh(on autoService: WeeklyVowsService, userId: String = "u-1") {

@@ -20,7 +20,8 @@ enum WeeklyVowPenaltyCatalog {
                 lane: vow.chosenCard.lane,
                 weekStart: vow.weekStart,
                 missedAt: missedAt,
-                penaltyXP: owedXP
+                penaltyXP: owedXP,
+                keptAtBreak: VowBadgeTrack.totalKept(state.completionsByLane)
             )
         )
         if state.weeklyVowPenaltyLedger.count > maxLedgerEntries {

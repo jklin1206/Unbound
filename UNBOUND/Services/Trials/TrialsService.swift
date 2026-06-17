@@ -128,7 +128,8 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
             weekStart: state.currentWeekStart ?? Date(),
             chosenCard: card,
             capstoneState: .pending,
-            completedAt: nil
+            completedAt: nil,
+            pickedAt: Date()
         )
         state.currentVow = vow
         state.skippedCurrentWeek = false
@@ -213,18 +214,21 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
               let weekStart = state.currentWeekStart
         else { return }
 
+        let committedAt = vow.pickedAt ?? weekStart
         let count: Int
         switch vow.chosenCard.lane {
         case .recovery:
             let recoveryLogs = await recoveryCompletionsProvider(userId)
             count = VowLogMatcher.qualifyingRecoveryCount(
                 weekStart: weekStart,
+                committedAt: committedAt,
                 recoveryLogs: recoveryLogs
             )
         case .engine:
             let cardioSessions = await cardioSessionsProvider(userId)
             count = VowLogMatcher.qualifyingCardioCount(
                 weekStart: weekStart,
+                committedAt: committedAt,
                 cardioSessions: cardioSessions
             )
         case .fuel:

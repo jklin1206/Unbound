@@ -55,7 +55,7 @@ final class VowLogMatcherTests: XCTestCase {
             recoveryLog(titled: "Recovery Reset", completedAt: 1_700_000_500),
             recoveryLog(titled: "Mobility Flow", completedAt: 1_700_100_000)
         ]
-        let count = VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, recoveryLogs: logs)
+        let count = VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, committedAt: weekStart, recoveryLogs: logs)
         XCTAssertEqual(count, 2)
     }
 
@@ -63,7 +63,7 @@ final class VowLogMatcherTests: XCTestCase {
         let weekStart = Date(timeIntervalSince1970: 1_700_000_000)
         let logs = [recoveryLog(titled: "Recovery Reset", completedAt: 1_600_000_000)]
         XCTAssertEqual(
-            VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, recoveryLogs: logs),
+            VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, committedAt: weekStart, recoveryLogs: logs),
             0
         )
     }
@@ -74,7 +74,7 @@ final class VowLogMatcherTests: XCTestCase {
         let atEnd = 1_700_000_000 + 7 * 86_400.0 - 600  // +600 lands exactly on weekEnd
         let logs = [recoveryLog(titled: "Recovery Reset", completedAt: atEnd)]
         XCTAssertEqual(
-            VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, recoveryLogs: logs),
+            VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, committedAt: weekStart, recoveryLogs: logs),
             0
         )
     }
@@ -84,7 +84,7 @@ final class VowLogMatcherTests: XCTestCase {
         // A routine-sourced log that is not a recovery/mobility flow.
         let circuit = recoveryLog(titled: "Hunter Exam Roadwork", completedAt: 1_700_000_500)
         XCTAssertEqual(
-            VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, recoveryLogs: [circuit]),
+            VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, committedAt: weekStart, recoveryLogs: [circuit]),
             0
         )
     }
@@ -97,7 +97,7 @@ final class VowLogMatcherTests: XCTestCase {
         let weekStart = Date(timeIntervalSince1970: 1_700_000_000)
         let log = mobilityWingLog(titled: "Hip Reset", completedAt: 1_700_000_500)
         XCTAssertEqual(
-            VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, recoveryLogs: [log]),
+            VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, committedAt: weekStart, recoveryLogs: [log]),
             1,
             "A log with MOBILITY WING block notes must qualify even without a title keyword"
         )
@@ -108,7 +108,7 @@ final class VowLogMatcherTests: XCTestCase {
         let weekStart = Date(timeIntervalSince1970: 1_700_000_000)
         let log = recoveryLog(titled: "Recovery Day", completedAt: 1_700_000_500)
         XCTAssertEqual(
-            VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, recoveryLogs: [log]),
+            VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, committedAt: weekStart, recoveryLogs: [log]),
             1,
             "A program rest-day titled 'Recovery Day' must qualify via title keyword alone"
         )
@@ -134,7 +134,7 @@ final class VowLogMatcherTests: XCTestCase {
             blocks: [block]
         )
         XCTAssertEqual(
-            VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, recoveryLogs: [log]),
+            VowLogMatcher.qualifyingRecoveryCount(weekStart: weekStart, committedAt: weekStart, recoveryLogs: [log]),
             0,
             "A non-recovery log with a non-mobility block must not qualify"
         )
@@ -149,7 +149,7 @@ final class VowLogMatcherTests: XCTestCase {
             cardio(at: 1_700_100_000)
         ]
         XCTAssertEqual(
-            VowLogMatcher.qualifyingCardioCount(weekStart: weekStart, cardioSessions: sessions),
+            VowLogMatcher.qualifyingCardioCount(weekStart: weekStart, committedAt: weekStart, cardioSessions: sessions),
             2
         )
     }
@@ -162,7 +162,7 @@ final class VowLogMatcherTests: XCTestCase {
             cardio(at: weekEnd)          // at end (excluded, half-open)
         ]
         XCTAssertEqual(
-            VowLogMatcher.qualifyingCardioCount(weekStart: weekStart, cardioSessions: sessions),
+            VowLogMatcher.qualifyingCardioCount(weekStart: weekStart, committedAt: weekStart, cardioSessions: sessions),
             0
         )
     }

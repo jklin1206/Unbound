@@ -63,6 +63,7 @@ final class OverallLevelServiceGarnishTests: XCTestCase {
             sourceLogId: "log-garnish-1",
             userId: "u-garnish",
             at: Date(timeIntervalSince1970: 1_700_000_000),
+            consumesVowDebt: true,
             database: MockDatabaseService()
         )
 
@@ -87,5 +88,26 @@ final class OverallLevelServiceGarnishTests: XCTestCase {
 
         XCTAssertGreaterThan(reward.xpGained, 0)
         XCTAssertEqual(reward.xpWithheldToVowDebt, 0)
+    }
+
+    func testNonTrainingXPDoesNotConsumeDebt() async {
+        let service = OverallLevelService.makeForTesting()
+        let ledger = StubLedger(outstanding: 1_000_000)
+        service.vowDebtLedger = ledger
+
+        // Default consumesVowDebt:false (e.g. daily photo/scan XP) must NOT pay
+        // down vow debt — that's reserved for training XP (spec §5).
+        let reward = await service.ingest(
+            rawAP: 500,
+            noveltyMultiplier: 1.0,
+            sourceLogId: "log-photo-1",
+            userId: "u-photo",
+            at: Date(timeIntervalSince1970: 1_700_000_000),
+            database: MockDatabaseService()
+        )
+
+        XCTAssertGreaterThan(reward.xpGained, 0, "non-training XP credits in full")
+        XCTAssertEqual(reward.xpWithheldToVowDebt, 0)
+        XCTAssertEqual(ledger.consumedCalls.count, 0, "debt ledger untouched by non-training XP")
     }
 }
