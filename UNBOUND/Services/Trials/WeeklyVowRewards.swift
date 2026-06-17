@@ -30,6 +30,13 @@ enum WeeklyVowPenaltyCatalog {
         // Spec §5: a broken vow becomes collectible debt, withheld from future
         // earned training XP — not a deduction from the next vow win.
         state.pendingVowDebtXP = max(0, state.pendingVowDebtXP + owedXP)
+
+        // A Fuel vow's self-report anchors are keyed by the (stable) weekly card
+        // id. Now that the vow is charged as missed, clear its tally so re-picking
+        // the same card id can't resume the old count and re-seal an already-
+        // broken, already-charged vow — which would pay its win token a second
+        // time. No-op for non-Fuel lanes.
+        state.fuelAnchorsByVowId[vow.id] = nil
     }
 }
 

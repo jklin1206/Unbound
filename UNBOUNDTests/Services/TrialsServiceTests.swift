@@ -105,6 +105,39 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(state.pendingVowDebtXP, card.bet.oweXP)
     }
 
+    /// Regression: abandoning a touched Fuel vow charges its stake AND must reset
+    /// its self-report anchors. The weekly card id is stable, so without the
+    /// reset, re-picking the same card resumes the old tally and can re-seal an
+    /// already-broken, already-charged vow — double-paying its win token.
+    func testAbandonedFuelVowAnchorsDoNotResumeOnRepick() async {
+        let a = makeVowCard(lane: .fuel, bet: .medium, target: VowTarget(count: 3, noun: "fuel anchor"))
+        let b = makeVowCard(lane: .engine, bet: .small, target: VowTarget(count: 1, noun: "engine session"))
+        var state = service.state(userId: "u-1")
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [a, b]
+        store.save(state, userId: "u-1")
+
+        service.pickVowCard(a, userId: "u-1")
+        await service.logFuelAnchor(userId: "u-1")
+        await service.logFuelAnchor(userId: "u-1")  // 2/3 — touched, not sealed
+        XCTAssertEqual(service.fuelAnchorCount(userId: "u-1"), 2)
+
+        // Bound switch A → B charges A's stake (and must clear A's anchors).
+        service.pickVowCard(b, userId: "u-1")
+        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, a.bet.oweXP)
+
+        // Re-pick A: anchors start at 0, so a single tap can't instantly re-seal.
+        service.pickVowCard(a, userId: "u-1")
+        XCTAssertEqual(service.fuelAnchorCount(userId: "u-1"), 0,
+                       "abandoned fuel anchors must not resume on re-pick")
+        await service.logFuelAnchor(userId: "u-1")
+        XCTAssertEqual(service.fuelAnchorCount(userId: "u-1"), 1)
+        XCTAssertNotEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed,
+                          "must not re-seal from resumed anchors")
+        // Win token must not have been paid a second time: lane stays uncounted.
+        XCTAssertNil(service.state(userId: "u-1").completionsByLane[.fuel])
+    }
+
     /// Spec §10 switching grace: switching away from an UNTOUCHED vow is free
     /// (mis-tap protection).
     func testRepickingAfterUntouchedVowIsFree() {
