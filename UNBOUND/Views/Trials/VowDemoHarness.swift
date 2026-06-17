@@ -85,6 +85,12 @@ struct VowDemoHarness: View {
     private var profileState: TrialsState {
         var s = WeeklyVowsState.empty
         s.completionsByLane = [.recovery: 3, .fuel: 4, .engine: 2]
+        s.keptVows = [
+            KeptVow(vowId: "k1", name: "Still Water Vow", lane: .recovery, completedAt: Date().addingTimeInterval(-1 * 86_400)),
+            KeptVow(vowId: "k2", name: "First Spark Vow", lane: .fuel, completedAt: Date().addingTimeInterval(-4 * 86_400)),
+            KeptVow(vowId: "k3", name: "Iron Lungs Vow", lane: .engine, completedAt: Date().addingTimeInterval(-9 * 86_400)),
+            KeptVow(vowId: "k4", name: "Open Gate Vow", lane: .recovery, completedAt: Date().addingTimeInterval(-16 * 86_400))
+        ]
         return s
     }
 

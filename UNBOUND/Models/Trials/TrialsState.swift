@@ -19,6 +19,16 @@ struct WeeklyVowPenaltyLedgerEntry: Codable, Equatable, Identifiable, Sendable {
     let penaltyXP: Int
 }
 
+/// A vow the user cleared — the record behind the profile's completed-vows list.
+struct KeptVow: Codable, Equatable, Identifiable, Sendable {
+    var id: String { "\(vowId)-\(Int(completedAt.timeIntervalSince1970))" }
+
+    let vowId: String
+    let name: String
+    let lane: VowLane
+    let completedAt: Date
+}
+
 /// Persisted Weekly Vows state per user. Lives in WeeklyVowsStore.
 struct WeeklyVowsState: Codable, Equatable, Sendable {
     /// Monday 00:00 of the active vow week. nil before first generation.
@@ -42,6 +52,8 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
     var weeklyVowCompletionLedger: [WeeklyVowCompletionLedgerEntry]
     /// Missed picked vows. Skipping before picking still has no penalty.
     var weeklyVowPenaltyLedger: [WeeklyVowPenaltyLedgerEntry]
+    /// Cleared vows, oldest-first — the profile's completed-vows list.
+    var keptVows: [KeptVow]
 
     var currentVow: WeeklyVow? {
         get { currentTrial }
@@ -58,7 +70,8 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         equippedTitle: nil,
         skippedCurrentWeek: false,
         weeklyVowCompletionLedger: [],
-        weeklyVowPenaltyLedger: []
+        weeklyVowPenaltyLedger: [],
+        keptVows: []
     )
 
     init(
@@ -71,7 +84,8 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         equippedTitle: TitleID?,
         skippedCurrentWeek: Bool,
         weeklyVowCompletionLedger: [WeeklyVowCompletionLedgerEntry] = [],
-        weeklyVowPenaltyLedger: [WeeklyVowPenaltyLedgerEntry] = []
+        weeklyVowPenaltyLedger: [WeeklyVowPenaltyLedgerEntry] = [],
+        keptVows: [KeptVow] = []
     ) {
         self.currentWeekStart = currentWeekStart
         self.currentWeekCards = currentWeekCards
@@ -83,6 +97,7 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         self.skippedCurrentWeek = skippedCurrentWeek
         self.weeklyVowCompletionLedger = weeklyVowCompletionLedger
         self.weeklyVowPenaltyLedger = weeklyVowPenaltyLedger
+        self.keptVows = keptVows
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -96,6 +111,7 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         case skippedCurrentWeek
         case weeklyVowCompletionLedger
         case weeklyVowPenaltyLedger
+        case keptVows
     }
 
     /// Legacy keys, decode-only for migration detection. `completionsByCardKind`
@@ -123,6 +139,7 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
             [WeeklyVowPenaltyLedgerEntry].self,
             forKey: .weeklyVowPenaltyLedger
         )) ?? nil) ?? []
+        keptVows = try container.decodeIfPresent([KeptVow].self, forKey: .keptVows) ?? []
 
         // Spec §9 migration: a pre-v2 blob carries the old card shape under an
         // in-flight vow. If we detect the legacy `completionsByCardKind` marker,

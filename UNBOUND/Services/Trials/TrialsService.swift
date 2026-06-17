@@ -175,6 +175,15 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         let priorKept = VowBadgeTrack.totalKept(state.completionsByLane)
         state.completionsByLane[current.chosenCard.lane, default: 0] += 1
         let currentKept = VowBadgeTrack.totalKept(state.completionsByLane)
+        state.keptVows.append(KeptVow(
+            vowId: current.id,
+            name: current.chosenCard.displayName,
+            lane: current.chosenCard.lane,
+            completedAt: date
+        ))
+        if state.keptVows.count > 100 {
+            state.keptVows.removeFirst(state.keptVows.count - 100)
+        }
         store.save(state, userId: userId)
 
         // Token win — paid in full, never garnished (spec §5). Awaited (not a
