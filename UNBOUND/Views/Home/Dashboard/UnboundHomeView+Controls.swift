@@ -44,15 +44,22 @@ extension UnboundHomeView {
                 UnboundNativeDivider(opacity: 0.42)
                     .padding(.leading, 54)
 
-                HomePriorityCommand(
-                    artwork: .vow,
-                    title: "Binding Vow",
-                    detail: trialCommandDetail,
-                    value: trialCommandValue,
-                    tint: homeControlTint,
-                    accessibilityLabel: "Open binding vow"
-                ) {
-                    handleTrialCommand()
+                // Active vow logs inline, right here in the Trials band; the
+                // command row is only the pick entry before a vow is chosen.
+                if let trial = model.trialsState.currentTrial, trial.capstoneState != .missed {
+                    ActiveTrialCard(trial: trial)
+                        .padding(.top, 10)
+                } else {
+                    HomePriorityCommand(
+                        artwork: .vow,
+                        title: "Binding Vow",
+                        detail: trialCommandDetail,
+                        value: trialCommandValue,
+                        tint: homeControlTint,
+                        accessibilityLabel: "Open binding vow"
+                    ) {
+                        handleTrialCommand()
+                    }
                 }
             }
         }
@@ -327,10 +334,6 @@ extension UnboundHomeView {
     var contextualStack: some View {
         VStack(spacing: 12) {
             RecalibratingBanner()
-
-            if let trial = model.trialsState.currentTrial, trial.capstoneState != .missed {
-                ActiveTrialCard(trial: trial)
-            }
 
             if model.shouldShowCalibrationCard {
                 DayOneCalibrationCard(style: .slim) {
