@@ -80,7 +80,6 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertTrue(state.skippedCurrentWeek)
         XCTAssertNil(state.currentVow)
         XCTAssertTrue(state.weeklyVowPenaltyLedger.isEmpty)
-        XCTAssertEqual(state.pendingVowDebtXP, 0)
     }
 
     func testSkippingPickedVowAddsPenalty() async {
@@ -98,7 +97,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.vowId, card.id)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.weekStart, state.currentWeekStart)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.lane, .fuel)
-        XCTAssertEqual(state.pendingVowDebtXP, card.bet.oweXP)
+        XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.penaltyXP, card.bet.oweXP)
     }
 
     /// Regression: abandoning a touched Fuel vow charges its stake AND must reset
@@ -120,7 +119,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
 
         // Bound switch A → B charges A's stake (and must clear A's anchors).
         service.pickVowCard(b, userId: "u-1")
-        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, a.bet.oweXP)
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowPenaltyLedger.first?.penaltyXP, a.bet.oweXP)
 
         // Re-pick A: anchors start at 0, so a single tap can't instantly re-seal.
         service.pickVowCard(a, userId: "u-1")
@@ -150,10 +149,9 @@ final class WeeklyVowsServiceTests: XCTestCase {
         let final = service.state(userId: "u-1")
         XCTAssertEqual(final.currentVow?.id, b.id)
         XCTAssertTrue(final.weeklyVowPenaltyLedger.isEmpty)
-        XCTAssertEqual(final.pendingVowDebtXP, 0)
     }
 
-    // MARK: - Missed vow rolls into debt (ensureCurrentWeek)
+    // MARK: - Missed vow records its stake (ensureCurrentWeek)
 
     func testMissedPickedVowAddsBetDebtOnWeekRoll() async {
         let missedCard = makeVowCard(lane: .engine, bet: .large, target: VowTarget(count: 1, noun: "engine session"))
@@ -176,7 +174,6 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 1)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.penaltyXP, VowBet.large.oweXP)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.lane, .engine)
-        XCTAssertEqual(state.pendingVowDebtXP, VowBet.large.oweXP)
     }
 
     func testPenaltyDedupeIncludesVowWeekStart() async {
@@ -202,19 +199,17 @@ final class WeeklyVowsServiceTests: XCTestCase {
                 penaltyXP: card.bet.oweXP
             )
         ]
-        stale.pendingVowDebtXP = card.bet.oweXP
         store.save(stale, userId: "u-1")
 
         await service.ensureCurrentWeek(userId: "u-1")
 
         let state = service.state(userId: "u-1")
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 2)
-        XCTAssertEqual(state.pendingVowDebtXP, card.bet.oweXP * 2)
     }
 
-    // MARK: - Broken-vow debt comes from the bet
+    // MARK: - Broken-vow stake comes from the bet
 
-    func testBrokenVowAddsDebtFromBet() {
+    func testBrokenVowRecordsStakeFromBet() {
         let card = makeVowCard(lane: .engine, bet: .large)
         var state = service.state(userId: "u-1")
         state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
@@ -231,7 +226,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         Task { await service.ensureCurrentWeek(userId: "u-1"); exp.fulfill() }
         wait(for: [exp], timeout: 5)
 
-        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, VowBet.large.oweXP)
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowPenaltyLedger.first?.penaltyXP, VowBet.large.oweXP)
     }
 
     // MARK: - equipTitle
@@ -330,7 +325,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         service.pickVowCard(b, userId: "u-1")  // no progress on A → free switch
 
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.id, b.id)
-        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, 0)
+        XCTAssertTrue(service.state(userId: "u-1").weeklyVowPenaltyLedger.isEmpty)
     }
 
     func testSwitchingAfterProgressOwesStake() async {
@@ -346,7 +341,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         service.pickVowCard(b, userId: "u-1") // bound switch → owes A's stake
 
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.id, b.id)
-        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, VowBet.medium.oweXP) // 250
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowPenaltyLedger.first?.penaltyXP, VowBet.medium.oweXP) // 250
     }
 
     // MARK: - skipThisWeek grace (spec §10)
@@ -361,7 +356,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
 
         XCTAssertTrue(service.state(userId: "u-1").skippedCurrentWeek)
         XCTAssertNil(service.state(userId: "u-1").currentVow)
-        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, 0)
+        XCTAssertTrue(service.state(userId: "u-1").weeklyVowPenaltyLedger.isEmpty)
     }
 
     func testSkipVowWithProgressOwesStake() async {
@@ -373,6 +368,6 @@ final class WeeklyVowsServiceTests: XCTestCase {
         service.skipThisWeek(userId: "u-1")
 
         XCTAssertTrue(service.state(userId: "u-1").skippedCurrentWeek)
-        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, VowBet.medium.oweXP)
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowPenaltyLedger.first?.penaltyXP, VowBet.medium.oweXP)
     }
 }

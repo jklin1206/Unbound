@@ -8,10 +8,12 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
     /// Posts .weeklyVowWeekRolled.
     func ensureCurrentWeek(userId: String) async
 
-    /// User picks one of the 3 cards. Persists as currentVow.
+    /// User picks one of the 3 cards. Persists as currentVow. Abandoning a
+    /// touched prior vow docks its stake off XP.
     func pickVowCard(_ card: WeeklyVowCard, userId: String)
 
-    /// User skipped the pick this week. No vow active; no chip; no penalty.
+    /// User skipped the pick this week. No vow active; no chip. Abandoning a
+    /// touched vow docks its stake off XP.
     func skipThisWeek(userId: String)
 
     /// Caller invokes from app foreground / home appear to transition

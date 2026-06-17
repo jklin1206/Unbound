@@ -28,24 +28,6 @@ struct VowDemoHarness: View {
             Color.unbound.bg.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    label("XP RAIL · DEBT IN ONE PLACE")
-                    HomeTrainingRankRail(
-                        level: 12,
-                        xpInLevel: 340,
-                        xpForLevel: 800,
-                        fraction: 0.42,
-                        aggregateTier: .veteran,
-                        rankColor: RankTier.veteran.rewardTint,
-                        vowDebtXP: 250
-                    )
-                    .frame(height: 210)
-                    .frame(maxWidth: .infinity)
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.unbound.surface)
-                    )
-
                     label("ACTIVE VOW · CALM")
                     ActiveTrialCard(trial: activeVow)
 
@@ -112,7 +94,6 @@ struct VowDemoHarness: View {
         state.currentWeekCards = [activeCard]
         state.currentVow = activeVow
         state.fuelAnchorsByVowId[activeCard.id] = 1
-        state.pendingVowDebtXP = 250
         state.completionsByLane = [.recovery: 3, .fuel: 4, .engine: 2]
         WeeklyVowsStore.shared.save(state, userId: userId)
     }

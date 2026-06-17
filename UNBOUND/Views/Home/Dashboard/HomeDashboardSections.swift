@@ -160,9 +160,6 @@ struct HomeTrainingRankRail: View {
     let fraction: CGFloat
     let aggregateTier: SkillTier
     let rankColor: Color
-    /// Outstanding broken-vow debt. The XP rail is the one place the XP economy
-    /// is explained, so debt — which pauses this very bar — surfaces here.
-    var vowDebtXP: Int = 0
 
     var body: some View {
         VStack(alignment: .center, spacing: 10) {
@@ -218,36 +215,8 @@ struct HomeTrainingRankRail: View {
             .monospacedDigit()
             .lineLimit(1)
             .minimumScaleFactor(0.7)
-
-            if vowDebtXP > 0 {
-                vowDebtTag
-            }
         }
         .frame(width: 76, alignment: .center)
-    }
-
-    /// Broken-vow debt held against the bar — the next XP you earn pays it down
-    /// before the meter moves. Attention (warnOrange), never negging.
-    private var vowDebtTag: some View {
-        VStack(spacing: 1) {
-            Rectangle()
-                .fill(Color.white.opacity(0.18))
-                .frame(width: 20, height: 0.5)
-                .padding(.bottom, 3)
-            Text("−\(vowDebtXP)")
-                .font(.system(size: 11, weight: .black, design: .monospaced))
-                .foregroundStyle(Color.unbound.warnOrange)
-                .monospacedDigit()
-            Text("VOW DEBT")
-                .font(.system(size: 7, weight: .black, design: .monospaced))
-                .tracking(1.0)
-                .foregroundStyle(Color.unbound.warnOrange.opacity(0.85))
-        }
-        .padding(.top, 2)
-        .lineLimit(1)
-        .minimumScaleFactor(0.7)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Vow debt \(vowDebtXP) XP, paid from your next training XP.")
     }
 }
 
@@ -262,7 +231,6 @@ struct HomeTrainingConsoleSection: View {
     let aggregateRank: RankTier
     let hasPlateaus: Bool
     let shouldShowCalibrationCard: Bool
-    var vowDebtXP: Int = 0
     let onPrimary: (_ canStart: Bool, _ isRest: Bool) -> Void
 
     var body: some View {
@@ -322,8 +290,7 @@ struct HomeTrainingConsoleSection: View {
                     xpForLevel: xpForLevel,
                     fraction: levelFraction,
                     aggregateTier: aggregateTier,
-                    rankColor: aggregateRank.rewardTint,
-                    vowDebtXP: vowDebtXP
+                    rankColor: aggregateRank.rewardTint
                 )
                 .unboundTextShadow(strength: 0.72)
             }

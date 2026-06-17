@@ -42,9 +42,6 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
     var weeklyVowCompletionLedger: [WeeklyVowCompletionLedgerEntry]
     /// Missed picked vows. Skipping before picking still has no penalty.
     var weeklyVowPenaltyLedger: [WeeklyVowPenaltyLedgerEntry]
-    /// Outstanding XP debt from broken vows. Withheld from the user's next
-    /// earned training XP (never subtracts existing total, never de-levels).
-    var pendingVowDebtXP: Int
 
     var currentVow: WeeklyVow? {
         get { currentTrial }
@@ -61,8 +58,7 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         equippedTitle: nil,
         skippedCurrentWeek: false,
         weeklyVowCompletionLedger: [],
-        weeklyVowPenaltyLedger: [],
-        pendingVowDebtXP: 0
+        weeklyVowPenaltyLedger: []
     )
 
     init(
@@ -75,8 +71,7 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         equippedTitle: TitleID?,
         skippedCurrentWeek: Bool,
         weeklyVowCompletionLedger: [WeeklyVowCompletionLedgerEntry] = [],
-        weeklyVowPenaltyLedger: [WeeklyVowPenaltyLedgerEntry] = [],
-        pendingVowDebtXP: Int = 0
+        weeklyVowPenaltyLedger: [WeeklyVowPenaltyLedgerEntry] = []
     ) {
         self.currentWeekStart = currentWeekStart
         self.currentWeekCards = currentWeekCards
@@ -88,7 +83,6 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         self.skippedCurrentWeek = skippedCurrentWeek
         self.weeklyVowCompletionLedger = weeklyVowCompletionLedger
         self.weeklyVowPenaltyLedger = weeklyVowPenaltyLedger
-        self.pendingVowDebtXP = max(0, pendingVowDebtXP)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -102,14 +96,11 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
         case skippedCurrentWeek
         case weeklyVowCompletionLedger
         case weeklyVowPenaltyLedger
-        case pendingVowDebtXP
     }
 
     /// Legacy keys, decode-only for migration detection. `completionsByCardKind`
-    /// is the pre-v2 marker that triggers discarding a stale in-flight vow (spec §9);
-    /// `pendingVowPenaltyXP` is the v1 debt field renamed in Core-1.
+    /// is the pre-v2 marker that triggers discarding a stale in-flight vow (spec §9).
     private enum LegacyCodingKeys: String, CodingKey {
-        case pendingVowPenaltyXP
         case completionsByCardKind
     }
 
@@ -132,9 +123,6 @@ struct WeeklyVowsState: Codable, Equatable, Sendable {
             [WeeklyVowPenaltyLedgerEntry].self,
             forKey: .weeklyVowPenaltyLedger
         )) ?? nil) ?? []
-        pendingVowDebtXP = try container.decodeIfPresent(Int.self, forKey: .pendingVowDebtXP)
-            ?? legacyContainer.decodeIfPresent(Int.self, forKey: .pendingVowPenaltyXP)
-            ?? 0
 
         // Spec §9 migration: a pre-v2 blob carries the old card shape under an
         // in-flight vow. If we detect the legacy `completionsByCardKind` marker,

@@ -98,8 +98,7 @@ extension UnboundHomeView {
             aggregateTier: model.aggregateTier,
             aggregateRank: model.aggregateRank,
             hasPlateaus: !model.plateaus.isEmpty,
-            shouldShowCalibrationCard: model.shouldShowCalibrationCard,
-            vowDebtXP: model.trialsState.pendingVowDebtXP
+            shouldShowCalibrationCard: model.shouldShowCalibrationCard
         ) { canStart, isRest in
             UnboundHaptics.medium()
             if canStart {

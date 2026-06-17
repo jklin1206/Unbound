@@ -26,9 +26,11 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
             return
         }
 
-        // Roll prior week. Mark uncompleted picked vows as missed and bind the miss penalty.
+        // Roll prior week. Mark uncompleted picked vows as missed and dock the stake.
+        var rolledStake: BrokenStake?
         if var vow = state.currentVow, vow.capstoneState != .completed {
-            WeeklyVowPenaltyCatalog.applyMissedPenaltyIfNeeded(for: vow, missedAt: now, state: &state)
+            let owed = WeeklyVowPenaltyCatalog.recordBreakIfNeeded(for: vow, missedAt: now, state: &state)
+            if owed > 0 { rolledStake = BrokenStake(amount: owed, vowId: vow.id) }
             vow.capstoneState = .missed
             state.currentVow = vow
         }
@@ -49,6 +51,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         state.skippedCurrentWeek = false
 
         store.save(state, userId: userId)
+        await dockStake(rolledStake, userId: userId, at: now)
         NotificationCenter.default.post(name: .weeklyVowWeekRolled, object: nil)
         NotificationCenter.default.post(name: .trialWeekRolled, object: nil)
 
@@ -79,23 +82,22 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
 
     func pickVowCard(_ card: WeeklyVowCard, userId: String) {
         var state = store.load(userId: userId)
+        let now = Date()
+        var stake: BrokenStake?
         if let existingVow = state.currentVow {
             guard existingVow.id != card.id else { return }
             // Switching grace (spec §10): switching away from an untouched vow is
             // free (mis-tap protection). A vow with progress is bound — abandoning
             // it owes the stake.
             if hasProgress(existingVow, in: state) {
-                WeeklyVowPenaltyCatalog.applyMissedPenaltyIfNeeded(
-                    for: existingVow,
-                    missedAt: Date(),
-                    state: &state
-                )
+                let owed = WeeklyVowPenaltyCatalog.recordBreakIfNeeded(for: existingVow, missedAt: now, state: &state)
+                if owed > 0 { stake = BrokenStake(amount: owed, vowId: existingVow.id) }
             }
         }
         let vow = WeeklyVow(
             id: card.id,
             userId: userId,
-            weekStart: state.currentWeekStart ?? Date(),
+            weekStart: state.currentWeekStart ?? now,
             chosenCard: card,
             capstoneState: .pending,
             completedAt: nil
@@ -103,26 +105,49 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         state.currentVow = vow
         state.skippedCurrentWeek = false
         store.save(state, userId: userId)
+        dockStakeSoon(stake, userId: userId, at: now)
         NotificationCenter.default.post(name: .weeklyVowPicked, object: vow)
         NotificationCenter.default.post(name: .trialPicked, object: vow)
     }
 
     func skipThisWeek(userId: String) {
         var state = store.load(userId: userId)
+        let now = Date()
+        var stake: BrokenStake?
         // Skip grace (spec §10): consistent with pickVowCard — skipping an
         // untouched vow is free (mis-tap protection). Only a vow with progress
         // is bound, so abandoning it owes the stake.
         if let existingVow = state.currentVow, hasProgress(existingVow, in: state) {
-            WeeklyVowPenaltyCatalog.applyMissedPenaltyIfNeeded(
-                for: existingVow,
-                missedAt: Date(),
-                state: &state
-            )
+            let owed = WeeklyVowPenaltyCatalog.recordBreakIfNeeded(for: existingVow, missedAt: now, state: &state)
+            if owed > 0 { stake = BrokenStake(amount: owed, vowId: existingVow.id) }
         }
         state.skippedCurrentWeek = true
         state.currentVow = nil
         store.save(state, userId: userId)
+        dockStakeSoon(stake, userId: userId, at: now)
         WeeklyVowsNotificationScheduler.cancelAll()
+    }
+
+    /// A recorded broken-vow stake awaiting an XP dock.
+    private struct BrokenStake { let amount: Int; let vowId: String }
+
+    /// Dock a broken vow's stake straight off the user's XP (clamped so it never
+    /// de-levels). Awaited at the reliable week-roll site; idempotent by vow id.
+    private func dockStake(_ stake: BrokenStake?, userId: String, at date: Date) async {
+        guard let stake else { return }
+        await OverallLevelService.shared.dockXP(
+            amount: stake.amount,
+            sourceId: "weeklyVowMiss:\(stake.vowId)",
+            userId: userId,
+            at: date
+        )
+    }
+
+    /// Fire the dock without blocking the synchronous pick/skip. Best-effort +
+    /// idempotent, so a dropped dock just means no XP lost (user-favourable).
+    private func dockStakeSoon(_ stake: BrokenStake?, userId: String, at date: Date) {
+        guard stake != nil else { return }
+        Task { await dockStake(stake, userId: userId, at: date) }
     }
 
     /// True if a picked vow has any progress that binds the stake on a switch:
