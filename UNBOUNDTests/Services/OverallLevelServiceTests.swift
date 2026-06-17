@@ -90,6 +90,49 @@ final class OverallLevelServiceGarnishTests: XCTestCase {
         XCTAssertEqual(reward.xpWithheldToVowDebt, 0)
     }
 
+    /// Database stub that fails every write — simulates a transient
+    /// `overall_level_progress` persist failure.
+    struct ThrowingOnCreateDatabase: DatabaseServiceProtocol, @unchecked Sendable {
+        struct PersistFailure: Error {}
+        func create<T: Codable>(_ object: T, collection: String, documentId: String) async throws {
+            throw PersistFailure()
+        }
+        func read<T: Codable>(collection: String, documentId: String) async throws -> T {
+            throw PersistFailure()
+        }
+        func update(_ fields: [String: Any], collection: String, documentId: String) async throws {}
+        func delete(collection: String, documentId: String) async throws {}
+        func query<T: Codable>(collection: String, field: String, isEqualTo value: Any, orderBy: String?, descending: Bool, limit: Int?) async throws -> [T] { [] }
+    }
+
+    /// Regression: a failed XP persist must leave vow debt untouched. Consuming
+    /// debt before the `overall_level_progress` write is durable means a
+    /// transient write failure forgives the debt for free — the XP event is
+    /// never banked, and on retry less/no debt is seen.
+    func testDebtIsNotConsumedWhenPersistFails() async {
+        let service = OverallLevelService.makeForTesting()
+        let ledger = StubLedger(outstanding: 5_000)
+        service.vowDebtLedger = ledger
+
+        do {
+            _ = try await service.ingestStrict(
+                rawAP: 500,
+                noveltyMultiplier: 1.0,
+                sourceLogId: "log-persist-fail",
+                userId: "u-persist-fail",
+                at: Date(timeIntervalSince1970: 1_700_000_000),
+                consumesVowDebt: true,
+                database: ThrowingOnCreateDatabase()
+            )
+            XCTFail("ingestStrict must rethrow the persist failure")
+        } catch {
+            // expected
+        }
+
+        XCTAssertEqual(ledger.outstanding, 5_000, "a failed XP write must leave vow debt untouched")
+        XCTAssertTrue(ledger.consumedCalls.isEmpty, "debt must not be consumed before the XP write is durable")
+    }
+
     func testNonTrainingXPDoesNotConsumeDebt() async {
         let service = OverallLevelService.makeForTesting()
         let ledger = StubLedger(outstanding: 1_000_000)

@@ -182,10 +182,13 @@ final class OverallLevelService {
         // Spec §5: broken-vow debt is paid out of earned TRAINING XP before it
         // reaches the bar (total XP never decreases; the bar simply pauses).
         // Gated to training sources so non-training awards (e.g. daily photo/scan
-        // XP) can't quietly pay off vow debt.
-        let withheld = consumesVowDebt
-            ? await vowDebtLedger.consumeDebt(upTo: Int(earnedXP), userId: userId)
+        // XP) can't quietly pay off vow debt. We compute the withholding here but
+        // do NOT draw down the ledger until the progress write is durable — see
+        // the consume below.
+        let outstandingDebt = consumesVowDebt
+            ? await vowDebtLedger.outstandingDebtXP(userId: userId)
             : 0
+        let withheld = min(max(0, outstandingDebt), Int(earnedXP))
         let xpGained = max(0, earnedXP - Double(withheld))
         progress.apply(xpGained: xpGained, sourceLogId: sourceLogId, at: date)
 
@@ -206,6 +209,15 @@ final class OverallLevelService {
             database: database,
             persistenceMode: persistenceMode
         )
+        // Consume vow debt only after the XP write is durable. A transient
+        // persist failure (strict mode) rethrows above, leaving the debt intact
+        // so the retry re-credits the same XP and re-pays the same debt — instead
+        // of forgiving the debt for free with no XP banked. The narrow window
+        // where the app is killed between this write and the consume fails
+        // user-favorable: the debt lingers and is paid by the next session.
+        if withheld > 0 {
+            await vowDebtLedger.consumeDebt(upTo: withheld, userId: userId)
+        }
         cachedProgress[userId] = progress
 
         NotificationCenter.default.post(
