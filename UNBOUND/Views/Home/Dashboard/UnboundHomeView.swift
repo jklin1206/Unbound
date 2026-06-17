@@ -130,6 +130,17 @@ struct UnboundHomeView: View {
         .task {
             bindCosmeticStores()
             await model.load()
+            #if DEBUG
+            // Screenshot harness: open a Home sheet straight from a launch arg
+            // (mirrors --unbound-open-cosmetics on Profile), so the real screens
+            // can be captured without blind taps.
+            let args = ProcessInfo.processInfo.arguments
+            if args.contains("--unbound-open-shop") { showingShop = true }
+            else if args.contains("--unbound-open-ranks") { showRankLibrary = true }
+            else if args.contains("--unbound-open-backdrops") { showingBackdropPicker = true }
+            else if args.contains("--unbound-open-weight") { showingBodyWeightHistory = true }
+            else if args.contains("--unbound-open-rank-info") { showRankInfo = true }
+            #endif
         }
         .onChange(of: model.isLoading) { _, isLoading in
             guard !isLoading else { return }
