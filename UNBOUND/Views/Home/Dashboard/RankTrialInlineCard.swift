@@ -22,10 +22,10 @@ struct RankTrialInlineCard: View {
     private var proofLine: String {
         let met = readiness.requirements.filter(\.isMet).count
         let total = max(1, readiness.requirements.count)
-        if readiness.isReady { return "All proofs met · tap for details" }
+        if readiness.isReady { return "All proofs met" }
         let left = max(0, total - met)
         let noun = left == 1 ? "proof" : "proofs"
-        return "\(left) \(noun) left · tap for details"
+        return "\(left) \(noun) left"
     }
 
     var body: some View {

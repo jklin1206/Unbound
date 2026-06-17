@@ -362,8 +362,6 @@ struct RankInfoSheet: View {
                     // rank transition, and Begin. (The old standalone destination
                     // hero duplicated this banner and named the same step a second,
                     // conflicting way, so it was removed.)
-                    RankTrialFlowStrip(readiness: readiness)
-
                     if let definition = readiness.definition {
                         NextGateCard(
                             readiness: readiness,
@@ -437,65 +435,11 @@ struct RankInfoSheet: View {
 
     private func rankGateTitle(_ readiness: OverallRankTrialReadiness) -> String {
         if let target = readiness.targetRank {
-            return "\(readiness.currentRank.displayName) -> \(target.displayName)"
+            // The NextGateCard below leads with the full "X → Y" transition, so the
+            // header just names the rank you're climbing toward (no double arrow).
+            return "\(target.displayName) Trial"
         }
         return "\(readiness.currentRank.displayName) Gate Cleared"
-    }
-}
-
-struct RankTrialFlowStrip: View {
-    let readiness: OverallRankTrialReadiness
-
-    var body: some View {
-        let met = readiness.requirements.filter(\.isMet).count
-        let total = max(1, readiness.requirements.count)
-
-        return HStack(spacing: 8) {
-            step(icon: "list.bullet.clipboard.fill", label: "\(met)/\(total)", caption: "PROOFS", tint: Color.unbound.accent)
-            connector
-            step(icon: readiness.isReady ? "checkmark.seal.fill" : "lock.fill", label: readiness.isReady ? "READY" : "LOCKED", caption: "GATE", tint: readiness.targetRank?.rewardTextTint ?? Color.unbound.rankGold)
-            connector
-            step(icon: "play.fill", label: "TRIAL", caption: "WORKOUT", tint: Color.unbound.coachCyan)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
-    }
-
-    private var connector: some View {
-        Capsule()
-            .fill(Color.unbound.borderSubtle)
-            .frame(width: 18, height: 2)
-    }
-
-    private func step(icon: String, label: String, caption: String, tint: Color) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(tint)
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(tint.opacity(0.14)))
-                .overlay(Circle().strokeBorder(tint.opacity(0.32), lineWidth: 1))
-            VStack(spacing: 1) {
-                Text(label)
-                    .font(Font.unbound.monoS.weight(.heavy))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-                Text(caption)
-                    .font(.system(size: 7, weight: .heavy, design: .monospaced))
-                    .tracking(0.8)
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-        }
-        .frame(maxWidth: .infinity)
     }
 }
 
