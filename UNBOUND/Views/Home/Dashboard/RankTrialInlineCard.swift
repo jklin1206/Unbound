@@ -144,18 +144,38 @@ struct HomeVowPickStrip: View {
         Button(action: onTap) {
             HStack(spacing: 12) {
                 Image(systemName: "link")
-                    .font(.system(size: 15, weight: .black))
+                    .font(.system(size: 18, weight: .black))
                     .foregroundStyle(Color.unbound.accent)
-                Text("PICK A BINDING VOW")
-                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                    .tracking(1.0)
-                    .foregroundStyle(Color.unbound.textSecondary)
+                    .frame(width: 36, height: 36)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("BINDING VOW")
+                        .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text("Pick this week's vow")
+                        .font(.system(size: 17, weight: .black))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+
                 Spacer(minLength: 0)
+
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(Color.unbound.textTertiary)
             }
-            .padding(.vertical, 11)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.unbound.accent.opacity(0.20), lineWidth: 1)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

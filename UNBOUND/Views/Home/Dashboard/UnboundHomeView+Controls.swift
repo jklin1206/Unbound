@@ -34,10 +34,7 @@ extension UnboundHomeView {
 
             rankGateBlock
 
-            VStack(spacing: 0) {
-                UnboundNativeDivider(opacity: 0.4)
-                vowStrip
-            }
+            vowStrip
         }
         .padding(.bottom, 2)
     }
