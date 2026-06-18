@@ -54,13 +54,22 @@ final class OverallRankTrialRunner {
         resolvedTrial: ResolvedRankTrial? = nil,
         bodyweightKg: Double? = nil
     ) -> TrainingSessionDraft {
+        let attributeScores = AttributeProfileStore.shared.load(userId: userId)
+            ?? AttributeProfile.empty(userId: userId, at: date)
         let resolved = resolvedTrial ?? RankTrialLoadoutResolver.shared.resolve(
             definition: definition,
             userId: userId,
             equipment: definition.requiredEquipment,
-            generatedAt: date
+            generatedAt: date,
+            attributeScores: attributeScores
         ).resolvedTrial
-        return definition.makeDraft(userId: userId, date: date, resolvedTrial: resolved, bodyweightKg: bodyweightKg)
+        return definition.makeDraft(
+            userId: userId,
+            date: date,
+            resolvedTrial: resolved,
+            bodyweightKg: bodyweightKg,
+            attributeScores: attributeScores
+        )
     }
 
     @discardableResult
@@ -182,7 +191,7 @@ final class OverallRankTrialRunner {
 
         guard attempt.passed, didAdvanceRank else { return [] }
 
-        let priorAttempts = previousProgress.attempts.filter { $0.definitionId == definition.id }
+        let priorAttempts = previousProgress.attempts.filter { definition.matchesAttemptDefinitionId($0.definitionId) }
         let priorFailureCount = priorAttempts.filter { !$0.passed }.count
         let hadPriorPass = priorAttempts.contains { $0.passed }
         guard priorFailureCount > 0, !hadPriorPass else { return [] }
@@ -234,7 +243,9 @@ final class OverallRankTrialRunner {
 
         return OverallRankTrialEvaluation(
             definitionId: definition.id,
-            passed: stationResults.allSatisfy { $0.status == .passed },
+            // Unscored stations (warm-ups/ramps, e.g. Gate III "Stoke the Fire") are
+            // reported but never block the verdict.
+            passed: stationResults.filter(\.isScored).allSatisfy { $0.status == .passed },
             stationResults: stationResults
         )
     }
@@ -263,19 +274,24 @@ final class OverallRankTrialRunner {
 
         if let selectedLoadout,
            let variant = definition.loadoutVariants.first(where: { $0.loadout == selectedLoadout }) {
-            return variant.stations.map { [$0] }
+            return groupedStationCandidates(variant.stations)
         }
 
-        var orderedIds: [String] = []
+        return groupedStationCandidates(definition.loadoutVariants.flatMap(\.stations))
+    }
+
+    private func groupedStationCandidates(_ stations: [TrialStation]) -> [[TrialStation]] {
+        var orderedKeys: [String] = []
         var grouped: [String: [TrialStation]] = [:]
-        for station in definition.loadoutVariants.flatMap(\.stations) {
-            if grouped[station.id] == nil {
-                orderedIds.append(station.id)
-                grouped[station.id] = []
+        for station in stations {
+            let key = station.dynamicGroupKey ?? station.id
+            if grouped[key] == nil {
+                orderedKeys.append(key)
+                grouped[key] = []
             }
-            grouped[station.id]?.append(station)
+            grouped[key]?.append(station)
         }
-        return orderedIds.compactMap { grouped[$0] }
+        return orderedKeys.compactMap { grouped[$0] }
     }
 
     private func selectedLoadout(in performanceLog: PerformanceLog) -> TrialLoadout? {
@@ -302,6 +318,7 @@ final class OverallRankTrialRunner {
         for definition: OverallRankTrialDefinition,
         performanceLog: PerformanceLog
     ) -> OverallRankTrialStationResult? {
+        guard definition.enforcesTotalTimeCap else { return nil }
         let capSeconds = definition.estimatedMinutes * 60
         let elapsed = max(0, Int(performanceLog.completedAt.timeIntervalSince(performanceLog.startedAt).rounded()))
         guard elapsed > capSeconds else { return nil }
@@ -337,6 +354,49 @@ final class OverallRankTrialRunner {
         )
     }
 
+    // MARK: - Dynamic station resolution (Task 5)
+
+    /// Filters landing-6 attribute variants of Gate VIII (The Last Gate) to
+    /// the single station matching the user's weakest attribute axis.
+    ///
+    /// The six variants share `dynamicGroupKey == "lastgate-landing-6"` (one
+    /// per `AttributeKey`). This method returns all stations from the requested
+    /// loadout variant with the five un-selected landing-6 stations removed,
+    /// leaving exactly one `lastgate-landing-6-<attribute>` entry (the weakest).
+    ///
+    /// Tie-breaking: earlier `AttributeKey.allCases` order wins (so ties are
+    /// deterministic and independent of dictionary iteration order).
+    ///
+    /// Safe for definitions that have no `lastgate-landing-6-*` stations at all:
+    /// the filter is a no-op and the full station list is returned unchanged.
+    nonisolated static func resolveDynamicStations(
+        for definition: OverallRankTrialDefinition,
+        loadout: TrialLoadout,
+        attributeScores: AttributeProfile
+    ) -> [TrialStation] {
+        guard let variant = definition.loadoutVariants.first(where: { $0.loadout == loadout })
+              ?? definition.loadoutVariants.first else { return [] }
+        let stations = variant.stations
+
+        let groupKey = "lastgate-landing-6"
+        let landing6Stations = stations.filter { $0.dynamicGroupKey == groupKey }
+        guard !landing6Stations.isEmpty else { return stations }
+
+        // Identify weakest axis in AttributeKey.allCases order for deterministic tie-breaking.
+        let weakestKey = AttributeKey.allCases.min { a, b in
+            attributeScores.level(for: a) < attributeScores.level(for: b)
+        }
+        let weakestSuffix = weakestKey?.rawValue ?? AttributeKey.allCases[0].rawValue
+        let keepId = "\(groupKey)-\(weakestSuffix)"
+
+        return stations.filter { station in
+            if station.dynamicGroupKey == groupKey {
+                return station.id == keepId
+            }
+            return true
+        }
+    }
+
     private func evaluateStation(
         _ station: TrialStation,
         blocks: [PerformanceBlock],
@@ -344,12 +404,25 @@ final class OverallRankTrialRunner {
         enforceLoadPercent: Bool
     ) -> OverallRankTrialStationResult {
         let standard = station.standard
-        let matchingSets = blocks.flatMap(\.exercises)
+
+        // Collect matching exercises (retaining movementId for per-option floor resolution).
+        let matchingExercises = blocks.flatMap(\.exercises)
             .filter { exercise in
                 station.allowedMovementIds.contains(exercise.movementId ?? "")
                     || station.allowedMovementIds.contains(exercise.rankStandardMovementId ?? "")
                     || station.allowedMovementIds.contains(MovementResolver.resolve(exercise.name).movementId)
             }
+
+        // Derive the performed movement id from the first matched exercise so we can
+        // consult per-option floor overrides (Task 3: floorOverride on TrialMovementOption).
+        let performedMovementId: String = matchingExercises.first.map { ex in
+            ex.movementId
+                ?? ex.rankStandardMovementId
+                ?? MovementResolver.resolve(ex.name).movementId
+        } ?? standard.movementId
+        let effectiveMinimum = station.resolvedMinimum(forMovementId: performedMovementId)
+
+        let matchingSets = matchingExercises
             .flatMap(\.sets)
             .filter { !$0.isWarmup }
 
@@ -413,7 +486,10 @@ final class OverallRankTrialRunner {
                 )
             }
             let minimumLoad = bodyweightKg * loadPercent
-            let loadedSetExists = cleanSets.contains { ($0.weightKg ?? 0) >= minimumLoad }
+            let loadedSetExists = cleanSets.contains { set in
+                (set.weightKg ?? 0) >= minimumLoad
+                    && value(for: set, metric: standard.metric) >= effectiveMinimum
+            }
             if !loadedSetExists {
                 return stationResult(
                     station,
@@ -426,7 +502,51 @@ final class OverallRankTrialRunner {
             }
         }
 
-        let qualifyingSetCount = values.filter { $0 >= standard.minimumValue }.count
+        // Task 4: strength-tier strike floor check.
+        // A strike station passes only if at least one qualifying set meets the
+        // load floor resolved from StrengthStandards (ratio × bodyweight).
+        if station.strengthTier != nil {
+            guard let bw = bodyweightKg, bw > 0 else {
+                return stationResult(
+                    station,
+                    qualifyingSetsCompleted: 0,
+                    totalValue: values.reduce(0, +),
+                    failedQualityFlags: [],
+                    status: .failed,
+                    failureReason: "Bodyweight is required for the strength-tier load standard."
+                )
+            }
+            guard let strikeLoadKg = station.resolvedStrikeLoadKg(bodyweightKg: bw), strikeLoadKg > 0 else {
+                return stationResult(
+                    station,
+                    qualifyingSetsCompleted: 0,
+                    totalValue: values.reduce(0, +),
+                    failedQualityFlags: [],
+                    status: .failed,
+                    failureReason: "Could not resolve the strength-tier load standard."
+                )
+            }
+            // Load floor and rep floor must be met within ONE set — a heavy
+            // single plus a light triple is not a passed strike.
+            let loadedSetExists = cleanSets.contains { set in
+                (set.weightKg ?? 0) >= strikeLoadKg
+                    && value(for: set, metric: standard.metric) >= effectiveMinimum
+            }
+            if !loadedSetExists {
+                return stationResult(
+                    station,
+                    qualifyingSetsCompleted: 0,
+                    totalValue: values.reduce(0, +),
+                    failedQualityFlags: [],
+                    status: .failed,
+                    failureReason: "Top set did not meet the strength-tier load floor."
+                )
+            }
+        }
+
+        // Use effectiveMinimum (respects per-option floorOverride) instead of
+        // raw standard.minimumValue so substitution options get correct floors.
+        let qualifyingSetCount = values.filter { $0 >= effectiveMinimum }.count
         let status: OverallRankTrialStationStatus = qualifyingSetCount >= standard.minimumQualifyingSets ? .passed : .failed
         return stationResult(
             station,
@@ -457,7 +577,8 @@ final class OverallRankTrialRunner {
             totalValue: totalValue,
             failedQualityFlags: failedQualityFlags,
             status: status,
-            failureReason: failureReason
+            failureReason: failureReason,
+            isScored: station.isScored
         )
     }
 
@@ -517,14 +638,10 @@ final class OverallRankTrialRunner {
                                     || station.allowedMovementIds.contains(prescription.rankStandardMovementId ?? "")
                                     || station.allowedMovementIds.contains(MovementResolver.resolve(prescription.exerciseName).movementId)
                             }
-                        let standard = definition?.performanceStandards.first { standard in
-                            prescription.movementId == standard.movementId
-                                || prescription.rankStandardMovementId == standard.movementId
-                                || MovementResolver.resolve(prescription.exerciseName).movementId == standard.movementId
-                        } ?? station?.standard
-                        let setCount = max(1, standard?.minimumQualifyingSets ?? prescription.sets)
+                        let setCount = max(1, prescription.sets)
                         let achieved = passing ? target : max(0, target - 1)
-                        let loadKg = station?.loadPercentOfBodyweight == nil ? nil : 50.0
+                        let loadKg = prescription.suggestedWeightKg
+                            ?? (station?.loadPercentOfBodyweight == nil ? nil : 50.0)
                         return PerformanceExercise(
                             id: prescription.id,
                             name: prescription.exerciseName,

@@ -192,21 +192,21 @@ struct OverallRankTrialReadinessCard: View {
 
     private func trialHowItWorksText(_ resolved: ResolvedRankTrial) -> String {
         switch readiness.definition?.format {
-        case .daily100:
+        case .firstLight:
             return "Clear five stations: lower, push, pull, step, and trunk. Every station needs clean logged work before the gate closes."
-        case .operatorScreen:
+        case .theCount:
             return "Complete each event floor: engine, lower, push, pull, and carry/core. Miss one event and the gate stays closed."
-        case .finisher:
+        case .theForging:
             return "Work through three descending rounds. Each round has engine, hinge, push, pull, and carry work."
-        case .fixedDeck:
+        case .deckOfProof:
             return "Draw a card, do the reps, then move to the next card. Suits choose the movement; card value sets the reps."
-        case .tower:
+        case .theAscent:
             return "Climb the tower one floor at a time. Every floor must be cleared, then the final hold seals the gate."
-        case .bossRush:
+        case .sevenSeals:
             return "Clear each boss under its station clock. Engine, lower, power, push, pull, control, and carry all have to pass."
-        case .raid:
+        case .theThreshold:
             return "Clear three stages: engine repeats, the work-set gates, then the final control hold."
-        case .finalExam:
+        case .theLastGate:
             return "Pass three parts: explosive control, engine capacity, then the final volume block."
         case nil:
             return resolved.nextPrepAction
@@ -218,6 +218,7 @@ struct OverallRankTrialReadinessCard: View {
         case .overallLevel: return "chart.line.uptrend.xyaxis"
         case .rank: return "seal.fill"
         case .equipment: return "backpack.fill"
+        case .gateKey: return "key.fill"
         }
     }
 

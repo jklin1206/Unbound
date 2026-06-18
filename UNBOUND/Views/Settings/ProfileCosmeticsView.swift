@@ -24,7 +24,7 @@ struct ProfileCosmeticsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 header
                 surfaceSwitch
-                cosmeticTable
+                cosmeticGrid
             }
             .padding(20)
         }
@@ -39,20 +39,16 @@ struct ProfileCosmeticsView: View {
 
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [activeTint, Color.unbound.rankGold, Color.unbound.impact],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                Image(systemName: "person.crop.rectangle.stack.fill")
-                    .font(.system(size: 17, weight: .black))
-                    .foregroundStyle(Color.black.opacity(0.76))
-            }
-            .frame(width: 46, height: 46)
+            // Live avatar preview — reflects the currently equipped frame /
+            // border so selecting one changes this instantly (the previous
+            // generic icon gave no visual feedback that a pick took effect).
+            CosmeticAvatar(
+                tier: equippedShopProfileBorder == nil ? equippedFrameTier : .initiate,
+                size: 52,
+                letterFallback: "U",
+                shopBorder: equippedShopProfileBorder
+            )
+            .frame(width: 56, height: 56)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("PROFILE KIT")
@@ -85,25 +81,19 @@ struct ProfileCosmeticsView: View {
         )
     }
 
-    private var cosmeticTable: some View {
-        VStack(spacing: 0) {
-            ProfileCosmeticTableHeader(surface: selectedSurface)
+    private var cosmeticGrid: some View {
+        LazyVGrid(
+            columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+            spacing: 12
+        ) {
             ForEach(profileRows) { row in
-                ProfileCosmeticTableRow(
+                CosmeticGridCard(
                     row: row,
                     state: optionState(for: row),
                     action: { primaryAction(for: row) }
                 )
             }
         }
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.86))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
     }
 
     private var surfaceSwitch: some View {
@@ -431,155 +421,91 @@ private enum ProfileCosmeticRow: Identifiable {
     }
 }
 
-private struct ProfileCosmeticTableHeader: View {
-    let surface: ProfileCosmeticSurface
+// MARK: - CosmeticGridCard
+//
+// Friendlier visual tile (replaces the old vertical list row). Shows a large
+// preview of the actual cosmetic on a calm dark tile — the avatar wearing the
+// border/frame, or the banner art — with a status chip. Selected cards get an
+// accent outline. No rainbow backdrops.
 
-    var body: some View {
-        HStack(spacing: 12) {
-            Text(surface.headerTitle)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Text("STATE")
-                .frame(width: 64, alignment: .trailing)
-        }
-        .font(.system(size: 8, weight: .black, design: .monospaced))
-        .tracking(1.2)
-        .foregroundStyle(Color.unbound.textTertiary)
-        .padding(.horizontal, 12)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
-    }
-}
-
-private struct ProfileCosmeticTableRow: View {
+private struct CosmeticGridCard: View {
     let row: ProfileCosmeticRow
     let state: ProfileCosmeticOptionState
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .center, spacing: 12) {
-                preview
-                    .frame(width: previewSize.width, height: previewSize.height)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(state.isSelected ? row.accent.opacity(0.92) : Color.unbound.borderSubtle, lineWidth: state.isSelected ? 1.8 : 1)
+            VStack(alignment: .leading, spacing: 0) {
+                previewArea
+                infoArea
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.unbound.surface.opacity(state.isSelected ? 0.98 : 0.80))
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(
+                        state.isSelected ? row.accent.opacity(0.9) : Color.unbound.borderSubtle,
+                        lineWidth: state.isSelected ? 1.8 : 1
                     )
-                    .saturation(state.isUnlockedOrOwned ? 1 : 0.16)
-                    .opacity(state.isUnlockedOrOwned ? 1 : 0.52)
-
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 7) {
-                        Label(row.typeTitle.uppercased(), systemImage: row.systemImage)
-                            .labelStyle(.titleAndIcon)
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                            .tracking(0.8)
-                            .foregroundStyle(row.accent)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.64)
-
-                        Text(row.sourceTitle.uppercased())
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                            .tracking(0.8)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.64)
-                    }
-
-                    Text(row.title)
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(state.isUnlockedOrOwned ? Color.unbound.textPrimary : Color.unbound.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.70)
-
-                    Text(row.detail.uppercased())
-                        .font(.system(size: 8, weight: .black, design: .monospaced))
-                        .tracking(0.9)
-                        .foregroundStyle(statusTint)
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .layoutPriority(1)
-
-                VStack(alignment: .trailing, spacing: 7) {
-                    Text(state.statusTitle.uppercased())
-                        .font(.system(size: 8, weight: .black, design: .monospaced))
-                        .tracking(0.8)
-                        .foregroundStyle(statusTint)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.60)
-
-                    Text(state.actionTitle.uppercased())
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
-                        .tracking(0.7)
-                        .foregroundStyle(actionForeground)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.54)
-                        .frame(width: 58, height: 28)
-                        .background(Capsule().fill(actionBackground))
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(state.isSelected ? row.accent.opacity(0.10) : Color.clear)
-            .overlay(alignment: .bottom) {
-                UnboundNativeDivider(opacity: 0.34)
-                    .padding(.leading, previewSize.width + 24)
-            }
+            )
         }
         .buttonStyle(.plain)
         .disabled(state.isActionDisabled)
     }
 
-    private var previewSize: CGSize {
+    // MARK: Preview
+
+    private var isBanner: Bool {
         switch row {
-        case .rankBanner, .shopBanner:
-            return CGSize(width: 72, height: 52)
-        case .rankFrame, .shopBorder:
-            return CGSize(width: 58, height: 58)
+        case .rankBanner, .shopBanner: return true
+        case .rankFrame, .shopBorder: return false
         }
+    }
+
+    @ViewBuilder
+    private var previewArea: some View {
+        ZStack(alignment: .topTrailing) {
+            // Calm neutral tile — intentionally de-colorized (the old preview
+            // backdrops were garish rainbow gradients).
+            Color.unbound.bg.opacity(0.55)
+
+            preview
+                .saturation(state.isUnlockedOrOwned ? 1 : 0.14)
+                .opacity(state.isUnlockedOrOwned ? 1 : 0.5)
+                // Center the art in the tile — the ZStack's topTrailing
+                // alignment (for the state badge) was pinning avatar/border
+                // previews into the top-right corner and clipping the ring.
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+
+            stateBadge
+                .padding(8)
+        }
+        .modifier(PreviewShape(isBanner: isBanner))
+        .frame(maxWidth: .infinity)
+        .clipped()
     }
 
     @ViewBuilder
     private var preview: some View {
         switch row {
         case .rankFrame(let tier):
-            ZStack {
-                Color.unbound.bg
-                CosmeticAvatar(tier: tier.rankTitle, size: 52, letterFallback: "U")
+            CosmeticAvatar(tier: tier.rankTitle, size: 82, letterFallback: "U")
+        case .shopBorder(let item):
+            if case .profileBorder(let border) = item.reward {
+                CosmeticAvatar(tier: .initiate, size: 82, letterFallback: "U", shopBorder: border)
             }
         case .rankBanner(let tier):
             ShopBackdropArtworkPreview(
-                assetName: RankCosmetics.profileBackgroundAsset(for: tier.rankTitle),
+                assetName: RankCosmetics.profileHeaderBannerAsset(for: tier.rankTitle),
                 accent: tier.rewardTint,
                 role: .profileBanner,
                 symbolName: nil,
                 isMuted: !state.isUnlockedOrOwned,
-                scrimOpacity: 0.34
+                scrimOpacity: 0.30
             )
-        case .shopBorder(let item):
-            ZStack {
-                LinearGradient(
-                    colors: item.colors.map { $0.opacity(0.82) } + [Color.unbound.surfaceElevated],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                if case .profileBorder(let border) = item.reward {
-                    Circle()
-                        .fill(Color.unbound.bg.opacity(0.82))
-                        .frame(width: 34, height: 34)
-                    if let ui = UIImage(named: border.assetName) {
-                        Image(uiImage: ui)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 54, height: 54)
-                    } else {
-                        Circle()
-                            .strokeBorder(border.accent, lineWidth: 5)
-                            .frame(width: 44, height: 44)
-                    }
-                }
-            }
         case .shopBanner(let item):
             ShopBackdropArtworkPreview(
                 assetName: item.backdropAssetName,
@@ -587,25 +513,73 @@ private struct ProfileCosmeticTableRow: View {
                 role: .profileBanner,
                 symbolName: nil,
                 isMuted: !state.isUnlockedOrOwned,
-                scrimOpacity: 0.34
+                scrimOpacity: 0.30
             )
         }
     }
 
-    private var statusTint: Color {
-        if state.isSelected { return Color.unbound.rankGold }
-        return state.isUnlockedOrOwned ? row.accent : Color.unbound.textTertiary
+    private struct PreviewShape: ViewModifier {
+        let isBanner: Bool
+        func body(content: Content) -> some View {
+            if isBanner {
+                content.aspectRatio(16.0 / 9.0, contentMode: .fit)
+            } else {
+                content.frame(height: 132)
+            }
+        }
     }
 
-    private var actionBackground: Color {
-        if state.isSelected { return Color.unbound.rankGold.opacity(0.18) }
-        if !state.isUnlockedOrOwned { return Color.unbound.surfaceElevated }
-        return row.accent.opacity(0.22)
+    // MARK: Info
+
+    private var infoArea: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(row.title)
+                .font(Font.unbound.bodyMStrong)
+                .foregroundStyle(state.isUnlockedOrOwned ? Color.unbound.textPrimary : Color.unbound.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.66)
+
+            HStack(spacing: 6) {
+                Label(row.typeTitle.uppercased(), systemImage: row.systemImage)
+                    .labelStyle(.titleAndIcon)
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .tracking(0.6)
+                    .foregroundStyle(row.accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                Spacer(minLength: 0)
+                Text(row.detail.uppercased())
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .tracking(0.6)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var actionForeground: Color {
+    private var stateBadge: some View {
+        Text(state.statusTitle.uppercased())
+            .font(.system(size: 8, weight: .black, design: .monospaced))
+            .tracking(0.6)
+            .foregroundStyle(badgeForeground)
+            .padding(.horizontal, 8)
+            .frame(height: 22)
+            .background(Capsule().fill(badgeBackground))
+            .overlay(Capsule().strokeBorder(badgeForeground.opacity(0.28), lineWidth: 0.75))
+    }
+
+    private var badgeBackground: Color {
+        if state.isSelected { return Color.unbound.rankGold.opacity(0.22) }
+        if state.isUnlockedOrOwned { return Color.unbound.bg.opacity(0.78) }
+        return Color.unbound.bg.opacity(0.72)
+    }
+
+    private var badgeForeground: Color {
         if state.isSelected { return Color.unbound.rankGold }
-        if state.isUnlockedOrOwned { return Color.unbound.textPrimary }
+        if state.isUnlockedOrOwned { return Color.unbound.textSecondary }
         return Color.unbound.textTertiary
     }
 }

@@ -31,21 +31,21 @@ extension WorkoutReadyView {
     func rankTrialReadyPreview(for definition: OverallRankTrialDefinition) -> some View {
         let tint = definition.targetRank.rewardTextTint
         switch definition.format {
-        case .daily100:
-            Daily100TrialReadyPreview(blocks: draft.blocks, tint: tint)
-        case .operatorScreen:
-            OperatorScreenTrialReadyPreview(blocks: draft.blocks, tint: tint)
-        case .finisher:
+        case .firstLight:
+            FirstLightTrialReadyPreview(blocks: draft.blocks, tint: tint)
+        case .theCount:
+            TheCountTrialReadyPreview(blocks: draft.blocks, tint: tint)
+        case .theForging:
             FinisherTrialReadyPreview(blocks: draft.blocks, tint: tint)
-        case .fixedDeck:
+        case .deckOfProof:
             deckExampleGrid
-        case .tower:
+        case .theAscent:
             TowerTrialReadyPreview(blocks: draft.blocks, tint: tint)
-        case .bossRush:
+        case .sevenSeals:
             BossRushTrialReadyPreview(blocks: draft.blocks, tint: tint)
-        case .raid:
+        case .theThreshold:
             ThresholdRaidTrialReadyPreview(blocks: draft.blocks, tint: tint)
-        case .finalExam:
+        case .theLastGate:
             FinalExamTrialReadyPreview(blocks: draft.blocks, tint: tint)
         }
     }

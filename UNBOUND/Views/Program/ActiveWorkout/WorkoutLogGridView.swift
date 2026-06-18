@@ -44,15 +44,15 @@ struct WorkoutLogGridView: View {
     }
 
     private var isDeckTrial: Bool {
-        rankTrialDefinition?.format == .fixedDeck
+        rankTrialDefinition?.format == .deckOfProof
     }
 
     private var isTowerTrial: Bool {
-        rankTrialDefinition?.format == .tower
+        rankTrialDefinition?.format == .theAscent
     }
 
     private func shouldShowSharedRankTrialHeader(for definition: OverallRankTrialDefinition) -> Bool {
-        definition.format == .fixedDeck
+        definition.format == .deckOfProof
     }
 
     private var currentExercisePair: (index: Int, exercise: ActiveWorkoutSession.ActiveExercise)? {
@@ -117,31 +117,31 @@ struct WorkoutLogGridView: View {
     @ViewBuilder
     private func rankTrialModeFlow(for definition: OverallRankTrialDefinition) -> some View {
         switch definition.format {
-        case .daily100:
-            Daily100TrialActiveView(definition: definition, session: session) { index, exercise in
+        case .firstLight:
+            FirstLightTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
-        case .operatorScreen:
-            OperatorScreenTrialActiveView(definition: definition, session: session) { index, exercise in
+        case .theCount:
+            TheCountTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
-        case .finisher:
+        case .theForging:
             FinisherTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
-        case .fixedDeck:
+        case .deckOfProof:
             deckDrawFlow
-        case .tower:
+        case .theAscent:
             towerAscentFlow
-        case .bossRush:
+        case .sevenSeals:
             BossRushTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
-        case .raid:
+        case .theThreshold:
             ThresholdRaidTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
-        case .finalExam:
+        case .theLastGate:
             FinalExamTrialActiveView(definition: definition, session: session) { index, exercise in
                 exerciseCard(ei: index, ex: exercise, isCurrent: index == session.currentExerciseIndex)
             }
@@ -779,7 +779,7 @@ private struct RankTrialActiveFlowHeader: View {
 
     @ViewBuilder
     var body: some View {
-        if definition.format == .fixedDeck {
+        if definition.format == .deckOfProof {
             floatingDeckHeader
         } else {
             standardHeader
@@ -896,7 +896,7 @@ private struct RankTrialActiveFlowHeader: View {
         let isLogged = exercise.sets.contains { $0.logged && !$0.isWarmup }
         let isCurrent = index == session.currentExerciseIndex
         return Group {
-            if definition.format == .fixedDeck {
+            if definition.format == .deckOfProof {
                 HStack(spacing: 6) {
                     Image(systemName: isLogged ? "checkmark.circle.fill" : (isCurrent ? "circle.dashed" : "circle"))
                         .font(.system(size: 12, weight: .bold))
@@ -924,7 +924,7 @@ private struct RankTrialActiveFlowHeader: View {
     }
 
     private func chipTitle(for exercise: ActiveWorkoutSession.ActiveExercise, index: Int) -> String {
-        if definition.format == .fixedDeck {
+        if definition.format == .deckOfProof {
             return "Draw \(numberString(index + 1))"
         }
         if let blockTitle = exercise.blockTitle, !blockTitle.isEmpty {
@@ -939,14 +939,14 @@ private struct RankTrialActiveFlowHeader: View {
 
     private var unitLabel: String {
         switch definition.format {
-        case .daily100: return "Set"
-        case .operatorScreen: return "Card"
-        case .finisher: return "Round"
-        case .fixedDeck: return "Card"
-        case .tower: return "Floor"
-        case .bossRush: return "Boss"
-        case .raid: return "Stage"
-        case .finalExam: return "Part"
+        case .firstLight: return "Set"
+        case .theCount: return "Count"
+        case .theForging: return "Round"
+        case .deckOfProof: return "Card"
+        case .theAscent: return "Floor"
+        case .sevenSeals: return "Boss"
+        case .theThreshold: return "Stage"
+        case .theLastGate: return "Part"
         }
     }
 }

@@ -128,6 +128,11 @@ struct RootView: View {
             || ProcessInfo.processInfo.environment["RANK_TRIAL_DEMOS"] == "1"
             || ProcessInfo.processInfo.environment["RANK_TRIAL_DEMO"] != nil {
             RankTrialDemoRecorderView()
+        } else if ProcessInfo.processInfo.arguments.contains("-gateExperienceDemo")
+            || ProcessInfo.processInfo.environment["UNBOUND_OPEN_GATE"] != nil
+            || ProcessInfo.processInfo.arguments.contains("-rankCrossingDemo")
+            || ProcessInfo.processInfo.environment["UNBOUND_OPEN_CROSSING"] != nil {
+            GateExperienceDemoView()
         } else if ProcessInfo.processInfo.arguments.contains("-rankTrialReadyReview")
             || ProcessInfo.processInfo.environment["RANK_TRIAL_READY_REVIEW"] == "1" {
             RankTrialReadyReviewView()
@@ -548,7 +553,7 @@ private struct TowerTrialDemoView: View {
     }
 
     init() {
-        let definition = OverallRankTrialDefinitions.gauntlet
+        let definition = OverallRankTrialDefinitions.theAscent
         let equipment: Set<MovementEquipment> = [.bodyweight, .openSpace, .dumbbell, .kettlebell, .pullupBar, .band]
         let resolution = RankTrialLoadoutResolver.shared.resolve(
             definition: definition,

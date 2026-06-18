@@ -97,11 +97,11 @@ struct WorkoutReadyView: View {
     }
 
     var isDeckTrialDraft: Bool {
-        rankTrialDefinition?.format == .fixedDeck
+        rankTrialDefinition?.format == .deckOfProof
     }
 
     var isTowerTrialDraft: Bool {
-        rankTrialDefinition?.format == .tower
+        rankTrialDefinition?.format == .theAscent
     }
 
     var rankTrialDefinition: OverallRankTrialDefinition? {
@@ -110,21 +110,21 @@ struct WorkoutReadyView: View {
 
     var rankTrialHeaderIconName: String {
         switch rankTrialDefinition?.format {
-        case .daily100:
+        case .firstLight:
             return "checkmark.seal.fill"
-        case .operatorScreen:
+        case .theCount:
             return "scope"
-        case .finisher:
+        case .theForging:
             return "timer"
-        case .fixedDeck:
+        case .deckOfProof:
             return "rectangle.stack.fill"
-        case .tower:
+        case .theAscent:
             return "building.columns.fill"
-        case .bossRush:
+        case .sevenSeals:
             return "flame.fill"
-        case .raid:
+        case .theThreshold:
             return "point.3.connected.trianglepath.dotted"
-        case .finalExam:
+        case .theLastGate:
             return "graduationcap.fill"
         default:
             return "seal.fill"
@@ -133,21 +133,21 @@ struct WorkoutReadyView: View {
 
     var rankTrialHeaderSubtitle: String {
         switch rankTrialDefinition?.format {
-        case .daily100:
+        case .firstLight:
             return "Hit every checkpoint. One clean hundred earns the gate."
-        case .operatorScreen:
+        case .theCount:
             return "Clear the screen lane by lane under field-test standards."
-        case .finisher:
+        case .theForging:
             return "Descend the rounds fast, clean, and without form breaks."
-        case .fixedDeck:
+        case .deckOfProof:
             return "Flip each card, do the reps, then tap into the next draw."
-        case .tower:
+        case .theAscent:
             return "Climb floor by floor. Clear every station; Floor 10 is the boss hold."
-        case .bossRush:
+        case .sevenSeals:
             return "Take down each encounter in order. No skipped bosses."
-        case .raid:
+        case .theThreshold:
             return "Breach each phase: engine, work, then control."
-        case .finalExam:
+        case .theLastGate:
             return "Pass every part. The final verdict comes from the full session."
         default:
             return "Fixed trial protocol. Clear every station; pain or form-break flags fail the station."
@@ -156,21 +156,21 @@ struct WorkoutReadyView: View {
 
     var rankTrialHowItWorksText: String {
         switch rankTrialDefinition?.format {
-        case .daily100:
+        case .firstLight:
             return "Clear five checkpoints: lower, push, pull, step, and trunk. Each one needs clean logged work before the trial closes."
-        case .operatorScreen:
+        case .theCount:
             return "Complete every event lane: engine, lower, push, pull, and carry/core. A missed lane means the rank gate stays closed."
-        case .finisher:
+        case .theForging:
             return "Work through three descending rounds. Each round tests engine, hinge, push, pull, and carry under the same clock."
-        case .fixedDeck:
+        case .deckOfProof:
             return "Draw a card, do the reps, then tap into the next draw. The suit picks the movement and the card value picks the reps."
-        case .tower:
+        case .theAscent:
             return "Climb floor by floor. Clear every floor, then finish the boss hold to seal the gate."
-        case .bossRush:
+        case .sevenSeals:
             return "Clear each boss under its station clock. Engine, lower, power, push, pull, control, and carry all have to pass."
-        case .raid:
+        case .theThreshold:
             return "Clear three stages in order: engine repeats, work-set gates, then the final control hold."
-        case .finalExam:
+        case .theLastGate:
             return "Pass all three parts: explosive control, engine capacity, then the final volume block."
         case nil:
             return "Clear every station with clean logged work. Pain or form-break flags fail the station."
@@ -180,14 +180,14 @@ struct WorkoutReadyView: View {
     var blockListTitle: String {
         if draft.isWeeklyVowDraft { return "VOW BLOCKS" }
         switch rankTrialDefinition?.format {
-        case .daily100: return "CHECKPOINTS"
-        case .operatorScreen: return "READINESS LANES"
-        case .finisher: return "DESCENDING ROUNDS"
-        case .fixedDeck: return "EXAMPLE DRAWS"
-        case .tower: return "TOWER ASCENT"
-        case .bossRush: return "ENCOUNTERS"
-        case .raid: return "RAID PHASES"
-        case .finalExam: return "EXAM PARTS"
+        case .firstLight: return "CHECKPOINTS"
+        case .theCount: return "READINESS LANES"
+        case .theForging: return "DESCENDING ROUNDS"
+        case .deckOfProof: return "EXAMPLE DRAWS"
+        case .theAscent: return "TOWER ASCENT"
+        case .sevenSeals: return "ENCOUNTERS"
+        case .theThreshold: return "RAID PHASES"
+        case .theLastGate: return "EXAM PARTS"
         case nil: break
         }
         if isRankTrialDraft { return "TRIAL STATIONS" }

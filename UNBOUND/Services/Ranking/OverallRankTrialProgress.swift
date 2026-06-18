@@ -8,11 +8,17 @@ struct OverallRankTrialProgress: Codable, Equatable, Sendable {
 
     var currentRank: RankTitle { highestPassedRank }
 
-    func latestAttempt(definitionId: String) -> OverallRankTrialAttempt? {
+    func latestAttempt(for definition: OverallRankTrialDefinition) -> OverallRankTrialAttempt? {
         attempts
-            .filter { $0.definitionId == definitionId }
+            .filter { definition.matchesAttemptDefinitionId($0.definitionId) }
             .sorted { $0.completedAt > $1.completedAt }
             .first
+    }
+}
+
+extension OverallRankTrialDefinition {
+    func matchesAttemptDefinitionId(_ definitionId: String) -> Bool {
+        id == definitionId || legacyIds.contains(definitionId)
     }
 }
 
@@ -150,6 +156,7 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
     /// Live build-weighted accumulation (Phase 7). Gates next-rank eligibility.
     let aggregateRank: RankTier
     let equipment: Set<MovementEquipment>
+    let clearedGateKeys: Set<String>
     let attempts: [OverallRankTrialAttempt]
 
     init(
@@ -158,6 +165,7 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
         overallLevel: Int,
         aggregateRank: RankTier,
         equipment: Set<MovementEquipment> = [.bodyweight],
+        clearedGateKeys: Set<String>,
         attempts: [OverallRankTrialAttempt] = []
     ) {
         self.userId = userId
@@ -165,6 +173,7 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
         self.overallLevel = overallLevel
         self.aggregateRank = aggregateRank
         self.equipment = equipment
+        self.clearedGateKeys = clearedGateKeys
         self.attempts = attempts
     }
 }

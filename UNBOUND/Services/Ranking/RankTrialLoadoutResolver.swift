@@ -9,7 +9,8 @@ final class RankTrialLoadoutResolver {
         definition: OverallRankTrialDefinition,
         userId: String,
         equipment rawEquipment: Set<MovementEquipment>,
-        generatedAt: Date = Date()
+        generatedAt: Date = Date(),
+        attributeScores: AttributeProfile? = nil
     ) -> RankTrialResolution {
         let equipment = normalizedEquipment(rawEquipment)
         let variants = definition.loadoutVariants.isEmpty
@@ -66,7 +67,13 @@ final class RankTrialLoadoutResolver {
         var resolvedStations: [ResolvedTrialStation] = []
         var missingResolvedStationEquipment: Set<MovementEquipment> = []
 
-        for station in chosenVariant.stations {
+        let dynamicStations = OverallRankTrialRunner.resolveDynamicStations(
+            for: definition,
+            loadout: chosenVariant.loadout,
+            attributeScores: attributeScores ?? AttributeProfile.empty(userId: userId, at: generatedAt)
+        )
+
+        for station in dynamicStations {
             let selected = station.movementOptions.first { option in
                 option.requiredEquipment.isSubset(of: equipment)
             } ?? station.primaryMovement

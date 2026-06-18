@@ -173,7 +173,7 @@ struct Step_SkillTreePreview: View {
                     hypeFeat(
                         L10n.onboarding("skillTreePreview.feat.humanFlag.name", defaultValue: "Human flag"),
                         L10n.onboarding("skillTreePreview.feat.humanFlag.detail", defaultValue: "The one that makes strangers stare"),
-                        assetName: "rank_title_unbound"
+                        assetName: "rank_title_ascendant"
                     )
                 }
 

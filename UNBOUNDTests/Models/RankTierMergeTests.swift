@@ -25,15 +25,38 @@ final class RankTierMergeTests: XCTestCase {
 
     func testDecodesLegacyIntForm() throws {
         // Former SkillTier persisted as Int (perSkill, cosmetic highest).
+        // Positions are stable across the 2026-06 crown rename: 7 = Ascendant,
+        // 8 = Unbound (the peak).
         XCTAssertEqual(try dec.decode(RankTier.self, from: Data("4".utf8)), .veteran)
         XCTAssertEqual(try dec.decode(RankTier.self, from: Data("0".utf8)), .initiate)
-        XCTAssertEqual(try dec.decode(RankTier.self, from: Data("8".utf8)), .ascendant)
+        XCTAssertEqual(try dec.decode(RankTier.self, from: Data("7".utf8)), .ascendant)
+        XCTAssertEqual(try dec.decode(RankTier.self, from: Data("8".utf8)), .unbound)
     }
 
     func testDecodesLegacyStringForm() throws {
         // Former RankTitle persisted as the case-name String (trial progress).
         XCTAssertEqual(try dec.decode(RankTier.self, from: Data("\"veteran\"".utf8)), .veteran)
-        XCTAssertEqual(try dec.decode(RankTier.self, from: Data("\"ascendant\"".utf8)), .ascendant)
+    }
+
+    func testLegacyCrownTokensKeepTheirOldMeanings() throws {
+        // Stored crown tokens predate the 2026-06 rename: "ascendant" was the
+        // PEAK (now .unbound) and "unbound" was tier 7 (now .ascendant). A
+        // legacy peak save must NOT demote, and a legacy tier-7 save must NOT
+        // get promoted.
+        XCTAssertEqual(try dec.decode(RankTier.self, from: Data("\"ascendant\"".utf8)), .unbound)
+        XCTAssertEqual(try dec.decode(RankTier.self, from: Data("\"unbound\"".utf8)), .ascendant)
+        XCTAssertEqual(RankTier.fromLegacyToken("ascendant"), .unbound)
+        XCTAssertEqual(RankTier.fromLegacyToken("unbound"), .ascendant)
+    }
+
+    func testCrownCaseNamesMatchDisplayNames() {
+        // The point of the rename: case name, token, and display name agree.
+        XCTAssertEqual(RankTier.unbound.rawValue, 8)
+        XCTAssertEqual(RankTier.unbound.displayName, "Unbound")
+        XCTAssertEqual(RankTier.unbound.token, "unbound")
+        XCTAssertEqual(RankTier.ascendant.rawValue, 7)
+        XCTAssertEqual(RankTier.ascendant.displayName, "Ascendant")
+        XCTAssertEqual(RankTier.ascendant.token, "ascendant")
     }
 
     func testDecodesHonedAlias() throws {
@@ -42,21 +65,24 @@ final class RankTierMergeTests: XCTestCase {
     }
 
     func testDecodesLegacyLetterFallback() {
-        XCTAssertEqual(RankTier.fromToken("B"), .master)
-        XCTAssertEqual(RankTier.fromToken("S"), .ascendant)
-        XCTAssertEqual(RankTier.fromToken("E"), .initiate)
+        XCTAssertEqual(RankTier.fromLegacyToken("B"), .master)
+        XCTAssertEqual(RankTier.fromLegacyToken("S"), .unbound)    // S = peak
+        XCTAssertEqual(RankTier.fromLegacyToken("A"), .ascendant)  // A = tier 7
+        XCTAssertEqual(RankTier.fromLegacyToken("E"), .initiate)
     }
 
     func testUnknownStringFallsBackToInitiate() throws {
         XCTAssertEqual(try dec.decode(RankTier.self, from: Data("\"garbage\"".utf8)), .initiate)
     }
 
-    // MARK: Encode is the stable token; round-trips
+    // MARK: Encode is the stable Int rawValue; round-trips
 
-    func testEncodesTokenAndRoundTrips() throws {
+    func testEncodesRawValueAndRoundTrips() throws {
+        // Int positions are rename-proof (the String form is legacy-only, with
+        // inverted crown meanings — encoding tokens again would corrupt crowns).
         for tier in RankTier.allCases {
             let data = try enc.encode(tier)
-            XCTAssertEqual(String(data: data, encoding: .utf8), "\"\(tier.token)\"")
+            XCTAssertEqual(String(data: data, encoding: .utf8), "\(tier.rawValue)")
             XCTAssertEqual(try dec.decode(RankTier.self, from: data), tier)
         }
     }
@@ -85,12 +111,15 @@ final class RankTierMergeTests: XCTestCase {
 
     func testComparableAndRawMathIntact() {
         XCTAssertTrue(RankTier.novice < RankTier.master)
-        XCTAssertEqual([RankTier.forged, .ascendant, .initiate].max(), .ascendant)
+        XCTAssertEqual([RankTier.forged, .unbound, .initiate].max(), .unbound)
         XCTAssertEqual(RankTier.master.rawValue - RankTier.novice.rawValue, 4)
     }
 
     func testAssetNamesStable() {
         XCTAssertEqual(RankTier.veteran.assetName, "rank_title_veteran")
+        // Post-rename: the peak's assets live under the *_unbound names (the
+        // gold art was moved into those files in the same commit).
+        XCTAssertEqual(RankTier.unbound.assetName, "rank_title_unbound")
         XCTAssertEqual(RankTier.ascendant.token, "ascendant")
     }
 }

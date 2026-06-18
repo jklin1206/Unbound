@@ -19,7 +19,7 @@ struct BossRushTrialReadyPreview: View {
                     readyBossRow(boss)
                 }
             }
-            .accessibilityIdentifier("workoutReady.bossRushLadder")
+            .accessibilityIdentifier("workoutReady.sevenSealsLadder")
         }
     }
 

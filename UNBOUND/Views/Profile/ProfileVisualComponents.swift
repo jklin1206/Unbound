@@ -320,11 +320,8 @@ struct TrophyShowcaseRow: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(label), \(value)")
-        .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
-        .padding(.vertical, 8)
-        .overlay(alignment: .bottom) {
-            UnboundNativeDivider(opacity: 0.38)
-        }
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .padding(.vertical, 2)
     }
 }
 

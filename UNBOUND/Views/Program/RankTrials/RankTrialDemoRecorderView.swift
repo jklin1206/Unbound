@@ -101,21 +101,21 @@ struct RankTrialDemoRecorderView: View {
     @ViewBuilder
     private var readyPreview: some View {
         switch context.definition.format {
-        case .daily100:
-            Daily100TrialReadyPreview(blocks: context.draft.blocks, tint: tint)
-        case .operatorScreen:
-            OperatorScreenTrialReadyPreview(blocks: context.draft.blocks, tint: tint)
-        case .finisher:
+        case .firstLight:
+            FirstLightTrialReadyPreview(blocks: context.draft.blocks, tint: tint)
+        case .theCount:
+            TheCountTrialReadyPreview(blocks: context.draft.blocks, tint: tint)
+        case .theForging:
             FinisherTrialReadyPreview(blocks: context.draft.blocks, tint: tint)
-        case .fixedDeck:
+        case .deckOfProof:
             RankTrialDemoDeckReadyPreview(blocks: context.draft.blocks, tint: tint)
-        case .tower:
+        case .theAscent:
             TowerTrialReadyPreview(blocks: context.draft.blocks, tint: tint)
-        case .bossRush:
+        case .sevenSeals:
             BossRushTrialReadyPreview(blocks: context.draft.blocks, tint: tint)
-        case .raid:
+        case .theThreshold:
             ThresholdRaidTrialReadyPreview(blocks: context.draft.blocks, tint: tint)
-        case .finalExam:
+        case .theLastGate:
             FinalExamTrialReadyPreview(blocks: context.draft.blocks, tint: tint)
         }
     }
@@ -123,19 +123,19 @@ struct RankTrialDemoRecorderView: View {
     @ViewBuilder
     private var activePreview: some View {
         switch context.definition.format {
-        case .daily100:
-            Daily100TrialActiveView(definition: context.definition, session: context.session) { index, exercise in
+        case .firstLight:
+            FirstLightTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
-        case .operatorScreen:
-            OperatorScreenTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
+        case .theCount:
+            TheCountTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
-        case .finisher:
+        case .theForging:
             FinisherTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
-        case .fixedDeck:
+        case .deckOfProof:
             if let pair = currentExercisePair {
                 DeckOfProofDrawStage(
                     exercise: pair.exercise,
@@ -149,19 +149,19 @@ struct RankTrialDemoRecorderView: View {
                 .id(pair.exercise.id)
                 .zIndex(Double(pair.index + 1))
             }
-        case .tower:
+        case .theAscent:
             TowerTrialAscentView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
-        case .bossRush:
+        case .sevenSeals:
             BossRushTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
-        case .raid:
+        case .theThreshold:
             ThresholdRaidTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
-        case .finalExam:
+        case .theLastGate:
             FinalExamTrialActiveView(definition: context.definition, session: context.session) { index, exercise in
                 RankTrialDemoStationCard(index: index, exercise: exercise, isCurrent: index == context.session.currentExerciseIndex, tint: tint)
             }
@@ -176,7 +176,7 @@ struct RankTrialDemoRecorderView: View {
             Text("All rank trials recorded")
                 .font(Font.unbound.titleM)
                 .foregroundStyle(Color.unbound.textPrimary)
-            Text("Daily 100, Operator Screen, Finisher, Deck of Proof, Tower, Boss Rush, Threshold Raid, and Final Exam.")
+            Text("First Light, The Count, Finisher, Deck of Proof, Tower, Boss Rush, Threshold Raid, and Final Exam.")
                 .font(Font.unbound.bodyS.weight(.semibold))
                 .foregroundStyle(Color.unbound.textSecondary)
         }
@@ -220,7 +220,7 @@ struct RankTrialDemoRecorderView: View {
 
             try? await Task.sleep(nanoseconds: 850_000_000)
 
-            if context.definition.format == .fixedDeck {
+            if context.definition.format == .deckOfProof {
                 await playDeckTimeline()
             } else {
                 await playStationTimeline()
@@ -270,7 +270,7 @@ struct RankTrialDemoRecorderView: View {
     }
 
     private func drawDeckCard() {
-        guard context.definition.format == .fixedDeck,
+        guard context.definition.format == .deckOfProof,
               currentExercisePair != nil,
               !deckIsDrawing,
               !deckIsRevealed
@@ -278,7 +278,7 @@ struct RankTrialDemoRecorderView: View {
 
         deckIsDrawing = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.34) {
-            guard context.definition.format == .fixedDeck else { return }
+            guard context.definition.format == .deckOfProof else { return }
             withAnimation(.easeInOut(duration: 0.36)) {
                 deckIsRevealed = true
                 deckIsDrawing = false
@@ -287,7 +287,7 @@ struct RankTrialDemoRecorderView: View {
     }
 
     private func completeDeckCard() {
-        guard context.definition.format == .fixedDeck,
+        guard context.definition.format == .deckOfProof,
               deckIsRevealed,
               let pair = currentExercisePair
         else { return }

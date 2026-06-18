@@ -20,8 +20,8 @@ extension RankTier {
         case .veteran: return Self.rankColor(red: 0x3E, green: 0x74, blue: 0x49)
         case .master: return Self.rankColor(red: 0x2C, green: 0x90, blue: 0xBB)
         case .vessel: return Self.rankColor(red: 0x54, green: 0x2F, blue: 0x7F)
-        case .unbound: return Self.rankColor(red: 0x97, green: 0x33, blue: 0x9D)
-        case .ascendant: return Color.unbound.rankGold
+        case .ascendant: return Self.rankColor(red: 0x97, green: 0x33, blue: 0x9D)
+        case .unbound: return Color.unbound.rankGold
         }
     }
 
@@ -30,7 +30,7 @@ extension RankTier {
     /// profile background feels crowned instead of flat yellow.
     var rewardGlowColors: [Color] {
         switch self {
-        case .ascendant:
+        case .unbound:
             return [
                 Color.unbound.rankGold,
                 Self.rankColor(red: 0xA0, green: 0x69, blue: 0x94),
@@ -58,9 +58,9 @@ extension RankTier {
             return rewardTint
         case .vessel:
             return Self.rankColor(red: 0xB2, green: 0x7A, blue: 0xF4)
-        case .unbound:
-            return Self.rankColor(red: 0xD8, green: 0x61, blue: 0xDF)
         case .ascendant:
+            return Self.rankColor(red: 0xD8, green: 0x61, blue: 0xDF)
+        case .unbound:
             return Color.unbound.rankGold
         }
     }
@@ -87,7 +87,7 @@ extension RankTier {
 
     var rewardTickOrnamentAssetName: String {
         switch self {
-        case .vessel, .unbound, .ascendant: return "reward_ornament_tick_violet"
+        case .vessel, .ascendant, .unbound: return "reward_ornament_tick_violet"
         case .apprentice: return "reward_ornament_tick_gold"
         default: return "reward_ornament_tick_bone"
         }

@@ -10,7 +10,7 @@ struct HomeTopBarSection: View {
     let onNotifications: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: 10) {
             HomeAvatarBadge(
                 level: level,
                 rank: rank,
@@ -35,9 +35,9 @@ struct HomeTopBarSection: View {
                 onNotifications()
             } label: {
                 Image(systemName: "bell")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Color.unbound.textSecondary)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 32, height: 32)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -60,7 +60,7 @@ private struct HomeAvatarBadge: View {
             ZStack(alignment: .bottomTrailing) {
                 CosmeticAvatar(
                     tier: rank,
-                    size: 44,
+                    size: 48,
                     image: image,
                     letterFallback: letterFallback,
                     shopBorder: profileBorder
@@ -72,7 +72,7 @@ private struct HomeAvatarBadge: View {
                     .monospacedDigit()
                     .frame(width: 18, height: 18)
                     .background(Circle().fill(Color.unbound.accent))
-                    .offset(x: 4, y: 4)
+                    .offset(x: 3, y: 3)
             }
             .shadow(color: Color.unbound.accent.opacity(0.35), radius: 6)
         }
@@ -86,69 +86,137 @@ private struct HomeArcWalletAmount: View {
         ArcCurrencyAmount(
             amount: balance,
             label: nil,
-            iconSize: 18,
+            iconSize: 19,
             spacing: 5,
             compact: true,
             iconPlacement: .trailing,
-            valueFont: .system(size: 17, weight: .black, design: .rounded),
+            valueFont: .system(size: 18, weight: .black, design: .rounded),
             valueColor: Color.unbound.textPrimary
         )
         .fixedSize(horizontal: true, vertical: false)
-        .padding(.leading, 10)
+        .padding(.leading, 9)
         .overlay(alignment: .leading) {
             Rectangle()
-                .fill(Color.unbound.rankGold.opacity(0.38))
+                .fill(Color.unbound.impact.opacity(0.38))
                 .frame(width: 0.5, height: 22)
         }
         .accessibilityLabel("\(balance.formatted()) Arcs")
     }
 }
 
-struct HomeBriefingSection: View {
-    let title: String
-    let copy: String
+// The System speaks: a Solo-Leveling-style directive line opens the hero —
+// bracketed SYSTEM tag in signal cyan, terse quest message, day marker.
+struct HomeSystemDirectiveLine: View {
+    let message: String
     let dayText: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(title)
-                    .font(.system(size: 31, weight: .black))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.68)
-                    .unboundAdaptiveBackdropForeground(
-                        candidates: .unboundBackdropPrimary,
-                        minimumContrast: 3.1,
-                        brightPreference: .heroTitle,
-                        shadowStrength: 1.04
-                    )
+        HStack(alignment: .firstTextBaseline, spacing: 9) {
+            Text("[ SYSTEM ]")
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.coachCyan)
 
-                Spacer(minLength: 10)
+            Text(message.uppercased())
+                .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                .tracking(1.2)
+                // System-window ice: pale cyan-white reads softer than pure
+                // white on bright art and still glows on dark art.
+                .foregroundStyle(Color(.sRGB, red: 0.78, green: 0.91, blue: 0.95, opacity: 1))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
 
-                Text(dayText)
-                    .font(Font.unbound.monoS)
-                    .monospacedDigit()
-                    .unboundAdaptiveBackdropForeground(
-                        candidates: .unboundBackdropPrimary,
-                        minimumContrast: 3.0,
-                        brightPreference: .heroTitle,
-                        shadowStrength: 0.92
-                    )
-            }
+            Spacer(minLength: 10)
 
-            Text(copy)
-                .font(Font.unbound.bodyM)
-                .lineLimit(2)
-                .minimumScaleFactor(0.76)
-                .frame(maxWidth: 330, alignment: .leading)
-                .unboundAdaptiveBackdropForeground(
-                    candidates: .unboundBackdropBody,
-                    minimumContrast: 2.9,
-                    brightPreference: .heroBody,
-                    shadowStrength: 0.92
-                )
+            Text(dayText)
+                .font(Font.unbound.monoS)
+                .monospacedDigit()
+                .foregroundStyle(Color.unbound.textSecondary)
         }
-        .padding(.top, 2)
+        .unboundTextShadow(strength: 1.0)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 7)
+        // System ticker band: a slim edge-to-edge translucent strip — the
+        // one treatment that reads identically on every backdrop, and the
+        // literal look of a System window (dark glass, cyan type).
+        .background(
+            LinearGradient(
+                stops: [
+                    .init(color: Color.black.opacity(0.52), location: 0),
+                    .init(color: Color.black.opacity(0.34), location: 0.62),
+                    .init(color: Color.black.opacity(0.10), location: 1)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+    }
+}
+
+private struct HomeTrainingRankRail: View {
+    let level: Int
+    let xpInLevel: Int
+    let xpForLevel: Int
+    let fraction: CGFloat
+    let aggregateTier: SkillTier
+    let rankColor: Color
+
+    var body: some View {
+        VStack(alignment: .center, spacing: 10) {
+            Text(aggregateTier.displayName.uppercased())
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(1.4)
+                .foregroundStyle(rankColor)
+            Text("LVL \(level)")
+                .font(Font.unbound.monoM.weight(.semibold))
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
+            // Smooth full-height gauge, centered on the rail's own axis so
+            // tier, level, meter, and readout share one centerline.
+            GeometryReader { proxy in
+                ZStack(alignment: .bottom) {
+                    Capsule()
+                        .fill(Color.black.opacity(0.40))
+                    Capsule()
+                        .fill(rankColor)
+                        .frame(height: max(10, proxy.size.height * fraction))
+                        .shadow(color: rankColor.opacity(0.35), radius: 8)
+                }
+                .overlay(
+                    Capsule()
+                        .strokeBorder(Color.white.opacity(0.22), lineWidth: 0.5)
+                )
+                .frame(width: 10)
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .frame(minHeight: 96)
+
+            // XP as a stacked fraction — earned over required, reading
+            // vertically like the meter it annotates.
+            VStack(spacing: 3) {
+                Text("\(xpInLevel.formatted())")
+                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color.unbound.textPrimary)
+
+                Rectangle()
+                    .fill(Color.white.opacity(0.30))
+                    .frame(width: 20, height: 0.5)
+
+                Text("\(xpForLevel.formatted())")
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Color.unbound.textSecondary)
+
+                Text("XP")
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .padding(.top, 1)
+            }
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+        }
+        .frame(width: 76, alignment: .center)
     }
 }
 
@@ -172,7 +240,10 @@ struct HomeTrainingConsoleSection: View {
         let tint = Self.protocolTint(canStart: canStart, isRest: isRest)
         let title = workout?.name ?? (isRest ? "Recovery Protocol" : "Plan Session")
         let minutes = workout?.estimatedMinutes ?? (isRest ? 18 : 30)
-        let focus = workout?.targetMuscleGroups.first?.displayName.uppercased() ?? (isRest ? "RECOVERY" : "CUSTOM")
+        // Quest voice for the focus tag — "TARGET · CHEST" instead of a bare
+        // body-part label.
+        let focusTarget = workout?.targetMuscleGroups.first?.displayName.uppercased()
+        let focus = focusTarget.map { "TARGET · \($0)" } ?? (isRest ? "RECOVERY" : "CUSTOM")
         let planValue = workout.map { "\($0.mainExercises.count) MOVES" } ?? (isRest ? "REST" : "OPEN")
         let metrics = [
             UnboundNativeMetric(label: "Day", value: programDayLabel, tint: tint),
@@ -180,10 +251,10 @@ struct HomeTrainingConsoleSection: View {
             UnboundNativeMetric(label: "Plan", value: planValue, tint: tint)
         ]
 
-        return VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .top, spacing: 14) {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 7) {
+        return VStack(alignment: .leading, spacing: 24) {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(spacing: 8) {
                         HomeProtocolStatusLine(
                             label: "STATUS",
                             value: todayStatusValue,
@@ -193,7 +264,7 @@ struct HomeTrainingConsoleSection: View {
                     }
 
                     Text(title)
-                        .font(.system(size: 35, weight: .black))
+                        .font(.system(size: 40, weight: .black))
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(2)
                         .minimumScaleFactor(0.62)
@@ -222,7 +293,6 @@ struct HomeTrainingConsoleSection: View {
             }
 
             UnboundNativeMetricRail(metrics: metrics)
-                .padding(.top, 2)
                 .unboundTextShadow(strength: 0.72)
 
             Button {
@@ -237,7 +307,7 @@ struct HomeTrainingConsoleSection: View {
                 }
                 .foregroundStyle(Color.unbound.textPrimary)
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: 52)
+                .frame(minHeight: 58)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(tint)
@@ -252,8 +322,8 @@ struct HomeTrainingConsoleSection: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 20)
-        .padding(.top, 24)
-        .padding(.bottom, 24)
+        .padding(.top, 26)
+        .padding(.bottom, 30)
         .background {
             ProtocolHeroBackground(tint: tint)
                 .mask(
@@ -292,57 +362,17 @@ struct HomeTrainingConsoleSection: View {
 
     private static func protocolHeroSubtitle(workout: Workout?, isRest: Bool) -> String {
         if let workout {
-            return "\(workout.mainExercises.count) movements are queued. Start clean and log the sets that matter."
+            return "Objective: clear \(workout.mainExercises.count) movements. Every logged set counts."
         }
         if isRest {
-            return "Recovery is scheduled. Keep the check-in light and come back fresh."
+            return "Objective: active recovery. Return stronger tomorrow."
         }
-        return "No session is queued. Pick today's work before you train."
+        return "No quest queued. Select today's work to proceed."
     }
 
     private static func protocolPrimaryLabel(canStart: Bool, isRest: Bool) -> String {
         if canStart { return "Begin Session" }
         return isRest ? "Log Check-In" : "Plan Session"
-    }
-}
-
-private struct HomeTrainingRankRail: View {
-    let level: Int
-    let xpInLevel: Int
-    let xpForLevel: Int
-    let fraction: CGFloat
-    let aggregateTier: SkillTier
-    let rankColor: Color
-
-    var body: some View {
-        VStack(alignment: .trailing, spacing: 8) {
-            Text(aggregateTier.displayName.uppercased())
-                .font(Font.unbound.captionS.weight(.bold))
-                .tracking(1.4)
-                .foregroundStyle(rankColor)
-            Text("LVL \(level)")
-                .font(Font.unbound.monoM.weight(.semibold))
-                .foregroundStyle(Color.unbound.textPrimary)
-                .monospacedDigit()
-            GeometryReader { proxy in
-                ZStack(alignment: .bottom) {
-                    Capsule()
-                        .fill(Color.white.opacity(0.08))
-                    Capsule()
-                        .fill(rankColor)
-                        .frame(height: max(8, proxy.size.height * fraction))
-                        .shadow(color: rankColor.opacity(0.35), radius: 8)
-                }
-            }
-            .frame(width: 5, height: 58)
-            Text("\(xpInLevel)/\(xpForLevel) XP")
-                .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                .foregroundStyle(Color.unbound.textPrimary)
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
-        }
-        .frame(width: 76, alignment: .trailing)
     }
 }
 

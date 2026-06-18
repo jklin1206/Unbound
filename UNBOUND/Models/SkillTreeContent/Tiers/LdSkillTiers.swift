@@ -142,8 +142,8 @@ enum LdSkillTiers {
             .veteran: .reps(3, exerciseName: "pistol squat"),
             .master: .reps(8, exerciseName: "pistol squat"),
             .vessel: .reps(13, exerciseName: "pistol squat"),
-            .unbound: .reps(25, exerciseName: "pistol squat"),
-            .ascendant: .reps(38, exerciseName: "pistol squat")
+            .ascendant: .reps(25, exerciseName: "pistol squat"),
+            .unbound: .reps(38, exerciseName: "pistol squat")
         ],
         "ld.shrimp-squat": [
             .initiate: .reps(3, exerciseName: "assisted shrimp squat"),
@@ -153,8 +153,8 @@ enum LdSkillTiers {
             .veteran: .reps(3, exerciseName: "shrimp squat"),
             .master: .reps(6, exerciseName: "shrimp squat"),
             .vessel: .reps(9, exerciseName: "shrimp squat"),
-            .unbound: .reps(3, exerciseName: "two-hand shrimp squat"),
-            .ascendant: .reps(3, exerciseName: "elevated two-hand shrimp squat")
+            .ascendant: .reps(3, exerciseName: "two-hand shrimp squat"),
+            .unbound: .reps(3, exerciseName: "elevated two-hand shrimp squat")
         ],
         "ld.nordic-curl": [
             .initiate: .reps(1, exerciseName: "nordic curl negative"),
@@ -164,8 +164,8 @@ enum LdSkillTiers {
             .veteran: .reps(2, exerciseName: "nordic curl"),
             .master: .reps(3, exerciseName: "nordic curl"),
             .vessel: .reps(2, exerciseName: "nordic curl arms overhead"),
-            .unbound: .reps(1, exerciseName: "tuck one-leg nordic curl"),
-            .ascendant: .reps(1, exerciseName: "one-leg nordic curl")
+            .ascendant: .reps(1, exerciseName: "tuck one-leg nordic curl"),
+            .unbound: .reps(1, exerciseName: "one-leg nordic curl")
         ]
     ]
 }

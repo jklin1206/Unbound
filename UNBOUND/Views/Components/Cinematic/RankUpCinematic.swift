@@ -372,8 +372,8 @@ struct TierCinematicView: View {
     private func assetName(for tier: SkillTier) -> String {
         switch tier {
         case .vessel:    return "cinematic_vessel"
-        case .unbound:   return "cinematic_unbound"
         case .ascendant: return "cinematic_ascendant"
+        case .unbound:   return "cinematic_unbound"
         default:         return "cinematic_vessel" // fallback — gate ensures never reached
         }
     }

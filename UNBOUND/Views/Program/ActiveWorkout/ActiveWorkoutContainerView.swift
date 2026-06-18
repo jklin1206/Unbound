@@ -424,7 +424,7 @@ struct ActiveWorkoutContainerView: View {
     }
 
     private var isDeckTrial: Bool {
-        rankTrialDefinition?.format == .fixedDeck
+        rankTrialDefinition?.format == .deckOfProof
     }
 
     private var deckRestFooter: some View {

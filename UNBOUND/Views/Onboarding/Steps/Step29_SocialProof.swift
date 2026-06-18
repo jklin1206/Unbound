@@ -333,7 +333,7 @@ struct Step29_SocialProof: View {
             return Color.unbound.rankGreen
         case .master:
             return Color.unbound.impact
-        case .vessel, .unbound, .ascendant:
+        case .vessel, .ascendant, .unbound:
             return rank.rewardTint
         }
     }
@@ -347,8 +347,8 @@ struct Step29_SocialProof: View {
         case .veteran: return "VETERAN"
         case .master: return "MASTER"
         case .vessel: return "VESSEL"
-        case .unbound: return "UNBOUND"
-        case .ascendant: return "ASCENDANT"
+        case .ascendant: return "UNBOUND"
+        case .unbound: return "ASCENDANT"
         }
     }
 

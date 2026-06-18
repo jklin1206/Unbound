@@ -25,8 +25,8 @@ enum RankCosmetics {
     private static let frameKeyPrefix = "unbound.profileCosmetics.frame."
     private static let backgroundKeyPrefix = "unbound.profileCosmetics.background."
 
-    /// Returns the frame asset name (in Assets.xcassets/Cosmetics) for
-    /// the given tier, or nil if no frame is shipped for it.
+    /// Returns the rank-frame badge asset name (in Assets.xcassets/Cosmetics)
+    /// for the given tier, or nil if no frame is shipped for it.
     static func avatarFrameAsset(for tier: RankTitle) -> String? {
         let name = "avatar_frame_\(tier.token)"
         return UIImage(named: name) != nil ? name : nil
@@ -36,6 +36,20 @@ enum RankCosmetics {
     static func profileBackgroundAsset(for tier: RankTitle) -> String? {
         let name = "profile_bg_\(tier.token)"
         return UIImage(named: name) != nil ? name : nil
+    }
+
+    /// The landscape header banner for a tier. Prefers the authored
+    /// `profile_banner_<tier>` cinematic banner (composed with a side core +
+    /// dead space for the overlaid avatar/identity); falls back to the legacy
+    /// portrait `profile_bg_<tier>` only where no banner is shipped. This is
+    /// the single source the profile header and the cosmetics preview share so
+    /// the equip preview matches what actually renders.
+    static func profileHeaderBannerAsset(for tier: RankTitle) -> String? {
+        let banner = "profile_banner_\(tier.token)"
+        if UIImage(named: banner) != nil {
+            return banner
+        }
+        return profileBackgroundAsset(for: tier)
     }
 
     /// The cosmetic tier currently equipped by the user. Equals the
@@ -121,7 +135,9 @@ enum RankCosmetics {
         let fallback = unlocked.last ?? currentTier
         guard let raw = UserDefaults.standard.string(forKey: keyPrefix + userId)
         else { return fallback }
-        let tier = RankTier.fromToken(raw)
+        // New writes store the Int rawValue; older builds stored the case-name
+        // token (crown tokens carry their pre-rename meanings).
+        let tier = Int(raw).flatMap(RankTier.init(rawValue:)) ?? RankTier.fromLegacyToken(raw)
         guard unlocked.contains(tier) else { return fallback }
         return tier
     }
@@ -134,9 +150,9 @@ enum RankCosmetics {
         unlocked: [SkillTier]
     ) {
         guard unlocked.contains(tier) else { return }
-        // Persist the case-name token (the legacy on-disk format) so old blobs
-        // round-trip; reads go through RankTier.fromToken.
-        UserDefaults.standard.set(tier.token, forKey: keyPrefix + userId)
+        // Persist the Int rawValue (stable across the 2026-06 crown rename);
+        // reads stay tolerant of the older token form via fromLegacyToken.
+        UserDefaults.standard.set(String(tier.rawValue), forKey: keyPrefix + userId)
         NotificationCenter.default.post(
             name: .profileCosmeticsChanged,
             object: nil,
@@ -240,10 +256,8 @@ struct CosmeticAvatar: View {
 
     @ViewBuilder
     private var frameBorder: some View {
-        // The avatar_frame_<rank>.png assets were post-processed:
-        // luminance-keyed for alpha + per-rank tint. If a future asset
-        // is missing or unkeyed, fall back to the code-drawn ring so
-        // the avatar never goes naked.
+        // The avatar_frame_<rank>.png rank badges are the real art. Fall back
+        // to the code-drawn ring only if a tier's asset is ever missing.
         if let asset = RankCosmetics.avatarFrameAsset(for: tier),
            let ui = UIImage(named: asset) {
             Image(uiImage: ui)
@@ -257,28 +271,24 @@ struct CosmeticAvatar: View {
 
 // MARK: - AvatarFrameRing
 //
-// Code-drawn rank-themed border for the avatar. Pure SwiftUI shapes —
-// guaranteed transparent center, scales cleanly at any size, and the
-// stroke style escalates with rank tier.
+// Code-drawn rank-frame fallback (used only when a shipped
+// avatar_frame_<rank>.png is missing). Pure SwiftUI shapes — transparent
+// center, scales cleanly, escalates by tier.
 
 private struct AvatarFrameRing: View {
     let tier: RankTitle
 
     var body: some View {
         ZStack {
-            // Outer ring — primary border for every tier.
             Circle()
                 .strokeBorder(tint, lineWidth: lineWidth)
 
-            // Inner secondary ring for higher tiers.
             if tier.ordinal >= 4 {
                 Circle()
                     .strokeBorder(tint.opacity(0.55), lineWidth: 0.75)
                     .padding(4.5)
             }
 
-            // Cardinal ornaments — diamonds at top/right/bottom/left.
-            // Lower tiers stay clean; master+ get the ornament treatment.
             if tier.ordinal >= 5 {
                 ForEach(0..<4) { i in
                     Circle()
@@ -289,7 +299,6 @@ private struct AvatarFrameRing: View {
                 }
             }
 
-            // Brand-tier crown decorations (Vessel / Unbound / Ascendant).
             if tier.deservesCinematic {
                 ForEach(0..<8) { i in
                     Capsule()
@@ -302,11 +311,7 @@ private struct AvatarFrameRing: View {
         }
     }
 
-    // MARK: Tier styling
-
-    private var tint: Color {
-        tier.rewardTint
-    }
+    private var tint: Color { tier.rewardTint }
 
     private var lineWidth: CGFloat {
         switch tier.ordinal {
@@ -317,21 +322,8 @@ private struct AvatarFrameRing: View {
         }
     }
 
-    private var ornamentSize: CGFloat {
-        tier.deservesCinematic ? 5 : 3.5
-    }
-
-    /// Radius from center to where ornaments sit. Stays just inside
-    /// the outer stroke so they read as part of the ring.
-    private var ornamentRadius: CGFloat {
-        // 50% of canvas diameter is the outer edge — pull in slightly.
-        // The actual rendered size comes from the parent's frame, but
-        // SwiftUI's coordinate space lets us use a relative offset.
-        // Using a GeometryReader would be more precise; for the
-        // standard 44/104pt avatar sizes this offset reads correctly.
-        return 48
-    }
-
+    private var ornamentSize: CGFloat { tier.deservesCinematic ? 5 : 3.5 }
+    private var ornamentRadius: CGFloat { 48 }
 }
 
 /// Backdrop — soft top-of-screen image with a vertical fade. Wrapped in
