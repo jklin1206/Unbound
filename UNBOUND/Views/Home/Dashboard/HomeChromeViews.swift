@@ -103,33 +103,18 @@ struct HomeCommandMiniGlyph: View {
     let kind: HomeCommandArtworkKind
     let tint: Color
 
-    // A bordered icon chip (not a bare floating symbol) so the commands read as
-    // defined controls instead of a flat tinted glyph. Scales to whatever frame
-    // the caller gives it.
+    // A bare, premium glyph — no chip, no border. The icon carries it with a soft
+    // tint glow so it reads as a control without a box. Scales to the caller's frame.
     var body: some View {
         GeometryReader { geo in
             let side = min(geo.size.width, geo.size.height)
-            ZStack {
-                RoundedRectangle(cornerRadius: side * 0.28, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [tint.opacity(0.22), tint.opacity(0.05)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: side * 0.28, style: .continuous)
-                            .strokeBorder(tint.opacity(0.5), lineWidth: 1)
-                    )
-
-                Image(systemName: systemName)
-                    .font(.system(size: side * 0.44, weight: .black))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(tint)
-                    .rotationEffect(.degrees(rotation))
-            }
-            .frame(width: geo.size.width, height: geo.size.height)
+            Image(systemName: systemName)
+                .font(.system(size: side * 0.68, weight: .black))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+                .rotationEffect(.degrees(rotation))
+                .shadow(color: tint.opacity(0.45), radius: side * 0.16)
+                .frame(width: geo.size.width, height: geo.size.height)
         }
     }
 

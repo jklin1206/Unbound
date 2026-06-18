@@ -100,6 +100,7 @@ struct UnboundHomeView: View {
             if model.isLoading {
                 HomeLoadingSkeleton()
             } else {
+                ScrollViewReader { proxy in
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
                         homeHeroStack
@@ -124,6 +125,14 @@ struct UnboundHomeView: View {
                         .padding(.horizontal, 20)
                     }
                     .frame(maxWidth: .infinity)
+                }
+                #if DEBUG
+                .task {
+                    guard ProcessInfo.processInfo.arguments.contains("--unbound-scroll-tiles") else { return }
+                    try? await Task.sleep(nanoseconds: 900_000_000)
+                    withAnimation { proxy.scrollTo("homeTiles", anchor: .center) }
+                }
+                #endif
                 }
             }
         }

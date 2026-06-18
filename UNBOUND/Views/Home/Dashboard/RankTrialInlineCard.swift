@@ -1,119 +1,145 @@
 import SwiftUI
 
-// MARK: - RankTrialInlineCard
+// MARK: - Home Trials tiles
 //
-// The rank-gate trial as a card on the Home feed (in the Trials band), parallel
-// to the active vow card. Shows the target trial + how close the gate is, with
-// an ENTER button when ready. Tapping the card opens the full requirement
-// details (RankInfoSheet) — the checklist lives there, not inline.
+// Compact, side-by-side cards in the Home Trials row. Each is a SINGLE tap into
+// its flow — the rank card opens the trial detail (requirements + Open the Gate
+// live there), the vow card (ActiveTrialCard) logs inline. They share
+// HomeTrialTileShell so the two columns stay matched.
 
 struct RankTrialInlineCard: View {
     let readiness: OverallRankTrialReadiness
-    /// Short status token (READY / RETRY / "2/3"), from the Home command logic.
-    let statusText: String
     let tint: Color
-    let onEnter: () -> Void
-    let onDetails: () -> Void
+    let onOpen: () -> Void
 
-    private var trialTitle: String {
-        "\(readiness.targetRank?.displayName ?? "Rank") Trial"
-    }
+    private var targetName: String { readiness.targetRank?.displayName ?? "Rank" }
 
-    private var proofLine: String {
+    private var proofText: String {
         let met = readiness.requirements.filter(\.isMet).count
         let total = max(1, readiness.requirements.count)
-        if readiness.isReady { return "All proofs met" }
+        if readiness.isReady { return "READY" }
         let left = max(0, total - met)
-        let noun = left == 1 ? "proof" : "proofs"
-        return "\(left) \(noun) left"
+        return "\(left) PROOF\(left == 1 ? "" : "S") LEFT"
+    }
+
+    private var proofTint: Color {
+        readiness.isReady ? Color.unbound.success : Color.unbound.textTertiary
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            header
-                .contentShape(Rectangle())
-                .onTapGesture(perform: onDetails)
-
-            if readiness.isReady {
-                enterButton
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .premiumGlassCard(cornerRadius: 20, tint: tint)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Rank trial")
+        HomeTrialTileShell(
+            tint: tint,
+            eyebrow: "RANK TRIAL",
+            title: targetName,
+            status: proofText,
+            statusTint: proofTint,
+            onTap: onOpen,
+            glyph: { HomeTrialGlyph(systemName: "key.fill", rotation: -45, tint: tint) },
+            trailing: { HomeTrialOpenChevron() }
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Rank trial, \(targetName), \(proofText). Opens the trial.")
     }
+}
 
-    private var header: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Image(systemName: "key.fill")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(tint)
-                .frame(width: 54, height: 54)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(tint.opacity(0.12))
-                )
-                .accessibilityHidden(true)
+// Fallback tile for the not-active states (rank gate locked, or no vow picked).
+struct HomeTrialStubTile: View {
+    let systemName: String
+    var rotation: Double = 0
+    let eyebrow: String
+    let title: String
+    let status: String
+    let tint: Color
+    let onTap: () -> Void
 
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Text("RANK TRIAL")
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .tracking(1.4)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .lineLimit(1)
-                    Text(statusText)
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .tracking(1.1)
-                        .foregroundStyle(tint)
-                        .lineLimit(1)
+    var body: some View {
+        HomeTrialTileShell(
+            tint: tint,
+            eyebrow: eyebrow,
+            title: title,
+            status: status,
+            statusTint: Color.unbound.textTertiary,
+            onTap: onTap,
+            glyph: { HomeTrialGlyph(systemName: systemName, rotation: rotation, tint: tint) },
+            trailing: { HomeTrialOpenChevron() }
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(eyebrow), \(title), \(status)")
+    }
+}
+
+// MARK: - Shared tile pieces
+
+struct HomeTrialGlyph: View {
+    let systemName: String
+    var rotation: Double = 0
+    let tint: Color
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: 18, weight: .black))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(tint)
+            .rotationEffect(.degrees(rotation))
+            .shadow(color: tint.opacity(0.4), radius: 6)
+            .frame(width: 30, height: 30, alignment: .leading)
+    }
+}
+
+struct HomeTrialOpenChevron: View {
+    var body: some View {
+        Image(systemName: "arrow.up.right")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(Color.unbound.textTertiary)
+    }
+}
+
+/// Frosted-glass tile shell shared by the two Home Trials columns so they match.
+/// The whole tile is the tap target — one flow.
+struct HomeTrialTileShell<Glyph: View, Trailing: View>: View {
+    let tint: Color
+    let eyebrow: String
+    let title: String
+    let status: String
+    let statusTint: Color
+    let onTap: () -> Void
+    @ViewBuilder let glyph: () -> Glyph
+    @ViewBuilder let trailing: () -> Trailing
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .top, spacing: 6) {
+                    glyph()
+                    Spacer(minLength: 0)
+                    trailing()
                 }
 
-                Text(trialTitle)
-                    .font(.system(size: 22, weight: .black))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+                Spacer(minLength: 14)
 
-                Text(proofLine)
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(0.6)
+                Text(eyebrow)
+                    .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
+                    .tracking(1.2)
                     .foregroundStyle(Color.unbound.textTertiary)
                     .lineLimit(1)
+                Text(title)
+                    .font(.system(size: 19, weight: .black))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.66)
+                    .padding(.top, 2)
+                Text(status)
+                    .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
+                    .tracking(0.7)
+                    .foregroundStyle(statusTint)
+                    .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                    .padding(.top, 4)
             }
-            .layoutPriority(1)
-
-            Spacer(minLength: 0)
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(Color.unbound.textTertiary)
-        }
-    }
-
-    private var enterButton: some View {
-        Button(action: onEnter) {
-            HStack(spacing: 8) {
-                Text("ENTER TRIAL")
-                    .font(.system(size: 12, weight: .heavy, design: .monospaced))
-                    .tracking(1.2)
-                Spacer(minLength: 0)
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 13, weight: .bold))
-            }
-            .foregroundStyle(Color.unbound.bg)
-            .padding(.horizontal, 14)
-            .frame(height: 44)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(tint)
-            )
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+            .premiumGlassCard(cornerRadius: 18, tint: tint)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Enter the \(trialTitle)")
     }
 }

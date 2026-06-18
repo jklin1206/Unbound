@@ -12,6 +12,7 @@ extension UnboundHomeView {
             homeMissionStatusBand
             homeTrialKeyBand
             homeUtilityDockBand
+                .id("homeTiles")
         }
         .padding(.top, 4)
         .padding(.bottom, 14)
@@ -19,60 +20,59 @@ extension UnboundHomeView {
     }
 
     var homeMissionStatusBand: some View {
-        HomeSurfaceBand(horizontalPadding: 0, verticalPadding: 0) {
-            weekPath
-                .padding(16)
-                .premiumGlassCard(cornerRadius: 20, tint: Color.unbound.ember)
+        weekPath
+    }
+
+    // Two side-by-side trial cards. Each is ONE tap into its flow: the rank card
+    // opens the trial (requirements + Open the Gate live there); the vow card
+    // logs one toward the target inline.
+    var homeTrialKeyBand: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HomeBandHeader(title: "Trials")
+
+            HStack(alignment: .top, spacing: 12) {
+                rankTrialTile
+                vowTile
+            }
+        }
+        .padding(.bottom, 2)
+    }
+
+    @ViewBuilder
+    private var rankTrialTile: some View {
+        if let readiness = model.overallRankTrialReadiness, readiness.definition != nil {
+            RankTrialInlineCard(
+                readiness: readiness,
+                tint: rankTrialCommandTint,
+                onOpen: { handleRankTrialCommand() }
+            )
+        } else {
+            HomeTrialStubTile(
+                systemName: "key.fill",
+                rotation: -45,
+                eyebrow: "RANK TRIAL",
+                title: "Locked",
+                status: rankTrialCommandValue,
+                tint: Color.unbound.rankGold,
+                onTap: { handleRankTrialCommand() }
+            )
         }
     }
 
-    var homeTrialKeyBand: some View {
-        HomeSurfaceBand(horizontalPadding: 0, verticalPadding: 0) {
-            VStack(alignment: .leading, spacing: 0) {
-                HomeBandHeader(title: "Trials")
-                    .padding(.bottom, 4)
-
-                // Rank trial as a card too — enter the gate or tap for details.
-                if let readiness = model.overallRankTrialReadiness, readiness.definition != nil {
-                    RankTrialInlineCard(
-                        readiness: readiness,
-                        statusText: rankTrialCommandValue,
-                        tint: rankTrialCommandTint,
-                        onEnter: { handleEnterRankTrial() },
-                        onDetails: { handleRankTrialCommand() }
-                    )
-                    .padding(.top, 8)
-                } else {
-                    HomePriorityCommand(
-                        artwork: .trialKey,
-                        title: "Rank Trial",
-                        detail: rankTrialCommandDetail,
-                        value: rankTrialCommandValue,
-                        tint: Color.unbound.rankGold,
-                        accessibilityLabel: "Open rank trial"
-                    ) {
-                        handleRankTrialCommand()
-                    }
-                }
-
-                // Active vow logs inline, right here in the Trials band; the
-                // command row is only the pick entry before a vow is chosen.
-                if let trial = model.trialsState.currentTrial, trial.capstoneState != .missed {
-                    ActiveTrialCard(trial: trial)
-                        .padding(.top, 10)
-                } else {
-                    HomePriorityCommand(
-                        artwork: .vow,
-                        title: "Binding Vow",
-                        detail: trialCommandDetail,
-                        value: trialCommandValue,
-                        tint: homeControlTint,
-                        accessibilityLabel: "Open binding vow"
-                    ) {
-                        handleTrialCommand()
-                    }
-                }
-            }
+    @ViewBuilder
+    private var vowTile: some View {
+        if let trial = model.trialsState.currentTrial, trial.capstoneState != .missed {
+            ActiveTrialCard(trial: trial)
+        } else {
+            HomeTrialStubTile(
+                systemName: "link",
+                rotation: 0,
+                eyebrow: "BINDING VOW",
+                title: "Pick a vow",
+                status: "TAP TO CHOOSE",
+                tint: homeControlTint,
+                onTap: { handleTrialCommand() }
+            )
         }
     }
 
@@ -133,28 +133,6 @@ extension UnboundHomeView {
         .frame(maxWidth: .infinity)
     }
 
-    var trialCommandValue: String {
-        if let activeTrial = model.trialsState.currentTrial {
-            return capstoneStateLabel(for: activeTrial.capstoneState)
-        }
-        if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
-            return "BIND"
-        }
-        return "IDLE"
-    }
-
-    var trialCommandTint: Color {
-        if let activeTrial = model.trialsState.currentTrial {
-            if activeTrial.capstoneState == .completed { return Color.unbound.success }
-            if activeTrial.capstoneState == .missed { return Color.unbound.alert }
-            return activeTrial.chosenCard.lane.tintColor
-        }
-        if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
-            return Color.unbound.accent
-        }
-        return Color.unbound.textTertiary
-    }
-
     var rankTrialCommandValue: String {
         guard let readiness = model.overallRankTrialReadiness,
               readiness.definition != nil
@@ -171,35 +149,6 @@ extension UnboundHomeView {
               readiness.definition != nil
         else { return Color.unbound.textTertiary }
         return rankGatePulseTint(readiness)
-    }
-
-    var rankTrialCommandDetail: String {
-        guard let readiness = model.overallRankTrialReadiness,
-              readiness.definition != nil
-        else { return "Rank gate locked" }
-        if readiness.isReady { return "Gate available" }
-        if readiness.status == .attempted { return "Reattempt gate" }
-        return "Rank gate progress"
-    }
-
-    var trialCommandDetail: String {
-        // Debt is surfaced once, on the XP rail — not echoed here.
-        if let activeTrial = model.trialsState.currentTrial {
-            switch activeTrial.capstoneState {
-            case .pending:
-                return "Log to seal this week"
-            case .windowOpen:
-                return "Final days to seal"
-            case .completed:
-                return "Reward sealed this week"
-            case .missed:
-                return "Missed this week"
-            }
-        }
-        if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
-            return "Pick one vow or skip free"
-        }
-        return "No binding vow active"
     }
 
     var bodyWeightCommandValue: String {
@@ -242,26 +191,6 @@ extension UnboundHomeView {
 
     /// Start the rank trial straight from the inline card's ENTER button — same
     /// draft path the details sheet uses.
-    func handleEnterRankTrial() {
-        guard let readiness = model.overallRankTrialReadiness,
-              let definition = readiness.definition,
-              let userId = services.auth.currentUserId
-        else {
-            UnboundHaptics.soft()
-            return
-        }
-        UnboundHaptics.medium()
-        let resolvedTrial = readiness.resolvedTrial?.definitionId == definition.id
-            ? readiness.resolvedTrial
-            : nil
-        workoutReadyDraft = OverallRankTrialRunner.shared.draft(
-            for: definition,
-            userId: userId,
-            resolvedTrial: resolvedTrial,
-            bodyweightKg: model.profile?.weightKg
-        )
-    }
-
     func handleBodyWeightCommand() {
         model.bodyWeightSaveError = nil
         UnboundHaptics.medium()
@@ -269,19 +198,6 @@ extension UnboundHomeView {
             showingBodyWeightHistory = true
         } else {
             showingBodyWeightLog = true
-        }
-    }
-
-    func capstoneStateLabel(for state: WeeklyVowState) -> String {
-        switch state {
-        case .pending:
-            return "ACTIVE"
-        case .windowOpen:
-            return "DUE"
-        case .completed:
-            return "DONE"
-        case .missed:
-            return "MISSED"
         }
     }
 
@@ -506,21 +422,6 @@ extension UnboundHomeView {
 
 }
 
-private struct HomeSurfaceBand<Content: View>: View {
-    var horizontalPadding: CGFloat = 14
-    var verticalPadding: CGFloat = 14
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            content()
-        }
-        .padding(.horizontal, horizontalPadding)
-        .padding(.vertical, verticalPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
 private struct HomeBandHeader: View {
     let title: String
 
@@ -536,64 +437,6 @@ private struct HomeBandHeader: View {
                 .fill(Color.unbound.borderSubtle.opacity(0.58))
                 .frame(height: 0.5)
         }
-    }
-}
-
-private struct HomePriorityCommand: View {
-    let artwork: HomeCommandArtworkKind
-    let title: String
-    let detail: String
-    let value: String
-    let tint: Color
-    let accessibilityLabel: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(alignment: .center, spacing: 12) {
-                HomeCommandMiniGlyph(kind: artwork, tint: tint)
-                    .frame(width: 42, height: 42)
-                    .shadow(color: tint.opacity(0.18), radius: 6)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title.uppercased())
-                        .font(.system(size: 12, weight: .black, design: .rounded))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-
-                    Text(detail.uppercased())
-                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                        .tracking(0.9)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.68)
-                }
-                .layoutPriority(1)
-
-                Spacer(minLength: 0)
-
-                Text(value.uppercased())
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .tracking(0.5)
-                    .foregroundStyle(tint)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.62)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(Capsule().fill(tint.opacity(0.12)))
-                    .overlay(Capsule().strokeBorder(tint.opacity(0.26), lineWidth: 1))
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .black))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel)
     }
 }
 
