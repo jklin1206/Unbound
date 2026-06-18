@@ -19,15 +19,17 @@ extension UnboundHomeView {
     }
 
     var homeMissionStatusBand: some View {
-        HomeSurfaceBand(tint: homeControlTint, horizontalPadding: 0, verticalPadding: 14) {
+        HomeSurfaceBand(horizontalPadding: 0, verticalPadding: 0) {
             weekPath
+                .padding(16)
+                .premiumGlassCard(cornerRadius: 20, tint: Color.unbound.ember)
         }
     }
 
     var homeTrialKeyBand: some View {
-        HomeSurfaceBand(tint: homeControlTint, verticalPadding: 10) {
+        HomeSurfaceBand(horizontalPadding: 0, verticalPadding: 0) {
             VStack(alignment: .leading, spacing: 0) {
-                HomeBandHeader(title: "Trials", tint: homeControlTint)
+                HomeBandHeader(title: "Trials")
                     .padding(.bottom, 4)
 
                 // Rank trial as a card too — enter the gate or tap for details.
@@ -52,9 +54,6 @@ extension UnboundHomeView {
                         handleRankTrialCommand()
                     }
                 }
-
-                UnboundNativeDivider(opacity: 0.42)
-                    .padding(.leading, 54)
 
                 // Active vow logs inline, right here in the Trials band; the
                 // command row is only the pick entry before a vow is chosen.
@@ -508,7 +507,6 @@ extension UnboundHomeView {
 }
 
 private struct HomeSurfaceBand<Content: View>: View {
-    let tint: Color
     var horizontalPadding: CGFloat = 14
     var verticalPadding: CGFloat = 14
     @ViewBuilder let content: () -> Content
@@ -520,40 +518,17 @@ private struct HomeSurfaceBand<Content: View>: View {
         .padding(.horizontal, horizontalPadding)
         .padding(.vertical, verticalPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.unbound.surface.opacity(0.42),
-                            tint.opacity(0.06),
-                            Color.unbound.surface.opacity(0.22)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle.opacity(0.74), lineWidth: 0.5)
-        }
     }
 }
 
 private struct HomeBandHeader: View {
     let title: String
-    let tint: Color
 
     var body: some View {
-        HStack(spacing: 8) {
-            Rectangle()
-                .fill(tint)
-                .frame(width: 3, height: 10)
-
+        HStack(spacing: 10) {
             Text(title.uppercased())
                 .font(.system(size: 9, weight: .black, design: .monospaced))
-                .tracking(1.4)
+                .tracking(1.6)
                 .foregroundStyle(Color.unbound.textTertiary)
                 .lineLimit(1)
 

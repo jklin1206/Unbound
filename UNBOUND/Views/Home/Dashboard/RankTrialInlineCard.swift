@@ -38,16 +38,9 @@ struct RankTrialInlineCard: View {
                 enterButton
             }
         }
-        .padding(14)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(tint.opacity(0.24), lineWidth: 1)
-        )
+        .premiumGlassCard(cornerRadius: 20, tint: tint)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Rank trial")
     }
