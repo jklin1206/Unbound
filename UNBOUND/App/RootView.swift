@@ -41,6 +41,8 @@ struct RootView: View {
             MyWorkoutsDemoHarness()
         } else if ProcessInfo.processInfo.arguments.contains("-vowDemo") {
             VowDemoHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("-homeTrialsDemo") {
+            HomeTrialsDemoHarness()
         } else {
             mainContent
         }

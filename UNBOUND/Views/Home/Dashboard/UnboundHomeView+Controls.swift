@@ -58,6 +58,15 @@ extension UnboundHomeView {
                     onTap: { showTrialRecords = true }
                 )
             }
+        } else if passedGateCount >= RankTrialFormat.allCases.count {
+            VStack(spacing: 10) {
+                HomeAllGatesClearedCard(peakRankName: model.aggregateTier.displayName)
+                HomeTrialRecordsRow(
+                    passedGates: passedGateCount,
+                    totalGates: RankTrialFormat.allCases.count,
+                    onTap: { showTrialRecords = true }
+                )
+            }
         } else {
             HomeRankGateLockedRow(
                 detail: "No gate available",
@@ -71,27 +80,7 @@ extension UnboundHomeView {
         if let trial = model.trialsState.currentTrial, trial.capstoneState != .missed {
             ActiveTrialCard(trial: trial)
         } else {
-            Button {
-                handleTrialCommand()
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "link")
-                        .font(.system(size: 15, weight: .black))
-                        .foregroundStyle(homeControlTint)
-                    Text("PICK A BINDING VOW")
-                        .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                        .tracking(1.0)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color.unbound.textTertiary)
-                }
-                .padding(.vertical, 11)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Pick a binding vow")
+            HomeVowPickStrip(onTap: { handleTrialCommand() })
         }
     }
 

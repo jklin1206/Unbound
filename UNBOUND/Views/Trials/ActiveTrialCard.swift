@@ -37,6 +37,28 @@ struct ActiveTrialCard: View {
         return isSealed ? Color.unbound.success : Color.unbound.textTertiary
     }
 
+    private var filledTint: Color { isSealed ? Color.unbound.success : tint }
+
+    /// Weekly progress — pips for small targets (the common case), a count for big
+    /// ones, so the strip stays readable.
+    @ViewBuilder
+    private var progressIndicator: some View {
+        if card.target.count <= 6 {
+            HStack(spacing: 4) {
+                ForEach(0..<card.target.count, id: \.self) { i in
+                    Capsule()
+                        .fill(i < progressCount ? filledTint : Color.unbound.surfaceElevated)
+                        .frame(width: i < progressCount ? 10 : 6, height: 6)
+                }
+            }
+        } else {
+            Text("\(progressCount)/\(card.target.count)")
+                .font(.system(size: 12, weight: .black, design: .monospaced))
+                .foregroundStyle(filledTint)
+                .monospacedDigit()
+        }
+    }
+
     var body: some View {
         Button(action: handleTap) {
             HStack(spacing: 12) {
@@ -59,10 +81,7 @@ struct ActiveTrialCard: View {
 
                 Spacer(minLength: 8)
 
-                Text("\(progressCount)/\(card.target.count)")
-                    .font(.system(size: 12, weight: .black, design: .monospaced))
-                    .foregroundStyle(isSealed ? Color.unbound.success : tint)
-                    .monospacedDigit()
+                progressIndicator
 
                 Image(systemName: trailingIcon)
                     .font(.system(size: 18, weight: .bold))
