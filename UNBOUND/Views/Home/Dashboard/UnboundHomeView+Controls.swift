@@ -49,20 +49,12 @@ extension UnboundHomeView {
                     world: GateWorldCatalog.world(for: definition.format),
                     onBegin: { enterRankGate(definition) }
                 )
-                HomeTrialRecordsRow(
-                    passedGates: passedGateCount,
-                    totalGates: RankTrialFormat.allCases.count,
-                    onTap: { showTrialRecords = true }
-                )
+                HomeGateProgressionStrip(states: gateMarkerStates(), onTap: { showTrialRecords = true })
             }
         } else if passedGateCount >= RankTrialFormat.allCases.count {
             VStack(spacing: 10) {
                 HomeAllGatesClearedCard(peakRankName: model.aggregateTier.displayName)
-                HomeTrialRecordsRow(
-                    passedGates: passedGateCount,
-                    totalGates: RankTrialFormat.allCases.count,
-                    onTap: { showTrialRecords = true }
-                )
+                HomeGateProgressionStrip(states: gateMarkerStates(), onTap: { showTrialRecords = true })
             }
         } else {
             HomeRankGateLockedRow(
@@ -91,6 +83,19 @@ extension UnboundHomeView {
     /// Distinct ranks whose gate has at least one passing attempt.
     var passedGateCount: Int {
         Set(rankGateProgress.attempts.filter { $0.passed }.map { $0.targetRank }).count
+    }
+
+    /// Per-gate state for the progression strip — cleared (passed), current (the
+    /// gate you're working on now), or locked.
+    func gateMarkerStates() -> [HomeGateMarkerState] {
+        let passedRanks = Set(rankGateProgress.attempts.filter { $0.passed }.map { $0.targetRank })
+        let currentFormat = model.overallRankTrialReadiness?.definition?.format
+        return RankTrialFormat.allCases.map { format in
+            let def = OverallRankTrialDefinitions.all.first { $0.format == format }
+            if let def, passedRanks.contains(def.targetRank) { return .cleared }
+            if format == currentFormat { return .current }
+            return .locked
+        }
     }
 
     /// ENTER on the world card → straight into the trial workout cover (no detail

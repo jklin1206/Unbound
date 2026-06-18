@@ -8,42 +8,64 @@ import SwiftUI
 // Trial Records entry that opens the full 8-gate list, the all-gates-cleared
 // state, the locked fallback, and the vow pick strip.
 
-struct HomeTrialRecordsRow: View {
-    let passedGates: Int
-    let totalGates: Int
+enum HomeGateMarkerState {
+    case cleared, current, locked
+}
+
+/// The 8-gate journey, visible at a glance: cleared / current / locked segments.
+/// Tappable for the full records list, but you can SEE your progress without it.
+struct HomeGateProgressionStrip: View {
+    let states: [HomeGateMarkerState]
     let onTap: () -> Void
+
+    private var clearedCount: Int { states.filter { $0 == .cleared }.count }
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 10) {
-                Image(systemName: "rosette")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Color.unbound.rankGold)
-                Text("TRIAL RECORDS")
-                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+            HStack(spacing: 12) {
+                Text("GATES")
+                    .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
                     .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                Spacer(minLength: 0)
-                Text("\(passedGates)/\(totalGates) GATES")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1)
+                    .foregroundStyle(Color.unbound.textTertiary)
+
+                HStack(spacing: 5) {
+                    ForEach(states.indices, id: \.self) { i in
+                        marker(states[i])
+                    }
+                }
+                .frame(maxWidth: .infinity)
+
+                Text("\(clearedCount)/\(states.count)")
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
                     .foregroundStyle(Color.unbound.textTertiary)
                     .monospacedDigit()
+
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Color.unbound.textTertiary)
             }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 14)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
+            .padding(.vertical, 10)
+            .padding(.horizontal, 4)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Trial records, \(passedGates) of \(totalGates) gates")
+        .accessibilityLabel("Gate progress, \(clearedCount) of \(states.count) cleared. Tap for trial records.")
+    }
+
+    @ViewBuilder
+    private func marker(_ state: HomeGateMarkerState) -> some View {
+        switch state {
+        case .cleared:
+            Capsule().fill(Color.unbound.rankGold)
+                .frame(maxWidth: .infinity).frame(height: 6)
+        case .current:
+            Capsule().fill(Color.unbound.accent)
+                .frame(maxWidth: .infinity).frame(height: 8)
+                .shadow(color: Color.unbound.accent.opacity(0.55), radius: 4)
+        case .locked:
+            Capsule().fill(Color.unbound.surfaceElevated)
+                .frame(maxWidth: .infinity).frame(height: 6)
+        }
     }
 }
 
@@ -212,7 +234,7 @@ struct HomeTrialsDemoHarness: View {
                 VStack(alignment: .leading, spacing: 26) {
                     section("ALL GATES CLEARED") {
                         HomeAllGatesClearedCard(peakRankName: "Unbound")
-                        HomeTrialRecordsRow(passedGates: totalGates, totalGates: totalGates, onTap: {})
+                        HomeGateProgressionStrip(states: gateStates(cleared: totalGates, hasCurrent: false), onTap: {})
                     }
 
                     section("ACTIVE VOW") {
@@ -225,12 +247,12 @@ struct HomeTrialsDemoHarness: View {
 
                     section("IN PROGRESS · REQUIREMENTS SHOW") {
                         NextGateCard(readiness: fixtureReadiness(open: false), world: world)
-                        HomeTrialRecordsRow(passedGates: 0, totalGates: totalGates, onTap: {})
+                        HomeGateProgressionStrip(states: gateStates(cleared: 2, hasCurrent: true), onTap: {})
                     }
 
                     section("READY TO ENTER") {
                         NextGateCard(readiness: fixtureReadiness(open: true), world: world, onBegin: {})
-                        HomeTrialRecordsRow(passedGates: 0, totalGates: totalGates, onTap: {})
+                        HomeGateProgressionStrip(states: gateStates(cleared: 0, hasCurrent: true), onTap: {})
                     }
                 }
                 .padding(20)
@@ -277,6 +299,14 @@ struct HomeTrialsDemoHarness: View {
             definition: definition, resolvedTrial: nil,
             blockerSummary: open ? nil : "Keep training — the gate is close.",
             requirements: reqs, latestAttempt: nil)
+    }
+
+    private func gateStates(cleared: Int, hasCurrent: Bool) -> [HomeGateMarkerState] {
+        (0..<totalGates).map { i in
+            if i < cleared { return .cleared }
+            if hasCurrent && i == cleared { return .current }
+            return .locked
+        }
     }
 
     private var activeVow: Trial {
