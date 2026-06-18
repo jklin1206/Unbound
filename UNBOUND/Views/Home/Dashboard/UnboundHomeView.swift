@@ -163,6 +163,11 @@ struct UnboundHomeView: View {
         .onReceive(NotificationCenter.default.publisher(for: .rankAdvanced)) { _ in
             Task { await model.refreshRanksAndStats() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .overallRankTrialCompleted)) { _ in
+            // A passed gate advances the rank — recompute readiness so the world
+            // card moves to the next gate and the progression strip lights it up.
+            Task { await model.refreshRanksAndStats() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .skillTierAdvanced)) { _ in
             if let userId = services.auth.currentUserId {
                 Task {
