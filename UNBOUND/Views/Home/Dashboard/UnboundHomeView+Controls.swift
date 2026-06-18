@@ -23,57 +23,105 @@ extension UnboundHomeView {
         weekPath
     }
 
-    // Two side-by-side trial cards. Each is ONE tap into its flow: the rank card
-    // opens the trial (requirements + Open the Gate live there); the vow card
-    // logs one toward the target inline.
+    // The rank gate is its own immersive "world" card (NextGateCard) placed
+    // directly on Home — ENTER drops you into the trial, so we don't re-open a
+    // detail sheet (that would just show the same card twice). The Trial Records
+    // row beneath it opens the full 8-gate list. The vow is a separate, slim
+    // strip — a weekly self-report habit, not a place you enter.
     var homeTrialKeyBand: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HomeBandHeader(title: "Trials")
 
-            HStack(alignment: .top, spacing: 12) {
-                rankTrialTile
-                vowTile
+            rankGateBlock
+
+            VStack(spacing: 0) {
+                UnboundNativeDivider(opacity: 0.4)
+                vowStrip
             }
         }
         .padding(.bottom, 2)
     }
 
     @ViewBuilder
-    private var rankTrialTile: some View {
-        if let readiness = model.overallRankTrialReadiness, readiness.definition != nil {
-            RankTrialInlineCard(
-                readiness: readiness,
-                tint: rankTrialCommandTint,
-                onOpen: { handleRankTrialCommand() }
-            )
+    private var rankGateBlock: some View {
+        if let readiness = model.overallRankTrialReadiness,
+           let definition = readiness.definition {
+            VStack(spacing: 10) {
+                NextGateCard(
+                    readiness: readiness,
+                    world: GateWorldCatalog.world(for: definition.format),
+                    onBegin: { enterRankGate(definition) }
+                )
+                HomeTrialRecordsRow(
+                    passedGates: passedGateCount,
+                    totalGates: RankTrialFormat.allCases.count,
+                    onTap: { showTrialRecords = true }
+                )
+            }
         } else {
-            HomeTrialStubTile(
-                systemName: "key.fill",
-                rotation: -45,
-                eyebrow: "RANK TRIAL",
-                title: "Locked",
-                status: rankTrialCommandValue,
-                tint: Color.unbound.rankGold,
-                onTap: { handleRankTrialCommand() }
+            HomeRankGateLockedRow(
+                detail: "No gate available",
+                onTap: { showTrialRecords = true }
             )
         }
     }
 
     @ViewBuilder
-    private var vowTile: some View {
+    private var vowStrip: some View {
         if let trial = model.trialsState.currentTrial, trial.capstoneState != .missed {
             ActiveTrialCard(trial: trial)
         } else {
-            HomeTrialStubTile(
-                systemName: "link",
-                rotation: 0,
-                eyebrow: "BINDING VOW",
-                title: "Pick a vow",
-                status: "TAP TO CHOOSE",
-                tint: homeControlTint,
-                onTap: { handleTrialCommand() }
-            )
+            Button {
+                handleTrialCommand()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "link")
+                        .font(.system(size: 15, weight: .black))
+                        .foregroundStyle(homeControlTint)
+                    Text("PICK A BINDING VOW")
+                        .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                        .tracking(1.0)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
+                .padding(.vertical, 11)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Pick a binding vow")
         }
+    }
+
+    // MARK: - Rank gate helpers
+
+    /// Persisted gate attempts/records for the current user.
+    var rankGateProgress: OverallRankTrialProgress {
+        OverallRankTrialStore.shared.load(userId: services.auth.currentUserId ?? "anonymous")
+    }
+
+    /// Distinct ranks whose gate has at least one passing attempt.
+    var passedGateCount: Int {
+        Set(rankGateProgress.attempts.filter { $0.passed }.map { $0.targetRank }).count
+    }
+
+    /// ENTER on the world card → straight into the trial workout cover (no detail
+    /// sheet). Mirrors the path the records list uses to re-enter a gate.
+    func enterRankGate(_ definition: OverallRankTrialDefinition) {
+        let userId = services.auth.currentUserId ?? "anonymous"
+        let readiness = model.overallRankTrialReadiness
+        let resolvedTrial = readiness?.resolvedTrial?.definitionId == definition.id
+            ? readiness?.resolvedTrial
+            : nil
+        UnboundHaptics.medium()
+        workoutReadyDraft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: userId,
+            resolvedTrial: resolvedTrial,
+            bodyweightKg: model.profile?.weightKg
+        )
     }
 
     var homeUtilityDockBand: some View {
@@ -133,24 +181,6 @@ extension UnboundHomeView {
         .frame(maxWidth: .infinity)
     }
 
-    var rankTrialCommandValue: String {
-        guard let readiness = model.overallRankTrialReadiness,
-              readiness.definition != nil
-        else { return "IDLE" }
-        if readiness.isReady { return "READY" }
-        if readiness.status == .attempted { return "RETRY" }
-        let metCount = readiness.requirements.filter(\.isMet).count
-        let totalCount = max(1, readiness.requirements.count)
-        return "\(metCount)/\(totalCount)"
-    }
-
-    var rankTrialCommandTint: Color {
-        guard let readiness = model.overallRankTrialReadiness,
-              readiness.definition != nil
-        else { return Color.unbound.textTertiary }
-        return rankGatePulseTint(readiness)
-    }
-
     var bodyWeightCommandValue: String {
         if let latestBodyWeightKg = model.latestBodyWeightKg {
             let weight = WeightPlatePolicy.formatLoggedWeight(latestBodyWeightKg, unit: selectedWeightUnit)
@@ -178,19 +208,6 @@ extension UnboundHomeView {
         showTrialPicker = true
     }
 
-    func handleRankTrialCommand() {
-        guard let readiness = model.overallRankTrialReadiness,
-              readiness.definition != nil
-        else {
-            UnboundHaptics.soft()
-            return
-        }
-        UnboundHaptics.medium()
-        NotificationCenter.default.post(name: .requestOpenRankInfo, object: nil)
-    }
-
-    /// Start the rank trial straight from the inline card's ENTER button — same
-    /// draft path the details sheet uses.
     func handleBodyWeightCommand() {
         model.bodyWeightSaveError = nil
         UnboundHaptics.medium()

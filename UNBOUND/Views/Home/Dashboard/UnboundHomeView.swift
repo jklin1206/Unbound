@@ -50,6 +50,7 @@ struct UnboundHomeView: View {
     @State var showingShop = false
     @State var showingBackdropPicker = false
     @State var showRankInfo = false
+    @State var showTrialRecords = false
     @State var bodyWeightJustLogged = false
 
     // Ambient animation state
@@ -357,6 +358,20 @@ struct UnboundHomeView: View {
                     bodyweightKg: model.profile?.weightKg
                 )
             }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showTrialRecords) {
+            TrialRecordsShelf(
+                progress: OverallRankTrialStore.shared.load(userId: services.auth.currentUserId ?? "anonymous"),
+                onSelectGate: { format in
+                    showTrialRecords = false
+                    guard let definition = OverallRankTrialDefinitions.all.first(where: { $0.format == format }) else { return }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                        enterRankGate(definition)
+                    }
+                }
+            )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }

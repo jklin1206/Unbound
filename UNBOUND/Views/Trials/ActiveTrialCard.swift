@@ -1,11 +1,12 @@
 import SwiftUI
 
-// MARK: - ActiveTrialCard
+// MARK: - ActiveTrialCard (slim vow strip)
 //
-// Compact Binding Vow tile for the Home Trials row (paired beside the rank tile).
-// One tap logs one toward the target — the once-a-day inline log — and the tile
-// shows the running count. A second tap the same day is a no-op (status reads
-// "LOGGED TODAY"); once the target is hit the vow seals.
+// A thin, calm Binding Vow row for the Home Trials section — deliberately
+// distinct from the rank-gate world card, because a vow is a weekly self-report
+// habit, not a place you enter. One tap logs one toward the target (the
+// once-a-day inline log) and shows the running count; a second tap the same day
+// is a no-op, and hitting the target seals the vow.
 
 struct ActiveTrialCard: View {
     let trial: Trial
@@ -18,46 +19,68 @@ struct ActiveTrialCard: View {
     private var card: TrialCard { trial.chosenCard }
     private var tint: Color { card.lane.tintColor }
     private var isSealed: Bool { trial.capstoneState == .completed }
+    private var actionable: Bool { !isSealed && canLogToday }
 
-    private var status: String {
-        if isSealed { return "SEALED" }
-        if !canLogToday { return "LOGGED TODAY" }
-        return "TAP TO LOG +1"
+    private var statusText: String {
+        if isSealed { return "sealed" }
+        if !canLogToday { return "done today" }
+        return "tap to log"
     }
 
-    private var statusTint: Color {
-        if isSealed { return Color.unbound.success }
-        if !canLogToday { return Color.unbound.textSecondary }
-        return tint
+    private var trailingIcon: String {
+        if isSealed { return "checkmark.seal.fill" }
+        return canLogToday ? "plus.circle.fill" : "checkmark.circle.fill"
+    }
+
+    private var trailingTint: Color {
+        if actionable { return tint }
+        return isSealed ? Color.unbound.success : Color.unbound.textTertiary
     }
 
     var body: some View {
-        HomeTrialTileShell(
-            tint: tint,
-            eyebrow: card.lane.displayLabel,
-            title: card.displayName,
-            status: status,
-            statusTint: statusTint,
-            onTap: handleTap,
-            glyph: {
+        Button(action: handleTap) {
+            HStack(spacing: 12) {
                 WeeklyVowProofAsset(lane: card.lane, tint: tint, compact: true)
-                    .frame(width: 30, height: 30)
-            },
-            trailing: {
+                    .frame(width: 26, height: 26)
+                    .accessibilityHidden(true)
+
+                HStack(spacing: 6) {
+                    Text(card.lane.displayLabel)
+                        .foregroundStyle(tint)
+                    Text("·")
+                        .foregroundStyle(Color.unbound.textTertiary)
+                    Text(card.displayName)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                .tracking(0.6)
+
+                Spacer(minLength: 8)
+
                 Text("\(progressCount)/\(card.target.count)")
-                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .font(.system(size: 12, weight: .black, design: .monospaced))
                     .foregroundStyle(isSealed ? Color.unbound.success : tint)
                     .monospacedDigit()
+
+                Image(systemName: trailingIcon)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(trailingTint)
             }
-        )
+            .padding(.vertical, 11)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!actionable)
         .onAppear(perform: refreshState)
         .accessibilityIdentifier("weeklyVow.activeCard")
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Binding vow, \(card.displayName), \(progressCount) of \(card.target.count). \(status)")
+        .accessibilityLabel("Binding vow, \(card.displayName), \(progressCount) of \(card.target.count), \(statusText)")
     }
 
     private func handleTap() {
-        guard !isSealed, canLogToday else { return }
+        guard actionable else { return }
         guard let userId = services.auth.currentUserId else { return }
         UnboundHaptics.tick()
         Task { @MainActor in
@@ -78,7 +101,7 @@ struct ActiveTrialCard: View {
 #Preview {
     ZStack {
         Color.unbound.bg.ignoresSafeArea()
-        HStack(alignment: .top, spacing: 12) {
+        VStack(spacing: 8) {
             ActiveTrialCard(
                 trial: Trial(
                     id: "weekly-vow-W20-fuel",
@@ -93,23 +116,6 @@ struct ActiveTrialCard: View {
                         target: VowTarget(count: 3, noun: "fuel anchor")
                     ),
                     capstoneState: .windowOpen
-                )
-            )
-            ActiveTrialCard(
-                trial: Trial(
-                    id: "weekly-vow-W20-recovery",
-                    userId: "preview",
-                    weekStart: Date(),
-                    chosenCard: TrialCard(
-                        id: "weekly-vow-W20-recovery",
-                        lane: .recovery,
-                        bet: .small,
-                        displayName: "Iron Reset",
-                        blurb: "A low-day reset for clean recovery.",
-                        target: VowTarget(count: 1, noun: "recovery reset")
-                    ),
-                    capstoneState: .completed,
-                    completedAt: Date()
                 )
             )
         }
