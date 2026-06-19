@@ -96,6 +96,75 @@ final class HomeLoadDerivationsTests: XCTestCase {
         XCTAssertEqual(status.recoveryText(relativeTo: now), "Ready in 1d 12h")
     }
 
+    // MARK: - didCompleteProgramDayToday
+
+    func test_didCompleteProgramDayToday_matchesSyncedStrengthWorkoutLog_noPerformanceLog() {
+        // Restore / new device: synced workoutLogs present, local performanceLogs
+        // absent. The cleared check must still fire off the synced WorkoutLog.
+        let now = date(2026, 6, 19, 12)
+        XCTAssertTrue(HomeLoadDerivations.didCompleteProgramDayToday(
+            workoutLogs: [wLog(programId: "p1", dayNumber: 3, completedAt: date(2026, 6, 19, 9))],
+            performanceLogs: [],
+            programId: "p1", dayNumber: 3, now: now, calendar: cal()))
+    }
+
+    func test_didCompleteProgramDayToday_matchesCardioOnlyQuest_performanceLogOnly() {
+        // Cardio-only completion: no derived WorkoutLog, only a PerformanceLog
+        // with no strength blocks. The check must still fire.
+        let now = date(2026, 6, 19, 12)
+        XCTAssertTrue(HomeLoadDerivations.didCompleteProgramDayToday(
+            workoutLogs: [],
+            performanceLogs: [pLog(programId: "p1", dayNumber: 3, completedAt: date(2026, 6, 19, 18), blocks: [])],
+            programId: "p1", dayNumber: 3, now: now, calendar: cal()))
+    }
+
+    func test_didCompleteProgramDayToday_falseForWrongDayProgramOrDate() {
+        let now = date(2026, 6, 19, 12)
+        XCTAssertFalse(HomeLoadDerivations.didCompleteProgramDayToday(
+            workoutLogs: [
+                wLog(programId: "p1", dayNumber: 4, completedAt: date(2026, 6, 19, 9)),  // other day#
+                wLog(programId: "p1", dayNumber: 3, completedAt: date(2026, 6, 18, 9))   // yesterday
+            ],
+            performanceLogs: [
+                pLog(programId: "p2", dayNumber: 3, completedAt: date(2026, 6, 19, 9))   // other program
+            ],
+            programId: "p1", dayNumber: 3, now: now, calendar: cal()))
+    }
+
+    private func wLog(programId: String, dayNumber: Int, completedAt: Date) -> WorkoutLog {
+        WorkoutLog(
+            id: UUID().uuidString,
+            userId: "u",
+            programId: programId,
+            dayNumber: dayNumber,
+            plannedWorkoutName: "T",
+            startedAt: completedAt,
+            completedAt: completedAt,
+            exerciseEntries: [],
+            overallNotes: nil,
+            overallRPE: nil,
+            durationMinutes: 30
+        )
+    }
+
+    private func pLog(
+        programId: String,
+        dayNumber: Int,
+        completedAt: Date,
+        blocks: [PerformanceBlock] = []
+    ) -> PerformanceLog {
+        PerformanceLog(
+            userId: "u",
+            source: .program,
+            title: "T",
+            startedAt: completedAt,
+            completedAt: completedAt,
+            programId: programId,
+            dayNumber: dayNumber,
+            blocks: blocks
+        )
+    }
+
     private func log(startedAt: Date, entries: [ExerciseLogEntry]) -> WorkoutLog {
         WorkoutLog(
             id: UUID().uuidString,

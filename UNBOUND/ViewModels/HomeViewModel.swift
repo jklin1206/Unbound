@@ -32,6 +32,11 @@ final class HomeViewModel: ObservableObject {
     @Published var calibrationSkipRatio: Double = 0
     @Published var hasLoggedAnyWorkout: Bool = false
     @Published var lastLog: WorkoutLog?
+    /// Today's-quest-cleared detection reads both records: synced `workoutLogs`
+    /// (what a restore/new device sees) and local `performanceLogs` (catches
+    /// cardio-/routine-only quests that produce no derived WorkoutLog).
+    @Published var recentLogs: [WorkoutLog] = []
+    @Published var recentPerformanceLogs: [PerformanceLog] = []
     @Published var weekSessionDays: Set<Int> = [] // Mon=1...Sun=7
     @Published var bodyRegionLoads: [BodyRegion: Double] = [:]
     @Published var bodyRegionStatuses: [BodyRegion: BodyLoadRegionStatus] = [:]
@@ -104,6 +109,7 @@ final class HomeViewModel: ObservableObject {
         }()
         async let profileProgram: (UserProfile?, TrainingProgram?) = loadProfileAndProgram(userId)
         async let recentLogs: [WorkoutLog] = fetchRecentLogsSafe(userId: userId, limit: 40)
+        async let recentPerfLogs: [PerformanceLog] = fetchRecentPerformanceLogsSafe(userId: userId, limit: 40)
         async let weightLogs: [BodyWeightLog] = fetchBodyWeightLogsSafe(userId: userId, limit: 30)
         async let travel: TravelOverride? = TravelOverrideStore.shared.activeOverride(for: userId)
         async let progressions: [ProgressionState] = ProgressionStateStore.shared.fetchAll(userId: userId)
@@ -119,6 +125,7 @@ final class HomeViewModel: ObservableObject {
         }
 
         applyRecentLogs(await recentLogs)
+        recentPerformanceLogs = await recentPerfLogs
         bodyWeightLogs = await weightLogs
         activeTravelOverride = await travel
         progressionStates = Dictionary(
@@ -195,6 +202,17 @@ final class HomeViewModel: ObservableObject {
         (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: limit)) ?? []
     }
 
+    func fetchRecentPerformanceLogsSafe(userId: String, limit: Int) async -> [PerformanceLog] {
+        (try? await services.database.query(
+            collection: "performanceLogs",
+            field: "userId",
+            isEqualTo: userId,
+            orderBy: "completedAt",
+            descending: true,
+            limit: limit
+        )) ?? []
+    }
+
     func fetchBodyWeightLogsSafe(userId: String, limit: Int) async -> [BodyWeightLog] {
         let logs: [BodyWeightLog] = (try? await services.database.query(
             collection: "bodyWeightLogs",
@@ -208,6 +226,7 @@ final class HomeViewModel: ObservableObject {
     }
 
     func applyRecentLogs(_ logs: [WorkoutLog]) {
+        recentLogs = logs
         lastLog = HomeLoadDerivations.lastLog(logs)
         hasLoggedAnyWorkout = HomeLoadDerivations.hasLogged(logs)
         weekSessionDays = HomeLoadDerivations.weekSessionDays(logs.map(\.startedAt))
@@ -242,7 +261,10 @@ final class HomeViewModel: ObservableObject {
 
     func refreshRecentTrainingSignals() async {
         guard let userId = services.auth.currentUserId else { return }
-        applyRecentLogs(await fetchRecentLogsSafe(userId: userId, limit: 40))
+        async let logs = fetchRecentLogsSafe(userId: userId, limit: 40)
+        async let perfLogs = fetchRecentPerformanceLogsSafe(userId: userId, limit: 40)
+        applyRecentLogs(await logs)
+        recentPerformanceLogs = await perfLogs
     }
 
     func refreshBodyWeightLogs() async {
@@ -360,6 +382,24 @@ final class HomeViewModel: ObservableObject {
             calendar: .current
         )
         .day(for: Date(), in: program)
+    }
+
+    /// True when today's displayed program quest has actually been completed —
+    /// the signal that drives the Home "cleared" state. Keys off the program day
+    /// (not streak XP), so a rank trial or extra session can't falsely clear the
+    /// quest; reads synced workoutLogs (restore/new-device) and local
+    /// performanceLogs (cardio-/routine-only quests).
+    var todayProgramDayLogged: Bool {
+        guard let program,
+              let day = todayProgramDay,
+              day.canStartWorkoutSession
+        else { return false }
+        return HomeLoadDerivations.didCompleteProgramDayToday(
+            workoutLogs: recentLogs,
+            performanceLogs: recentPerformanceLogs,
+            programId: program.id,
+            dayNumber: day.dayNumber
+        )
     }
 
     var todayPlannedBodyRegions: [BodyRegion] {
