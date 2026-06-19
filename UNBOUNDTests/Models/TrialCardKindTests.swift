@@ -34,10 +34,4 @@ final class WeeklyVowKindTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(WeeklyVowKind.self, from: Data(#""growth""#.utf8)), .overdrive)
         XCTAssertEqual(try JSONDecoder().decode(WeeklyVowKind.self, from: Data(#""prestige""#.utf8)), .apex)
     }
-
-    func testCompatibilityAliases() {
-        XCTAssertEqual(TrialCardKind.aligned, .ember)
-        XCTAssertEqual(TrialCardKind.growth, .overdrive)
-        XCTAssertEqual(TrialCardKind.prestige, .apex)
-    }
 }

@@ -14,28 +14,28 @@ struct Step_RestartLoop: View {
             tiers: [.power: .master, .vitality: .vessel, .control: .vessel, .endurance: .forged, .mobility: .forged, .explosiveness: .vessel]
         ),
         .init(
-            tier: .unbound,
+            tier: .ascendant,
             asset: .archetypeVTaper,
             buildName: L10n.onboarding("restartLoop.preview.pull.name", defaultValue: "Pull"),
             caption: L10n.onboarding("restartLoop.preview.pull.caption", defaultValue: "upper-body work"),
             levels: [.power: 24, .vitality: 21, .control: 23, .endurance: 32, .mobility: 19, .explosiveness: 29],
-            tiers: [.power: .vessel, .vitality: .forged, .control: .vessel, .endurance: .unbound, .mobility: .master, .explosiveness: .unbound]
+            tiers: [.power: .vessel, .vitality: .forged, .control: .vessel, .endurance: .ascendant, .mobility: .master, .explosiveness: .ascendant]
         ),
         .init(
-            tier: .ascendant,
+            tier: .unbound,
             asset: .archetypeHeavyweight,
             buildName: L10n.onboarding("restartLoop.preview.power.name", defaultValue: "Power"),
             caption: L10n.onboarding("restartLoop.preview.power.caption", defaultValue: "heavy force"),
             levels: [.power: 39, .vitality: 14, .control: 22, .endurance: 20, .mobility: 11, .explosiveness: 28],
-            tiers: [.power: .ascendant, .vitality: .apprentice, .control: .forged, .endurance: .forged, .mobility: .novice, .explosiveness: .unbound]
+            tiers: [.power: .unbound, .vitality: .apprentice, .control: .forged, .endurance: .forged, .mobility: .novice, .explosiveness: .ascendant]
         ),
         .init(
-            tier: .unbound,
+            tier: .ascendant,
             asset: .archetypeSleeper,
             buildName: L10n.onboarding("restartLoop.preview.control.name", defaultValue: "Control"),
             caption: L10n.onboarding("restartLoop.preview.control.caption", defaultValue: "skill work"),
             levels: [.power: 21, .vitality: 18, .control: 34, .endurance: 28, .mobility: 24, .explosiveness: 17],
-            tiers: [.power: .forged, .vitality: .master, .control: .unbound, .endurance: .vessel, .mobility: .vessel, .explosiveness: .forged]
+            tiers: [.power: .forged, .vitality: .master, .control: .ascendant, .endurance: .vessel, .mobility: .vessel, .explosiveness: .forged]
         )
     ]
 

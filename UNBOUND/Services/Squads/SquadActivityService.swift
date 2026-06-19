@@ -181,7 +181,7 @@ final class SquadActivityService: SquadActivityServiceProtocol {
             kind: .trialCompleted,
             payload: .trialCompleted(
                 trialName: vow.chosenCard.displayName,
-                theme: vow.chosenCard.theme
+                theme: TrialTheme(lane: vow.chosenCard.lane)
             ),
             userId: userId
         )

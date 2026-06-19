@@ -44,46 +44,6 @@ struct OperatorLaneMicroGauge: View {
     }
 }
 
-struct OperatorStatusChip: View {
-    let text: String
-    let icon: String
-    let tint: Color
-
-    var body: some View {
-        Label(text, systemImage: icon)
-            .font(Font.unbound.captionS.weight(.semibold))
-            .foregroundStyle(Color.unbound.textPrimary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.72)
-            .padding(.horizontal, 9)
-            .frame(height: 28)
-            .background(Capsule().fill(Color.unbound.surfaceElevated))
-            .overlay(Capsule().strokeBorder(tint.opacity(0.34), lineWidth: 1))
-    }
-}
-
-struct OperatorSweepLine: View {
-    let tint: Color
-    let isLive: Bool
-
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(0..<9, id: \.self) { index in
-                Capsule()
-                    .fill(index == 4 ? tint : tint.opacity(0.25))
-                    .frame(width: index == 4 ? 22 : 8, height: 3)
-            }
-        }
-        .opacity(isLive ? 1 : 0.58)
-    }
-}
-
-enum OperatorExerciseState {
-    static func isCleared(_ exercise: ActiveWorkoutSession.ActiveExercise) -> Bool {
-        exercise.sets.contains { $0.logged && !$0.isWarmup }
-    }
-}
-
 enum OperatorIcon {
     static func icon(for blockKind: TrainingBlockKind) -> String {
         switch blockKind {
@@ -151,21 +111,6 @@ struct OperatorBeaconShape: Shape {
         path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
         path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY - cut))
         path.addLine(to: CGPoint(x: rect.minX + cut, y: rect.minY + rect.height * 0.2))
-        path.closeSubpath()
-        return path
-    }
-}
-
-struct OperatorFocusViewportShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let notch: CGFloat = min(rect.width, rect.height) * 0.16
-        path.move(to: CGPoint(x: rect.minX + notch, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - notch))
-        path.addLine(to: CGPoint(x: rect.maxX - notch, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + notch))
         path.closeSubpath()
         return path
     }

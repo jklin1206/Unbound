@@ -315,9 +315,12 @@ struct EditProfileSheet: View {
 struct RankInfoSheet: View {
     let currentTier: SkillTier
     let readiness: OverallRankTrialReadiness?
+    var progress: OverallRankTrialProgress? = nil
     let onStart: (OverallRankTrialDefinition) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @State private var showRecords = false
+    @State private var pendingRedo: RankTrialFormat? = nil
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -354,19 +357,76 @@ struct RankInfoSheet: View {
                 }
 
                 if let readiness {
-                    RankTrialFlowStrip(readiness: readiness)
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        OverallRankTrialReadinessCard(readiness: readiness) { definition in
-                            dismiss()
-                            onStart(definition)
-                        }
+                    // The NextGateCard is the single destination+gate hero — it
+                    // leads with the rank-banner art, the gate numeral/name, the
+                    // rank transition, and Begin. (The old standalone destination
+                    // hero duplicated this banner and named the same step a second,
+                    // conflicting way, so it was removed.)
+                    if let definition = readiness.definition {
+                        NextGateCard(
+                            readiness: readiness,
+                            world: GateWorldCatalog.world(for: definition.format),
+                            onBegin: { dismiss(); onStart(definition) }
+                        )
                     }
+                }
+
+                if let progress {
+                    recordsButton(progress: progress)
                 }
             }
             .padding(20)
         }
         .background(Color.unbound.bg.ignoresSafeArea())
+        .sheet(isPresented: $showRecords, onDismiss: {
+            // Records sheet is fully gone before we hand the redo up to Home, so
+            // the workout cover presents over a single dismissing sheet (the same
+            // path the NextGateCard "Begin" uses).
+            guard let format = pendingRedo,
+                  let definition = OverallRankTrialDefinitions.all.first(where: { $0.format == format })
+            else { return }
+            pendingRedo = nil
+            onStart(definition)
+        }) {
+            if let progress {
+                TrialRecordsShelf(progress: progress, onSelectGate: { format in
+                    pendingRedo = format
+                    showRecords = false
+                })
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func recordsButton(progress: OverallRankTrialProgress) -> some View {
+        let passedGates = Set(progress.attempts.filter { $0.passed }.map { $0.targetRank }).count
+        Button { showRecords = true } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "rosette")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Color.unbound.rankGold)
+                Text("TRIAL RECORDS")
+                    .font(Font.unbound.captionS.weight(.heavy)).tracking(1.6)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                Spacer(minLength: 0)
+                Text("\(passedGates)/\(RankTrialFormat.allCases.count) GATES")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.unbound.surface))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("rank-info-records")
     }
 
     private var headerTier: RankTitle {
@@ -375,64 +435,41 @@ struct RankInfoSheet: View {
 
     private func rankGateTitle(_ readiness: OverallRankTrialReadiness) -> String {
         if let target = readiness.targetRank {
-            return "\(readiness.currentRank.displayName) -> \(target.displayName)"
+            // The NextGateCard below leads with the full "X → Y" transition, so the
+            // header just names the rank you're climbing toward (no double arrow).
+            return "\(target.displayName) Trial"
         }
         return "\(readiness.currentRank.displayName) Gate Cleared"
     }
 }
 
-struct RankTrialFlowStrip: View {
-    let readiness: OverallRankTrialReadiness
+/// Live rank-trial launch: the entrance cinematic (`GateEntranceView`, with a
+/// still-image fallback when the Plan-3 clip is absent) walks the user into the
+/// gate world, then crossfades into the real logging container. Replaces the
+/// legacy `WorkoutReadyView` explainer for trials.
+struct GateTrialLaunchView: View {
+    let draft: TrainingSessionDraft
+    let services: ServiceContainer
+    var onFinished: () -> Void
+
+    @State private var entered = false
+
+    private var crossing: GateCrossing? {
+        guard let definition = draft.programId.flatMap(OverallRankTrialDefinitions.definition) else { return nil }
+        return GateCrossingCatalog.crossing(for: definition.format)
+    }
 
     var body: some View {
-        let met = readiness.requirements.filter(\.isMet).count
-        let total = max(1, readiness.requirements.count)
-
-        return HStack(spacing: 8) {
-            step(icon: "list.bullet.clipboard.fill", label: "\(met)/\(total)", caption: "PROOFS", tint: Color.unbound.accent)
-            connector
-            step(icon: readiness.isReady ? "checkmark.seal.fill" : "lock.fill", label: readiness.isReady ? "READY" : "LOCKED", caption: "GATE", tint: readiness.targetRank?.rewardTextTint ?? Color.unbound.rankGold)
-            connector
-            step(icon: "play.fill", label: "TRIAL", caption: "WORKOUT", tint: Color.unbound.coachCyan)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-        )
-    }
-
-    private var connector: some View {
-        Capsule()
-            .fill(Color.unbound.borderSubtle)
-            .frame(width: 18, height: 2)
-    }
-
-    private func step(icon: String, label: String, caption: String, tint: Color) -> some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(tint)
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(tint.opacity(0.14)))
-                .overlay(Circle().strokeBorder(tint.opacity(0.32), lineWidth: 1))
-            VStack(spacing: 1) {
-                Text(label)
-                    .font(Font.unbound.monoS.weight(.heavy))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-                Text(caption)
-                    .font(.system(size: 7, weight: .heavy, design: .monospaced))
-                    .tracking(0.8)
-                    .foregroundStyle(Color.unbound.textTertiary)
+        ZStack {
+            if let crossing, !entered {
+                GateEntranceView(crossing: crossing, onFinished: {
+                    withAnimation(.easeInOut(duration: 0.4)) { entered = true }
+                })
+                .transition(.opacity)
+            } else {
+                ActiveWorkoutContainerView(draft: draft, services: services, onFinished: onFinished)
+                    .transition(.opacity)
             }
         }
-        .frame(maxWidth: .infinity)
     }
 }

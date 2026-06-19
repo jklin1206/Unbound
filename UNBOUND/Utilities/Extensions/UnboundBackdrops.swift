@@ -50,14 +50,24 @@ struct UnboundBackdropArt: View {
             let isAuthoredForHeader = isProfileBannerAsset || abs(imageAspect - containerAspect) < 0.38
 
             if isProfileBannerAsset {
+                // Authored landscape header banners render FIT, top-anchored:
+                // the full 16:9 art is always visible edge-to-edge at every
+                // device width (no fill-crop — the old 1.30 overscan was tuned
+                // for the retired photoreal set and chopped the anime art).
+                // The header frame is at least as tall as the art band; any
+                // sliver below the art dissolves into the page background via
+                // the header's bottom scrim, so the avatar + identity still
+                // read on the art's quiet dead space.
                 Image(uiImage: ui)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+                    .frame(width: containerSize.width, alignment: .top)
                     .frame(
                         width: containerSize.width,
                         height: containerSize.height,
-                        alignment: .topTrailing
+                        alignment: .top
                     )
+                    .clipped()
                     .saturation(1)
                     .contrast(1)
             } else if isAuthoredForHeader {
@@ -132,11 +142,16 @@ struct UnboundBackdropArt: View {
         ZStack {
             switch role {
             case .homePoster:
+                // The ramp must complete to FULL page bg at the hero's end —
+                // stopping short leaves a lighter ghost band between the hero
+                // and the section below it.
                 LinearGradient(
                     stops: [
                         .init(color: Color.unbound.bg.opacity(0.01), location: 0),
                         .init(color: Color.unbound.bg.opacity(0.05), location: 0.46),
-                        .init(color: Color.unbound.bg.opacity(0.56), location: 1)
+                        .init(color: Color.unbound.bg.opacity(0.56), location: 0.86),
+                        .init(color: Color.unbound.bg.opacity(0.92), location: 0.97),
+                        .init(color: Color.unbound.bg, location: 1)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
@@ -170,9 +185,9 @@ struct UnboundBackdropArt: View {
                 )
                 LinearGradient(
                     stops: [
-                        .init(color: Color.black.opacity(0.46), location: 0),
-                        .init(color: Color.black.opacity(0.20), location: 0.44),
-                        .init(color: Color.black.opacity(0.04), location: 0.78)
+                        .init(color: Color.black.opacity(0.28), location: 0),
+                        .init(color: Color.black.opacity(0.12), location: 0.44),
+                        .init(color: Color.black.opacity(0.02), location: 0.78)
                     ],
                     startPoint: .leading,
                     endPoint: .trailing

@@ -27,17 +27,17 @@ Legacy note: some internal symbols still say AP (`rawAP`, `MovementAPGain`) beca
 | Subsystem | What it owns | Active code | Deep-dive |
 | --- | --- | --- | --- |
 | App shell | launch, auth routing, onboarding/home handoff, foreground work | `UNBOUND/App/UnboundApp.swift`, `UNBOUND/App/AppDelegate.swift` | [FILE_STRUCTURE.md](FILE_STRUCTURE.md) |
-| Ranking | movement rank, skill proof, aggregate rank | `UNBOUND/Models/SkillTier.swift`, `UNBOUND/Models/StrengthStandards.swift`, `UNBOUND/Services/Ranking/` | [ranking.md](architecture/ranking.md) |
-| Skills | graph nodes, prerequisites, placement difficulty, proven state | `UNBOUND/Models/SkillTree.swift`, `UNBOUND/Models/SkillTreeContent.swift`, `UNBOUND/Services/SkillProgress/` | [skills.md](architecture/skills.md) |
-| Movements | exercise catalog, rank templates, movement standards | `UNBOUND/Models/MovementCatalog.swift`, `UNBOUND/Models/ExerciseCatalog.swift`, `UNBOUND/Models/MovementProgress.swift` | [movements.md](architecture/movements.md) |
-| Logging | the one completion ingest path and reward receipt inputs | `UNBOUND/Services/TrainingCompletionService.swift` | [logging.md](architecture/logging.md) |
+| Ranking | movement rank, skill proof, aggregate rank | `UNBOUND/Models/Skills/SkillTier.swift`, `UNBOUND/Models/Standards/StrengthStandards.swift`, `UNBOUND/Services/Ranking/` | [ranking.md](architecture/ranking.md) |
+| Skills | graph nodes, prerequisites, placement difficulty, proven state | `UNBOUND/Models/Skills/SkillTree.swift`, `UNBOUND/Models/Skills/SkillTreeContent.swift`, `UNBOUND/Services/SkillProgress/` | [skills.md](architecture/skills.md) |
+| Movements | exercise catalog, rank templates, movement standards | `UNBOUND/Models/Movements/MovementCatalog.swift`, `UNBOUND/Models/Movements/ExerciseCatalog.swift`, `UNBOUND/Models/Movements/MovementProgress.swift` | [movements.md](architecture/movements.md) |
+| Logging | the one completion ingest path and reward receipt inputs | `UNBOUND/Services/TrainingCompletion/TrainingCompletionService.swift` | [logging.md](architecture/logging.md) |
 | Progression | program state, deloads, movement progress, generated plans | `UNBOUND/Services/Progression/`, `UNBOUND/Services/ProgramGeneration/`, `UNBOUND/Services/Program/` | [progression.md](architecture/progression.md) |
-| Levels | LVL curve, level XP, streak | `UNBOUND/Models/MovementProgress.swift`, `UNBOUND/Services/Progression/MovementProgressService.swift`, `UNBOUND/Services/Ranking/SessionXPService.swift` | [levels.md](architecture/levels.md) |
-| Attributes | hex XP, level curve, reward deltas | `UNBOUND/Models/AttributeValue.swift`, `UNBOUND/Services/Attributes/` | [attributes.md](architecture/attributes.md) |
-| Recovery | trained/recovered muscle state | `UNBOUND/Models/MuscleHeatGroup.swift` | [recovery.md](architecture/recovery.md) |
-| Rewards | post-workout summary and cinematic sequence | `UNBOUND/Models/WorkoutRewardSequence.swift`, `UNBOUND/Views/Components/Unbound/WorkoutRewardSequenceView.swift`, `UNBOUND/Views/Components/Unbound/WorkoutRewardComponents.swift` | [logging.md](architecture/logging.md) |
+| Levels | LVL curve, level XP, streak | `UNBOUND/Models/Movements/MovementProgress.swift`, `UNBOUND/Services/Progression/MovementProgressService.swift`, `UNBOUND/Services/Ranking/SessionXPService.swift` | [levels.md](architecture/levels.md) |
+| Attributes | hex XP, level curve, reward deltas | `UNBOUND/Models/Ranking/AttributeValue.swift`, `UNBOUND/Services/Attributes/` | [attributes.md](architecture/attributes.md) |
+| Recovery | trained/recovered muscle state | `UNBOUND/Models/Body/MuscleHeatGroup.swift` | [recovery.md](architecture/recovery.md) |
+| Rewards | post-workout summary and cinematic sequence | `UNBOUND/Models/Rewards/WorkoutRewardSequence.swift`, `UNBOUND/Views/Components/Unbound/WorkoutReward/WorkoutRewardSequenceView.swift`, `UNBOUND/Views/Components/Unbound/WorkoutReward/WorkoutRewardComponents.swift` | [logging.md](architecture/logging.md) |
 | Sync | field-level merge, outbox, Supabase transport | `UNBOUND/Services/Sync/`, `supabase/` | [FILE_STRUCTURE.md](FILE_STRUCTURE.md) |
-| Squads | missions, feed, chat, friend challenges, honors | `UNBOUND/Services/Squads/`, `UNBOUND/Models/Squad*.swift`, `UNBOUND/Models/FriendChallenge.swift` | [squads.md](architecture/squads.md) |
+| Squads | missions, feed, chat, friend challenges, honors | `UNBOUND/Services/Squads/`, `UNBOUND/Models/Squads/`, `UNBOUND/Models/Squads/FriendChallenge.swift` | [squads.md](architecture/squads.md) |
 
 ## Current Simplification Backlog
 

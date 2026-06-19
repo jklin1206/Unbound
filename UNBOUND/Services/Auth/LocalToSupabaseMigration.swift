@@ -71,7 +71,8 @@ enum LocalToSupabaseMigration {
                 "workoutLogs": summary.workoutLogs,
                 "workingWeights": summary.workingWeights,
                 "skillProgress": summary.skillProgress,
-                "scans": summary.scans
+                "scans": summary.scans,
+                "sessionXP": summary.sessionXP
             ]
         )
 

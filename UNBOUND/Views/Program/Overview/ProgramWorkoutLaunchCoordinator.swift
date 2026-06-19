@@ -13,7 +13,7 @@ enum ProgramWorkoutLaunchCoordinator {
         draft: TrainingSessionDraft?
     ) -> Destination {
         guard !isCompleted else { return .dayDetail(day) }
-        guard day.workout != nil || day.userWorkoutDraft != nil else { return .dayDetail(day) }
+        guard day.canStartWorkoutSession else { return .dayDetail(day) }
         guard let draft else { return .dayDetail(day) }
         return .draft(draft)
     }

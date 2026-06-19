@@ -68,6 +68,7 @@ struct ProgramOverviewView: View {
     @State var activeRoutinePlayer: RoutineDef?
     @State var selectedChallengeId: String = "daily-quest"
     @State var selectedRoutineIdsByCategory: [RoutineCategory: String] = [:]
+    @State var routineAccessTier: SkillTier = .initiate
     @State var travelingRoutine: RoutineDef?
     @State var routineTravelProgress: CGFloat = 0
     #if DEBUG
@@ -223,7 +224,7 @@ struct ProgramOverviewView: View {
                 .zIndex(5)
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             await loadProgramSurface()
 

@@ -142,7 +142,7 @@ struct UnboundCinematic: View {
     private var letterReveal: some View {
         Group {
             if showLetter {
-                Image(RankTitle.unbound.assetName)
+                Image(RankTitle.ascendant.assetName)
                     .resizable()
                     .scaledToFit()
                     .frame(width: 132, height: 132)

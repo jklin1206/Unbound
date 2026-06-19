@@ -23,7 +23,7 @@ struct TrialCapstoneToast: View {
     @State private var pulse: Bool = false
     @State private var haptic: Int = 0
 
-    private var tint: Color { trial.chosenCard.theme.tintColor }
+    private var tint: Color { trial.chosenCard.lane.tintColor }
 
     var body: some View {
         HStack(spacing: 14) {
@@ -35,7 +35,7 @@ struct TrialCapstoneToast: View {
                 Capsule()
                     .stroke(tint, lineWidth: 1.2)
                     .frame(width: 68, height: 30)
-                Text(trial.chosenCard.theme.displayLabel.prefix(7))
+                Text(trial.chosenCard.lane.displayLabel.prefix(7))
                     .font(.system(size: 9, weight: .heavy, design: .monospaced))
                     .tracking(1.2)
                     .foregroundStyle(tint)
@@ -49,7 +49,7 @@ struct TrialCapstoneToast: View {
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.textTertiary)
                     .lineLimit(1)
-                Text("Vow Sealed")
+                Text("Vow Sealed · +\(trial.chosenCard.bet.winXP) XP")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.unbound.textPrimary)
             }
@@ -169,12 +169,12 @@ extension View {
                 userId: "preview",
                 weekStart: Date(),
                 chosenCard: TrialCard(
-                    id: "weekly-vow-W20-ember",
-                    kind: .ember,
-                    theme: .axis(.power),
+                    id: "weekly-vow-W20-recovery",
+                    lane: .recovery,
+                    bet: .small,
                     displayName: "Iron Reset",
-                    blurb: "A low-day proof for clean power work.",
-                    capstone: TrialCapstone(displayName: "Low-Day Proof", description: "Complete easy power work.", evaluation: .manualClaim)
+                    blurb: "A low-day reset for clean recovery.",
+                    target: VowTarget(count: 1, noun: "recovery reset")
                 ),
                 capstoneState: .completed
             ),

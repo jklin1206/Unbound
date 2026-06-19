@@ -154,7 +154,7 @@ final class UNBOUNDSmokeTest: XCTestCase {
             completedAt: Date(timeIntervalSince1970: 2_000),
             elapsedSeconds: 900,
             primaryMetric: .repCount(total: 100, bursts: [40, 30, 30]),
-            spAwarded: routine.spReward
+            spAwarded: routine.difficultyWeight
         )
 
         let log = TrainingSessionAdapters.performanceLogForRoutine(

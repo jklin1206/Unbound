@@ -337,7 +337,7 @@ final class BadgeService: BadgeServiceProtocol {
         if tier >= .forged    { result.append("rank_c_any") }
         if tier >= .master    { result.append("rank_b_any") }
         if tier >= .vessel    { result.append("rank_a_any") }
-        if tier >= .ascendant { result.append("rank_s_any") }
+        if tier >= .unbound { result.append("rank_s_any") }
         // BW-multiple milestones are evaluated literally against working-set
         // weight in `.sessionLogged` (see evaluateBodyweightMultiples).
         // Letter-rank approximation is intentionally omitted here.

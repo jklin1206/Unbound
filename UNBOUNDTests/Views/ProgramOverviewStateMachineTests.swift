@@ -91,7 +91,7 @@ final class ProgramOverviewStateMachineTests: XCTestCase {
         guard case .viewLog = state.primaryAction else {
             return XCTFail("Expected view log action")
         }
-        XCTAssertEqual(state.label, "VIEW LOG")
+        XCTAssertEqual(state.label, "VIEW QUEST LOG")
         XCTAssertTrue(state.isEnabled)
         XCTAssertTrue(state.showsAddExtraSession)
         XCTAssertFalse(state.showsEditSession)
@@ -128,7 +128,7 @@ final class ProgramOverviewStateMachineTests: XCTestCase {
         guard case .resumeWorkout = state.primaryAction else {
             return XCTFail("Expected resume action")
         }
-        XCTAssertEqual(state.label, "RESUME SESSION")
+        XCTAssertEqual(state.label, "RESUME QUEST")
         XCTAssertTrue(state.isEnabled)
         XCTAssertFalse(state.showsAddExtraSession)
         XCTAssertTrue(state.showsEditSession)
@@ -146,7 +146,7 @@ final class ProgramOverviewStateMachineTests: XCTestCase {
         guard case .loadWorkout = state.primaryAction else {
             return XCTFail("Expected direct workout load action")
         }
-        XCTAssertEqual(state.label, "BEGIN SESSION")
+        XCTAssertEqual(state.label, "BEGIN QUEST")
         XCTAssertTrue(state.isEnabled)
         XCTAssertFalse(state.showsAddExtraSession)
         XCTAssertTrue(state.showsEditSession)
@@ -164,7 +164,7 @@ final class ProgramOverviewStateMachineTests: XCTestCase {
         guard case .editWorkout = state.primaryAction else {
             return XCTFail("Expected edit workout action")
         }
-        XCTAssertEqual(state.label, "EDIT WORKOUT")
+        XCTAssertEqual(state.label, "EDIT QUEST")
         XCTAssertTrue(state.isEnabled)
         XCTAssertFalse(state.showsAddExtraSession)
         XCTAssertFalse(state.showsEditSession)
@@ -254,7 +254,7 @@ final class ProgramOverviewStateMachineTests: XCTestCase {
             skillNodes: []
         )
 
-        XCTAssertEqual(presentation.headerLabel, "TODAY")
+        XCTAssertEqual(presentation.headerLabel, "DAILY QUEST")
         XCTAssertEqual(presentation.title, "PUSH BASE")
         XCTAssertEqual(presentation.metrics.map(\.title), ["1 moves", "~30M", "LIVE"])
         guard case .completed = presentation.badge else {
@@ -279,7 +279,7 @@ final class ProgramOverviewStateMachineTests: XCTestCase {
             skillNodes: []
         )
 
-        XCTAssertEqual(restPresentation.title, "REST DAY")
+        XCTAssertEqual(restPresentation.title, "RECOVERY QUEST")
         XCTAssertEqual(restPresentation.metrics.map(\.title), ["0 moves", "REC", "REC"])
         guard case .rest = restPresentation.badge else {
             return XCTFail("Expected rest badge")

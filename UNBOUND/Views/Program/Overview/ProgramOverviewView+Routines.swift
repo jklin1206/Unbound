@@ -7,11 +7,27 @@ extension ProgramOverviewView {
         ProgramRoutinesTab(
             selectedChallengeId: $selectedChallengeId,
             selectedRoutineIdsByCategory: $selectedRoutineIdsByCategory,
+            currentTier: routineAccessTier,
             onBeginRoutine: beginRoutineTravel
         )
+        .task {
+            await refreshRoutineAccessTier()
+        }
+    }
+
+    func refreshRoutineAccessTier() async {
+        guard let userId = services.auth.currentUserId else {
+            routineAccessTier = .initiate
+            return
+        }
+        routineAccessTier = await services.rank.aggregateTier(userId: userId)
     }
 
     func beginRoutineTravel(_ routine: RoutineDef) {
+        guard RoutineUnlockPolicy.state(for: routine, currentTier: routineAccessTier).isUnlocked else {
+            UnboundHaptics.soft()
+            return
+        }
         UnboundHaptics.medium()
         travelingRoutine = routine
         routineTravelProgress = 0

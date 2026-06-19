@@ -308,10 +308,10 @@ struct PhotoCalendarView: View {
                 VStack {
                     HStack {
                         Spacer()
-                        if firstPhoto?.source == .scan {
-                            Image(systemName: "sparkle.magnifyingglass")
+                        if let badge = Self.sourceBadge(firstPhoto?.source) {
+                            Image(systemName: badge.icon)
                                 .font(.system(size: 8, weight: .bold))
-                                .foregroundStyle(Color.unbound.accent)
+                                .foregroundStyle(badge.tint)
                                 .padding(3)
                                 .background(Circle().fill(Color.black.opacity(0.55)))
                                 .padding(3)
@@ -343,6 +343,16 @@ struct PhotoCalendarView: View {
         }
         .buttonStyle(.plain)
         .disabled(firstPhoto == nil)
+    }
+
+    /// Corner glyph for a photo's origin: scans get a sparkle, post-workout
+    /// photos a dumbbell, plain check-ins none.
+    static func sourceBadge(_ source: ProgressPhoto.Source?) -> (icon: String, tint: Color)? {
+        switch source {
+        case .scan: return ("sparkle.magnifyingglass", Color.unbound.accent)
+        case .workout: return ("dumbbell.fill", Color.rewardBlue)
+        default: return nil
+        }
     }
 
     // MARK: - Capture action
@@ -494,7 +504,7 @@ private struct PhotoPreviewSheet: View {
     var body: some View {
         ZStack {
             Color.unbound.bg.ignoresSafeArea()
-            VStack(spacing: 16) {
+            VStack(spacing: 14) {
                 HStack {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark")
@@ -522,51 +532,63 @@ private struct PhotoPreviewSheet: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
 
-                if let img = UIImage(contentsOfFile: photo.storageUrl) {
-                    Image(uiImage: img)
-                        .resizable()
-                        .scaledToFit()
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .padding(.horizontal, 16)
-
-                    Button {
-                        onSetProfilePhoto()
-                        didSetProfilePhoto = true
-                    } label: {
-                        HStack(spacing: 9) {
-                            Image(systemName: didSetProfilePhoto ? "checkmark.circle.fill" : "person.crop.circle.badge.checkmark")
-                                .font(.system(size: 14, weight: .bold))
-                            Text(didSetProfilePhoto ? "PROFILE PHOTO SET" : "SET AS PROFILE PHOTO")
-                                .font(.system(size: 11, weight: .black, design: .monospaced))
-                                .tracking(1.0)
+                ScrollView(showsIndicators: false) {
+                    let img = UIImage(contentsOfFile: photo.storageUrl)
+                    VStack(spacing: 16) {
+                        if let img {
+                            Image(uiImage: img)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 440)
+                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .padding(.horizontal, 16)
+                        } else {
+                            Rectangle()
+                                .fill(Color.unbound.surface)
+                                .frame(height: 240)
+                                .overlay(
+                                    Text("PHOTO UNAVAILABLE")
+                                        .font(Font.unbound.captionS)
+                                        .foregroundStyle(Color.unbound.textTertiary)
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .padding(.horizontal, 16)
                         }
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 46)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(didSetProfilePhoto ? Color.unbound.rankGreen : Color.unbound.accent)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 16)
-                } else {
-                    Rectangle()
-                        .fill(Color.unbound.surface)
-                        .overlay(
-                            Text("PHOTO UNAVAILABLE")
-                                .font(Font.unbound.captionS)
-                                .foregroundStyle(Color.unbound.textTertiary)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .padding(.horizontal, 16)
-                }
 
-                Spacer()
+                        if let workout = photo.workout {
+                            workoutSummaryBlock(workout)
+                        }
+
+                        if img != nil {
+                            Button {
+                                onSetProfilePhoto()
+                                didSetProfilePhoto = true
+                            } label: {
+                                HStack(spacing: 9) {
+                                    Image(systemName: didSetProfilePhoto ? "checkmark.circle.fill" : "person.crop.circle.badge.checkmark")
+                                        .font(.system(size: 14, weight: .bold))
+                                    Text(didSetProfilePhoto ? "PROFILE PHOTO SET" : "SET AS PROFILE PHOTO")
+                                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                                        .tracking(1.0)
+                                }
+                                .foregroundStyle(Color.unbound.textPrimary)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 46)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(didSetProfilePhoto ? Color.unbound.rankGreen : Color.unbound.accent)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, 16)
+                        }
+                    }
+                    .padding(.bottom, 28)
+                }
             }
         }
         .confirmationDialog("Delete photo?", isPresented: $showingDeleteConfirm, titleVisibility: .visible) {
@@ -579,6 +601,60 @@ private struct PhotoPreviewSheet: View {
         let f = DateFormatter()
         f.dateFormat = "EEE MMM d · h:mm a"
         return f.string(from: photo.capturedAt)
+    }
+
+    // MARK: - Workout summary (post-workout photos)
+
+    @ViewBuilder
+    private func workoutSummaryBlock(_ workout: WorkoutPhotoSummary) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "dumbbell.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                Text(workout.title.uppercased())
+                    .font(Font.unbound.titleS)
+                    .tracking(0.8)
+                    .foregroundStyle(Color.unbound.textPrimary)
+            }
+            Text(workoutMetaLine(workout))
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(1.2)
+                .foregroundStyle(Color.unbound.textTertiary)
+
+            if !workout.exercises.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(workout.exercises.enumerated()), id: \.offset) { _, line in
+                        Text(line)
+                            .font(Font.unbound.bodyS)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(.top, 2)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
+        .padding(.horizontal, 16)
+    }
+
+    private func workoutMetaLine(_ workout: WorkoutPhotoSummary) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        var parts = [f.string(from: workout.completedAt)]
+        if let minutes = workout.durationMinutes {
+            parts.append("\(minutes) min")
+        }
+        return parts.joined(separator: " · ").uppercased()
     }
 }
 

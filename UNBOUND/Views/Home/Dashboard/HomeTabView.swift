@@ -1,0 +1,206 @@
+import SwiftUI
+
+struct HomeTabView: View {
+    @EnvironmentObject var services: ServiceContainer
+    @ObservedObject private var restTimer = RestTimerModel.shared
+    @State private var selectedTab: Int
+    private let restClock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    #if DEBUG
+    @State private var debugPresentedSkillNode: SkillNode?
+    @State private var debugShowCardioLogger = false
+    #endif
+
+    init() {
+        _selectedTab = State(initialValue: Self.initialTabFromLaunchArguments())
+    }
+
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            NavigationStack {
+                UnboundHomeView(services: services)
+            }
+            .tabItem {
+                Image(systemName: "house.fill")
+                Text("Home")
+            }
+            .accessibilityIdentifier("tab.home")
+            .tag(0)
+
+            NavigationStack {
+                ProgramOverviewView(services: services)
+            }
+            .tabItem {
+                Image(systemName: "dumbbell.fill")
+                Text("Train")
+            }
+            .accessibilityIdentifier("tab.train")
+            .tag(1)
+
+            NavigationStack {
+                UnboundSkillTreeTabView()
+            }
+            .tabItem {
+                Image(systemName: "point.3.filled.connected.trianglepath.dotted")
+                Text("Skills")
+            }
+            .accessibilityIdentifier("tab.skills")
+            .tag(2)
+
+            NavigationStack {
+                SquadTabView()
+            }
+            .tabItem {
+                Image(systemName: "flag.2.crossed.fill")
+                Text("Squad")
+            }
+            .accessibilityIdentifier("tab.squad")
+            .tag(3)
+
+            NavigationStack {
+                ProfileView()
+            }
+            .tabItem {
+                Image(systemName: "person.crop.circle")
+                Text("Profile")
+            }
+            .accessibilityIdentifier("tab.profile")
+            .tag(4)
+        }
+        .tint(Color.unbound.accent)
+        .overlay(alignment: .bottom) {
+            RestTimerPill(
+                model: restTimer,
+                onAddThirty: { restTimer.addThirty() },
+                onDismiss: { restTimer.dismiss() }
+            )
+            .padding(.bottom, 58)
+            .allowsHitTesting(restTimer.isVisible)
+        }
+        .rankUpCinematicOverlay()
+        .skinUnlockToast()
+        .badgeUnlockToast()
+        .onReceive(restClock) { now in
+            restTimer.tick(now: now)
+        }
+        .onAppear {
+            services.analytics.track(.tabSelected(tab: tabName(for: selectedTab)))
+        }
+        .onChange(of: selectedTab) { _, tab in
+            services.analytics.track(.tabSelected(tab: tabName(for: tab)))
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .requestNavigateToProfileTab)) { _ in
+            selectedTab = 4
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .requestNavigateToProgramTab)) { _ in
+            selectedTab = 1
+        }
+        #if DEBUG
+        .fullScreenCover(isPresented: $debugShowCardioLogger) {
+            LogCardioView()
+                .environmentObject(services)
+        }
+        .fullScreenCover(item: $debugPresentedSkillNode) { node in
+            SkillDetailView(
+                node: node,
+                graph: SkillGraph.shared,
+                nodeStates: SkillProgressService.shared.nodeStates
+            )
+        }
+        .onAppear {
+            guard let skillId = Self.launchArgumentValue(for: "--unbound-open-skill"),
+                  let node = SkillGraph.shared.node(id: skillId),
+                  debugPresentedSkillNode == nil
+            else { return }
+
+            selectedTab = 2
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                debugPresentedSkillNode = node
+            }
+        }
+        .onAppear {
+            guard ProcessInfo.processInfo.arguments.contains("--unbound-open-cardio-log"),
+                  !debugShowCardioLogger
+            else { return }
+
+            selectedTab = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                debugShowCardioLogger = true
+            }
+        }
+        .onAppear {
+            if Self.shouldForceProgramTabForProofLaunch {
+                selectedTab = 1
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                if Self.shouldForceProgramTabForProofLaunch {
+                    selectedTab = 1
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+                if Self.shouldForceProgramTabForProofLaunch {
+                    selectedTab = 1
+                }
+            }
+        }
+        .onAppear {
+            // System alerts at cold launch (e.g. the simulator's Apple Account
+            // prompt) can stomp the initial tab selection — re-assert the
+            // launch-arg route the same way the proof launch does above.
+            let routed = Self.initialTabFromLaunchArguments()
+            guard routed != 0 else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                selectedTab = routed
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+                selectedTab = routed
+            }
+        }
+        #endif
+    }
+
+    private static func initialTabFromLaunchArguments() -> Int {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("--unbound-open-program") { return 1 }
+        if arguments.contains("--unbound-open-workouts") { return 1 }
+        if arguments.contains("--unbound-open-routine") { return 1 }
+        if arguments.contains("--unbound-open-skills") { return 2 }
+        if arguments.contains("--unbound-open-squad") { return 3 }
+        if arguments.contains("--unbound-open-profile") { return 4 }
+        #endif
+        return 0
+    }
+
+    private func tabName(for index: Int) -> String {
+        switch index {
+        case 0: return "home"
+        case 1: return "train"
+        case 2: return "skills"
+        case 3: return "squad"
+        case 4: return "profile"
+        default: return "unknown"
+        }
+    }
+
+    #if DEBUG
+    private static var shouldForceProgramTabForProofLaunch: Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        return arguments.contains("--unbound-open-program")
+            || launchArgumentValue(for: "--unbound-dev-dynamic-program") != nil
+            || UserDefaults.standard.string(forKey: DevDynamicProgramScenario.activeUserDefaultsKey) != nil
+    }
+
+    private static func launchArgumentValue(for key: String) -> String? {
+        let arguments = ProcessInfo.processInfo.arguments
+        for (index, argument) in arguments.enumerated() {
+            if argument == key, arguments.indices.contains(index + 1) {
+                return arguments[index + 1]
+            }
+            if argument.hasPrefix("\(key)=") {
+                return String(argument.dropFirst(key.count + 1))
+            }
+        }
+        return nil
+    }
+    #endif
+}

@@ -215,3 +215,15 @@ The integration agent should:
 - Run final simulator verification in the Verify lane.
 - Make only small integration fixes unless explicitly asked for larger implementation.
 - Report merged branches, build status, simulator checks, screenshots if relevant, and remaining risks.
+
+## Codebase navigation (mandatory funnel)
+
+Navigation is pull-based and cheap — use it in this order; do NOT start with a repo-wide grep for "where does X live" questions:
+
+1. **Flows and layers**: read root `ARCHITECTURE.md` first (layer map, six key flows with exact file paths, repo conventions: xcodegen, `Type+Concern.swift` splits, DEBUG tooling, localization catalog rule). If your task matches one of the six flows, you now have the full file chain — skip to step 3.
+2. **"Which file in here?"**: before reading or grepping source in a directory, read its `README.md` (~2 KB). Every `Models/`, `Services/`, `ViewModels/`, `Utilities/` and feature `Views/` directory has one with a per-file table and a "Where to find X" section. These tables also carry trap warnings (decoy/legacy files) that grep cannot surface.
+3. **Then read code** — files are ≤450 lines by convention; read the one file the README named, not the directory.
+
+Grep is for symbol-level questions (call sites, usages) AFTER the funnel has named the file — not for discovery.
+
+Maintenance contract (ENFORCED): any change that adds, renames, deletes, or repurposes files in a directory MUST update that directory's `README.md` in the same change — `ReadmeFreshnessTests` fails the suite on any directory whose README roster or table rows no longer match the files on disk. If a flow or convention changes, update `ARCHITECTURE.md` too.

@@ -141,7 +141,7 @@ struct SkinPickerView: View {
                 .blendMode(.screen)
             VStack(spacing: 6) {
                 // Representative difficulty ramp across the RankTier ladder.
-                ForEach([RankTier.initiate, .apprentice, .forged, .master, .vessel, .ascendant], id: \.self) { rank in
+                ForEach([RankTier.initiate, .apprentice, .forged, .master, .vessel, .unbound], id: \.self) { rank in
                     Capsule()
                         .fill(rank.rewardTint.opacity(0.18 + Double(rank.rawValue) * 0.04))
                         .frame(height: 3)

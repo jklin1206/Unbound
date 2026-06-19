@@ -64,8 +64,105 @@ final class HomeLoadDerivationsTests: XCTestCase {
         ]
 
         let loads = HomeLoadDerivations.bodyRegionLoads(logs, now: now, calendar: cal())
+        let statuses = HomeLoadDerivations.bodyRegionStatuses(logs, now: now, calendar: cal())
 
         XCTAssertEqual(loads[.midLowerChest] ?? 0, 0, accuracy: 0.001)
+        XCTAssertEqual(statuses[.midLowerChest]?.lastTrainedAt, date(2026, 5, 4))
+    }
+
+    func test_bodyRegionStatuses_tracksLastTrainedForSelectedRegionDetails() {
+        let now = date(2026, 5, 13, 12)
+        let recent = date(2026, 5, 13, 6)
+        let older = date(2026, 5, 11, 12)
+        let logs = [
+            log(startedAt: older, entries: [entry("Bench Press", completedSets: 3)]),
+            log(startedAt: recent, entries: [entry("Bench Press", completedSets: 4, rpe: 8)])
+        ]
+
+        let statuses = HomeLoadDerivations.bodyRegionStatuses(logs, now: now, calendar: cal())
+        let chest = statuses[.midLowerChest]
+
+        XCTAssertEqual(chest?.lastTrainedAt, recent)
+        XCTAssertGreaterThan(chest?.load ?? 0, 0)
+        XCTAssertEqual(chest?.lastTrainedText(relativeTo: now), "Last trained 6h ago")
+    }
+
+    func test_bodyRegionStatusRecoveryTextUsesEstimatedReadyTime() {
+        let now = date(2026, 5, 13, 12)
+        let trainedAt = date(2026, 5, 13, 0)
+        let status = BodyLoadRegionStatus(region: .quads, load: 15, lastTrainedAt: trainedAt)
+
+        XCTAssertEqual(status.recoveryHours, 48)
+        XCTAssertEqual(status.recoveryText(relativeTo: now), "Ready in 1d 12h")
+    }
+
+    // MARK: - didCompleteProgramDayToday
+
+    func test_didCompleteProgramDayToday_matchesSyncedStrengthWorkoutLog_noPerformanceLog() {
+        // Restore / new device: synced workoutLogs present, local performanceLogs
+        // absent. The cleared check must still fire off the synced WorkoutLog.
+        let now = date(2026, 6, 19, 12)
+        XCTAssertTrue(HomeLoadDerivations.didCompleteProgramDayToday(
+            workoutLogs: [wLog(programId: "p1", dayNumber: 3, completedAt: date(2026, 6, 19, 9))],
+            performanceLogs: [],
+            programId: "p1", dayNumber: 3, now: now, calendar: cal()))
+    }
+
+    func test_didCompleteProgramDayToday_matchesCardioOnlyQuest_performanceLogOnly() {
+        // Cardio-only completion: no derived WorkoutLog, only a PerformanceLog
+        // with no strength blocks. The check must still fire.
+        let now = date(2026, 6, 19, 12)
+        XCTAssertTrue(HomeLoadDerivations.didCompleteProgramDayToday(
+            workoutLogs: [],
+            performanceLogs: [pLog(programId: "p1", dayNumber: 3, completedAt: date(2026, 6, 19, 18), blocks: [])],
+            programId: "p1", dayNumber: 3, now: now, calendar: cal()))
+    }
+
+    func test_didCompleteProgramDayToday_falseForWrongDayProgramOrDate() {
+        let now = date(2026, 6, 19, 12)
+        XCTAssertFalse(HomeLoadDerivations.didCompleteProgramDayToday(
+            workoutLogs: [
+                wLog(programId: "p1", dayNumber: 4, completedAt: date(2026, 6, 19, 9)),  // other day#
+                wLog(programId: "p1", dayNumber: 3, completedAt: date(2026, 6, 18, 9))   // yesterday
+            ],
+            performanceLogs: [
+                pLog(programId: "p2", dayNumber: 3, completedAt: date(2026, 6, 19, 9))   // other program
+            ],
+            programId: "p1", dayNumber: 3, now: now, calendar: cal()))
+    }
+
+    private func wLog(programId: String, dayNumber: Int, completedAt: Date) -> WorkoutLog {
+        WorkoutLog(
+            id: UUID().uuidString,
+            userId: "u",
+            programId: programId,
+            dayNumber: dayNumber,
+            plannedWorkoutName: "T",
+            startedAt: completedAt,
+            completedAt: completedAt,
+            exerciseEntries: [],
+            overallNotes: nil,
+            overallRPE: nil,
+            durationMinutes: 30
+        )
+    }
+
+    private func pLog(
+        programId: String,
+        dayNumber: Int,
+        completedAt: Date,
+        blocks: [PerformanceBlock] = []
+    ) -> PerformanceLog {
+        PerformanceLog(
+            userId: "u",
+            source: .program,
+            title: "T",
+            startedAt: completedAt,
+            completedAt: completedAt,
+            programId: programId,
+            dayNumber: dayNumber,
+            blocks: blocks
+        )
     }
 
     private func log(startedAt: Date, entries: [ExerciseLogEntry]) -> WorkoutLog {

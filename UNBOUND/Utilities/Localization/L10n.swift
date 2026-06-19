@@ -256,6 +256,29 @@ enum L10n {
 
         case trainingWeightUnitKilograms = "trainingWeightUnit.kilograms.displayName"
         case trainingWeightUnitPounds = "trainingWeightUnit.pounds.displayName"
+
+        // Rank-trial gate world-stage headers (in-trial status chips + completion titles).
+        case gateLanternsChipDone = "gate.lanterns.chip.done"
+        case gateLanternsChipProgress = "gate.lanterns.chip.progress"
+        case gateLanternsTitleDone = "gate.lanterns.title.done"
+        case gateForgeChipDone = "gate.forge.chip.done"
+        case gateForgeChipProgress = "gate.forge.chip.progress"
+        case gateForgeTitleDone = "gate.forge.title.done"
+        case gateSealsChipDone = "gate.seals.chip.done"
+        case gateSealsChipProgress = "gate.seals.chip.progress"
+        case gateSealsTitleDone = "gate.seals.title.done"
+        case gateSiegeChipDone = "gate.siege.chip.done"
+        case gateSiegeChipProgress = "gate.siege.chip.progress"
+        case gateSiegeTitleDone = "gate.siege.title.done"
+        case gateLandingsChipDone = "gate.landings.chip.done"
+        case gateLandingsChipProgress = "gate.landings.chip.progress"
+        case gateLandingsTitleDone = "gate.landings.title.done"
+        case gateBellChipDone = "gate.bell.chip.done"
+        case gateBellChipProgress = "gate.bell.chip.progress"
+        case gateBellTitleDone = "gate.bell.title.done"
+        case gateAscentChipDone = "gate.ascent.chip.done"
+        case gateAscentChipProgress = "gate.ascent.chip.progress"
+        case gateAscentTitleDone = "gate.ascent.title.done"
     }
 
     static func string(

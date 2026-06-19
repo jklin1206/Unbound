@@ -85,7 +85,7 @@ struct Step_Paywall: View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 OnboardingAssetGlyph(
-                    assetName: "rank_title_unbound",
+                    assetName: "rank_title_ascendant",
                     tint: Color.unbound.impact,
                     size: 21,
                     imagePadding: 2,
@@ -332,7 +332,7 @@ struct Step_Paywall: View {
 
     private var paywallSeal: some View {
         OnboardingAssetGlyph(
-            assetName: "rank_title_unbound",
+            assetName: "rank_title_ascendant",
             tint: Color.unbound.impact,
             size: 58,
             imagePadding: 5,

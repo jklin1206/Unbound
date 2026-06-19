@@ -8,37 +8,57 @@ import SwiftUI
 // PerformanceLog data before showing the post-workout reward sequence.
 
 struct ActiveWorkoutContainerView: View {
-    @StateObject private var session: ActiveWorkoutSession
+    @StateObject var session: ActiveWorkoutSession
     @State private var priorEntries: [ExerciseLogEntry] = []
     @State private var workingWeightKg: Double? = nil
     @State private var saving = false
     @State private var showCompleteConfirm = false
     @State private var saveError = false
-    @State private var showExitConfirm = false
+    @State var showExitConfirm = false
     @State private var draftAutosaveFailed = false
 
     // Swap sheet state
-    @State private var swapExerciseIndex: Int? = nil
-    @State private var swapAlternatives: [CatalogExercise] = []
+    @State var swapExerciseIndex: Int? = nil
+    @State var swapAlternatives: [CatalogExercise] = []
     @State private var showingCustomBuilder = false
+    @State private var showingAddExercise = false
 
     // Notes editing state
-    @State private var notesEditingIndex: Int? = nil
-    @State private var notesEditingText: String = ""
-    @State private var showNotesSheet = false
+    @State var notesEditingIndex: Int? = nil
+    @State var notesEditingText: String = ""
+    @State var showNotesSheet = false
 
     // Reward state
     @State private var rewardSequence: WorkoutRewardSequenceSummary? = nil
     @State private var isFinishingRewardSequence = false
 
+    // A passed rank gate: The Crossing overrides the standard reward sequence as the
+    // rank-up moment, then chains into it so XP/badges still play.
+    @State private var pendingGateCrossing: GateCrossing? = nil
+    @State private var pendingGateDefiningNumber: String? = nil
+    @State private var stashedGateRewardSummary: WorkoutRewardSequenceSummary? = nil
+
+    /// Station-clear beat (spec §6.5): the world floods full-bleed when a rank-trial
+    /// station's first working set is logged, then recedes (`GateBeatOverlay`).
+    @State private var beatStationTitle: String? = nil
+
+    /// Fail verdict (spec §6.7): "THE GATE HOLDS" → ENTER AGAIN on a failed gate.
+    @State private var pendingGateVerdict: GateVerdictContext? = nil
+
+    private struct GateVerdictContext: Identifiable {
+        let id = UUID()
+        let evaluation: OverallRankTrialEvaluation
+        let world: GateWorld
+    }
+
     // Grid cell editor — shared bottom-docked keypad module (no modal). The model
     // owns the typed buffer + pristine state, so merely opening a cell never
     // commits the suggested value (the ✓ ring does that).
-    @StateObject private var keypad = NumberPadEditorModel<ActiveCell>()
+    @StateObject var keypad = NumberPadEditorModel<ActiveCell>()
 
     // Rest timer
     @ObservedObject private var restTimer = RestTimerModel.shared
-    @State private var workoutElapsedSeconds = 0
+    @State var workoutElapsedSeconds = 0
     private let restClock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     @Environment(\.dismiss) private var dismiss
@@ -110,42 +130,52 @@ struct ActiveWorkoutContainerView: View {
                     draftAutosaveWarning
                 }
 
-                WorkoutLogGridView(
-                    session: session,
-                    rankTrialDefinition: rankTrialDefinition,
-                    onIntent: { ei, intent in handleIntent(ei, intent) },
-                    onEditWeight: { ei, si in beginEdit(ei: ei, si: si, field: .weight) },
-                    onEditReps:   { ei, si in beginEdit(ei: ei, si: si, field: .metric) },
-                    onPickRPE: { ei, si in beginEdit(ei: ei, si: si, field: .rpe) },
-                    onConfirmAsPlanned: { ei, si in
-                        let shouldUseDeckFlow = isDeckTrial
-                        session.confirmAsPlanned(exerciseIndex: ei, setIndex: si)
-                        saveDraft()
-                        if shouldUseDeckFlow && !session.hasUnloggedWorkingSets {
-                            restTimer.stop()
-                            Task { await complete() }
-                        } else {
-                            transition(ei: ei, si: si)
+                if isCustomSession && visibleExerciseCount == 0 {
+                    emptyQuickLogState
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    WorkoutLogGridView(
+                        session: session,
+                        rankTrialDefinition: rankTrialDefinition,
+                        onIntent: { ei, intent in handleIntent(ei, intent) },
+                        onEditWeight: { ei, si in beginEdit(ei: ei, si: si, field: .weight) },
+                        onEditReps:   { ei, si in beginEdit(ei: ei, si: si, field: .metric) },
+                        onPickRPE: { ei, si in beginEdit(ei: ei, si: si, field: .rpe) },
+                        onConfirmAsPlanned: { ei, si in
+                            session.confirmAsPlanned(exerciseIndex: ei, setIndex: si)
+                            saveDraft()
+                            // Rank trials auto-finish into the verdict / Crossing once every
+                            // station is logged — no manual "Complete Trial" tap.
+                            if isRankTrial && !session.hasUnloggedWorkingSets {
+                                restTimer.stop()
+                                Task { await complete() }
+                            } else {
+                                transition(ei: ei, si: si)
+                            }
+                        },
+                        onToggleQualityFlag: { ei, si, flag in
+                            session.toggleQualityFlag(flag, exerciseIndex: ei, setIndex: si)
+                            saveDraft()
+                        },
+                        onAddSet: { ei in
+                            session.addSet(toExerciseIndex: ei)
+                            saveDraft()
                         }
-                    },
-                    onToggleQualityFlag: { ei, si, flag in
-                        session.toggleQualityFlag(flag, exerciseIndex: ei, setIndex: si)
-                        saveDraft()
-                    },
-                    onAddSet: { ei in
-                        session.addSet(toExerciseIndex: ei)
-                        saveDraft()
-                    }
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Hide the bottom footer while the keypad owns that space (matches the
             // pre-module behaviour where the dock floated over the footer).
             if !keypad.isActive {
-                if isDeckTrial {
-                    deckRestFooter
+                if isRankTrial {
+                    trialRestFooter
+                } else if isCustomSession && visibleExerciseCount == 0 {
+                    // Empty Quick Log: the body shows the Add Exercise CTA, so the
+                    // finish footer is hidden — there's nothing to finish yet.
+                    EmptyView()
                 } else {
                     completionFooter
                 }
@@ -172,6 +202,20 @@ struct ActiveWorkoutContainerView: View {
             await services.squadPresence.markInWorkout(userId: uid, squadId: squadId)
         }
         .interactiveDismissDisabled(true)
+        .onChange(of: rankTrialClearedStations) { previous, current in
+            // A station just cleared — flood its world beat. Deck has its own flow.
+            guard isRankTrial, !isDeckTrial, current > previous else { return }
+            beatStationTitle = session.exercises.last { !$0.skipped && $0.hasLoggedRankTrialWorkingSet }?.name
+        }
+        .overlay {
+            if let beatStationTitle, let gateWorld {
+                GateBeatOverlay(world: gateWorld, stationTitle: beatStationTitle) {
+                    self.beatStationTitle = nil
+                }
+                .ignoresSafeArea()
+                .transition(.opacity)
+            }
+        }
         // Always-available escape hatch — the draft is autosaved on every
         // mutation, so leaving keeps the workout resumable. Without this the
         // user is trapped whenever saveLog fails.
@@ -237,6 +281,24 @@ struct ActiveWorkoutContainerView: View {
             }
                 .environmentObject(services)
         }
+        // Live "Add Exercise" picker for free/Quick-Log sessions — reuses the
+        // same catalog picker the session editor uses.
+        .sheet(isPresented: $showingAddExercise) {
+            ExerciseSwapSheet(
+                mode: .add,
+                currentExerciseName: "Quick Log",
+                alternatives: addExerciseCatalog,
+                onSelect: { exercise in
+                    session.appendCatalogExercise(exercise)
+                    showingAddExercise = false
+                    saveDraft()
+                },
+                onCreateCustom: {
+                    showingAddExercise = false
+                    showingCustomBuilder = true
+                }
+            )
+        }
         // Notes editing sheet — simple inline text entry
         .sheet(isPresented: $showNotesSheet) {
             NotesEditSheet(
@@ -254,9 +316,43 @@ struct ActiveWorkoutContainerView: View {
             )
         }
         .fullScreenCover(item: $rewardSequence) { summary in
-            WorkoutRewardSequenceView(summary: summary) {
+            WorkoutRewardSequenceView(
+                summary: summary,
+                onAddWorkoutPhoto: { image in
+                    Task { await saveWorkoutPhoto(image, context: summary.workoutPhotoContext, services: services) }
+                }
+            ) {
                 finishRewardSequence()
             }
+            .interactiveDismissDisabled(true)
+        }
+        .fullScreenCover(item: $pendingGateCrossing) { crossing in
+            TheCrossingView(
+                crossing: crossing,
+                definingNumber: pendingGateDefiningNumber,
+                onShare: {},
+                onReplay: {},
+                onDismiss: {
+                    pendingGateCrossing = nil
+                    if let stashed = stashedGateRewardSummary {
+                        stashedGateRewardSummary = nil
+                        rewardSequence = stashed   // chain into XP / badges
+                    } else {
+                        finishDismiss()
+                    }
+                }
+            )
+            .interactiveDismissDisabled(true)
+        }
+        .fullScreenCover(item: $pendingGateVerdict) { context in
+            GateVerdictView(
+                evaluation: context.evaluation,
+                world: context.world,
+                onRematch: {
+                    pendingGateVerdict = nil
+                    finishDismiss()
+                }
+            )
             .interactiveDismissDisabled(true)
         }
     }
@@ -266,7 +362,7 @@ struct ActiveWorkoutContainerView: View {
     /// Single funnel for draft autosave. A failure here means kill/crash
     /// recovery is broken, so it's logged once and surfaced as a calm warning
     /// row instead of failing silently.
-    private func saveDraft() {
+    func saveDraft() {
         do {
             try draftStore.save(session)
             draftAutosaveFailed = false
@@ -281,153 +377,7 @@ struct ActiveWorkoutContainerView: View {
         }
     }
 
-    private var draftAutosaveWarning: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 10, weight: .bold))
-            Text("Autosave isn't working — finish your session to keep this workout.")
-                .font(Font.unbound.captionS)
-                .lineLimit(2)
-        }
-        .foregroundStyle(Color.unbound.alert)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 6)
-        .accessibilityIdentifier("workout.draftAutosaveWarning")
-    }
-
-    // MARK: - Computed helpers
-
-    private var workoutTopBar: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                closeWorkoutButton
-                Spacer(minLength: 0)
-                workoutElapsedTime
-                Spacer(minLength: 0)
-                workoutModeBadge
-            }
-
-            workoutProgressRail
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 16)
-        .padding(.bottom, 8)
-    }
-
-    private var closeWorkoutButton: some View {
-        Button {
-            showExitConfirm = true
-        } label: {
-            Image(systemName: "xmark")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(Color.unbound.textSecondary)
-                .frame(width: 36, height: 36)
-                .background(Circle().fill(Color.unbound.surface))
-                .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Close workout")
-    }
-
-    private var workoutElapsedTime: some View {
-        VStack(spacing: 2) {
-            Text("TOTAL TIME")
-                .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                .tracking(1.4)
-                .foregroundStyle(Color.unbound.textTertiary)
-            Text(Self.timeString(seconds: workoutElapsedSeconds))
-                .font(Font.unbound.monoS.weight(.bold))
-                .tracking(1.4)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .monospacedDigit()
-        }
-        .frame(minWidth: 92)
-        .accessibilityLabel("Workout timer")
-        .accessibilityValue(Self.timeString(seconds: workoutElapsedSeconds))
-        .accessibilityIdentifier("workout.elapsedTime")
-    }
-
-    private var workoutModeBadge: some View {
-        let tint = workoutHeaderTint
-        let text = session.progressSummary.isComplete
-            ? "FINISH"
-            : (isRankTrial ? "TRIAL" : "LIVE")
-        return Text(text)
-            .font(Font.unbound.captionS.weight(.bold))
-            .tracking(1.4)
-            .foregroundStyle(tint)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Capsule().fill(tint.opacity(0.15)))
-            .overlay(Capsule().strokeBorder(tint.opacity(0.35), lineWidth: 1))
-            .frame(width: 64)
-            .accessibilityLabel(text == "FINISH" ? "Ready to finish" : text)
-    }
-
-    private var workoutProgressRail: some View {
-        let progress = session.progressSummary
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(workoutProgressLabel(progress))
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                Spacer(minLength: 0)
-            }
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.unbound.surface)
-                        .frame(height: 3)
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(workoutHeaderTint)
-                        .frame(width: geo.size.width * workoutProgressFraction(progress), height: 3)
-                        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: progress.loggedWorkingSets)
-                }
-            }
-            .frame(height: 3)
-        }
-    }
-
-    private var workoutHeaderTint: Color {
-        isRankTrial ? Color.unbound.coachCyan : Color.unbound.accent
-    }
-
-    private func workoutProgressFraction(_ progress: ActiveWorkoutSession.ProgressSummary) -> CGFloat {
-        guard progress.totalWorkingSets > 0 else { return 0 }
-        return min(1, CGFloat(progress.loggedWorkingSets) / CGFloat(progress.totalWorkingSets))
-    }
-
-    private func workoutProgressLabel(_ progress: ActiveWorkoutSession.ProgressSummary) -> String {
-        guard progress.totalWorkingSets > 0 else { return "SESSION IN PROGRESS" }
-        if progress.isComplete { return "READY TO FINISH" }
-        return "\(progress.loggedWorkingSets) OF \(progress.totalWorkingSets) WORK SETS"
-    }
-
-    private var totalLoggedWorkingSets: Int {
-        session.exercises.filter { !$0.skipped }.reduce(0) {
-            $0 + $1.sets.filter { !$0.isWarmup && $0.logged }.count
-        }
-    }
-
-    private var rankTrialDefinition: OverallRankTrialDefinition? {
-        guard session.source == .overallRankTrial else { return nil }
-        return OverallRankTrialDefinitions.definition(id: session.programId)
-    }
-
-    private var isRankTrial: Bool {
-        rankTrialDefinition != nil
-    }
-
-    private var isDeckTrial: Bool {
-        rankTrialDefinition?.format == .fixedDeck
-    }
-
-    private var deckRestFooter: some View {
+    private var trialRestFooter: some View {
         RestTimerPill(
             model: restTimer,
             onAddThirty: { restTimer.addThirty() },
@@ -435,6 +385,61 @@ struct ActiveWorkoutContainerView: View {
         )
         .padding(.bottom, 16)
         .allowsHitTesting(restTimer.isVisible)
+    }
+
+    /// Free / Quick-Log session — the only mode that supports adding exercises
+    /// live. Program days and rank trials have a fixed prescription.
+    var isCustomSession: Bool {
+        session.source == .custom && !isRankTrial
+    }
+
+    var visibleExerciseCount: Int {
+        session.exercises.filter { !$0.skipped }.count
+    }
+
+    /// Same catalog the session editor's ADD EXERCISE picker draws from.
+    private var addExerciseCatalog: [CatalogExercise] {
+        MovementCatalog.legacyExercises.compactMap(MovementCatalog.catalogExercise(for:))
+    }
+
+    private var emptyQuickLogState: some View {
+        VStack(spacing: 18) {
+            Spacer()
+            Image(systemName: "dumbbell")
+                .font(.system(size: 34, weight: .regular))
+                .foregroundStyle(Color.unbound.textTertiary)
+            VStack(spacing: 6) {
+                Text("No exercises yet")
+                    .font(Font.unbound.titleS)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                Text("Add what you just trained.")
+                    .font(Font.unbound.bodyM)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            Button {
+                UnboundHaptics.soft()
+                showingAddExercise = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .bold))
+                    Text("ADD EXERCISE")
+                        .font(Font.unbound.bodyMStrong)
+                        .tracking(1.4)
+                }
+                .foregroundStyle(Color.unbound.bg)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(Capsule().fill(Color.unbound.accent))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("workout.addExercise.empty")
+            Spacer()
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 32)
     }
 
     private var completionFooter: some View {
@@ -481,6 +486,34 @@ struct ActiveWorkoutContainerView: View {
             .accessibilityIdentifier("workout.debug.fillPlannedSets")
             #endif
 
+            if isCustomSession {
+                Button {
+                    UnboundHaptics.soft()
+                    showingAddExercise = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 13, weight: .bold))
+                        Text("ADD EXERCISE")
+                            .font(Font.unbound.captionS.weight(.bold))
+                            .tracking(1.4)
+                    }
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.unbound.surfaceElevated)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("workout.addExercise")
+            }
+
             Button(action: requestComplete) {
                 HStack(spacing: 10) {
                     if saving {
@@ -524,21 +557,6 @@ struct ActiveWorkoutContainerView: View {
             return progress.isComplete ? "FINISH TRIAL" : "COMPLETE TRIAL"
         }
         return progress.isComplete ? "FINISH SESSION" : "COMPLETE SESSION"
-    }
-
-    private static func elapsedSeconds(since startedAt: Date, now: Date = Date()) -> Int {
-        max(0, Int(now.timeIntervalSince(startedAt).rounded(.down)))
-    }
-
-    private static func timeString(seconds: Int) -> String {
-        let clamped = max(0, seconds)
-        let hours = clamped / 3_600
-        let minutes = (clamped % 3_600) / 60
-        let seconds = clamped % 60
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
-        }
-        return String(format: "%d:%02d", minutes, seconds)
     }
 
     // MARK: - Rest timer
@@ -592,41 +610,6 @@ struct ActiveWorkoutContainerView: View {
         }
     }
 
-    #if DEBUG
-    private func debugFillPlannedSets() {
-        session.objectWillChange.send()
-        for exerciseIndex in session.exercises.indices where !session.exercises[exerciseIndex].skipped {
-            for setIndex in session.exercises[exerciseIndex].sets.indices {
-                guard !session.exercises[exerciseIndex].sets[setIndex].isWarmup else { continue }
-                var set = session.exercises[exerciseIndex].sets[setIndex]
-                switch session.exercises[exerciseIndex].metricKind {
-                case .reps:
-                    set.reps = set.suggestedReps ?? RepRange.lowerBound(session.exercises[exerciseIndex].plannedReps) ?? 8
-                    set.weightKg = set.suggestedWeightKg ?? debugWeightKg(exerciseIndex: exerciseIndex, setIndex: setIndex)
-                case .holdSeconds:
-                    set.holdSeconds = set.suggestedHoldSeconds ?? 30
-                case .durationSeconds:
-                    set.durationSeconds = set.suggestedDurationSeconds ?? 600
-                case .distanceMeters:
-                    set.distanceMeters = set.suggestedDistanceMeters ?? 400
-                case .calories:
-                    set.calories = set.suggestedCalories ?? 20
-                }
-                set.rpe = set.suggestedRPE ?? session.exercises[exerciseIndex].targetRPE ?? 8
-                set.logged = true
-                session.exercises[exerciseIndex].sets[setIndex] = set
-            }
-        }
-        saveDraft()
-        UnboundHaptics.success()
-    }
-
-    private func debugWeightKg(exerciseIndex: Int, setIndex: Int) -> Double {
-        let base = 45 + (exerciseIndex * 15) + (setIndex * 2)
-        return Double(base)
-    }
-    #endif
-
     // MARK: - Ghost prefill
 
     private func ghost(ei: Int, si: Int) -> SetPrefill.Ghost? {
@@ -637,52 +620,6 @@ struct ActiveWorkoutContainerView: View {
             priorEntries: priorEntries,
             workingWeightKg: workingWeightKg
         )
-    }
-
-    // MARK: - Intent handler
-
-    private func handleIntent(_ ei: Int, _ intent: OverflowIntent) {
-        if isRankTrial {
-            switch intent {
-            case .toggleWarmup, .editNotes:
-                break
-            case .addSet, .removeSet, .skipExercise, .swapExercise:
-                return
-            }
-        }
-
-        switch intent {
-        case .toggleWarmup:
-            if session.exercises.indices.contains(ei),
-               let s0 = session.exercises[ei].sets.indices.first {
-                session.exercises[ei].sets[s0].isWarmup.toggle()
-            }
-
-        case .addSet:
-            session.addSet(toExerciseIndex: ei)
-
-        case .removeSet:
-            session.removeLastSet(fromExerciseIndex: ei)
-
-        case .skipExercise:
-            if session.exercises.indices.contains(ei) {
-                session.exercises[ei].skipped = true
-            }
-
-        case .editNotes:
-            notesEditingIndex = ei
-            notesEditingText = session.exercises.indices.contains(ei)
-                ? session.exercises[ei].notes : ""
-            showNotesSheet = true
-            return // draft save happens in the sheet's onSave closure
-
-        case .swapExercise:
-            guard session.exercises.indices.contains(ei) else { return }
-            swapAlternatives = MovementCatalog.catalogAlternatives(to: session.exercises[ei].name)
-            swapExerciseIndex = ei
-            return // draft save happens in swap onSelect closure
-        }
-        saveDraft()
     }
 
     // MARK: - Load context (wired to real APIs)
@@ -730,17 +667,7 @@ struct ActiveWorkoutContainerView: View {
         let performanceLog = session.assemblePerformanceLog(userId: uid)
         #endif
         do {
-            var completionResult = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
-            let weeklyVowReceipt = services.trials.recordCompletedVowWork(
-                performanceLog: performanceLog,
-                completionResult: completionResult
-            )
-            if let weeklyVowReceipt {
-                completionResult = await applyWeeklyVowBonus(
-                    weeklyVowReceipt,
-                    to: completionResult
-                )
-            }
+            let completionResult = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
             let rankTrialResult = OverallRankTrialRunner.shared.recordCompletedAttempt(
                 performanceLog: performanceLog,
                 completionResult: completionResult,
@@ -753,20 +680,33 @@ struct ActiveWorkoutContainerView: View {
             // us as live (best-effort; the row also auto-expires after 3h).
             Task { await services.squadPresence.clearPresence(userId: uid) }
 
-            let summary = makeRewardSequenceSummary(
+            var summary = makeRewardSequenceSummary(
                 performanceLog: performanceLog,
                 completionResult: completionResult,
-                rankTrialResult: rankTrialResult,
-                weeklyVowReceipt: weeklyVowReceipt
+                rankTrialResult: rankTrialResult
             )
-            if totalLoggedWorkingSets > 0
+            // Tag the final beat so it can offer an opt-in post-workout photo
+            // linked to this session. Travels with the summary into the gate tail too.
+            summary.workoutPhotoContext = WorkoutPhotoSummary(performanceLog: performanceLog)
+            let hasReward = totalLoggedWorkingSets > 0
                 || summary.progression?.hasContent == true
                 || summary.weeklyVowCallout != nil
-                || summary.rankTrialCallout != nil {
-                saving = false
+                || summary.rankTrialCallout != nil
+            saving = false
+            if let rt = rankTrialResult, rt.didAdvanceRank {
+                // The Crossing IS the gate's reward moment and rank-up announcement;
+                // chain the remaining spoils afterward, minus the redundant verdict beat.
+                pendingGateDefiningNumber = gateDefiningNumber(rt.evaluation)
+                stashedGateRewardSummary = gateRewardTail(from: summary)
+                pendingGateCrossing = GateCrossingCatalog.crossing(for: rt.definition.format)
+            } else if let rt = rankTrialResult, !rt.evaluation.passed {
+                // Failed gate — "THE GATE HOLDS" verdict + ENTER AGAIN. XP is banked.
+                pendingGateVerdict = GateVerdictContext(
+                    evaluation: rt.evaluation,
+                    world: GateWorldCatalog.world(for: rt.definition.format))
+            } else if hasReward {
                 rewardSequence = summary
             } else {
-                saving = false
                 finishDismiss()
             }
         } catch {
@@ -776,31 +716,33 @@ struct ActiveWorkoutContainerView: View {
         }
     }
 
-    private func applyWeeklyVowBonus(
-        _ receipt: WeeklyVowCompletionReceipt,
-        to completionResult: TrainingCompletionResult
-    ) async -> TrainingCompletionResult {
-        var updated = completionResult
-        do {
-            let reward = try await OverallLevelService.shared.grantFlatXPStrict(
-                amount: receipt.completionBonus.overallLevelXP,
-                sourceId: "weekly-vow-bonus:\(receipt.performanceLogId)",
-                userId: receipt.vow.userId,
-                at: receipt.completedAt,
-                database: services.database
-            )
-            updated.appendOverallLevelReward(reward)
-        } catch {
-            LoggingService.shared.log(
-                "Weekly Vow bonus XP persistence failed: \(error)",
-                level: .warning,
-                context: [
-                    "vowId": receipt.vow.id,
-                    "performanceLogId": receipt.performanceLogId
-                ]
-            )
-        }
-        return updated
+    private var gateWorld: GateWorld? {
+        rankTrialDefinition.map { GateWorldCatalog.world(for: $0.format) }
+    }
+
+    /// How many rank-trial stations have a logged working set — drives the beat.
+    private var rankTrialClearedStations: Int {
+        session.rankTrialLoggedStationCount { $0.hasLoggedRankTrialWorkingSet }
+    }
+
+    /// "passed / scored" stations, e.g. "4/4", for the minted gate card.
+    private func gateDefiningNumber(_ evaluation: OverallRankTrialEvaluation) -> String {
+        let scored = evaluation.stationResults.filter(\.isScored)
+        let passed = scored.filter { $0.status == .passed }.count
+        return "\(passed)/\(scored.count)"
+    }
+
+    /// The Crossing IS the rank-up announcement, so the chained reward tail drops
+    /// the redundant rank-trial receipt beat and keeps only the rest of the spoils.
+    private func gateRewardTail(from summary: WorkoutRewardSequenceSummary) -> WorkoutRewardSequenceSummary? {
+        var tail = summary
+        tail.rankTrialCallout = nil
+        let hasTailReward = totalLoggedWorkingSets > 0
+            || tail.progression?.hasContent == true
+            || tail.weeklyVowCallout != nil
+            || !tail.badges.isEmpty
+            || tail.xp.total > 0
+        return hasTailReward ? tail : nil
     }
 
     private func finishDismiss() {
@@ -817,197 +759,10 @@ struct ActiveWorkoutContainerView: View {
         rewardSequence = nil
         finishDismiss()
     }
-
-    private func makeRewardSequenceSummary(
-        performanceLog: PerformanceLog,
-        completionResult: TrainingCompletionResult,
-        rankTrialResult: OverallRankTrialRunResult?,
-        weeklyVowReceipt: WeeklyVowCompletionReceipt?
-    ) -> WorkoutRewardSequenceSummary {
-        let loggedSets = session.exercises
-            .filter { !$0.skipped }
-            .flatMap(\.sets)
-            .filter { !$0.isWarmup && $0.logged }
-        let workSets = loggedSets.count
-        let rewardSummary: RewardSummary? = {
-            guard let rankUp = rankTrialResult?.rankUp else { return nil }
-            var summary = RewardSummary()
-            summary.rankUp = rankUp
-            summary.skillTitle = rankUp.skillTitle
-            summary.progression = completionResult.progressionReceipt
-            return summary
-        }()
-
-        var summary = WorkoutRewardSequenceSummary.trainingReceipt(
-            performanceLog: performanceLog,
-            completionResult: completionResult,
-            rewardSummary: rewardSummary,
-            fallbackXP: workSets * 12,
-            sourceName: weeklyVowReceipt == nil ? session.source.rawValue.capitalized : "Binding Vow",
-            weeklyVowCallout: weeklyVowReceipt?.callout
-        )
-        summary.rankTrialCallout = rankTrialResult.map(rankTrialCallout)
-        return summary
-    }
-
-    private func rankTrialCallout(_ result: OverallRankTrialRunResult) -> RankTrialRewardCallout {
-        let failed = result.evaluation.failedStation
-        let clearedCount = result.evaluation.stationResults.filter { $0.status == .passed }.count
-        let totalCount = result.evaluation.stationResults.count
-        let detail = failed.map { station in
-            station.failureReason.map { "\(station.title): \($0)" } ?? station.title
-        } ?? "\(clearedCount)/\(totalCount) stations cleared"
-
-        return RankTrialRewardCallout(
-            id: result.attempt.id,
-            title: result.definition.displayName,
-            subtitle: result.attempt.passed ? "\(result.definition.targetRank.displayName) gate cleared" : "\(result.definition.targetRank.displayName) gate held",
-            statusLine: result.attempt.passed ? "Official result saved" : "First failed station saved",
-            detailLine: detail,
-            receiptLine: "\(clearedCount)/\(totalCount) stations cleared",
-            passed: result.attempt.passed
-        )
-    }
 }
 
-// MARK: - Bottom-docked editing (drives the shared NumberPadEditorModel)
-//
-// Builds the per-cell NumberPadCellConfig (label/unit/seed/placeholder + the
-// live-write/commit/RPE-pick closures) the shared module needs. The state machine
-// and dock chrome live in NumberPadEditor.swift; this just wires the session.
-
-private extension ActiveWorkoutContainerView {
+extension ActiveWorkoutContainerView {
     var editWeightUnit: TrainingWeightUnit {
         TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
-    }
-
-    func beginEdit(ei: Int, si: Int, field: ActiveCell.Field) {
-        let target = ActiveCell(ei: ei, si: si, field: field)
-        keypad.begin(target, config: config(for: target))
-    }
-
-    func config(for target: ActiveCell) -> NumberPadCellConfig {
-        if target.field == .rpe {
-            return NumberPadCellConfig(
-                kind: .rpe,
-                rpeValue: currentRPE(target.ei, target.si),
-                rpePick: { value in
-                    session.setRPE(exerciseIndex: target.ei, setIndex: target.si, value)
-                    saveDraft()
-                }
-            )
-        }
-        return NumberPadCellConfig(
-            kind: .numeric(allowsDecimal: target.isWeight),
-            label: editLabel(target),
-            unit: editUnit(target),
-            placeholder: editPlaceholder(target),
-            seed: seedBuffer(for: target),
-            liveWrite: { buffer in writeLive(target, buffer: buffer) },
-            commitWrite: { saveDraft() }
-        )
-    }
-
-    /// Write the typed buffer into the session live (so the row updates as you
-    /// type). Mirrors the prior writeLive; never touches `.logged`.
-    func writeLive(_ target: ActiveCell, buffer: String) {
-        guard session.exercises.indices.contains(target.ei),
-              session.exercises[target.ei].sets.indices.contains(target.si) else { return }
-        let parsed = Double(buffer)
-        session.objectWillChange.send()
-        if target.isWeight {
-            if let parsed, parsed > 0 {
-                session.exercises[target.ei].sets[target.si].weightKg =
-                    WeightPlatePolicy.kilograms(fromDisplayValue: parsed, unit: editWeightUnit)
-            } else {
-                session.exercises[target.ei].sets[target.si].weightKg = nil
-            }
-            return
-        }
-        let intValue = parsed.map { Int($0) }
-        let value = (intValue ?? 0) > 0 ? intValue : nil
-        switch session.exercises[target.ei].metricKind {
-        case .reps: session.exercises[target.ei].sets[target.si].reps = value
-        case .holdSeconds: session.exercises[target.ei].sets[target.si].holdSeconds = value
-        case .durationSeconds: session.exercises[target.ei].sets[target.si].durationSeconds = value
-        case .distanceMeters: session.exercises[target.ei].sets[target.si].distanceMeters = value
-        case .calories: session.exercises[target.ei].sets[target.si].calories = value
-        }
-    }
-
-    func seedBuffer(for target: ActiveCell) -> String {
-        guard session.exercises.indices.contains(target.ei),
-              session.exercises[target.ei].sets.indices.contains(target.si) else { return "" }
-        let set = session.exercises[target.ei].sets[target.si]
-        if target.isWeight {
-            guard let kg = set.weightKg else { return "" }
-            return displayNumber(WeightPlatePolicy.editingValue(fromKilograms: kg, unit: editWeightUnit))
-        }
-        switch session.exercises[target.ei].metricKind {
-        case .reps: return set.reps.map(String.init) ?? ""
-        case .holdSeconds: return set.holdSeconds.map(String.init) ?? ""
-        case .durationSeconds: return set.durationSeconds.map(String.init) ?? ""
-        case .distanceMeters: return set.distanceMeters.map(String.init) ?? ""
-        case .calories: return set.calories.map(String.init) ?? ""
-        }
-    }
-
-    func editPlaceholder(_ target: ActiveCell) -> String {
-        guard session.exercises.indices.contains(target.ei),
-              session.exercises[target.ei].sets.indices.contains(target.si) else { return "—" }
-        let set = session.exercises[target.ei].sets[target.si]
-        if target.isWeight {
-            guard let kg = set.suggestedWeightKg ?? set.weightKg else { return "—" }
-            return displayNumber(WeightPlatePolicy.editingValue(fromKilograms: kg, unit: editWeightUnit))
-        }
-        let value: Int?
-        switch session.exercises[target.ei].metricKind {
-        case .reps: value = set.suggestedReps ?? set.reps
-        case .holdSeconds: value = set.suggestedHoldSeconds ?? set.holdSeconds
-        case .durationSeconds: value = set.suggestedDurationSeconds ?? set.durationSeconds
-        case .distanceMeters: value = set.suggestedDistanceMeters ?? set.distanceMeters
-        case .calories: value = set.suggestedCalories ?? set.calories
-        }
-        return value.map(String.init) ?? "—"
-    }
-
-    func editLabel(_ target: ActiveCell) -> String {
-        guard session.exercises.indices.contains(target.ei) else { return "Value" }
-        let exercise = session.exercises[target.ei]
-        if target.isWeight {
-            let isHold = exercise.blockKind == .carry
-                || exercise.metricKind == .holdSeconds
-                || exercise.metricKind == .durationSeconds
-            return isHold ? "Load" : "Weight"
-        }
-        switch exercise.metricKind {
-        case .reps: return "Reps"
-        case .holdSeconds: return "Hold"
-        case .durationSeconds: return "Time"
-        case .distanceMeters: return "Distance"
-        case .calories: return "Calories"
-        }
-    }
-
-    func editUnit(_ target: ActiveCell) -> String? {
-        if target.isWeight { return editWeightUnit.shortLabel }
-        guard session.exercises.indices.contains(target.ei) else { return nil }
-        switch session.exercises[target.ei].metricKind {
-        case .reps: return nil
-        case .holdSeconds, .durationSeconds: return "sec"
-        case .distanceMeters: return "m"
-        case .calories: return "cal"
-        }
-    }
-
-    func currentRPE(_ ei: Int, _ si: Int) -> Int? {
-        guard session.exercises.indices.contains(ei),
-              session.exercises[ei].sets.indices.contains(si) else { return nil }
-        let set = session.exercises[ei].sets[si]
-        return set.rpe ?? set.suggestedRPE
-    }
-
-    func displayNumber(_ value: Double) -> String {
-        value == value.rounded() ? String(Int(value)) : String(format: "%g", value)
     }
 }

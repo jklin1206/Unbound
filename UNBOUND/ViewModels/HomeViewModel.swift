@@ -32,8 +32,15 @@ final class HomeViewModel: ObservableObject {
     @Published var calibrationSkipRatio: Double = 0
     @Published var hasLoggedAnyWorkout: Bool = false
     @Published var lastLog: WorkoutLog?
+    /// Today's-quest-cleared detection reads both records: synced `workoutLogs`
+    /// (what a restore/new device sees) and local `performanceLogs` (catches
+    /// cardio-/routine-only quests that produce no derived WorkoutLog).
+    @Published var recentLogs: [WorkoutLog] = []
+    @Published var recentPerformanceLogs: [PerformanceLog] = []
     @Published var weekSessionDays: Set<Int> = [] // Mon=1...Sun=7
     @Published var bodyRegionLoads: [BodyRegion: Double] = [:]
+    @Published var bodyRegionStatuses: [BodyRegion: BodyLoadRegionStatus] = [:]
+    @Published var progressionStates: [String: ProgressionState] = [:]
 
     // Attribute profile (Phase 8+)
     @Published var attributeProfile: AttributeProfile = AttributeProfile.empty(userId: "", at: .now)
@@ -102,8 +109,10 @@ final class HomeViewModel: ObservableObject {
         }()
         async let profileProgram: (UserProfile?, TrainingProgram?) = loadProfileAndProgram(userId)
         async let recentLogs: [WorkoutLog] = fetchRecentLogsSafe(userId: userId, limit: 40)
+        async let recentPerfLogs: [PerformanceLog] = fetchRecentPerformanceLogsSafe(userId: userId, limit: 40)
         async let weightLogs: [BodyWeightLog] = fetchBodyWeightLogsSafe(userId: userId, limit: 30)
         async let travel: TravelOverride? = TravelOverrideStore.shared.activeOverride(for: userId)
+        async let progressions: [ProgressionState] = ProgressionStateStore.shared.fetchAll(userId: userId)
 
         _ = await skillLoad
         _ = await rankDecay
@@ -116,8 +125,12 @@ final class HomeViewModel: ObservableObject {
         }
 
         applyRecentLogs(await recentLogs)
+        recentPerformanceLogs = await recentPerfLogs
         bodyWeightLogs = await weightLogs
         activeTravelOverride = await travel
+        progressionStates = Dictionary(
+            uniqueKeysWithValues: (await progressions).map { (MovementCatalog.normalized($0.exerciseKey), $0) }
+        )
 
         let history = (try? ScanCheckpointStore.shared.history(userId: userId)) ?? []
         lastScanAt = history.last?.createdAt
@@ -189,6 +202,17 @@ final class HomeViewModel: ObservableObject {
         (try? await services.workoutLog.fetchRecentLogs(userId: userId, limit: limit)) ?? []
     }
 
+    func fetchRecentPerformanceLogsSafe(userId: String, limit: Int) async -> [PerformanceLog] {
+        (try? await services.database.query(
+            collection: "performanceLogs",
+            field: "userId",
+            isEqualTo: userId,
+            orderBy: "completedAt",
+            descending: true,
+            limit: limit
+        )) ?? []
+    }
+
     func fetchBodyWeightLogsSafe(userId: String, limit: Int) async -> [BodyWeightLog] {
         let logs: [BodyWeightLog] = (try? await services.database.query(
             collection: "bodyWeightLogs",
@@ -202,10 +226,17 @@ final class HomeViewModel: ObservableObject {
     }
 
     func applyRecentLogs(_ logs: [WorkoutLog]) {
+        recentLogs = logs
         lastLog = HomeLoadDerivations.lastLog(logs)
         hasLoggedAnyWorkout = HomeLoadDerivations.hasLogged(logs)
         weekSessionDays = HomeLoadDerivations.weekSessionDays(logs.map(\.startedAt))
-        bodyRegionLoads = HomeLoadDerivations.bodyRegionLoads(logs)
+        let statuses = HomeLoadDerivations.bodyRegionStatuses(logs)
+        bodyRegionStatuses = statuses
+        bodyRegionLoads = statuses.reduce(into: [:]) { result, entry in
+            if entry.value.load > 0.05 {
+                result[entry.key] = entry.value.load
+            }
+        }
     }
 
     // MARK: - Refresh
@@ -214,6 +245,13 @@ final class HomeViewModel: ObservableObject {
         guard let userId = services.auth.currentUserId else { return }
         aggregateRank = await services.rank.aggregateRank(userId: userId)
         aggregateTier = await services.rank.aggregateTier(userId: userId)
+        // Recompute the rank-gate readiness too, so passing a gate advances the
+        // Home world card to the next gate (and a workout that meets a key flips
+        // its requirement) without an app relaunch.
+        overallRankTrialReadiness = await TrialReadinessService.shared.readiness(
+            userId: userId,
+            services: services
+        )
     }
 
     func refreshTravelOverride() async {
@@ -223,7 +261,10 @@ final class HomeViewModel: ObservableObject {
 
     func refreshRecentTrainingSignals() async {
         guard let userId = services.auth.currentUserId else { return }
-        applyRecentLogs(await fetchRecentLogsSafe(userId: userId, limit: 40))
+        async let logs = fetchRecentLogsSafe(userId: userId, limit: 40)
+        async let perfLogs = fetchRecentPerformanceLogsSafe(userId: userId, limit: 40)
+        applyRecentLogs(await logs)
+        recentPerformanceLogs = await perfLogs
     }
 
     func refreshBodyWeightLogs() async {
@@ -332,30 +373,32 @@ final class HomeViewModel: ObservableObject {
     }
 
     var todayProgramDay: ProgramDay? {
-        // Travel override short-circuits the normal rotation.
-        if let override = activeTravelOverride, let tday = override.day(for: Date()) {
-            return synthesizeTravelDay(from: tday, override: override)
-        }
         guard let program else { return nil }
-        guard !program.days.isEmpty else { return nil }
-        let daysSinceStart = max(
-            0,
-            Calendar.current.dateComponents([.day], from: program.createdAt, to: Date()).day ?? 0
+        return ProgramOverviewDayResolver(
+            userId: services.auth.currentUserId,
+            activeTravelOverride: activeTravelOverride,
+            scheduleRevision: 0,
+            scheduleStore: ProgramScheduleStore.shared,
+            calendar: .current
         )
-        let dayIndex = daysSinceStart % program.days.count
-        return program.days[dayIndex]
+        .day(for: Date(), in: program)
     }
 
-    func synthesizeTravelDay(from tday: TravelDay, override: TravelOverride) -> ProgramDay {
-        let workout = tday.workout(summary: "Travel block: \(override.summary)")
-        return ProgramDay(
-            id: "travel-home",
-            dayNumber: 0,
-            label: tday.isRest ? "TRAVEL · REST" : "TRAVEL · \(tday.title)",
-            isRestDay: tday.isRest,
-            workout: workout,
-            nutritionOverride: nil,
-            recoveryActivities: []
+    /// True when today's displayed program quest has actually been completed —
+    /// the signal that drives the Home "cleared" state. Keys off the program day
+    /// (not streak XP), so a rank trial or extra session can't falsely clear the
+    /// quest; reads synced workoutLogs (restore/new-device) and local
+    /// performanceLogs (cardio-/routine-only quests).
+    var todayProgramDayLogged: Bool {
+        guard let program,
+              let day = todayProgramDay,
+              day.canStartWorkoutSession
+        else { return false }
+        return HomeLoadDerivations.didCompleteProgramDayToday(
+            workoutLogs: recentLogs,
+            performanceLogs: recentPerformanceLogs,
+            programId: program.id,
+            dayNumber: day.dayNumber
         )
     }
 

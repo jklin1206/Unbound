@@ -12,7 +12,7 @@ extension ProgramOverviewView {
     }
 
     func emptyCustomWorkoutDraft(
-        title: String = "Planned Workout",
+        title: String = "Planned Loadout",
         date: Date? = nil
     ) -> TrainingSessionDraft? {
         guard let planningCoordinator else {
@@ -28,7 +28,7 @@ extension ProgramOverviewView {
     func openPlanAheadEditor() {
         let date = selectedPlanningDate()
         let draft = draftForBuildEditor(on: date)
-            ?? emptyCustomWorkoutDraft(title: "Built Workout", date: date)
+            ?? emptyCustomWorkoutDraft(title: "Built Loadout", date: date)
         guard let draft else { return }
         planningTargetDate = date
         planningWorkoutDraft = draft
@@ -36,7 +36,7 @@ extension ProgramOverviewView {
 
     func openCreateWorkoutEditor(date: Date? = nil) {
         let targetDate = date ?? selectedPlanningDate()
-        guard let draft = emptyCustomWorkoutDraft(title: "New Workout", date: targetDate) else { return }
+        guard let draft = emptyCustomWorkoutDraft(title: "New Loadout", date: targetDate) else { return }
         planningTargetDate = targetDate
         planningWorkoutDraft = draft
     }
@@ -184,7 +184,7 @@ extension ProgramOverviewView {
     }
 
     func saveWorkoutToLibrary(_ draft: TrainingSessionDraft) {
-        autoSaveBuiltWorkoutToLibrary(draft, fallbackTitle: "Saved Workout")
+        autoSaveBuiltWorkoutToLibrary(draft, fallbackTitle: "Saved Loadout")
         savedWorkoutLibraryRevision += 1
         savedWorkoutEditorDraft = nil
     }
@@ -195,7 +195,7 @@ extension ProgramOverviewView {
     /// duplicate.
     private func autoSaveBuiltWorkoutToLibrary(
         _ draft: TrainingSessionDraft,
-        fallbackTitle: String = "Built Workout"
+        fallbackTitle: String = "Built Loadout"
     ) {
         let exerciseCount = draft.blocks.reduce(0) { $0 + $1.prescriptions.count }
         guard exerciseCount > 0 else { return }
@@ -244,7 +244,7 @@ extension ProgramOverviewView {
         return programDraft(from: day, date: date)
     }
 
-    func openStartEmptyWorkout(title: String = "Extra Session") {
+    func openStartEmptyWorkout(title: String = "Extra Quest") {
         if !services.entitlement.isEntitled {
             showPaywall = true
             return

@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Date picker presented when the user taps Schedule on a saved workout.
-/// Picks an explicit calendar day; the parent places the workout there and
-/// jumps to it on the PROGRAM tab.
+/// Date picker presented when the user taps Schedule on a saved loadout.
+/// Picks an explicit calendar day; the parent places the loadout there and
+/// jumps to it on the Daily tab.
 struct ScheduleWorkoutDateSheet: View {
     let workout: SavedWorkout
     let today: Date
@@ -55,7 +55,7 @@ struct ScheduleWorkoutDateSheet: View {
                         UnboundHaptics.medium()
                         onSchedule(selectedDate)
                     } label: {
-                        Text("SCHEDULE")
+                        Text("SCHEDULE LOADOUT")
                             .font(Font.unbound.bodyMStrong)
                             .tracking(1.6)
                             .foregroundStyle(Color.unbound.textPrimary)
@@ -72,7 +72,7 @@ struct ScheduleWorkoutDateSheet: View {
                 }
                 .padding(20)
             }
-            .navigationTitle("Schedule")
+            .navigationTitle("Schedule Loadout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

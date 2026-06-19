@@ -35,7 +35,7 @@ struct TrialPickerSheet: View {
                     }
                 }
             }
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
@@ -53,11 +53,11 @@ struct TrialPickerSheet: View {
             Text("Choose your vow")
                 .font(.system(size: 24, weight: .black))
                 .foregroundStyle(Color.unbound.textPrimary)
-            Text("Pick one focused condition. Clear the standard. Keep the week moving.")
+            Text("Log toward the target all week — hit it and the vow seals.")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+                .padding(.horizontal, 28)
         }
         .padding(.top, 24)
         .padding(.bottom, 20)
@@ -72,7 +72,7 @@ struct TrialPickerSheet: View {
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
-        .frame(height: 480)
+        .frame(height: 360)
         .animation(.spring(response: 0.38, dampingFraction: 0.82), value: selectedIndex)
     }
 
@@ -94,7 +94,7 @@ struct TrialPickerSheet: View {
     @ViewBuilder
     private var commitButton: some View {
         if let card = selectedCard {
-            let tint = card.theme.tintColor
+            let tint = card.lane.tintColor
             Button {
                 UnboundHaptics.medium()
                 onPick(card)
@@ -172,7 +172,7 @@ struct TrialPickerSheet: View {
     }
 
     private var currentTint: Color {
-        selectedCard?.theme.tintColor ?? Color.unbound.accent
+        selectedCard?.lane.tintColor ?? Color.unbound.accent
     }
 }
 
@@ -182,31 +182,28 @@ struct TrialPickerSheet: View {
     TrialPickerSheet(
         cards: [
             TrialCard(
-                id: "weekly-vow-W20-ember",
-                kind: .ember,
-                theme: .axis(.power),
+                id: "weekly-vow-W20-recovery",
+                lane: .recovery,
+                bet: .small,
                 displayName: "Iron Reset",
-                blurb: "A low-day proof for clean power work.",
-                capstone: TrialCapstone(displayName: "Low-Day Proof", description: "Complete easy power work.", evaluation: .manualClaim),
-                prescription: WeeklyVowPrescription(placement: .recoveryDay, minMinutes: 8, maxMinutes: 12, minRPE: 3, maxRPE: 5)
+                blurb: "A low-day reset that protects recovery.",
+                target: VowTarget(count: 1, noun: "recovery reset")
             ),
             TrialCard(
-                id: "weekly-vow-W20-overdrive",
-                kind: .overdrive,
-                theme: .axis(.mobility),
-                displayName: "Flow Finish",
-                blurb: "A controlled finisher after training.",
-                capstone: TrialCapstone(displayName: "Flow Session", description: "Complete a 10-minute mobility circuit.", evaluation: .manualClaim),
-                prescription: WeeklyVowPrescription(placement: .afterWorkout, minMinutes: 6, maxMinutes: 12, minRPE: 7, maxRPE: 8)
+                id: "weekly-vow-W20-fuel",
+                lane: .fuel,
+                bet: .medium,
+                displayName: "Fuel Anchor",
+                blurb: "Hit your fuel anchors this week.",
+                target: VowTarget(count: 3, noun: "fuel anchor")
             ),
             TrialCard(
-                id: "weekly-vow-W20-apex",
-                kind: .apex,
-                theme: .wildcard,
-                displayName: "Pull-Up Standard",
-                blurb: "A dedicated weekend proof.",
-                capstone: TrialCapstone(displayName: "Circuit Finisher", description: "20-min AMRAP, 4 movements.", evaluation: .manualClaim),
-                prescription: WeeklyVowPrescription(placement: .dedicatedSession, minMinutes: 20, maxMinutes: 45, minRPE: 8, maxRPE: 9)
+                id: "weekly-vow-W20-engine",
+                lane: .engine,
+                bet: .large,
+                displayName: "Engine Build",
+                blurb: "A dedicated weekend conditioning push.",
+                target: VowTarget(count: 2, noun: "engine session")
             )
         ],
         onPick: { _ in }
