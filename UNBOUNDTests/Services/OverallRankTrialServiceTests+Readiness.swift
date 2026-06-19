@@ -15,8 +15,8 @@ extension OverallRankTrialServiceTests {
         )
 
         XCTAssertEqual(readiness.status, .locked)
+        // Accumulated-rank requirement was folded out; level alone gates here.
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .rank })
     }
 
     func testReadinessBecomesReadyWhenBothGatesAreMet() {
@@ -72,7 +72,6 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(readiness.targetRank, .apprentice)
         XCTAssertEqual(readiness.definition?.id, definition.id)
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .rank })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
     }
 
@@ -85,7 +84,7 @@ extension OverallRankTrialServiceTests {
                 overallLevel: definition.minOverallLevel,
                 aggregateRank: definition.targetRank,
                 equipment: readyEquipment(),
-                clearedGateKeys: []
+                clearedGateKeys: clearedGateKeyIds(for: definition)
             )
         )
 
@@ -115,7 +114,6 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(readiness.targetRank, .forged)
         XCTAssertEqual(readiness.definition?.id, definition.id)
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .rank })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
     }
 
@@ -218,7 +216,7 @@ extension OverallRankTrialServiceTests {
                 overallLevel: definition.minOverallLevel,
                 aggregateRank: definition.targetRank,
                 equipment: [.bodyweight, .openSpace],
-                clearedGateKeys: []
+                clearedGateKeys: clearedGateKeyIds(for: definition)
             )
         )
 
@@ -238,7 +236,7 @@ extension OverallRankTrialServiceTests {
                 overallLevel: definition.minOverallLevel,
                 aggregateRank: definition.targetRank,
                 equipment: readyEquipment(),
-                clearedGateKeys: []
+                clearedGateKeys: clearedGateKeyIds(for: definition)
             )
         )
 
@@ -267,7 +265,6 @@ extension OverallRankTrialServiceTests {
         XCTAssertEqual(readiness.targetRank, .master)
         XCTAssertEqual(readiness.definition?.id, definition.id)
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .overallLevel })
-        XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .rank })
         XCTAssertTrue(readiness.missingRequirements.contains { $0.kind == .equipment })
     }
 
@@ -311,7 +308,6 @@ extension OverallRankTrialServiceTests {
             XCTAssertEqual(locked.targetRank, definition.targetRank, definition.displayName)
             XCTAssertEqual(locked.definition?.id, definition.id, definition.displayName)
             XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .overallLevel }, definition.displayName)
-            XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .rank }, definition.displayName)
             XCTAssertTrue(locked.missingRequirements.contains { $0.kind == .equipment }, definition.displayName)
 
             let ready = TrialReadinessService.shared.evaluate(

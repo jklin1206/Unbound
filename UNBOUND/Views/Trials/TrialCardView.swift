@@ -13,8 +13,14 @@ struct TrialCardView: View {
 
     private var tint: Color { card.lane.tintColor }
 
+    /// The whole point of the vow, in plain words: "Log 3 fuel anchors".
+    private var goalText: String {
+        let plural = card.target.count == 1 ? card.target.noun : "\(card.target.noun)s"
+        return "Log \(card.target.count) \(plural)"
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 16) {
             // ── Lane tag row ───────────────────────────────────────────
             HStack(spacing: 8) {
                 Text(card.lane.displayLabel)
@@ -31,38 +37,40 @@ struct TrialCardView: View {
                 betBadge
             }
 
-            Spacer().frame(height: 14)
+            // ── Sigil + the goal, big ─────────────────────────────────
+            HStack(alignment: .center, spacing: 14) {
+                WeeklyVowProofAsset(lane: card.lane, tint: tint)
+                    .frame(width: 54, height: 54)
+                    .accessibilityHidden(true)
 
-            WeeklyVowProofAsset(lane: card.lane, tint: tint)
-                .frame(width: 60, height: 60)
-                .accessibilityHidden(true)
-
-            Spacer().frame(height: 10)
-
-            // ── Big title ─────────────────────────────────────────────
-            Text(card.displayName)
-                .font(.system(size: 30, weight: .black))
-                .foregroundStyle(Color.unbound.textPrimary)
-                .lineLimit(2)
-                .minimumScaleFactor(0.72)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer().frame(height: 10)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(card.displayName.uppercased())
+                        .font(.system(size: 10.5, weight: .heavy, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(tint)
+                        .lineLimit(1)
+                    Text(goalText)
+                        .font(.system(size: 26, weight: .black))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.7)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
 
             // ── Blurb ─────────────────────────────────────────────────
             Text(card.blurb)
-                .font(Font.unbound.bodyS)
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Color.unbound.textSecondary)
                 .lineSpacing(2)
-                .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Spacer(minLength: 16)
-
             vowTerms
+
+            Spacer(minLength: 0)
         }
         .padding(22)
-        .frame(maxWidth: .infinity, minHeight: 460, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 300, alignment: .topLeading)
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -106,41 +114,35 @@ struct TrialCardView: View {
             )
     }
 
+    // How to complete it + what's at stake, in plain readable rows.
     private var vowTerms: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            vowTermRow(label: "TARGET", text: card.target.displayText)
-            vowTermRow(label: "WHEN", text: windowSummary)
-            vowTermRow(label: "STAKES", text: "Win +\(card.bet.winXP) XP · Miss −\(card.bet.oweXP) XP")
+        VStack(alignment: .leading, spacing: 10) {
+            termRow(icon: "calendar", text: "Log one a day — self-reported this week")
+            termRow(icon: "trophy.fill", text: "Win +\(card.bet.winXP) XP   ·   Miss −\(card.bet.oweXP) XP")
         }
-        .padding(8)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.bg.opacity(0.30))
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.35))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(tint.opacity(0.18), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(tint.opacity(0.20), lineWidth: 1)
         )
     }
 
-    private var windowSummary: String {
-        "Self-report this week"
-    }
-
-    private func vowTermRow(label: String, text: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(label)
-                .font(.system(size: 7.5, weight: .black, design: .monospaced))
-                .tracking(1.0)
+    private func termRow(icon: String, text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(tint)
-                .frame(width: 48, alignment: .leading)
-
+                .frame(width: 20)
             Text(text)
-                .font(.system(size: 9.5, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.unbound.textSecondary)
-                .lineLimit(2)
-                .minimumScaleFactor(0.76)
                 .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
         }
     }
 

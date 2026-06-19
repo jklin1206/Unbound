@@ -101,13 +101,17 @@ final class AttributeContributionCatalogTests: XCTestCase {
         let explosiveExercises = exercises.filter { _, weights in
             (weights["explosiveness"] ?? 0) > 0
         }
-        let weightedShare = explosiveExercises.reduce(0.0) { partial, entry in
-            partial + (entry.value["explosiveness"] ?? 0)
-        } / Double(exercises.count)
-        XCTAssertGreaterThanOrEqual(explosiveExercises.count, 40,
-            "Explosiveness should cover obvious fast-force movements, not just one or two entries.")
-        XCTAssertGreaterThanOrEqual(weightedShare, 0.055,
-            "Explosiveness should have enough total catalog weight to be visible in progression.")
+        // Concentrated design (AP-GATE-REDESIGN §2): the reward lives on genuinely
+        // explosive movements, not smeared thin across every press/row.
+        let heavy = explosiveExercises.filter { ($0.value["explosiveness"] ?? 0) >= 0.8 }
+        XCTAssertGreaterThanOrEqual(heavy.count, 2,
+            "Truly explosive moves (jump squat, etc.) must carry heavy explosiveness weight.")
+        XCTAssertGreaterThanOrEqual(explosiveExercises.count, 15,
+            "Explosiveness still covers the explosive + power-ish movements...")
+        XCTAssertLessThanOrEqual(explosiveExercises.count, 45,
+            "...but stays concentrated, not smeared across the whole catalog.")
+        XCTAssertEqual(exercises["machine chest press"]?["explosiveness"] ?? 0, 0, accuracy: 0.001,
+            "The old token explosiveness smear on non-explosive machine work is gone.")
     }
 
     func testMobilityCoverageStaysNarrowAndROMBiased() {
@@ -118,8 +122,11 @@ final class AttributeContributionCatalogTests: XCTestCase {
         let mobilityExercises = exercises.compactMap { name, weights in
             (weights["mobility"] ?? 0) > 0 ? name : nil
         }
-        XCTAssertLessThanOrEqual(mobilityExercises.count, 12,
-            "Mobility should stay narrow; normal lifts should not casually grant it.")
+        // Mobility now also rewards deep-range calisthenics (pistols, shrimps, levers,
+        // planche, pike) per AP-GATE-REDESIGN §2 — broader than before, but normal
+        // lifts still must not casually grant it.
+        XCTAssertLessThanOrEqual(mobilityExercises.count, 30,
+            "Mobility should stay ROM-biased; normal lifts should not casually grant it.")
         XCTAssertFalse(mobilityExercises.contains("face pull"))
         XCTAssertFalse(mobilityExercises.contains("incline dumbbell curl"))
         XCTAssertTrue(mobilityExercises.contains("cossack squat"))

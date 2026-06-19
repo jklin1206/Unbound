@@ -72,7 +72,7 @@ struct TrialPickerSheet: View {
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
-        .frame(height: 480)
+        .frame(height: 360)
         .animation(.spring(response: 0.38, dampingFraction: 0.82), value: selectedIndex)
     }
 

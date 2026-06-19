@@ -39,27 +39,39 @@ extension UnboundHomeView {
         .padding(.bottom, 2)
     }
 
-    @ViewBuilder
     private var rankGateBlock: some View {
-        if let readiness = model.overallRankTrialReadiness,
-           let definition = readiness.definition {
-            VStack(spacing: 10) {
-                NextGateCard(
-                    readiness: readiness,
-                    world: GateWorldCatalog.world(for: definition.format),
-                    onBegin: { enterRankGate(definition) }
-                )
-                HomeGateProgressionStrip(states: gateMarkerStates(), onTap: { showTrialRecords = true })
+        HomeTrialDeck(
+            gates: trialDeckGates,
+            currentReadiness: model.overallRankTrialReadiness,
+            onBegin: {
+                if let definition = model.overallRankTrialReadiness?.definition {
+                    enterRankGate(definition)
+                }
+            },
+            onShowRecords: { showTrialRecords = true }
+        )
+    }
+
+    /// All gate worlds with their cleared / current / locked state, in order — the
+    /// swipeable deck source.
+    private var trialDeckGates: [HomeTrialDeck.Gate] {
+        let passedRanks = Set(rankGateProgress.attempts.filter { $0.passed }.map { $0.targetRank })
+        let currentFormat = model.overallRankTrialReadiness?.definition?.format
+        return RankTrialFormat.allCases.enumerated().map { index, format in
+            let definition = OverallRankTrialDefinitions.all.first { $0.format == format }
+            let state: HomeTrialDeck.GateState
+            if let definition, passedRanks.contains(definition.targetRank) {
+                state = .cleared
+            } else if format == currentFormat {
+                state = .current
+            } else {
+                state = .locked
             }
-        } else if passedGateCount >= RankTrialFormat.allCases.count {
-            VStack(spacing: 10) {
-                HomeAllGatesClearedCard(peakRankName: model.aggregateTier.displayName)
-                HomeGateProgressionStrip(states: gateMarkerStates(), onTap: { showTrialRecords = true })
-            }
-        } else {
-            HomeRankGateLockedRow(
-                detail: "No gate available",
-                onTap: { showTrialRecords = true }
+            return HomeTrialDeck.Gate(
+                id: index,
+                format: format,
+                world: GateWorldCatalog.world(for: format),
+                state: state
             )
         }
     }
@@ -83,19 +95,6 @@ extension UnboundHomeView {
     /// Distinct ranks whose gate has at least one passing attempt.
     var passedGateCount: Int {
         Set(rankGateProgress.attempts.filter { $0.passed }.map { $0.targetRank }).count
-    }
-
-    /// Per-gate state for the progression strip — cleared (passed), current (the
-    /// gate you're working on now), or locked.
-    func gateMarkerStates() -> [HomeGateMarkerState] {
-        let passedRanks = Set(rankGateProgress.attempts.filter { $0.passed }.map { $0.targetRank })
-        let currentFormat = model.overallRankTrialReadiness?.definition?.format
-        return RankTrialFormat.allCases.map { format in
-            let def = OverallRankTrialDefinitions.all.first { $0.format == format }
-            if let def, passedRanks.contains(def.targetRank) { return .cleared }
-            if format == currentFormat { return .current }
-            return .locked
-        }
     }
 
     /// ENTER on the world card → straight into the trial workout cover (no detail

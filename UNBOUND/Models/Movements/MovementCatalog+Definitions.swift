@@ -11,7 +11,7 @@ extension MovementCatalog {
             blockKind: .cardio,
             loggerMode: .cardio,
             aliases: cardioAliases(for: type),
-            attributeWeights: [.endurance: 0.75, .power: 0.1, .control: 0.15],
+            attributeWeights: [.endurance: 0.45, .vitality: 0.4, .power: 0.05, .control: 0.1],
             canonicalExerciseName: nil,
             skillId: nil,
             cardioType: type,
@@ -80,7 +80,7 @@ extension MovementCatalog {
             blockKind: .carry,
             loggerMode: .carry,
             aliases: aliases,
-            attributeWeights: [.power: 0.4, .control: 0.3, .endurance: 0.3],
+            attributeWeights: [.power: 0.33, .control: 0.25, .endurance: 0.22, .vitality: 0.2],
             canonicalExerciseName: nil,
             skillId: nil,
             cardioType: nil,
@@ -361,18 +361,37 @@ extension MovementCatalog {
     }
 
     static func skillAttributeWeights(for node: SkillNode) -> [AttributeKey: Double] {
+        // Per-movement first (by id token): dynamic skills earn explosiveness, deep-
+        // range/extreme-position skills earn mobility — robust to the cluster a node
+        // happens to sit in (e.g. levers are filed under .pullingPower).
+        if let w = skillMovementAttributeWeights(forId: node.id) { return w }
         switch node.cluster {
         case .pullingPower:
             return [.power: 0.45, .control: 0.3, .endurance: 0.25]
         case .calisthenicControl, .planche, .handstand, .handstandPushup, .oneArmHandstand:
             return [.control: 0.55, .power: 0.25, .endurance: 0.2]
         case .coreLever:
-            return [.control: 0.65, .power: 0.2, .endurance: 0.15]
+            return [.control: 0.6, .power: 0.2, .endurance: 0.2]
         case .legDominance:
             return [.power: 0.45, .control: 0.35, .endurance: 0.2]
         case .conditioning:
             return [.endurance: 0.7, .power: 0.15, .control: 0.15]
         }
+    }
+
+    /// Per-movement attribution shared by skill nodes AND their drills, keyed on the
+    /// id/skill-id token so it lands the same whether a calisthenics movement resolves
+    /// to a skill node, a skill-drill, or sits in an off-theme cluster. Dynamic skills
+    /// → explosiveness; deep-range/extreme-position skills → mobility. Returns nil to
+    /// fall through to the cluster default. Each set sums to 1.0.
+    static func skillMovementAttributeWeights(forId id: String) -> [AttributeKey: Double]? {
+        if ["muscle-up", "explosive", "clap", "jump", "plyo"].contains(where: { id.contains($0) }) {
+            return [.explosiveness: 0.4, .power: 0.35, .control: 0.15, .endurance: 0.1]
+        }
+        if ["lever", "planche", "german-hang", "pancake", "manna", "pistol", "shrimp"].contains(where: { id.contains($0) }) {
+            return [.control: 0.45, .mobility: 0.3, .power: 0.15, .endurance: 0.1]
+        }
+        return nil
     }
 
     static func movementEquipment(for equipment: [SkillEquipment]) -> [MovementEquipment] {
@@ -448,7 +467,7 @@ extension MovementCatalog {
             blockKind: .skill,
             loggerMode: .skillAttempts,
             aliases: aliases,
-            attributeWeights: [.control: 0.6, .power: 0.2, .endurance: 0.2],
+            attributeWeights: skillMovementAttributeWeights(forId: skillId) ?? [.control: 0.6, .power: 0.2, .endurance: 0.2],
             canonicalExerciseName: nil,
             skillId: skillId,
             cardioType: nil,

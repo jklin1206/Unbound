@@ -3,7 +3,10 @@ import Foundation
 enum OverallLevelCurve {
     /// Overall LVL uses the same concave shape as attribute levels, but a
     /// larger pool so it represents total time-in-game instead of one axis.
-    static let lvBase: Double = 250
+    // Calibrated (2026-06-18 year-sim, ~416 AP/session avg across 7 personas) so an
+    // average 4×/week trainee reaches the final gate (L90) in ~18 months, very
+    // cumulative. See docs/AP-GATE-REDESIGN-PROPOSAL.md §4.
+    static let lvBase: Double = 16
     static let exponent: Double = AttributeLevelCurve.exponent
     static let softCapLevel: Int = 100
     static let cappedXPPerLevel: Double = 3_750

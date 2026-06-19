@@ -15,11 +15,11 @@ enum VitalityCheckInSignal: String, Codable, CaseIterable, Identifiable, Sendabl
 
     var baseXP: Double {
         switch self {
-        case .restDay: return 6
-        case .easyWalkOrMobility: return 4
-        case .sleep: return 3
-        case .hydrationProtein: return 2
-        case .deload: return 8
+        case .restDay: return 8
+        case .easyWalkOrMobility: return 6
+        case .sleep: return 4
+        case .hydrationProtein: return 3
+        case .deload: return 12
         }
     }
 }

@@ -5,6 +5,9 @@ import Foundation
 final class WeeklyVowsService: WeeklyVowsServiceProtocol {
     static let shared = WeeklyVowsService()
 
+    /// Vitality granted on sealing a vow (every lane is vitality-flavored). Tunable.
+    private static let vowVitalityXP: Double = 50
+
     private let store: WeeklyVowsStore
 
     convenience init() {
@@ -196,6 +199,11 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
             userId: userId,
             at: date
         )
+        // Every vow lane (REST / FUEL / CARDIO) is vitality-flavored, so sealing one
+        // feeds the vitality axis — the §7 "no attributes" guardrail is overridden for
+        // vitality only (never strength XP/rank), and only at the seal, never per tap.
+        // Runs once: the guard above prevents re-sealing a completed vow.
+        AttributeService.shared.applyBoost(axis: .vitality, amount: Self.vowVitalityXP, userId: userId)
         NotificationCenter.default.post(name: .weeklyVowCompleted, object: current)
         for milestone in VowBadgeTrack.crossings(priorKept: priorKept, currentKept: currentKept) {
             NotificationCenter.default.post(name: .vowBadgeUnlocked, object: milestone)

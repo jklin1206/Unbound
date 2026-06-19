@@ -3,89 +3,77 @@ import XCTest
 
 @MainActor
 final class GateKeysTests: XCTestCase {
-    func testForgeKeysClearFromWorkoutHistory() {
-        let keys = GateKeys.keys(for: .theForging)
-        XCTAssertEqual(keys.map(\.id), ["key-forge-pullups", "key-forge-hinge"])
 
-        let history = WorkoutLogGateKeyHistory(
-            workoutLogs: [
-                workoutLog(entries: [
-                    entry("Pull-Up", movementId: "exercise.pullup", reps: 3),
-                    entry(
-                        "Dumbbell Romanian Deadlift",
-                        movementId: "exercise.dumbbell-romanian-deadlift",
-                        rankStandardMovementId: "exercise.romanian-deadlift",
-                        reps: 5,
-                        weightKg: 100
-                    )
-                ])
-            ],
-            attributeProfile: nil,
-            trialProgress: .empty
-        )
+    // MARK: - The any-K-attribute ladder
 
-        let cleared = GateKeys.clearedKeys(for: .theForging, history: history, bodyweightKg: 80)
-        XCTAssertEqual(cleared, Set(keys.map(\.id)))
+    func testGateKeyLadderShapePerFormat() {
+        func single(_ format: RankTrialFormat) -> GateKeyMetric? {
+            let keys = GateKeys.keys(for: format)
+            XCTAssertEqual(keys.count, 1, "\(format)")
+            return keys.first?.metric
+        }
+        XCTAssertTrue(GateKeys.keys(for: .firstLight).isEmpty)   // level only
+        XCTAssertEqual(single(.theCount), .attributesAtRank(count: 1, rank: .novice))
+        XCTAssertEqual(single(.theForging), .attributesAtRank(count: 1, rank: .apprentice))
+        XCTAssertEqual(single(.deckOfProof), .attributesAtRank(count: 2, rank: .forged))
+        XCTAssertEqual(single(.theAscent), .attributesAtRank(count: 2, rank: .veteran))
+        XCTAssertEqual(single(.sevenSeals), .attributesAtRank(count: 3, rank: .veteran))
+        XCTAssertEqual(single(.theThreshold), .attributesAtRank(count: 3, rank: .master))
+
+        // The final gate adds the structural "prior gates cleared" meta-gate.
+        let last = GateKeys.keys(for: .theLastGate)
+        XCTAssertEqual(last.count, 2)
+        XCTAssertEqual(last.map(\.metric), [.gatesAnswered(7), .attributesAtRank(count: 3, rank: .master)])
     }
 
-    func testLoadedKeysRequireLoadAndRepsInOneSet() {
-        let splitProof = FixtureGateKeyHistory(
-            records: [
-                record("exercise.romanian-deadlift", reps: 5, loadKg: 40),
-                record("exercise.romanian-deadlift", reps: 1, loadKg: 100)
-            ]
-        )
-        XCTAssertFalse(GateKeys.clearedKeys(for: .theForging, history: splitProof, bodyweightKg: 80).contains("key-forge-hinge"))
+    // MARK: - "Any K attributes at rank R"
 
-        let sameSetProof = FixtureGateKeyHistory(
-            records: [record("exercise.romanian-deadlift", reps: 5, loadKg: 100)]
-        )
-        XCTAssertTrue(GateKeys.clearedKeys(for: .theForging, history: sameSetProof, bodyweightKg: 80).contains("key-forge-hinge"))
+    func testAttributesKeyClearsWithEnoughAttributesAtRank() {
+        // sevenSeals = any 3 attributes at Veteran (attribute level 15).
+        let key = GateKeys.keys(for: .sevenSeals)[0]
+        let met = FixtureGateKeyHistory(attributeProfile: profile(attributesAtLevel: 15, count: 3))
+        XCTAssertTrue(GateKeys.clearedKeys(for: .sevenSeals, history: met, bodyweightKg: 80).contains(key.id))
     }
 
-    func testThresholdLoadedUpperKeyUsesSetLogProvableFields() {
-        let history = WorkoutLogGateKeyHistory(
-            workoutLogs: [
-                workoutLog(entries: [
-                    entry("Dumbbell Row", movementId: "exercise.dumbbell-row", reps: 8, weightKg: 50)
-                ])
-            ],
-            attributeProfile: nil,
-            trialProgress: .empty
-        )
-
-        let cleared = GateKeys.clearedKeys(for: .theThreshold, history: history, bodyweightKg: 100)
-        XCTAssertTrue(cleared.contains("key-threshold-press"))
+    func testAttributesKeyFailsBelowK() {
+        // Only 2 attributes at Veteran — short of the "any 3" bar.
+        let key = GateKeys.keys(for: .sevenSeals)[0]
+        let short = FixtureGateKeyHistory(attributeProfile: profile(attributesAtLevel: 15, count: 2))
+        XCTAssertFalse(GateKeys.clearedKeys(for: .sevenSeals, history: short, bodyweightKg: 80).contains(key.id))
     }
 
-    func testAttributeFloorReadsAttributeProfile() {
-        let passing = FixtureGateKeyHistory(attributeProfile: attributeProfile(level: 25))
-        XCTAssertEqual(
-            GateKeys.clearedKeys(for: .sevenSeals, history: passing, bodyweightKg: 80),
-            Set(["key-seals-hexagon"])
-        )
-
-        var failingProfile = attributeProfile(level: 25)
-        failingProfile.set(
-            .mobility,
-            AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: 24), lastContributionAt: Date(timeIntervalSince1970: 100))
-        )
-        let failing = FixtureGateKeyHistory(attributeProfile: failingProfile)
-        XCTAssertTrue(GateKeys.clearedKeys(for: .sevenSeals, history: failing, bodyweightKg: 80).isEmpty)
+    func testAttributesKeyIsBuildAgnostic_anyAxesCount() {
+        // theAscent = any 2 at Veteran. It shouldn't matter WHICH 2.
+        let key = GateKeys.keys(for: .theAscent)[0]
+        // Last two axes high, the rest at zero — still satisfies "any 2".
+        let date = Date(timeIntervalSince1970: 100)
+        var p = AttributeProfile.empty(userId: "u1", at: date)
+        for axis in [AttributeKey.mobility, .explosiveness] {
+            p.set(axis, AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: 15), lastContributionAt: date))
+        }
+        let history = FixtureGateKeyHistory(attributeProfile: p)
+        XCTAssertTrue(GateKeys.clearedKeys(for: .theAscent, history: history, bodyweightKg: 80).contains(key.id))
     }
 
-    func testLastGateKeyUsesPassedGateAttempts() {
+    func testAttributesKeyNeedsAProfile() {
+        let key = GateKeys.keys(for: .theCount)[0]
+        let none = FixtureGateKeyHistory(attributeProfile: nil)
+        XCTAssertFalse(GateKeys.clearedKeys(for: .theCount, history: none, bodyweightKg: 80).contains(key.id))
+    }
+
+    // MARK: - Final-gate structural meta-gate (prior 7 cleared)
+
+    func testLastGateMetaGateUsesPassedGateAttempts() {
+        let gatesKey = GateKeys.keys(for: .theLastGate).first { $0.metric == .gatesAnswered(7) }!
         let firstSeven = OverallRankTrialDefinitions.all.filter { $0.format != .theLastGate }
+
         let passing = FixtureGateKeyHistory(
             trialProgress: OverallRankTrialProgress(
                 highestPassedRank: .ascendant,
                 attempts: firstSeven.map { attempt(for: $0, passed: true) }
             )
         )
-        XCTAssertEqual(
-            GateKeys.clearedKeys(for: .theLastGate, history: passing, bodyweightKg: 80),
-            Set(["key-lastgate-stamps"])
-        )
+        XCTAssertTrue(GateKeys.clearedKeys(for: .theLastGate, history: passing, bodyweightKg: 80).contains(gatesKey.id))
 
         let oneMissing = FixtureGateKeyHistory(
             trialProgress: OverallRankTrialProgress(
@@ -94,11 +82,14 @@ final class GateKeysTests: XCTestCase {
                     + [attempt(for: OverallRankTrialDefinitions.theThreshold, passed: false)]
             )
         )
-        XCTAssertTrue(GateKeys.clearedKeys(for: .theLastGate, history: oneMissing, bodyweightKg: 80).isEmpty)
+        XCTAssertFalse(GateKeys.clearedKeys(for: .theLastGate, history: oneMissing, bodyweightKg: 80).contains(gatesKey.id))
     }
 
-    func testKeyLinesAppearInReadinessRequirements() {
+    // MARK: - Readiness wiring (attribute key shows; accumulated-rank is gone)
+
+    func testAttributeKeyLineAppearsInReadiness_andAccumulatedRankIsGone() {
         let definition = OverallRankTrialDefinitions.theForging
+        let keyId = GateKeys.keys(for: .theForging)[0].id
         let readiness = TrialReadinessService.shared.evaluate(
             OverallRankTrialReadinessInput(
                 userId: "u1",
@@ -106,77 +97,37 @@ final class GateKeysTests: XCTestCase {
                 overallLevel: definition.minOverallLevel,
                 aggregateRank: definition.targetRank,
                 equipment: readyEquipment(),
-                clearedGateKeys: ["key-forge-pullups"]
+                clearedGateKeys: [keyId]
             )
         )
 
         let keyLines = readiness.requirements.filter { $0.kind == .gateKey }
-        XCTAssertEqual(keyLines.map(\.id), ["key-forge-pullups", "key-forge-hinge"])
-        XCTAssertEqual(keyLines.map(\.current), ["Proven", "Unproven"])
-        XCTAssertEqual(keyLines.map(\.isMet), [true, false])
-        XCTAssertEqual(readiness.status, .locked)
+        XCTAssertEqual(keyLines.map(\.id), [keyId])
+        XCTAssertEqual(keyLines.map(\.isMet), [true])
+        // Accumulated-rank line was folded out of the gate.
+        XCTAssertFalse(readiness.requirements.contains { $0.id == "accumulated-rank" })
+        // Level + equipment + the single attribute key all met → ready.
+        XCTAssertEqual(readiness.status, .ready)
     }
 
-    func testRequirementKindDecodesLegacyRequirementLinesAndGateKeyLines() throws {
-        let legacyData = Data("""
-        {"id":"rank","kind":"rank","label":"Accumulated rank","current":"Apprentice","required":"Forged","isMet":false}
-        """.utf8)
-        let legacy = try JSONDecoder().decode(OverallRankTrialRequirementLine.self, from: legacyData)
+    func testRequirementKindDecodesLegacyRankAndGateKeyLines() throws {
+        let legacy = try JSONDecoder().decode(
+            OverallRankTrialRequirementLine.self,
+            from: Data(#"{"id":"rank","kind":"rank","label":"x","current":"a","required":"b","isMet":false}"#.utf8)
+        )
         XCTAssertEqual(legacy.kind, .rank)
 
-        let gateKeyData = try JSONEncoder().encode(
+        let encoded = try JSONEncoder().encode(
             OverallRankTrialRequirementLine(
-                id: "key-forge-pullups",
-                kind: .gateKey,
-                label: "3 strict pull-ups, one set",
-                current: "Proven",
-                required: "3 strict pull-ups, one set",
-                isMet: true
+                id: "key-attrs-3-master", kind: .gateKey,
+                label: "Any 3 attributes at Master", current: "Unproven",
+                required: "Any 3 attributes at Master", isMet: false
             )
         )
-        let gateKey = try JSONDecoder().decode(OverallRankTrialRequirementLine.self, from: gateKeyData)
-        XCTAssertEqual(gateKey.kind, .gateKey)
+        XCTAssertEqual(try JSONDecoder().decode(OverallRankTrialRequirementLine.self, from: encoded).kind, .gateKey)
     }
 
-    func testEveryGateKeyMovementIdIsNonEmptyResolvableAndNotTrialLocal() {
-        let forbidden = Set(["exercise.single-leg-rdl", "carry.loaded-march"])
-
-        for format in RankTrialFormat.allCases {
-            for key in GateKeys.keys(for: format) {
-                XCTAssertFalse(key.movementIds.isEmpty, key.id)
-                XCTAssertTrue(forbidden.isDisjoint(with: key.movementIds), key.id)
-
-                for movementId in key.movementIds {
-                    let definition = MovementCatalog.definition(for: movementId)
-                    XCTAssertNotNil(definition, "\(key.id) lists unresolved movement id \(movementId)")
-                    if let definition {
-                        let resolved = MovementResolver.resolve(definition.displayName)
-                        XCTAssertEqual(resolved.movementId, movementId, "\(definition.displayName) should resolve back to \(movementId)")
-                    }
-                }
-            }
-        }
-    }
-
-    func testWorkoutLogBackedGateKeysAreSatisfiableFromSetLogFields() {
-        let bodyweightKg = 100.0
-
-        for format in RankTrialFormat.allCases {
-            for key in GateKeys.keys(for: format) {
-                guard let entries = setLogEntriesThatShouldClear(key) else { continue }
-                let history = WorkoutLogGateKeyHistory(
-                    workoutLogs: [workoutLog(entries: entries)],
-                    attributeProfile: nil,
-                    trialProgress: .empty
-                )
-
-                XCTAssertTrue(
-                    GateKeys.clearedKeys(for: format, history: history, bodyweightKg: bodyweightKg).contains(key.id),
-                    "\(key.id) must be provable from SetLog reps, weightKg, or durationSeconds"
-                )
-            }
-        }
-    }
+    // MARK: - Fixtures
 
     private struct FixtureGateKeyHistory: GateKeyHistory {
         let gateKeySetRecords: [GateKeySetRecord]
@@ -184,109 +135,27 @@ final class GateKeysTests: XCTestCase {
         let gateKeyTrialProgress: OverallRankTrialProgress
 
         init(
-            records: [GateKeySetRecord] = [],
             attributeProfile: AttributeProfile? = nil,
             trialProgress: OverallRankTrialProgress = .empty
         ) {
-            self.gateKeySetRecords = records
+            self.gateKeySetRecords = []
             self.gateKeyAttributeProfile = attributeProfile
             self.gateKeyTrialProgress = trialProgress
         }
     }
 
-    private func record(
-        _ movementId: String,
-        reps: Int = 0,
-        loadKg: Double? = nil,
-        holdSeconds: Int? = nil
-    ) -> GateKeySetRecord {
-        GateKeySetRecord(
-            movementIds: [movementId],
-            reps: reps,
-            loadKg: loadKg,
-            holdSeconds: holdSeconds,
-            isProofEligible: true
-        )
-    }
-
-    private func workoutLog(entries: [ExerciseLogEntry]) -> WorkoutLog {
-        WorkoutLog(
-            id: UUID().uuidString,
-            userId: "u1",
-            programId: "program-1",
-            dayNumber: 1,
-            plannedWorkoutName: "Gate Key Proof",
-            startedAt: Date(timeIntervalSince1970: 100),
-            completedAt: Date(timeIntervalSince1970: 1_000),
-            exerciseEntries: entries
-        )
-    }
-
-    private func entry(
-        _ exerciseName: String,
-        movementId: String,
-        rankStandardMovementId: String? = nil,
-        reps: Int,
-        weightKg: Double? = nil,
-        durationSeconds: Int? = nil
-    ) -> ExerciseLogEntry {
-        ExerciseLogEntry(
-            id: UUID().uuidString,
-            exerciseName: exerciseName,
-            movementId: movementId,
-            rankStandardMovementId: rankStandardMovementId,
-            plannedSets: 1,
-            plannedReps: "\(reps)",
-            sets: [
-                SetLog(
-                    id: UUID().uuidString,
-                    setNumber: 1,
-                    weightKg: weightKg,
-                    reps: reps,
-                    rpe: 8,
-                    isWarmup: false,
-                    durationSeconds: durationSeconds,
-                    qualityFlags: [],
-                    notes: nil
-                )
-            ],
-            skipped: false,
-            notes: nil
-        )
-    }
-
-    private func setLogEntriesThatShouldClear(_ key: GateKeyDefinition) -> [ExerciseLogEntry]? {
-        guard let movementId = key.movementIds.first else { return [] }
-        let exerciseName = MovementCatalog.definition(for: movementId)?.displayName ?? movementId
-
-        switch key.metric {
-        case .repsInOneSet(let reps):
-            return [entry(exerciseName, movementId: movementId, reps: reps)]
-        case .loadedRepsInOneSet(let reps, let ratioOfBodyweight):
-            return [entry(exerciseName, movementId: movementId, reps: reps, weightKg: 100 * ratioOfBodyweight)]
-        case .holdSeconds(let seconds):
-            return [entry(exerciseName, movementId: movementId, reps: 0, durationSeconds: seconds)]
-        case .attributeFloor, .gatesAnswered:
-            return nil
-        }
-    }
-
-    private func attributeProfile(level: Int) -> AttributeProfile {
+    /// A profile with the first `count` attributes raised to `level`, the rest at 0.
+    private func profile(attributesAtLevel level: Int, count: Int) -> AttributeProfile {
         let date = Date(timeIntervalSince1970: 100)
-        var profile = AttributeProfile.empty(userId: "u1", at: date)
-        for key in AttributeKey.allCases {
-            profile.set(
-                key,
-                AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: level), lastContributionAt: date)
-            )
+        var p = AttributeProfile.empty(userId: "u1", at: date)
+        for (i, key) in AttributeKey.allCases.enumerated() {
+            let lvl = i < count ? level : 0
+            p.set(key, AttributeValue(xp: AttributeLevelCurve.xpRequired(forLevel: lvl), lastContributionAt: date))
         }
-        return profile
+        return p
     }
 
-    private func attempt(
-        for definition: OverallRankTrialDefinition,
-        passed: Bool
-    ) -> OverallRankTrialAttempt {
+    private func attempt(for definition: OverallRankTrialDefinition, passed: Bool) -> OverallRankTrialAttempt {
         OverallRankTrialAttempt(
             id: "\(definition.id)-attempt-\(passed)",
             userId: "u1",
@@ -302,16 +171,6 @@ final class GateKeysTests: XCTestCase {
     }
 
     private func readyEquipment() -> Set<MovementEquipment> {
-        [
-            .bodyweight,
-            .openSpace,
-            .dumbbell,
-            .kettlebell,
-            .band,
-            .pullupBar,
-            .cable,
-            .machine,
-            .cardioMachine
-        ]
+        [.bodyweight, .openSpace, .dumbbell, .kettlebell, .band, .pullupBar, .cable, .machine, .cardioMachine]
     }
 }

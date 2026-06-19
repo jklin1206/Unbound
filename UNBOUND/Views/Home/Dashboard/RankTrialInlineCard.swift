@@ -4,117 +4,11 @@ import SwiftUI
 //
 // Supporting pieces for the Home Trials section. The rank gate itself is the
 // immersive NextGateCard "world" card (placed directly on Home — ENTER drops you
-// into the trial, no detail-sheet repeat). These are the bits around it: the
-// Trial Records entry that opens the full 8-gate list, the all-gates-cleared
-// state, the locked fallback, and the vow pick strip.
-
-enum HomeGateMarkerState {
-    case cleared, current, locked
-}
-
-/// The 8-gate journey, visible at a glance: cleared / current / locked segments.
-/// Tappable for the full records list, but you can SEE your progress without it.
-struct HomeGateProgressionStrip: View {
-    let states: [HomeGateMarkerState]
-    let onTap: () -> Void
-
-    private var clearedCount: Int { states.filter { $0 == .cleared }.count }
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 12) {
-                Text("GATES")
-                    .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textTertiary)
-
-                HStack(spacing: 5) {
-                    ForEach(states.indices, id: \.self) { i in
-                        marker(states[i])
-                    }
-                }
-                .frame(maxWidth: .infinity)
-
-                Text("\(clearedCount)/\(states.count)")
-                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .monospacedDigit()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 4)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Gate progress, \(clearedCount) of \(states.count) cleared. Tap for trial records.")
-    }
-
-    @ViewBuilder
-    private func marker(_ state: HomeGateMarkerState) -> some View {
-        switch state {
-        case .cleared:
-            Capsule().fill(Color.unbound.rankGold)
-                .frame(maxWidth: .infinity).frame(height: 6)
-        case .current:
-            Capsule().fill(Color.unbound.accent)
-                .frame(maxWidth: .infinity).frame(height: 8)
-                .shadow(color: Color.unbound.accent.opacity(0.55), radius: 4)
-        case .locked:
-            Capsule().fill(Color.unbound.surfaceElevated)
-                .frame(maxWidth: .infinity).frame(height: 6)
-        }
-    }
-}
-
-/// Shown when every gate has been answered (peak rank) — there's no next gate, so
-/// instead of a "locked" fallback this is the quiet milestone state.
-struct HomeAllGatesClearedCard: View {
-    let peakRankName: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 26, weight: .black))
-                    .foregroundStyle(Color.unbound.rankGold)
-                    .shadow(color: Color.unbound.rankGold.opacity(0.5), radius: 10)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("ALL GATES CLEARED")
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .tracking(1.6)
-                        .foregroundStyle(Color.unbound.rankGold)
-                    Text(peakRankName)
-                        .font(.system(size: 22, weight: .black))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-                Spacer(minLength: 0)
-            }
-
-            Text("Every gate answered. You're Unbound.")
-                .font(Font.unbound.bodyS)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color.unbound.rankGold.opacity(0.3), lineWidth: 1)
-        )
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("All gates cleared. \(peakRankName).")
-    }
-}
+// into the trial, no detail-sheet repeat), and it also carries the all-gates-
+// cleared state (the final gate in its answered form — same card, no separate
+// milestone treatment). These are the bits around it: the locked fallback (its
+// tap is Home's only entry into the records list — otherwise records live in
+// Profile) and the vow pick strip.
 
 struct HomeRankGateLockedRow: View {
     let detail: String
@@ -214,7 +108,6 @@ struct HomeVowPickStrip: View {
 
 struct HomeTrialsDemoHarness: View {
     private let userId = "mock-user-123"
-    private let totalGates = RankTrialFormat.allCases.count
 
     private let vowCard = TrialCard(
         id: "demo-fuel",
@@ -232,9 +125,25 @@ struct HomeTrialsDemoHarness: View {
             Color.unbound.bg.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
+                    section("TRIAL DECK · SWIPE") {
+                        HomeTrialDeck(
+                            gates: RankTrialFormat.allCases.enumerated().map { i, format in
+                                HomeTrialDeck.Gate(
+                                    id: i,
+                                    format: format,
+                                    world: GateWorldCatalog.world(for: format),
+                                    state: i < 2 ? .cleared : (i == 2 ? .current : .locked)
+                                )
+                            },
+                            currentReadiness: fixtureReadiness(open: true),
+                            onBegin: {},
+                            onShowRecords: {}
+                        )
+                    }
+
                     section("ALL GATES CLEARED") {
-                        HomeAllGatesClearedCard(peakRankName: "Unbound")
-                        HomeGateProgressionStrip(states: gateStates(cleared: totalGates, hasCurrent: false), onTap: {})
+                        NextGateCard(readiness: clearedReadiness,
+                                     world: GateWorldCatalog.world(for: .theLastGate))
                     }
 
                     section("ACTIVE VOW") {
@@ -245,14 +154,16 @@ struct HomeTrialsDemoHarness: View {
                         HomeVowPickStrip(onTap: {})
                     }
 
+                    section("VOW PICKER CARD") {
+                        TrialCardView(card: vowCard)
+                    }
+
                     section("IN PROGRESS · REQUIREMENTS SHOW") {
                         NextGateCard(readiness: fixtureReadiness(open: false), world: world)
-                        HomeGateProgressionStrip(states: gateStates(cleared: 2, hasCurrent: true), onTap: {})
                     }
 
                     section("READY TO ENTER") {
                         NextGateCard(readiness: fixtureReadiness(open: true), world: world, onBegin: {})
-                        HomeGateProgressionStrip(states: gateStates(cleared: 0, hasCurrent: true), onTap: {})
                     }
                 }
                 .padding(20)
@@ -280,6 +191,14 @@ struct HomeTrialsDemoHarness: View {
         OverallRankTrialDefinitions.all.first { $0.format == .firstLight }
     }
 
+    /// All gates passed: no next definition → `.cleared` world card (peak rank).
+    private var clearedReadiness: OverallRankTrialReadiness {
+        OverallRankTrialReadiness(
+            status: .passed, currentRank: .unbound, targetRank: nil,
+            definition: nil, resolvedTrial: nil, blockerSummary: nil,
+            requirements: [], latestAttempt: nil)
+    }
+
     private func fixtureReadiness(open: Bool) -> OverallRankTrialReadiness {
         let origin = RankTier(rawValue: world.destinationRank.rawValue - 1) ?? .initiate
         var reqs: [OverallRankTrialRequirementLine] = [
@@ -299,14 +218,6 @@ struct HomeTrialsDemoHarness: View {
             definition: definition, resolvedTrial: nil,
             blockerSummary: open ? nil : "Keep training — the gate is close.",
             requirements: reqs, latestAttempt: nil)
-    }
-
-    private func gateStates(cleared: Int, hasCurrent: Bool) -> [HomeGateMarkerState] {
-        (0..<totalGates).map { i in
-            if i < cleared { return .cleared }
-            if hasCurrent && i == cleared { return .current }
-            return .locked
-        }
     }
 
     private var activeVow: Trial {

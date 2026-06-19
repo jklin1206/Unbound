@@ -8,10 +8,10 @@ struct GateKeyDefinition: Identifiable, Equatable, Sendable {
 }
 
 enum GateKeyMetric: Equatable, Sendable {
-    case repsInOneSet(Int)
-    case loadedRepsInOneSet(reps: Int, ratioOfBodyweight: Double)
-    case holdSeconds(Int)
-    case attributeFloor(RankTier)
+    /// Reach `rank` in any `count` of the 6 attributes — build-expressive (you pick
+    /// which axes). Replaces the old per-exercise keystone keys.
+    case attributesAtRank(count: Int, rank: RankTier)
+    /// Structural meta-gate: N prior gates cleared (the final gate only).
     case gatesAnswered(Int)
 }
 
@@ -94,108 +94,35 @@ struct WorkoutLogGateKeyHistory: GateKeyHistory, Sendable {
 enum GateKeys {
     static func keys(for format: RankTrialFormat) -> [GateKeyDefinition] {
         switch format {
-        case .firstLight, .theCount, .deckOfProof:
-            return []
-        case .theForging:
-            return [
-                GateKeyDefinition(
-                    id: "key-forge-pullups",
-                    label: "3 strict pull-ups, one set",
-                    movementIds: ["exercise.pullup"],
-                    metric: .repsInOneSet(3)
-                ),
-                GateKeyDefinition(
-                    id: "key-forge-hinge",
-                    label: "Hinge 1.25x bodyweight for 5",
-                    movementIds: [
-                        "exercise.romanian-deadlift",
-                        "exercise.dumbbell-romanian-deadlift",
-                        "exercise.deadlift"
-                    ],
-                    metric: .loadedRepsInOneSet(reps: 5, ratioOfBodyweight: 1.25)
-                )
-            ]
-        case .theAscent:
-            return [
-                GateKeyDefinition(
-                    id: "key-ascent-pullups",
-                    label: "10 pull-ups, one set",
-                    movementIds: ["exercise.pullup"],
-                    metric: .repsInOneSet(10)
-                ),
-                GateKeyDefinition(
-                    id: "key-ascent-hold",
-                    label: "60s unbroken hold",
-                    movementIds: ["exercise.plank"],
-                    metric: .holdSeconds(60)
-                )
-            ]
-        case .sevenSeals:
-            return [
-                GateKeyDefinition(
-                    id: "key-seals-hexagon",
-                    label: "Every attribute at Master floor",
-                    movementIds: [
-                        "exercise.deadlift",
-                        "exercise.pullup",
-                        "exercise.plank",
-                        "cardio.run",
-                        "exercise.romanian-deadlift",
-                        "exercise.jump-squat"
-                    ],
-                    metric: .attributeFloor(.master)
-                ),
-                GateKeyDefinition(
-                    id: "key-seals-power",
-                    label: "Loaded hinge 1.5x bodyweight for 3",
-                    movementIds: [
-                        "exercise.deadlift",
-                        "exercise.romanian-deadlift",
-                        "exercise.dumbbell-romanian-deadlift"
-                    ],
-                    metric: .loadedRepsInOneSet(reps: 3, ratioOfBodyweight: 1.50)
-                )
-            ]
-        case .theThreshold:
-            return [
-                GateKeyDefinition(
-                    id: "key-threshold-press",
-                    label: "Loaded upper 0.5x bodyweight for 8",
-                    movementIds: [
-                        "exercise.dumbbell-row",
-                        "exercise.cable-row-seated",
-                        "exercise.machine-row"
-                    ],
-                    metric: .loadedRepsInOneSet(reps: 8, ratioOfBodyweight: 0.50)
-                ),
-                GateKeyDefinition(
-                    id: "key-threshold-hold",
-                    label: "120s unbroken hold",
-                    movementIds: ["exercise.plank"],
-                    metric: .holdSeconds(120)
-                )
-            ]
-        case .theLastGate:
-            return [
-                GateKeyDefinition(
-                    id: "key-lastgate-stamps",
-                    label: "Seven gates answered",
-                    movementIds: [
-                        "exercise.pullup",
-                        "exercise.romanian-deadlift",
-                        "exercise.plank",
-                        "carry.farmer-carry"
-                    ],
-                    metric: .gatesAnswered(7)
-                ),
-                GateKeyDefinition(
-                    id: "key-lastgate-pullups",
-                    label: "15 strict pull-ups, one set",
-                    movementIds: ["exercise.pullup"],
-                    metric: .repsInOneSet(15)
-                )
-            ]
+        case .firstLight:   return []                       // level only
+        case .theCount:     return [attrs(1, .novice)]
+        case .theForging:   return [attrs(1, .apprentice)]
+        case .deckOfProof:  return [attrs(2, .forged)]
+        case .theAscent:    return [attrs(2, .veteran)]
+        case .sevenSeals:   return [attrs(3, .veteran)]
+        case .theThreshold: return [attrs(3, .master)]
+        case .theLastGate:  return [gatesCleared(7), attrs(3, .master)]
         }
+    }
+
+    /// "Any K of your 6 attributes at rank R" — pick the axes that fit your build.
+    private static func attrs(_ count: Int, _ rank: RankTier) -> GateKeyDefinition {
+        GateKeyDefinition(
+            id: "key-attrs-\(count)-\(rank.token)",
+            label: "Any \(count) attribute\(count == 1 ? "" : "s") at \(rank.displayName)",
+            movementIds: [],
+            metric: .attributesAtRank(count: count, rank: rank)
+        )
+    }
+
+    /// Structural meta-gate: N prior gates cleared (the final gate only).
+    private static func gatesCleared(_ count: Int) -> GateKeyDefinition {
+        GateKeyDefinition(
+            id: "key-gates-answered-\(count)",
+            label: "\(count) gates answered",
+            movementIds: [],
+            metric: .gatesAnswered(count)
+        )
     }
 
     static func clearedKeys(
@@ -212,34 +139,12 @@ enum GateKeys {
 extension GateKeyHistory {
     func satisfies(_ key: GateKeyDefinition, bodyweightKg: Double) -> Bool {
         switch key.metric {
-        case .repsInOneSet(let reps):
-            return matchingRecords(for: key).contains { record in
-                record.reps >= reps
-            }
-        case .loadedRepsInOneSet(let reps, let ratioOfBodyweight):
-            guard bodyweightKg > 0 else { return false }
-            let minimumLoadKg = bodyweightKg * ratioOfBodyweight
-            return matchingRecords(for: key).contains { record in
-                record.reps >= reps && (record.loadKg ?? 0) >= minimumLoadKg
-            }
-        case .holdSeconds(let seconds):
-            return matchingRecords(for: key).contains { record in
-                (record.holdSeconds ?? 0) >= seconds
-            }
-        case .attributeFloor(let tier):
+        case .attributesAtRank(let count, let rank):
             guard let profile = gateKeyAttributeProfile else { return false }
-            return AttributeKey.allCases.allSatisfy { key in
-                profile.value(for: key).rankTitle >= tier
-            }
+            let met = AttributeKey.allCases.filter { profile.value(for: $0).rankTitle >= rank }.count
+            return met >= count
         case .gatesAnswered(let count):
             return passedGateCount >= count
-        }
-    }
-
-    private func matchingRecords(for key: GateKeyDefinition) -> [GateKeySetRecord] {
-        let keyMovementIds = Set(key.movementIds)
-        return gateKeySetRecords.filter { record in
-            record.isProofEligible && !record.movementIds.isDisjoint(with: keyMovementIds)
         }
     }
 

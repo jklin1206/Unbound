@@ -40,35 +40,32 @@ struct NextGateCard: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
-            HStack(spacing: 8) {
-                Text("RANK GATE \(world.numeral)")
-                    .font(Font.unbound.captionS.weight(.heavy)).tracking(2)
-                    .foregroundStyle(world.tint)
-                Spacer(minLength: 0)
-                difficultyPips
-            }
-            .padding(14)
+            Text("RANK GATE \(world.numeral)")
+                .font(Font.unbound.captionS.weight(.heavy)).tracking(2)
+                .foregroundStyle(world.tint)
+                .padding(14)
         }
         .frame(height: 168)
-    }
-
-    private var difficultyPips: some View {
-        HStack(spacing: 3) {
-            ForEach(0..<8, id: \.self) { i in
-                Circle().fill(i < world.difficultyPips ? world.tint : Color.white.opacity(0.18))
-                    .frame(width: 5, height: 5)
-            }
-        }
     }
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(model.trialName.uppercased())
                 .font(Font.unbound.titleS).foregroundStyle(Color.unbound.textPrimary)
-            Text(model.transitionLabel)
-                .font(Font.unbound.captionS.weight(.heavy)).tracking(1.4)
-                .foregroundStyle(world.tint)
-            Text(model.promise)
+
+            if model.presentation == .cleared {
+                Label("ANSWERED", systemImage: "checkmark.seal.fill")
+                    .font(Font.unbound.captionS.weight(.heavy)).tracking(1.4)
+                    .foregroundStyle(world.tint)
+            } else {
+                Text(model.transitionLabel)
+                    .font(Font.unbound.captionS.weight(.heavy)).tracking(1.4)
+                    .foregroundStyle(world.tint)
+            }
+
+            Text(model.presentation == .cleared
+                 ? "Every gate answered. You're \(world.destinationRank.displayName)."
+                 : model.promise)
                 .font(Font.unbound.bodyMStrong).foregroundStyle(Color.unbound.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 

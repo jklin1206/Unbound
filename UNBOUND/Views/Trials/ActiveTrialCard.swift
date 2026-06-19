@@ -2,11 +2,10 @@ import SwiftUI
 
 // MARK: - ActiveTrialCard (Binding Vow card)
 //
-// The week's Binding Vow on the Home Trials section — a calm card (surface +
-// subtle lane tint edge, matching the rank-gate world card, no frost) with a
-// clear inline log action. One tap on LOG records one toward the target (the
-// once-a-day log); a second tap the same day is a no-op, and hitting the target
-// seals the vow. Sized to give the vow real presence next to the gate.
+// The week's Binding Vow on the Home Trials section. Leads with the goal in plain
+// big text — what to do and how many — then a prominent log button (how to log).
+// One tap on LOG records one toward the target (once a day); hitting the target
+// seals the vow.
 
 struct ActiveTrialCard: View {
     let trial: Trial
@@ -22,41 +21,51 @@ struct ActiveTrialCard: View {
     private var actionable: Bool { !isSealed && canLogToday }
     private var filledTint: Color { isSealed ? Color.unbound.success : tint }
 
+    /// The whole point of the vow, in plain words: "Log 3 fuel anchors".
+    private var goalText: String {
+        let plural = card.target.count == 1 ? card.target.noun : "\(card.target.noun)s"
+        return "Log \(card.target.count) \(plural)"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 12) {
+            // Category + running count.
+            HStack(spacing: 8) {
                 WeeklyVowProofAsset(lane: card.lane, tint: tint, compact: true)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 30, height: 30)
                     .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 5) {
-                        Text("BINDING VOW")
-                            .foregroundStyle(Color.unbound.textTertiary)
-                        Text("·")
-                            .foregroundStyle(Color.unbound.textTertiary)
-                        Text(card.lane.displayLabel)
-                            .foregroundStyle(tint)
-                    }
-                    .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
-                    .tracking(1.2)
+                Text("BINDING VOW · \(card.lane.displayLabel)")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(tint)
                     .lineLimit(1)
-
-                    Text(card.displayName)
-                        .font(.system(size: 20, weight: .black))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-
-                Spacer(minLength: 8)
-
-                progressIndicator
+                Spacer(minLength: 0)
+                Text("\(progressCount)/\(card.target.count)")
+                    .font(.system(size: 16, weight: .black, design: .monospaced))
+                    .foregroundStyle(filledTint)
+                    .monospacedDigit()
             }
 
+            // The goal, big — what the vow is + how to complete it.
+            VStack(alignment: .leading, spacing: 5) {
+                Text(goalText)
+                    .font(.system(size: 24, weight: .black))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.75)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(card.blurb)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            progressPips
+
+            // How to log — one prominent action.
             affordance
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -64,69 +73,64 @@ struct ActiveTrialCard: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(tint.opacity(0.20), lineWidth: 1)
+                .strokeBorder(tint.opacity(0.22), lineWidth: 1)
         )
         .onAppear(perform: refreshState)
         .accessibilityIdentifier("weeklyVow.activeCard")
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Binding vow, \(card.displayName), \(progressCount) of \(card.target.count)")
+        .accessibilityLabel("Binding vow: \(goalText) this week. \(progressCount) of \(card.target.count) logged.")
     }
 
-    /// Weekly progress — pips for small targets (the common case), a count for big
-    /// ones so it stays readable.
     @ViewBuilder
-    private var progressIndicator: some View {
-        if card.target.count <= 6 {
-            HStack(spacing: 5) {
+    private var progressPips: some View {
+        if card.target.count <= 8 {
+            HStack(spacing: 6) {
                 ForEach(0..<card.target.count, id: \.self) { i in
                     Capsule()
                         .fill(i < progressCount ? filledTint : Color.unbound.surfaceElevated)
-                        .frame(width: i < progressCount ? 13 : 8, height: 8)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 8)
                 }
             }
         } else {
-            Text("\(progressCount)/\(card.target.count)")
-                .font(.system(size: 14, weight: .black, design: .monospaced))
-                .foregroundStyle(filledTint)
-                .monospacedDigit()
+            ProgressView(value: Double(min(progressCount, card.target.count)),
+                         total: Double(card.target.count))
+                .tint(filledTint)
         }
     }
 
     @ViewBuilder
     private var affordance: some View {
         if isSealed {
-            statusRow(text: "VOW SEALED THIS WEEK", icon: "checkmark.seal.fill",
-                      color: Color.unbound.success, fill: Color.unbound.success.opacity(0.12))
+            statusRow(text: "Vow sealed this week", icon: "checkmark.seal.fill",
+                      color: Color.unbound.success, fill: Color.unbound.success.opacity(0.14))
         } else if canLogToday {
             Button(action: handleTap) {
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(tint)
-                    Text("LOG \(card.target.noun.uppercased())")
-                        .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                        .tracking(1.2)
-                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text("Log a \(card.target.noun)")
+                        .font(.system(size: 15, weight: .heavy))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .minimumScaleFactor(0.8)
                     Spacer(minLength: 0)
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(tint)
+                        .font(.system(size: 13, weight: .bold))
+                        .opacity(0.8)
                 }
-                .padding(.horizontal, 12)
-                .frame(height: 44)
+                .foregroundStyle(Color.unbound.bg)
+                .padding(.horizontal, 16)
+                .frame(height: 50)
                 .frame(maxWidth: .infinity)
                 .background(
-                    RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .fill(Color.unbound.surfaceElevated.opacity(0.9))
+                    RoundedRectangle(cornerRadius: 13, style: .continuous).fill(tint)
                 )
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Log one \(card.target.noun). \(progressCount) of \(card.target.count) so far.")
         } else {
-            statusRow(text: "LOGGED TODAY", icon: "checkmark.circle.fill",
-                      color: Color.unbound.textSecondary, fill: Color.unbound.surfaceElevated.opacity(0.5))
+            statusRow(text: "Logged today — back tomorrow", icon: "checkmark.circle.fill",
+                      color: Color.unbound.textSecondary, fill: Color.unbound.surfaceElevated.opacity(0.6))
         }
     }
 
@@ -136,17 +140,15 @@ struct ActiveTrialCard: View {
                 .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(color)
             Text(text)
-                .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                .tracking(1.2)
+                .font(.system(size: 13, weight: .heavy))
                 .foregroundStyle(color)
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 12)
-        .frame(height: 44)
+        .padding(.horizontal, 16)
+        .frame(height: 50)
         .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(fill)
+            RoundedRectangle(cornerRadius: 13, style: .continuous).fill(fill)
         )
     }
 
