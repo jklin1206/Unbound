@@ -527,6 +527,8 @@ extension WorkoutRewardSequenceView {
                         .shadow(color: (badge.rankTier?.rewardTint ?? Color.unbound.impact).opacity(0.45), radius: 18)
                 }
 
+                addPhotoButton
+
                 Text("SESSION LOCKED")
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(2.2)

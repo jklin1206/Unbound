@@ -93,13 +93,29 @@ struct RewardDemoView: View {
     @State private var runID = UUID()
     private let scenarios = RewardDemoScenarios.all
 
+    /// The active scenario, tagged with a post-workout photo context so the
+    /// final beat shows the opt-in "Add a photo" button in the demo.
+    private var demoSummary: WorkoutRewardSequenceSummary {
+        var summary = scenarios[index].summary
+        summary.workoutPhotoContext = WorkoutPhotoSummary(
+            title: scenarios[index].label,
+            completedAt: Date(),
+            durationMinutes: 42,
+            exercises: ["Bench Press · 3×5", "Incline DB · 3×10", "Cable Fly · 3×12"]
+        )
+        return summary
+    }
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            WorkoutRewardSequenceView(summary: scenarios[index].summary, onDismiss: {
+            WorkoutRewardSequenceView(
+                summary: demoSummary,
+                onAddWorkoutPhoto: { _ in }
+            ) {
                 index = (index + 1) % scenarios.count
                 runID = UUID()
-            })
+            }
             .id(runID)
 
             VStack {
