@@ -124,7 +124,7 @@ struct RoutineCompletionFlow: View {
         let canClaimRoutineReward = RoutineHistoryStore.shared.canComplete(routineId: routine.id)
         RoutineHistoryStore.shared.record(record)
 
-        if canClaimRoutineReward, completionResult.overallLevelXPEarnedBeforeDebt > 0 {
+        if canClaimRoutineReward, completionResult.overallLevelXPGained > 0 {
             RoutineHistoryStore.shared.complete(routine)
         }
 

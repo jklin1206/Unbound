@@ -53,11 +53,10 @@ struct TrialPickerSheet: View {
             Text("Choose your vow")
                 .font(.system(size: 24, weight: .black))
                 .foregroundStyle(Color.unbound.textPrimary)
-            Text("Pick or skip now. A bound vow opens Saturday; only a saved vow workout seals it. Missed picked vows become XP debt.")
+            Text("Log toward the target all week — hit it and the vow seals.")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
-                .lineSpacing(2)
                 .padding(.horizontal, 28)
         }
         .padding(.top, 24)
@@ -73,7 +72,7 @@ struct TrialPickerSheet: View {
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
-        .frame(height: 480)
+        .frame(height: 360)
         .animation(.spring(response: 0.38, dampingFraction: 0.82), value: selectedIndex)
     }
 

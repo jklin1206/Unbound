@@ -90,9 +90,6 @@ final class HomeViewModel: ObservableObject {
         calibrationSkipRatio = services.calibration.skipRatio(userId: userId)
         attributeProfile = services.attribute.profile(userId: userId)
         services.trials.checkVowWindow(userId: userId, now: Date())
-        // Read-only auto-detection: seal a recovery/engine vow if the user
-        // logged enough qualifying recovery/cardio sessions since last foreground.
-        await services.trials.refreshAutoVerifiedVow(userId: userId)
         trialsState = services.trials.state(userId: userId)
         overallLevel = (try? await services.database.read(collection: "overall_level_progress", documentId: userId)) ?? OverallLevelProgress(userId: userId)
 
@@ -229,6 +226,13 @@ final class HomeViewModel: ObservableObject {
         guard let userId = services.auth.currentUserId else { return }
         aggregateRank = await services.rank.aggregateRank(userId: userId)
         aggregateTier = await services.rank.aggregateTier(userId: userId)
+        // Recompute the rank-gate readiness too, so passing a gate advances the
+        // Home world card to the next gate (and a workout that meets a key flips
+        // its requirement) without an app relaunch.
+        overallRankTrialReadiness = await TrialReadinessService.shared.readiness(
+            userId: userId,
+            services: services
+        )
     }
 
     func refreshTravelOverride() async {

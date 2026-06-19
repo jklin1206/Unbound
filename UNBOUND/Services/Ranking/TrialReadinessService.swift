@@ -159,19 +159,9 @@ final class TrialReadinessService {
             )
         )
 
-        // Accumulation gate (Phase 7): the build-weighted aggregate rank must
-        // reach the target tier. This is "elite in your build" — fairness lives
-        // in the build-weighting, not in a fixed skill/attribute conformity set.
-        lines.append(
-            OverallRankTrialRequirementLine(
-                id: "accumulated-rank",
-                kind: .rank,
-                label: "Accumulated rank",
-                current: input.aggregateRank.displayName,
-                required: definition.targetRank.displayName,
-                isMet: input.aggregateRank >= definition.targetRank
-            )
-        )
+        // Strength is gated by the attribute keys ("any K attributes at rank R",
+        // appended below) — a legible, build-expressive check — so the opaque
+        // accumulated-rank line was folded out (see AP-GATE-REDESIGN-PROPOSAL §5).
 
         let requiredEquipment = resolution.resolvedTrial?.requiredEquipment ?? definition.requiredEquipment
         let missingEquipment = resolution.blockers.reduce(into: Set<MovementEquipment>()) { result, blocker in

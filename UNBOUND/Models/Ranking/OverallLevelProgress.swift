@@ -3,7 +3,10 @@ import Foundation
 enum OverallLevelCurve {
     /// Overall LVL uses the same concave shape as attribute levels, but a
     /// larger pool so it represents total time-in-game instead of one axis.
-    static let lvBase: Double = 250
+    // Calibrated (2026-06-18 year-sim, ~416 AP/session avg across 7 personas) so an
+    // average 4×/week trainee reaches the final gate (L90) in ~18 months, very
+    // cumulative. See docs/AP-GATE-REDESIGN-PROPOSAL.md §4.
+    static let lvBase: Double = 16
     static let exponent: Double = AttributeLevelCurve.exponent
     static let softCapLevel: Int = 100
     static let cappedXPPerLevel: Double = 3_750
@@ -113,6 +116,31 @@ struct OverallLevelProgress: Codable, Identifiable, Hashable, Sendable {
         }
         updatedAt = date
     }
+
+    /// Reduce totalXP by `amount`, clamped so it never drops below the current
+    /// level's floor — a broken vow dips the bar but never de-levels you (the
+    /// XP economy stays non-negging). Idempotent: an already-processed sourceId
+    /// is a no-op. Returns the XP actually removed.
+    @discardableResult
+    mutating func applyDock(amount: Double, sourceLogId: String, at date: Date) -> Double {
+        guard amount > 0, !processedSourceLogIds.contains(sourceLogId) else { return 0 }
+        let floorXP = OverallLevelCurve.xpRequired(forLevel: level)
+        let newTotal = max(floorXP, totalXP - amount)
+        let removed = totalXP - newTotal
+        totalXP = newTotal
+        lastGainedXP = 0
+        processedSourceLogIds.append(sourceLogId)
+        if processedSourceLogIds.count > 250 {
+            let overflow = processedSourceLogIds.count - 250
+            let purged = processedSourceLogIds.prefix(overflow)
+            processedSourceLogIds.removeFirst(overflow)
+            for source in purged {
+                processedSourceRewards.removeValue(forKey: source)
+            }
+        }
+        updatedAt = date
+        return removed
+    }
 }
 
 struct OverallLevelReward: Codable, Hashable, Sendable {
@@ -124,38 +152,8 @@ struct OverallLevelReward: Codable, Hashable, Sendable {
     var currentLevel: Int
     var previousProgressToNextLevel: Double
     var currentProgressToNextLevel: Double
-    /// Earned XP siphoned to pay down broken-vow debt this event (spec §5).
-    var xpWithheldToVowDebt: Double = 0
 
     var didLevelUp: Bool {
         currentLevel > previousLevel
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case xpGained, noveltyMultiplier, previousXP, currentXP
-        case previousLevel, currentLevel
-        case previousProgressToNextLevel, currentProgressToNextLevel
-        case xpWithheldToVowDebt
-    }
-}
-
-extension OverallLevelReward {
-    /// Tolerant decode: `xpWithheldToVowDebt` was added with the vow-debt garnish
-    /// feature, so rewards persisted before it lack the key. Decode it optionally
-    /// (defaulting to 0) so existing `OverallLevelProgress` / replay documents keep
-    /// loading instead of throwing and resetting the user to fresh progress.
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(
-            xpGained: try c.decode(Double.self, forKey: .xpGained),
-            noveltyMultiplier: try c.decode(Double.self, forKey: .noveltyMultiplier),
-            previousXP: try c.decode(Double.self, forKey: .previousXP),
-            currentXP: try c.decode(Double.self, forKey: .currentXP),
-            previousLevel: try c.decode(Int.self, forKey: .previousLevel),
-            currentLevel: try c.decode(Int.self, forKey: .currentLevel),
-            previousProgressToNextLevel: try c.decode(Double.self, forKey: .previousProgressToNextLevel),
-            currentProgressToNextLevel: try c.decode(Double.self, forKey: .currentProgressToNextLevel),
-            xpWithheldToVowDebt: try c.decodeIfPresent(Double.self, forKey: .xpWithheldToVowDebt) ?? 0
-        )
     }
 }

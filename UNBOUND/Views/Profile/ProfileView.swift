@@ -208,6 +208,10 @@ struct ProfileView: View {
                 badgesArchiveSection
             }
 
+            ProfileArchiveBand(tint: Color.unbound.accent) {
+                ProfileTrialHistorySection(trialsState: trialsState)
+            }
+
             ProfileArchiveBand(tint: Color.unbound.impact) {
                 VStack(spacing: 0) {
                     if let beforePhoto, let afterPhoto {

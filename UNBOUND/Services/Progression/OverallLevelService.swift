@@ -3,9 +3,6 @@ import Foundation
 final class OverallLevelService {
     static let shared = OverallLevelService()
 
-    /// Consulted to garnish earned training XP against broken-vow debt (spec §5).
-    var vowDebtLedger: any VowDebtLedger = LiveVowDebtLedger()
-
     #if DEBUG
     static func makeForTesting() -> OverallLevelService { OverallLevelService() }
     #endif
@@ -30,7 +27,6 @@ final class OverallLevelService {
         at date: Date,
         gains: [MovementAPGain] = [],
         rankUpEvents: Int = 0,
-        consumesVowDebt: Bool = false,
         database: any DatabaseServiceProtocol = SyncedDatabase.shared
     ) async -> OverallLevelReward {
         do {
@@ -42,7 +38,6 @@ final class OverallLevelService {
                 at: date,
                 gains: gains,
                 rankUpEvents: rankUpEvents,
-                consumesVowDebt: consumesVowDebt,
                 database: database,
                 persistenceMode: .bestEffort
             )
@@ -74,7 +69,6 @@ final class OverallLevelService {
         at date: Date,
         gains: [MovementAPGain] = [],
         rankUpEvents: Int = 0,
-        consumesVowDebt: Bool = false,
         database: any DatabaseServiceProtocol = SyncedDatabase.shared
     ) async throws -> OverallLevelReward {
         try await ingest(
@@ -85,7 +79,6 @@ final class OverallLevelService {
             at: date,
             gains: gains,
             rankUpEvents: rankUpEvents,
-            consumesVowDebt: consumesVowDebt,
             database: database,
             persistenceMode: .strict
         )
@@ -109,6 +102,42 @@ final class OverallLevelService {
         )
     }
 
+    /// Dock XP for a broken vow — the stake comes straight off the bar, clamped
+    /// so it never drops you below the current level (the bar dips, you never
+    /// de-level). Idempotent by sourceId. Best-effort: a failed write fails in
+    /// the user's favour (no XP lost).
+    @discardableResult
+    func dockXP(
+        amount: Int,
+        sourceId: String,
+        userId: String,
+        at date: Date,
+        database: any DatabaseServiceProtocol = SyncedDatabase.shared
+    ) async -> OverallLevelReward {
+        do {
+            return try await dockXP(
+                amount: amount,
+                sourceId: sourceId,
+                userId: userId,
+                at: date,
+                database: database,
+                persistenceMode: .bestEffort
+            )
+        } catch {
+            LoggingService.shared.log(
+                "Overall level XP dock failed: \(error)",
+                level: .warning,
+                context: ["sourceId": sourceId]
+            )
+            return OverallLevelReward(
+                xpGained: 0, noveltyMultiplier: 1.0,
+                previousXP: 0, currentXP: 0,
+                previousLevel: 0, currentLevel: 0,
+                previousProgressToNextLevel: 0, currentProgressToNextLevel: 0
+            )
+        }
+    }
+
     private func ingest(
         rawAP: Double,
         noveltyMultiplier: Double,
@@ -117,7 +146,6 @@ final class OverallLevelService {
         at date: Date,
         gains: [MovementAPGain],
         rankUpEvents: Int,
-        consumesVowDebt: Bool = false,
         database: any DatabaseServiceProtocol,
         persistenceMode: ProgressionPersistenceMode
     ) async throws -> OverallLevelReward {
@@ -176,17 +204,9 @@ final class OverallLevelService {
             return VelocityWeighting.comebackMultiplier(daysSinceLastSession: days)
         }()
 
-        let earnedXP = RewardLedgerQuantizer.wholePoints(
+        let xpGained = RewardLedgerQuantizer.wholePoints(
             from: effectiveAP * max(1.0, noveltyMultiplier) * comeback
         ) + bolus
-        // Spec §5: broken-vow debt is paid out of earned TRAINING XP before it
-        // reaches the bar (total XP never decreases; the bar simply pauses).
-        // Gated to training sources so non-training awards (e.g. daily photo/scan
-        // XP) can't quietly pay off vow debt.
-        let withheld = consumesVowDebt
-            ? await vowDebtLedger.consumeDebt(upTo: Int(earnedXP), userId: userId)
-            : 0
-        let xpGained = max(0, earnedXP - Double(withheld))
         progress.apply(xpGained: xpGained, sourceLogId: sourceLogId, at: date)
 
         let reward = OverallLevelReward(
@@ -197,8 +217,7 @@ final class OverallLevelService {
             previousLevel: previousLevel,
             currentLevel: progress.level,
             previousProgressToNextLevel: previousProgress,
-            currentProgressToNextLevel: progress.progressToNextLevel,
-            xpWithheldToVowDebt: Double(withheld)
+            currentProgressToNextLevel: progress.progressToNextLevel
         )
         progress.processedSourceRewards[sourceLogId] = reward
         try await persistOverallProgress(
@@ -272,6 +291,51 @@ final class OverallLevelService {
             previousProgressToNextLevel: previousProgress,
             currentProgressToNextLevel: progress.progressToNextLevel
         )
+        progress.processedSourceRewards[sourceId] = reward
+        try await persistOverallProgress(
+            progress,
+            database: database,
+            persistenceMode: persistenceMode
+        )
+        cachedProgress[userId] = progress
+
+        NotificationCenter.default.post(
+            name: .overallLevelProgressUpdated,
+            object: reward,
+            userInfo: ["progress": progress]
+        )
+
+        return reward
+    }
+
+    private func dockXP(
+        amount: Int,
+        sourceId: String,
+        userId: String,
+        at date: Date,
+        database: any DatabaseServiceProtocol,
+        persistenceMode: ProgressionPersistenceMode
+    ) async throws -> OverallLevelReward {
+        var progress = await loadProgress(userId: userId, database: database)
+        let previousXP = progress.totalXP
+        let previousLevel = progress.level
+        let previousProgress = progress.progressToNextLevel
+
+        let removed = progress.applyDock(amount: Double(amount), sourceLogId: sourceId, at: date)
+        let reward = OverallLevelReward(
+            xpGained: -removed,
+            noveltyMultiplier: 1.0,
+            previousXP: previousXP,
+            currentXP: progress.totalXP,
+            previousLevel: previousLevel,
+            currentLevel: progress.level,
+            previousProgressToNextLevel: previousProgress,
+            currentProgressToNextLevel: progress.progressToNextLevel
+        )
+        // Nothing removed (already processed, or already at the level floor) —
+        // no write needed.
+        guard removed > 0 else { return reward }
+
         progress.processedSourceRewards[sourceId] = reward
         try await persistOverallProgress(
             progress,

@@ -5,110 +5,101 @@
       "power": 0.2083
     },
     "advanced tuck front lever": {
-      "control": 0.7692,
-      "power": 0.2308
+      "control": 0.5384,
+      "power": 0.1616,
+      "mobility": 0.3
     },
     "archer pushup": {
       "control": 0.7917,
       "power": 0.2083
     },
     "arnold press": {
-      "power": 0.55,
-      "control": 0.3,
-      "endurance": 0.15
+      "power": 0.647,
+      "control": 0.353
     },
     "assisted dip machine": {
-      "endurance": 0.55,
       "control": 0.25,
-      "power": 0.2
+      "power": 0.2,
+      "endurance": 0.55
     },
     "assisted pistol squat": {
-      "control": 0.65,
-      "power": 0.2,
-      "mobility": 0.15
+      "control": 0.5353,
+      "power": 0.1647,
+      "mobility": 0.3
     },
     "assisted pullup (band)": {
       "control": 0.75,
       "power": 0.25
     },
     "assisted pullup machine": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "assisted shrimp squat": {
-      "control": 0.7,
-      "power": 0.2,
-      "mobility": 0.1
+      "control": 0.5444,
+      "power": 0.1556,
+      "mobility": 0.3
     },
     "assisted squat": {
-      "control": 0.6,
-      "endurance": 0.4
+      "control": 1.0
     },
     "assisted turnover freeze": {
-      "control": 0.75,
-      "explosiveness": 0.25
+      "control": 0.5,
+      "explosiveness": 0.5
     },
     "back extension": {
-      "power": 0.7,
-      "control": 0.15,
-      "endurance": 0.15
+      "power": 0.8235,
+      "control": 0.1765
     },
     "back squat": {
       "power": 0.85,
       "explosiveness": 0.15
     },
     "beginner shrimp squat": {
-      "control": 0.8,
-      "power": 0.2
+      "control": 0.56,
+      "power": 0.14,
+      "mobility": 0.3
     },
     "band curl": {
-      "endurance": 0.6,
       "control": 0.25,
-      "power": 0.15
+      "power": 0.15,
+      "endurance": 0.6
     },
     "band lat pull": {
-      "control": 0.55,
-      "endurance": 0.3,
-      "power": 0.15
+      "control": 0.7857,
+      "power": 0.2143
     },
     "band row": {
-      "control": 0.65,
-      "endurance": 0.25,
-      "power": 0.1
+      "control": 0.8667,
+      "power": 0.1333
     },
     "band tricep extension": {
-      "endurance": 0.6,
       "control": 0.25,
-      "power": 0.15
+      "power": 0.15,
+      "endurance": 0.6
     },
     "banded muscle-up": {
       "control": 0.5,
       "explosiveness": 0.5
     },
     "barbell curl": {
-      "power": 0.7222,
-      "endurance": 0.2778
+      "power": 1.0
     },
     "belt squat": {
-      "power": 0.62,
-      "control": 0.15,
-      "endurance": 0.13,
-      "explosiveness": 0.1
+      "power": 0.8052,
+      "control": 0.1948
     },
     "bench press": {
       "power": 0.85,
       "explosiveness": 0.15
     },
     "bent-over row": {
-      "power": 0.7,
-      "control": 0.2,
-      "explosiveness": 0.1
+      "power": 0.7778,
+      "control": 0.2222
     },
     "bodyweight squat": {
-      "mobility": 0.55,
-      "control": 0.25,
-      "endurance": 0.2
+      "control": 0.3675,
+      "mobility": 0.6325
     },
     "bodyweight leg extension": {
       "control": 0.55,
@@ -120,113 +111,99 @@
       "control": 0.2857
     },
     "cable crunch": {
-      "control": 0.7368,
-      "endurance": 0.2632
+      "control": 0.895,
+      "endurance": 0.105
     },
     "cable curl": {
-      "endurance": 0.7368,
-      "control": 0.2632
+      "control": 0.2632,
+      "endurance": 0.7368
     },
     "cable fly": {
-      "control": 0.7368,
-      "endurance": 0.2632
+      "control": 1.0
     },
     "cable front raise": {
-      "control": 0.5,
-      "endurance": 0.3,
-      "power": 0.2
+      "control": 0.7143,
+      "power": 0.2857
     },
     "cable glute kickback": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "cable hip abduction": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "cable pull through": {
-      "power": 0.55,
-      "endurance": 0.2,
-      "explosiveness": 0.25
+      "power": 0.4537,
+      "explosiveness": 0.5463
     },
     "cable row (seated)": {
-      "power": 0.7368,
-      "endurance": 0.2632
+      "power": 1.0
     },
     "cable y raise": {
-      "control": 0.5,
-      "endurance": 0.3,
-      "power": 0.2
+      "control": 0.7143,
+      "power": 0.2857
     },
     "captains chair knee raise": {
-      "control": 0.7,
-      "endurance": 0.2,
-      "power": 0.1
+      "control": 0.805,
+      "power": 0.115,
+      "endurance": 0.08
     },
     "captains chair leg raise": {
-      "control": 0.7,
-      "endurance": 0.2,
-      "power": 0.1
+      "control": 0.805,
+      "power": 0.115,
+      "endurance": 0.08
     },
     "chest supported row": {
-      "power": 0.67,
-      "endurance": 0.25,
-      "explosiveness": 0.08
+      "power": 1.0
     },
     "chest-to-bar pullup": {
-      "power": 0.5,
-      "control": 0.2,
-      "explosiveness": 0.3
+      "power": 0.3571,
+      "control": 0.1429,
+      "explosiveness": 0.5
     },
     "chin-up": {
-      "power": 0.65,
-      "control": 0.23,
-      "explosiveness": 0.12
+      "power": 0.7386,
+      "control": 0.2614
     },
     "close grip bench press": {
-      "power": 0.7,
-      "endurance": 0.18,
-      "explosiveness": 0.12
+      "power": 0.8311,
+      "explosiveness": 0.1689
     },
     "close grip lat pulldown": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "concentration curl": {
-      "endurance": 0.45,
       "power": 0.3,
-      "control": 0.25
+      "control": 0.25,
+      "endurance": 0.45
     },
     "converging chest press": {
-      "power": 0.5,
-      "endurance": 0.3,
-      "control": 0.12,
-      "explosiveness": 0.08
+      "power": 0.8066,
+      "control": 0.1934
     },
     "cossack squat": {
-      "mobility": 0.5,
       "control": 0.3,
-      "power": 0.2
+      "power": 0.2,
+      "mobility": 0.5
     },
     "deadlift": {
-      "power": 0.8,
-      "explosiveness": 0.2
+      "power": 0.85,
+      "explosiveness": 0.15
     },
     "decline bench press": {
-      "power": 0.88,
-      "explosiveness": 0.12
+      "power": 0.85,
+      "explosiveness": 0.15
     },
     "decline pushup": {
       "power": 0.75,
       "control": 0.25
     },
     "decline situp": {
-      "control": 0.7,
-      "endurance": 0.2,
-      "power": 0.1
+      "control": 0.805,
+      "power": 0.115,
+      "endurance": 0.08
     },
     "deep step up": {
       "control": 0.6,
@@ -237,87 +214,81 @@
       "control": 0.2632
     },
     "dip": {
-      "power": 0.62,
-      "control": 0.26,
-      "explosiveness": 0.12
+      "power": 0.7045,
+      "control": 0.2955
     },
     "dip machine": {
-      "endurance": 0.55,
       "control": 0.25,
-      "power": 0.2
+      "power": 0.2,
+      "endurance": 0.55
     },
     "donkey calf raise": {
-      "endurance": 0.55,
       "control": 0.25,
-      "power": 0.2
+      "power": 0.2,
+      "endurance": 0.55
     },
     "dragon flag": {
       "control": 0.7692,
       "power": 0.2308
     },
     "dumbbell bench press": {
-      "power": 0.7,
-      "control": 0.2,
-      "explosiveness": 0.1
+      "power": 0.6611,
+      "control": 0.1889,
+      "explosiveness": 0.15
     },
     "dumbbell curl": {
-      "power": 0.7059,
-      "endurance": 0.2941
+      "power": 1.0
     },
     "dumbbell fly": {
-      "control": 0.65,
-      "power": 0.2,
-      "endurance": 0.15
+      "control": 0.7647,
+      "power": 0.2353
     },
     "dumbbell front raise": {
-      "power": 0.5,
-      "control": 0.3,
-      "endurance": 0.2
+      "power": 0.625,
+      "control": 0.375
     },
     "dumbbell overhead press": {
-      "power": 0.7,
-      "control": 0.2,
-      "explosiveness": 0.1
+      "power": 0.6611,
+      "control": 0.1889,
+      "explosiveness": 0.15
     },
     "dumbbell romanian deadlift": {
-      "power": 0.7,
-      "control": 0.15,
-      "mobility": 0.15
+      "power": 0.595,
+      "control": 0.1275,
+      "explosiveness": 0.15,
+      "mobility": 0.1275
     },
     "dumbbell row": {
-      "power": 0.7,
-      "control": 0.2,
-      "explosiveness": 0.1
+      "power": 0.7778,
+      "control": 0.2222
     },
     "dumbbell step up": {
-      "power": 0.5,
-      "control": 0.3,
-      "endurance": 0.2
+      "power": 0.625,
+      "control": 0.375
     },
     "elevated two-hand shrimp squat": {
-      "control": 0.8,
-      "power": 0.2
+      "control": 0.56,
+      "power": 0.14,
+      "mobility": 0.3
     },
     "ez bar curl": {
-      "endurance": 0.45,
       "power": 0.3,
-      "control": 0.25
+      "control": 0.25,
+      "endurance": 0.45
     },
     "face pull": {
-      "control": 0.55,
-      "endurance": 0.3,
-      "power": 0.15
+      "control": 0.7857,
+      "power": 0.2143
     },
     "front squat": {
-      "power": 0.68,
-      "control": 0.12,
-      "mobility": 0.1,
-      "explosiveness": 0.1
+      "power": 0.6423,
+      "control": 0.1133,
+      "explosiveness": 0.15,
+      "mobility": 0.0944
     },
     "glute bridge": {
-      "power": 0.55,
-      "endurance": 0.2,
-      "explosiveness": 0.25
+      "power": 0.4537,
+      "explosiveness": 0.5463
     },
     "glute ham raise": {
       "control": 0.75,
@@ -325,120 +296,102 @@
     },
     "goblet squat": {
       "power": 0.65,
-      "mobility": 0.25,
-      "control": 0.1
+      "control": 0.1,
+      "mobility": 0.25
     },
     "good morning": {
       "power": 0.65,
-      "mobility": 0.2,
-      "control": 0.15
+      "control": 0.15,
+      "mobility": 0.2
     },
     "hack squat": {
-      "power": 0.68,
-      "endurance": 0.22,
-      "explosiveness": 0.1
+      "power": 1.0
     },
     "hammer curl": {
-      "power": 0.7222,
-      "endurance": 0.2778
+      "power": 1.0
     },
     "hammer strength chest press": {
-      "power": 0.5,
-      "endurance": 0.3,
-      "control": 0.12,
-      "explosiveness": 0.08
+      "power": 0.8066,
+      "control": 0.1934
     },
     "hammer strength high row": {
-      "power": 0.5,
-      "endurance": 0.3,
-      "control": 0.12,
-      "explosiveness": 0.08
+      "power": 0.8066,
+      "control": 0.1934
     },
     "hammer strength low row": {
-      "power": 0.5,
-      "endurance": 0.3,
-      "control": 0.12,
-      "explosiveness": 0.08
+      "power": 0.8066,
+      "control": 0.1934
     },
     "hammer strength row": {
-      "power": 0.5,
-      "endurance": 0.3,
-      "control": 0.12,
-      "explosiveness": 0.08
+      "power": 0.8066,
+      "control": 0.1934
     },
     "hanging knee raise": {
-      "control": 0.75,
-      "endurance": 0.25
+      "control": 0.9,
+      "endurance": 0.1
     },
     "hanging leg raise": {
       "control": 0.8095,
       "power": 0.1905
     },
     "high-to-low cable fly": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "high plank": {
-      "control": 0.7391,
-      "endurance": 0.2609
+      "control": 0.896,
+      "endurance": 0.104
     },
     "hip abductor machine": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "hip adductor machine": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "hip thrust": {
-      "power": 0.55,
-      "endurance": 0.15,
-      "explosiveness": 0.3
+      "power": 0.4641,
+      "explosiveness": 0.5359
     },
     "hollow hold": {
-      "control": 0.7917,
-      "endurance": 0.2083
+      "control": 0.917,
+      "endurance": 0.083
     },
     "hollow rock": {
-      "control": 0.7273,
-      "endurance": 0.2727
+      "control": 0.891,
+      "endurance": 0.109
     },
     "incline bench press": {
-      "power": 0.88,
-      "explosiveness": 0.12
+      "power": 0.85,
+      "explosiveness": 0.15
     },
     "incline dumbbell curl": {
-      "control": 0.45,
-      "power": 0.3,
-      "endurance": 0.25
+      "control": 0.6,
+      "power": 0.4
     },
     "incline dumbbell press": {
-      "power": 0.7,
-      "control": 0.2,
-      "explosiveness": 0.1
+      "power": 0.7778,
+      "control": 0.2222
     },
     "incline pushup": {
-      "endurance": 0.7368,
-      "control": 0.2632
+      "control": 0.2632,
+      "endurance": 0.7368
     },
     "intermediate shrimp squat": {
-      "control": 0.76,
-      "power": 0.19,
-      "mobility": 0.05
+      "control": 0.56,
+      "power": 0.14,
+      "mobility": 0.3
     },
     "inverted row": {
-      "control": 0.75,
-      "endurance": 0.25
+      "control": 1.0
     },
     "jump squat": {
       "explosiveness": 1.0
     },
     "kettlebell swing": {
-      "explosiveness": 0.85,
-      "endurance": 0.15
+      "control": 0.06,
+      "explosiveness": 0.94
     },
     "l-sit": {
       "control": 0.8,
@@ -449,127 +402,106 @@
       "power": 0.1667
     },
     "landmine press": {
-      "power": 0.55,
-      "control": 0.15,
-      "explosiveness": 0.3
+      "power": 0.7857,
+      "control": 0.2143
     },
     "landmine rotation": {
-      "control": 0.4,
-      "explosiveness": 0.6
+      "control": 0.5,
+      "explosiveness": 0.5
     },
     "landmine row": {
-      "power": 0.62,
-      "control": 0.2,
-      "endurance": 0.08,
-      "explosiveness": 0.1
+      "power": 0.7561,
+      "control": 0.2439
     },
     "lat pulldown": {
-      "power": 0.7368,
-      "endurance": 0.2632
+      "power": 1.0
     },
     "lat pulldown (neutral)": {
-      "power": 0.7368,
-      "endurance": 0.2632
+      "power": 1.0
     },
     "lateral raise (cable)": {
-      "endurance": 0.75,
-      "control": 0.25
+      "control": 0.25,
+      "endurance": 0.75
     },
     "lateral raise (db)": {
-      "endurance": 0.75,
-      "control": 0.25
+      "control": 0.25,
+      "endurance": 0.75
     },
     "leg curl (lying)": {
-      "endurance": 0.75,
-      "power": 0.25
+      "power": 0.25,
+      "endurance": 0.75
     },
     "leg curl (seated)": {
-      "endurance": 0.75,
-      "power": 0.25
+      "power": 0.25,
+      "endurance": 0.75
     },
     "leg extension": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "leg press": {
-      "power": 0.68,
-      "endurance": 0.22,
-      "explosiveness": 0.1
+      "power": 1.0
     },
     "leg press calf raise": {
-      "endurance": 0.7368,
-      "power": 0.2632
+      "power": 0.2632,
+      "endurance": 0.7368
     },
     "low-bar muscle-up transition": {
-      "control": 0.7,
-      "explosiveness": 0.3
+      "control": 0.5,
+      "explosiveness": 0.5
     },
     "low-to-high cable fly": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "machine biceps curl": {
-      "endurance": 0.55,
       "control": 0.25,
-      "power": 0.2
+      "power": 0.2,
+      "endurance": 0.55
     },
     "machine chest press": {
-      "power": 0.67,
-      "endurance": 0.25,
-      "explosiveness": 0.08
+      "power": 1.0
     },
     "machine chest supported row": {
-      "power": 0.5,
-      "endurance": 0.3,
-      "control": 0.12,
-      "explosiveness": 0.08
+      "power": 0.8066,
+      "control": 0.1934
     },
     "machine crunch": {
-      "control": 0.6,
-      "endurance": 0.3,
-      "power": 0.1
+      "control": 0.7543,
+      "power": 0.1257,
+      "endurance": 0.12
     },
     "machine glute kickback": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "machine incline chest press": {
-      "power": 0.5,
-      "endurance": 0.3,
-      "control": 0.12,
-      "explosiveness": 0.08
+      "power": 0.8066,
+      "control": 0.1934
     },
     "machine lateral raise": {
-      "control": 0.5,
-      "endurance": 0.3,
-      "power": 0.2
+      "control": 0.7143,
+      "power": 0.2857
     },
     "machine pullover": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "machine row": {
-      "power": 0.66,
-      "endurance": 0.26,
-      "explosiveness": 0.08
+      "power": 1.0
     },
     "machine triceps extension": {
-      "endurance": 0.55,
       "control": 0.25,
-      "power": 0.2
+      "power": 0.2,
+      "endurance": 0.55
     },
     "meadows row": {
-      "power": 0.7,
-      "control": 0.2,
-      "explosiveness": 0.1
+      "power": 0.7778,
+      "control": 0.2222
     },
     "muscle-up": {
-      "control": 0.45,
-      "explosiveness": 0.55
+      "control": 0.5,
+      "explosiveness": 0.5
     },
     "negative pullup": {
       "control": 0.7727,
@@ -596,171 +528,153 @@
       "explosiveness": 0.15
     },
     "overhead tricep extension": {
-      "power": 0.45,
-      "control": 0.3,
-      "endurance": 0.25
+      "power": 0.6,
+      "control": 0.4
     },
     "pallof press": {
-      "control": 0.8182,
-      "endurance": 0.1818
+      "control": 1.0
     },
     "parallel squat": {
-      "control": 0.55,
-      "endurance": 0.45
+      "control": 1.0
     },
     "partial pistol squat": {
-      "control": 0.8,
-      "power": 0.2
+      "control": 0.56,
+      "power": 0.14,
+      "mobility": 0.3
     },
     "pec dec": {
-      "control": 0.75,
-      "endurance": 0.25
+      "control": 1.0
     },
     "pendlay row": {
-      "power": 0.6,
-      "explosiveness": 0.4
+      "power": 0.5,
+      "explosiveness": 0.5
     },
     "pendulum squat": {
-      "power": 0.62,
-      "control": 0.15,
-      "endurance": 0.13,
-      "explosiveness": 0.1
+      "power": 0.8052,
+      "control": 0.1948
     },
     "pike pushup": {
-      "control": 0.7273,
-      "power": 0.2727
+      "control": 0.5091,
+      "power": 0.1909,
+      "mobility": 0.3
     },
     "pistol squat": {
-      "control": 0.8,
-      "power": 0.2
+      "control": 0.56,
+      "power": 0.14,
+      "mobility": 0.3
     },
     "plank": {
-      "control": 0.7391,
-      "endurance": 0.2609
+      "control": 0.896,
+      "endurance": 0.104
     },
     "plate loaded chest press": {
-      "power": 0.5,
-      "endurance": 0.3,
-      "control": 0.12,
-      "explosiveness": 0.08
+      "power": 0.8066,
+      "control": 0.1934
     },
     "plate loaded row": {
-      "power": 0.5,
-      "endurance": 0.3,
-      "control": 0.12,
-      "explosiveness": 0.08
+      "power": 0.8066,
+      "control": 0.1934
     },
     "plate loaded shoulder press": {
-      "control": 0.45,
-      "endurance": 0.3,
-      "power": 0.17,
-      "explosiveness": 0.08
+      "control": 0.7257,
+      "power": 0.2743
     },
     "preacher curl": {
-      "control": 0.7222,
-      "endurance": 0.2778
+      "control": 1.0
     },
     "prone shoulder raise": {
-      "control": 0.55,
-      "endurance": 0.3,
-      "power": 0.15
+      "control": 0.7857,
+      "power": 0.2143
     },
     "pseudo planche pushup": {
-      "control": 0.75,
-      "power": 0.25
+      "control": 0.525,
+      "power": 0.175,
+      "mobility": 0.3
     },
     "pullup": {
-      "power": 0.62,
-      "control": 0.26,
-      "explosiveness": 0.12
+      "power": 0.7045,
+      "control": 0.2955
     },
     "pushup": {
-      "endurance": 0.75,
-      "power": 0.25
+      "power": 0.25,
+      "endurance": 0.75
     },
     "rear delt fly (db)": {
-      "control": 0.7368,
-      "endurance": 0.2632
+      "control": 1.0
     },
     "rear delt fly (machine)": {
-      "endurance": 0.7895,
-      "control": 0.2105
+      "control": 0.2105,
+      "endurance": 0.7895
     },
     "reverse grip lat pulldown": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "reverse hyper": {
-      "power": 0.7,
-      "control": 0.15,
-      "endurance": 0.15
+      "power": 0.8235,
+      "control": 0.1765
     },
     "roman chair situp": {
-      "control": 0.7,
-      "endurance": 0.2,
-      "power": 0.1
+      "control": 0.805,
+      "power": 0.115,
+      "endurance": 0.08
     },
     "romanian deadlift": {
-      "power": 0.7,
-      "control": 0.15,
-      "mobility": 0.15
+      "power": 0.595,
+      "control": 0.1275,
+      "explosiveness": 0.15,
+      "mobility": 0.1275
     },
     "rope cable curl": {
-      "endurance": 0.55,
       "control": 0.25,
-      "power": 0.2
+      "power": 0.2,
+      "endurance": 0.55
     },
     "rope hammer curl": {
-      "endurance": 0.45,
       "power": 0.3,
-      "control": 0.25
+      "control": 0.25,
+      "endurance": 0.45
     },
     "rope overhead tricep extension": {
-      "endurance": 0.45,
       "power": 0.3,
-      "control": 0.25
+      "control": 0.25,
+      "endurance": 0.45
     },
     "rope tricep pushdown": {
-      "endurance": 0.45,
       "power": 0.3,
-      "control": 0.25
+      "control": 0.25,
+      "endurance": 0.45
     },
     "safety bar squat": {
-      "power": 0.85,
-      "explosiveness": 0.15
+      "power": 1.0
     },
     "seated calf raise": {
-      "endurance": 0.7368,
-      "power": 0.2632
+      "power": 0.2632,
+      "endurance": 0.7368
     },
     "seated machine press": {
-      "power": 0.67,
-      "endurance": 0.25,
-      "explosiveness": 0.08
+      "power": 1.0
     },
     "shrimp squat": {
-      "control": 0.8,
-      "power": 0.2
+      "control": 0.56,
+      "power": 0.14,
+      "mobility": 0.3
     },
     "single arm pulldown": {
       "control": 0.7368,
       "power": 0.2632
     },
     "single-arm cable row": {
-      "control": 0.55,
-      "power": 0.25,
-      "endurance": 0.2
+      "control": 0.6875,
+      "power": 0.3125
     },
     "single-leg curl": {
-      "control": 0.55,
-      "power": 0.25,
-      "endurance": 0.2
+      "control": 0.6875,
+      "power": 0.3125
     },
     "single-leg extension": {
-      "control": 0.55,
-      "power": 0.25,
-      "endurance": 0.2
+      "control": 0.6875,
+      "power": 0.3125
     },
     "single-leg rdl": {
       "control": 0.7,
@@ -772,165 +686,142 @@
       "control": 0.2778
     },
     "split squat": {
-      "control": 0.5,
-      "power": 0.3,
-      "endurance": 0.2
+      "control": 0.625,
+      "power": 0.375
     },
     "smith machine bench press": {
-      "power": 0.5,
-      "endurance": 0.3,
-      "control": 0.12,
-      "explosiveness": 0.08
+      "power": 0.6576,
+      "control": 0.1579,
+      "explosiveness": 0.1845
     },
     "smith machine calf raise": {
-      "endurance": 0.55,
       "control": 0.25,
-      "power": 0.2
+      "power": 0.2,
+      "endurance": 0.55
     },
     "smith machine hip thrust": {
-      "power": 0.47,
-      "endurance": 0.3,
-      "control": 0.08,
-      "explosiveness": 0.15
+      "power": 0.3726,
+      "control": 0.0634,
+      "explosiveness": 0.564
     },
     "smith machine incline press": {
-      "power": 0.5,
-      "endurance": 0.3,
-      "control": 0.12,
-      "explosiveness": 0.08
+      "power": 0.8066,
+      "control": 0.1934
     },
     "smith machine reverse lunge": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "smith machine romanian deadlift": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.6436,
+      "control": 0.1756,
+      "explosiveness": 0.1808
     },
     "smith machine shoulder press": {
-      "control": 0.45,
-      "endurance": 0.3,
-      "power": 0.17,
-      "explosiveness": 0.08
+      "control": 0.7257,
+      "power": 0.2743
     },
     "smith machine split squat": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "smith machine squat": {
-      "power": 0.5,
-      "endurance": 0.3,
-      "control": 0.12,
-      "explosiveness": 0.08
+      "power": 0.8066,
+      "control": 0.1934
     },
     "spider curl": {
-      "endurance": 0.45,
       "power": 0.3,
-      "control": 0.25
+      "control": 0.25,
+      "endurance": 0.45
     },
     "standing calf raise": {
-      "endurance": 0.7368,
-      "power": 0.2632
+      "power": 0.2632,
+      "endurance": 0.7368
     },
     "step up": {
       "control": 0.6,
       "power": 0.4
     },
     "straight arm pulldown": {
-      "control": 0.75,
-      "endurance": 0.25
+      "control": 1.0
     },
     "straight bar dip": {
-      "control": 0.64,
-      "power": 0.24,
-      "explosiveness": 0.12
+      "control": 0.7273,
+      "power": 0.2727
     },
     "straight bar tricep pushdown": {
-      "endurance": 0.45,
       "power": 0.3,
-      "control": 0.25
+      "control": 0.25,
+      "endurance": 0.45
     },
     "t-bar row": {
-      "power": 0.62,
-      "control": 0.2,
-      "endurance": 0.08,
-      "explosiveness": 0.1
+      "power": 0.7561,
+      "control": 0.2439
     },
     "tibialis raise": {
-      "endurance": 0.5,
       "power": 0.3,
-      "control": 0.2
+      "control": 0.2,
+      "endurance": 0.5
     },
     "trap bar deadlift": {
-      "power": 0.7,
-      "explosiveness": 0.3
+      "power": 0.85,
+      "explosiveness": 0.15
     },
     "tricep pushdown": {
-      "endurance": 0.7368,
-      "control": 0.2632
+      "control": 0.2632,
+      "endurance": 0.7368
     },
     "tuck front lever": {
-      "control": 0.8,
-      "power": 0.2
+      "control": 0.56,
+      "power": 0.14,
+      "mobility": 0.3
     },
     "tuck one-leg nordic curl": {
       "control": 0.74,
       "power": 0.26
     },
     "two-hand shrimp squat": {
-      "control": 0.8,
-      "power": 0.2
+      "control": 0.56,
+      "power": 0.14,
+      "mobility": 0.3
     },
     "upright row": {
-      "power": 0.62,
-      "control": 0.2,
-      "endurance": 0.08,
-      "explosiveness": 0.1
+      "power": 0.7561,
+      "control": 0.2439
     },
     "v-squat machine": {
-      "power": 0.5,
-      "endurance": 0.3,
-      "control": 0.12,
-      "explosiveness": 0.08
+      "power": 0.8066,
+      "control": 0.1934
     },
     "walking lunge": {
-      "control": 0.45,
-      "endurance": 0.35,
-      "power": 0.2
+      "control": 0.6923,
+      "power": 0.3077
     },
     "weighted pistol": {
-      "power": 0.7,
-      "control": 0.3
+      "power": 0.49,
+      "control": 0.21,
+      "mobility": 0.3
     },
     "wall handstand pushup": {
-      "control": 0.66,
-      "power": 0.22,
-      "explosiveness": 0.12
+      "control": 0.75,
+      "power": 0.25
     },
     "weighted pullup": {
-      "power": 0.67,
-      "control": 0.18,
-      "explosiveness": 0.15
+      "power": 0.7882,
+      "control": 0.2118
     },
     "wide grip cable row": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "wide grip lat pulldown": {
-      "power": 0.55,
-      "endurance": 0.3,
-      "control": 0.15
+      "power": 0.7857,
+      "control": 0.2143
     },
     "wide grip pullup": {
-      "power": 0.65,
-      "control": 0.23,
-      "explosiveness": 0.12
+      "power": 0.7386,
+      "control": 0.2614
     }
   },
-  "skill_nodes": {
-  }
+  "skill_nodes": {}
 }

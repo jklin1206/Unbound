@@ -153,7 +153,7 @@ struct HomeSystemDirectiveLine: View {
     }
 }
 
-private struct HomeTrainingRankRail: View {
+struct HomeTrainingRankRail: View {
     let level: Int
     let xpInLevel: Int
     let xpForLevel: Int

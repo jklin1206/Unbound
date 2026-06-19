@@ -8,10 +8,12 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
     /// Posts .weeklyVowWeekRolled.
     func ensureCurrentWeek(userId: String) async
 
-    /// User picks one of the 3 cards. Persists as currentVow.
+    /// User picks one of the 3 cards. Persists as currentVow. Abandoning a
+    /// touched prior vow docks its stake off XP.
     func pickVowCard(_ card: WeeklyVowCard, userId: String)
 
-    /// User skipped the pick this week. No vow active; no chip; no penalty.
+    /// User skipped the pick this week. No vow active; no chip. Abandoning a
+    /// touched vow docks its stake off XP.
     func skipThisWeek(userId: String)
 
     /// Caller invokes from app foreground / home appear to transition
@@ -31,16 +33,15 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
     /// lane counter, and notify. Idempotent against an already-closed vow.
     func sealVow(userId: String, vow: WeeklyVow, at date: Date) async
 
-    /// Auto-complete an auto-verified (recovery/engine) vow when enough
-    /// qualifying sessions are logged in-week. No-op for Fuel vows.
-    func refreshAutoVerifiedVow(userId: String) async
+    /// Self-report tap for the active vow (any lane). Seals at target. Gated to
+    /// once per calendar day.
+    func logVowProgress(userId: String, at date: Date) async
 
-    /// Self-report tap for a Fuel vow. Increments the vow-scoped anchor tally
-    /// and seals the vow at target.
-    func logFuelAnchor(userId: String) async
+    /// Current self-report tally for the active vow (0 if none).
+    func vowProgressCount(userId: String) -> Int
 
-    /// Current Fuel anchor tally for the active vow (0 for non-Fuel vows).
-    func fuelAnchorCount(userId: String) -> Int
+    /// True if the active vow can still be logged today (once-a-day gate).
+    func canLogVowToday(userId: String, now: Date) -> Bool
 }
 
 typealias TrialsServiceProtocol = WeeklyVowsServiceProtocol

@@ -1,8 +1,8 @@
 import Foundation
 
 enum VitalityRewardPolicy {
-    static let dailySignalCap: Double = 12
-    static let weeklyConsistencyBonus: Double = 15
+    static let dailySignalCap: Double = 18
+    static let weeklyConsistencyBonus: Double = 25
 
     struct Award: Equatable, Sendable {
         var signals: [VitalityCheckInSignal] = []

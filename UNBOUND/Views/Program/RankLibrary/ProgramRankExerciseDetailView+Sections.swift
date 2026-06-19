@@ -108,7 +108,7 @@ extension ProgramRankExerciseDetailView {
 
         return detailSection(
             title: "TARGET MAP",
-            subtitle: targetRegions.isEmpty ? "No catalog body regions for this standard" : nil
+            subtitle: targetRegions.isEmpty ? "No mapped regions" : nil
         ) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 10) {
@@ -269,7 +269,7 @@ extension ProgramRankExerciseDetailView {
     }
 
     private var historyCard: some View {
-        detailSection(title: "PAST HISTORY", subtitle: "Recent attempts for this rank standard") {
+        detailSection(title: "PAST HISTORY") {
             if isLoading {
                 HStack(spacing: 10) {
                     ProgressView()
@@ -284,7 +284,7 @@ extension ProgramRankExerciseDetailView {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Color.unbound.textTertiary)
-                    Text("No attempts yet. Reveal one result and it will appear here.")
+                    Text("No attempts yet.")
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

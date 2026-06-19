@@ -5,44 +5,17 @@ import Foundation
 final class WeeklyVowsService: WeeklyVowsServiceProtocol {
     static let shared = WeeklyVowsService()
 
+    /// Vitality granted on sealing a vow (every lane is vitality-flavored). Tunable.
+    private static let vowVitalityXP: Double = 50
+
     private let store: WeeklyVowsStore
-    // Read-only auto-detection sources (Core-3). Recovery reads routine-sourced
-    // PerformanceLogs; engine reads CardioSessions. Both default to the existing
-    // read APIs; tests inject stub closures returning canned data.
-    private let recoveryCompletionsProvider: (String) async -> [PerformanceLog]
-    private let cardioSessionsProvider: (String) async -> [CardioSession]
 
     convenience init() {
-        self.init(
-            store: .shared,
-            recoveryCompletionsProvider: nil,
-            cardioSessionsProvider: nil
-        )
+        self.init(store: .shared)
     }
 
-    init(
-        store: WeeklyVowsStore,
-        recoveryCompletionsProvider: ((String) async -> [PerformanceLog])? = nil,
-        cardioSessionsProvider: ((String) async -> [CardioSession])? = nil
-    ) {
+    init(store: WeeklyVowsStore) {
         self.store = store
-        // Recovery: read routine-sourced PerformanceLogs from the shared
-        // `performanceLogs` collection (read-only — never a write path).
-        self.recoveryCompletionsProvider = recoveryCompletionsProvider ?? { userId in
-            let logs: [PerformanceLog] = (try? await DatabaseService.shared.query(
-                collection: "performanceLogs",
-                field: "userId",
-                isEqualTo: userId,
-                orderBy: "completedAt",
-                descending: true,
-                limit: nil
-            )) ?? []
-            return logs.filter { $0.source == .routine }
-        }
-        // Engine: read standalone cardio from CardioLogService (read-only).
-        self.cardioSessionsProvider = cardioSessionsProvider ?? { userId in
-            await CardioLogService.shared.all(userId: userId)
-        }
     }
 
     // MARK: - ensureCurrentWeek
@@ -56,9 +29,11 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
             return
         }
 
-        // Roll prior week. Mark uncompleted picked vows as missed and bind the miss penalty.
+        // Roll prior week. Mark uncompleted picked vows as missed and dock the stake.
+        var rolledStake: BrokenStake?
         if var vow = state.currentVow, vow.capstoneState != .completed {
-            WeeklyVowPenaltyCatalog.applyMissedPenaltyIfNeeded(for: vow, missedAt: now, state: &state)
+            let owed = WeeklyVowPenaltyCatalog.recordBreakIfNeeded(for: vow, missedAt: now, state: &state)
+            if owed > 0 { rolledStake = BrokenStake(amount: owed, vowId: vow.id) }
             vow.capstoneState = .missed
             state.currentVow = vow
         }
@@ -79,6 +54,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         state.skippedCurrentWeek = false
 
         store.save(state, userId: userId)
+        await dockStake(rolledStake, userId: userId, at: now)
         NotificationCenter.default.post(name: .weeklyVowWeekRolled, object: nil)
         NotificationCenter.default.post(name: .trialWeekRolled, object: nil)
 
@@ -109,58 +85,77 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
 
     func pickVowCard(_ card: WeeklyVowCard, userId: String) {
         var state = store.load(userId: userId)
+        let now = Date()
+        var stake: BrokenStake?
         if let existingVow = state.currentVow {
             guard existingVow.id != card.id else { return }
             // Switching grace (spec §10): switching away from an untouched vow is
             // free (mis-tap protection). A vow with progress is bound — abandoning
             // it owes the stake.
             if hasProgress(existingVow, in: state) {
-                WeeklyVowPenaltyCatalog.applyMissedPenaltyIfNeeded(
-                    for: existingVow,
-                    missedAt: Date(),
-                    state: &state
-                )
+                let owed = WeeklyVowPenaltyCatalog.recordBreakIfNeeded(for: existingVow, missedAt: now, state: &state)
+                if owed > 0 { stake = BrokenStake(amount: owed, vowId: existingVow.id) }
             }
         }
         let vow = WeeklyVow(
             id: card.id,
             userId: userId,
-            weekStart: state.currentWeekStart ?? Date(),
+            weekStart: state.currentWeekStart ?? now,
             chosenCard: card,
             capstoneState: .pending,
-            completedAt: nil,
-            pickedAt: Date()
+            completedAt: nil
         )
         state.currentVow = vow
         state.skippedCurrentWeek = false
         store.save(state, userId: userId)
+        dockStakeSoon(stake, userId: userId, at: now)
         NotificationCenter.default.post(name: .weeklyVowPicked, object: vow)
         NotificationCenter.default.post(name: .trialPicked, object: vow)
     }
 
     func skipThisWeek(userId: String) {
         var state = store.load(userId: userId)
+        let now = Date()
+        var stake: BrokenStake?
         // Skip grace (spec §10): consistent with pickVowCard — skipping an
         // untouched vow is free (mis-tap protection). Only a vow with progress
         // is bound, so abandoning it owes the stake.
         if let existingVow = state.currentVow, hasProgress(existingVow, in: state) {
-            WeeklyVowPenaltyCatalog.applyMissedPenaltyIfNeeded(
-                for: existingVow,
-                missedAt: Date(),
-                state: &state
-            )
+            let owed = WeeklyVowPenaltyCatalog.recordBreakIfNeeded(for: existingVow, missedAt: now, state: &state)
+            if owed > 0 { stake = BrokenStake(amount: owed, vowId: existingVow.id) }
         }
         state.skippedCurrentWeek = true
         state.currentVow = nil
         store.save(state, userId: userId)
+        dockStakeSoon(stake, userId: userId, at: now)
         WeeklyVowsNotificationScheduler.cancelAll()
     }
 
-    /// True if a picked vow has any progress that binds the stake on a switch.
-    /// Auto-verified lanes (recovery/engine) have no in-app counter, so this is
-    /// false for them — switching a recovery/engine pick is always free (a
-    /// qualifying session logged elsewhere still counts toward whichever vow is
-    /// bound at week close). See spec §10.
+    /// A recorded broken-vow stake awaiting an XP dock.
+    private struct BrokenStake { let amount: Int; let vowId: String }
+
+    /// Dock a broken vow's stake straight off the user's XP (clamped so it never
+    /// de-levels). Awaited at the reliable week-roll site; idempotent by vow id.
+    private func dockStake(_ stake: BrokenStake?, userId: String, at date: Date) async {
+        guard let stake else { return }
+        await OverallLevelService.shared.dockXP(
+            amount: stake.amount,
+            sourceId: "weeklyVowMiss:\(stake.vowId)",
+            userId: userId,
+            at: date
+        )
+    }
+
+    /// Fire the dock without blocking the synchronous pick/skip. Best-effort +
+    /// idempotent, so a dropped dock just means no XP lost (user-favourable).
+    private func dockStakeSoon(_ stake: BrokenStake?, userId: String, at date: Date) {
+        guard stake != nil else { return }
+        Task { await dockStake(stake, userId: userId, at: date) }
+    }
+
+    /// True if a picked vow has any progress that binds the stake on a switch:
+    /// it's sealed, or at least one self-report tap has been logged. An untouched
+    /// vow switches for free (mis-tap grace, spec §10).
     private func hasProgress(_ vow: WeeklyVow, in state: WeeklyVowsState) -> Bool {
         if vow.capstoneState == .completed { return true }
         if (state.fuelAnchorsByVowId[vow.id] ?? 0) > 0 { return true }
@@ -183,6 +178,15 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         let priorKept = VowBadgeTrack.totalKept(state.completionsByLane)
         state.completionsByLane[current.chosenCard.lane, default: 0] += 1
         let currentKept = VowBadgeTrack.totalKept(state.completionsByLane)
+        state.keptVows.append(KeptVow(
+            vowId: current.id,
+            name: current.chosenCard.displayName,
+            lane: current.chosenCard.lane,
+            completedAt: date
+        ))
+        if state.keptVows.count > 100 {
+            state.keptVows.removeFirst(state.keptVows.count - 100)
+        }
         store.save(state, userId: userId)
 
         // Token win — paid in full, never garnished (spec §5). Awaited (not a
@@ -195,6 +199,11 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
             userId: userId,
             at: date
         )
+        // Every vow lane (REST / FUEL / CARDIO) is vitality-flavored, so sealing one
+        // feeds the vitality axis — the §7 "no attributes" guardrail is overridden for
+        // vitality only (never strength XP/rank), and only at the seal, never per tap.
+        // Runs once: the guard above prevents re-sealing a completed vow.
+        AttributeService.shared.applyBoost(axis: .vitality, amount: Self.vowVitalityXP, userId: userId)
         NotificationCenter.default.post(name: .weeklyVowCompleted, object: current)
         for milestone in VowBadgeTrack.crossings(priorKept: priorKept, currentKept: currentKept) {
             NotificationCenter.default.post(name: .vowBadgeUnlocked, object: milestone)
@@ -202,65 +211,43 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         AnalyticsService.shared.track(.bindingVowCleared(vowId: current.id))
     }
 
-    /// Auto-complete an auto-verified vow when enough qualifying sessions are
-    /// logged in-week. Reads the lane's read-only completion source (recovery →
-    /// routine-sourced PerformanceLogs; engine → CardioSessions). No-op for Fuel
-    /// (self-report) vows.
-    func refreshAutoVerifiedVow(userId: String) async {
-        let state = store.load(userId: userId)
-        guard let vow = state.currentVow,
-              vow.capstoneState == .pending || vow.capstoneState == .windowOpen,
-              vow.chosenCard.lane.verification == .autoFromLog,
-              let weekStart = state.currentWeekStart
-        else { return }
-
-        let committedAt = vow.pickedAt ?? weekStart
-        let count: Int
-        switch vow.chosenCard.lane {
-        case .recovery:
-            let recoveryLogs = await recoveryCompletionsProvider(userId)
-            count = VowLogMatcher.qualifyingRecoveryCount(
-                weekStart: weekStart,
-                committedAt: committedAt,
-                recoveryLogs: recoveryLogs
-            )
-        case .engine:
-            let cardioSessions = await cardioSessionsProvider(userId)
-            count = VowLogMatcher.qualifyingCardioCount(
-                weekStart: weekStart,
-                committedAt: committedAt,
-                cardioSessions: cardioSessions
-            )
-        case .fuel:
-            return  // self-report; never auto-sealed
-        }
-
-        guard count >= vow.chosenCard.target.count else { return }
-        await sealVow(userId: userId, vow: vow, at: Date())
-    }
-
-    /// Self-report tap for a Fuel vow. Increments the vow-scoped anchor tally
-    /// (never XP/rank/attributes — spec §7 guardrail) and seals at target.
-    func logFuelAnchor(userId: String) async {
+    /// Self-report tap for the active vow (any lane). Increments the vow-scoped
+    /// tally (never XP/rank/attributes — spec §7 guardrail) and seals at target.
+    /// Gated to once per calendar day — a vow is a slow weekly commitment.
+    func logVowProgress(userId: String, at date: Date = Date()) async {
         var state = store.load(userId: userId)
         guard let vow = state.currentVow,
-              vow.chosenCard.lane == .fuel,
               vow.capstoneState == .pending || vow.capstoneState == .windowOpen
         else { return }
+        if let last = state.lastVowLogByVowId[vow.id],
+           Calendar.current.isDate(last, inSameDayAs: date) {
+            return  // already logged today
+        }
         let next = (state.fuelAnchorsByVowId[vow.id] ?? 0) + 1
         state.fuelAnchorsByVowId[vow.id] = next
+        state.lastVowLogByVowId[vow.id] = date
         store.save(state, userId: userId)
         NotificationCenter.default.post(name: .weeklyVowProgressUpdated, object: vow)
         if next >= vow.chosenCard.target.count {
-            await sealVow(userId: userId, vow: vow, at: Date())
+            await sealVow(userId: userId, vow: vow, at: date)
         }
     }
 
-    /// Current Fuel anchor tally for the active vow (0 for non-Fuel vows).
-    func fuelAnchorCount(userId: String) -> Int {
+    /// Current self-report tally for the active vow (0 if none).
+    func vowProgressCount(userId: String) -> Int {
         let state = store.load(userId: userId)
-        guard let vow = state.currentVow, vow.chosenCard.lane == .fuel else { return 0 }
+        guard let vow = state.currentVow else { return 0 }
         return state.fuelAnchorsByVowId[vow.id] ?? 0
+    }
+
+    /// True if the active vow can still be logged today (once-a-day gate).
+    func canLogVowToday(userId: String, now: Date = Date()) -> Bool {
+        let state = store.load(userId: userId)
+        guard let vow = state.currentVow,
+              vow.capstoneState == .pending || vow.capstoneState == .windowOpen
+        else { return false }
+        guard let last = state.lastVowLogByVowId[vow.id] else { return true }
+        return !Calendar.current.isDate(last, inSameDayAs: now)
     }
 
     /// Grant the wearable title earned by unlocking a badge. Idempotent; fires

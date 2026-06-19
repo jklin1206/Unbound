@@ -8,10 +8,11 @@ extension UnboundHomeView {
     }
 
     var homeControlSurface: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             homeMissionStatusBand
-            homeTrialKeyBand
             homeUtilityDockBand
+                .id("homeTiles")
+            homeTrialKeyBand
         }
         .padding(.top, 4)
         .padding(.bottom, 14)
@@ -19,43 +20,98 @@ extension UnboundHomeView {
     }
 
     var homeMissionStatusBand: some View {
-        HomeSurfaceBand(tint: homeControlTint, horizontalPadding: 0, verticalPadding: 14) {
-            weekPath
+        weekPath
+    }
+
+    // The rank gate is its own immersive "world" card (NextGateCard) placed
+    // directly on Home — ENTER drops you into the trial, so we don't re-open a
+    // detail sheet (that would just show the same card twice). The Trial Records
+    // row beneath it opens the full 8-gate list. The vow is a separate, slim
+    // strip — a weekly self-report habit, not a place you enter.
+    var homeTrialKeyBand: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HomeBandHeader(title: "Trials")
+
+            rankGateBlock
+
+            vowStrip
+        }
+        .padding(.bottom, 2)
+    }
+
+    private var rankGateBlock: some View {
+        HomeTrialDeck(
+            gates: trialDeckGates,
+            currentReadiness: model.overallRankTrialReadiness,
+            onBegin: {
+                if let definition = model.overallRankTrialReadiness?.definition {
+                    enterRankGate(definition)
+                }
+            },
+            onShowRecords: { showTrialRecords = true }
+        )
+    }
+
+    /// All gate worlds with their cleared / current / locked state, in order — the
+    /// swipeable deck source.
+    private var trialDeckGates: [HomeTrialDeck.Gate] {
+        let passedRanks = Set(rankGateProgress.attempts.filter { $0.passed }.map { $0.targetRank })
+        let currentFormat = model.overallRankTrialReadiness?.definition?.format
+        return RankTrialFormat.allCases.enumerated().map { index, format in
+            let definition = OverallRankTrialDefinitions.all.first { $0.format == format }
+            let state: HomeTrialDeck.GateState
+            if let definition, passedRanks.contains(definition.targetRank) {
+                state = .cleared
+            } else if format == currentFormat {
+                state = .current
+            } else {
+                state = .locked
+            }
+            return HomeTrialDeck.Gate(
+                id: index,
+                format: format,
+                world: GateWorldCatalog.world(for: format),
+                state: state
+            )
         }
     }
 
-    var homeTrialKeyBand: some View {
-        HomeSurfaceBand(tint: homeControlTint, verticalPadding: 10) {
-            VStack(alignment: .leading, spacing: 0) {
-                HomeBandHeader(title: "Trials", tint: homeControlTint)
-                    .padding(.bottom, 4)
-
-                HomePriorityCommand(
-                    artwork: .trialKey,
-                    title: "Rank Trial",
-                    detail: rankTrialCommandDetail,
-                    value: rankTrialCommandValue,
-                    tint: Color.unbound.rankGold,
-                    accessibilityLabel: "Open rank trial"
-                ) {
-                    handleRankTrialCommand()
-                }
-
-                UnboundNativeDivider(opacity: 0.42)
-                    .padding(.leading, 54)
-
-                HomePriorityCommand(
-                    artwork: .vow,
-                    title: "Binding Vow",
-                    detail: trialCommandDetail,
-                    value: trialCommandValue,
-                    tint: homeControlTint,
-                    accessibilityLabel: "Open binding vow"
-                ) {
-                    handleTrialCommand()
-                }
-            }
+    @ViewBuilder
+    private var vowStrip: some View {
+        if let trial = model.trialsState.currentTrial, trial.capstoneState != .missed {
+            ActiveTrialCard(trial: trial)
+        } else {
+            HomeVowPickStrip(onTap: { handleTrialCommand() })
         }
+    }
+
+    // MARK: - Rank gate helpers
+
+    /// Persisted gate attempts/records for the current user.
+    var rankGateProgress: OverallRankTrialProgress {
+        OverallRankTrialStore.shared.load(userId: services.auth.currentUserId ?? "anonymous")
+    }
+
+    /// Distinct ranks whose gate has at least one passing attempt.
+    var passedGateCount: Int {
+        Set(rankGateProgress.attempts.filter { $0.passed }.map { $0.targetRank }).count
+    }
+
+    /// ENTER on the world card → straight into the trial workout cover (no detail
+    /// sheet). Mirrors the path the records list uses to re-enter a gate.
+    func enterRankGate(_ definition: OverallRankTrialDefinition) {
+        let userId = services.auth.currentUserId ?? "anonymous"
+        let readiness = model.overallRankTrialReadiness
+        let resolvedTrial = readiness?.resolvedTrial?.definitionId == definition.id
+            ? readiness?.resolvedTrial
+            : nil
+        UnboundHaptics.medium()
+        workoutReadyDraft = OverallRankTrialRunner.shared.draft(
+            for: definition,
+            userId: userId,
+            resolvedTrial: resolvedTrial,
+            bodyweightKg: model.profile?.weightKg
+        )
     }
 
     var homeUtilityDockBand: some View {
@@ -115,74 +171,6 @@ extension UnboundHomeView {
         .frame(maxWidth: .infinity)
     }
 
-    var trialCommandValue: String {
-        if let activeTrial = model.trialsState.currentTrial {
-            return capstoneStateLabel(for: activeTrial.capstoneState)
-        }
-        if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
-            return "BIND"
-        }
-        return "IDLE"
-    }
-
-    var trialCommandTint: Color {
-        if let activeTrial = model.trialsState.currentTrial {
-            if activeTrial.capstoneState == .completed { return Color.unbound.success }
-            if activeTrial.capstoneState == .missed { return Color.unbound.alert }
-            return activeTrial.chosenCard.lane.tintColor
-        }
-        if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
-            return Color.unbound.accent
-        }
-        return Color.unbound.textTertiary
-    }
-
-    var rankTrialCommandValue: String {
-        guard let readiness = model.overallRankTrialReadiness,
-              readiness.definition != nil
-        else { return "IDLE" }
-        if readiness.isReady { return "READY" }
-        if readiness.status == .attempted { return "RETRY" }
-        let metCount = readiness.requirements.filter(\.isMet).count
-        let totalCount = max(1, readiness.requirements.count)
-        return "\(metCount)/\(totalCount)"
-    }
-
-    var rankTrialCommandTint: Color {
-        guard let readiness = model.overallRankTrialReadiness,
-              readiness.definition != nil
-        else { return Color.unbound.textTertiary }
-        return rankGatePulseTint(readiness)
-    }
-
-    var rankTrialCommandDetail: String {
-        guard let readiness = model.overallRankTrialReadiness,
-              readiness.definition != nil
-        else { return "Rank gate locked" }
-        if readiness.isReady { return "Gate available" }
-        if readiness.status == .attempted { return "Reattempt gate" }
-        return "Rank gate progress"
-    }
-
-    var trialCommandDetail: String {
-        if let activeTrial = model.trialsState.currentTrial {
-            switch activeTrial.capstoneState {
-            case .pending:
-                return "Opens Sat · XP debt if missed"
-            case .windowOpen:
-                return "Save vow workout to seal"
-            case .completed:
-                return "Reward sealed this week"
-            case .missed:
-                return "Miss added XP debt"
-            }
-        }
-        if !model.trialsState.skippedCurrentWeek && !model.trialsState.currentWeekCards.isEmpty {
-            return "Pick one vow or skip free"
-        }
-        return "No binding vow active"
-    }
-
     var bodyWeightCommandValue: String {
         if let latestBodyWeightKg = model.latestBodyWeightKg {
             let weight = WeightPlatePolicy.formatLoggedWeight(latestBodyWeightKg, unit: selectedWeightUnit)
@@ -192,16 +180,13 @@ extension UnboundHomeView {
     }
 
     func handleTrialCommand() {
-        if model.trialsState.currentTrial != nil {
-            // Binding Vows v2: an active vow seals via auto-detection (recovery/
-            // engine) or a Fuel self-report tap. Open the active-vow surface so
-            // the in-context seal/self-report affordance (ActiveTrialCard) is
-            // reachable from Home.
-            UnboundHaptics.medium()
-            showActiveVow = true
+        // An active vow is logged inline on the Home feed (ActiveTrialCard in the
+        // contextual stack), so the tile is just its status here. Only the pick
+        // entry (no active vow yet) opens anything.
+        guard model.trialsState.currentTrial == nil else {
+            UnboundHaptics.soft()
             return
         }
-
         guard !model.trialsState.skippedCurrentWeek,
               !model.trialsState.currentWeekCards.isEmpty
         else {
@@ -213,17 +198,6 @@ extension UnboundHomeView {
         showTrialPicker = true
     }
 
-    func handleRankTrialCommand() {
-        guard let readiness = model.overallRankTrialReadiness,
-              readiness.definition != nil
-        else {
-            UnboundHaptics.soft()
-            return
-        }
-        UnboundHaptics.medium()
-        NotificationCenter.default.post(name: .requestOpenRankInfo, object: nil)
-    }
-
     func handleBodyWeightCommand() {
         model.bodyWeightSaveError = nil
         UnboundHaptics.medium()
@@ -231,19 +205,6 @@ extension UnboundHomeView {
             showingBodyWeightHistory = true
         } else {
             showingBodyWeightLog = true
-        }
-    }
-
-    func capstoneStateLabel(for state: WeeklyVowState) -> String {
-        switch state {
-        case .pending:
-            return "SAT"
-        case .windowOpen:
-            return "TRAIN"
-        case .completed:
-            return "DONE"
-        case .missed:
-            return "MISSED"
         }
     }
 
@@ -468,53 +429,14 @@ extension UnboundHomeView {
 
 }
 
-private struct HomeSurfaceBand<Content: View>: View {
-    let tint: Color
-    var horizontalPadding: CGFloat = 14
-    var verticalPadding: CGFloat = 14
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            content()
-        }
-        .padding(.horizontal, horizontalPadding)
-        .padding(.vertical, verticalPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.unbound.surface.opacity(0.42),
-                            tint.opacity(0.06),
-                            Color.unbound.surface.opacity(0.22)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle.opacity(0.74), lineWidth: 0.5)
-        }
-    }
-}
-
 private struct HomeBandHeader: View {
     let title: String
-    let tint: Color
 
     var body: some View {
-        HStack(spacing: 8) {
-            Rectangle()
-                .fill(tint)
-                .frame(width: 3, height: 10)
-
+        HStack(spacing: 10) {
             Text(title.uppercased())
                 .font(.system(size: 9, weight: .black, design: .monospaced))
-                .tracking(1.4)
+                .tracking(1.6)
                 .foregroundStyle(Color.unbound.textTertiary)
                 .lineLimit(1)
 
@@ -522,64 +444,6 @@ private struct HomeBandHeader: View {
                 .fill(Color.unbound.borderSubtle.opacity(0.58))
                 .frame(height: 0.5)
         }
-    }
-}
-
-private struct HomePriorityCommand: View {
-    let artwork: HomeCommandArtworkKind
-    let title: String
-    let detail: String
-    let value: String
-    let tint: Color
-    let accessibilityLabel: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(alignment: .center, spacing: 12) {
-                HomeCommandMiniGlyph(kind: artwork, tint: tint)
-                    .frame(width: 42, height: 42)
-                    .shadow(color: tint.opacity(0.18), radius: 6)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title.uppercased())
-                        .font(.system(size: 12, weight: .black, design: .rounded))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-
-                    Text(detail.uppercased())
-                        .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                        .tracking(0.9)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.68)
-                }
-                .layoutPriority(1)
-
-                Spacer(minLength: 0)
-
-                Text(value.uppercased())
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .tracking(0.5)
-                    .foregroundStyle(tint)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.62)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(Capsule().fill(tint.opacity(0.12)))
-                    .overlay(Capsule().strokeBorder(tint.opacity(0.26), lineWidth: 1))
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .black))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel)
     }
 }
 
@@ -592,21 +456,21 @@ private struct HomeCommandStripButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .center, spacing: 7) {
-                HomeCommandMiniGlyph(kind: artwork, tint: tint)
-                    .frame(width: 38, height: 38)
+            VStack(alignment: .center, spacing: 8) {
+                HomeCommandArtwork(kind: artwork, tint: tint)
+                    .frame(width: 48, height: 48)
 
                 Text(title.uppercased())
                     .font(.system(size: 9, weight: .black, design: .monospaced))
                     .tracking(0.7)
                     .foregroundStyle(Color.unbound.textTertiary)
-                    .lineLimit(2)
+                    .lineLimit(1)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.68)
-                    .frame(height: 20, alignment: .top)
+                    .frame(height: 14, alignment: .top)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 74)
+            .frame(height: 78)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

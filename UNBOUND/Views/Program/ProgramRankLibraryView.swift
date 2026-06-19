@@ -82,18 +82,12 @@ struct ProgramRankLibraryView: View {
     private var rankLibraryHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 10) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("RANK LIBRARY")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.8)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text("Every standard you can prove")
-                        .font(Font.unbound.titleS)
-                        .tracking(0.7)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                }
+                Text("RANK LIBRARY")
+                    .font(Font.unbound.titleS)
+                    .tracking(0.7)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
                 Spacer(minLength: 0)
                 Image(topTier.assetName)
                     .resizable()
@@ -229,9 +223,6 @@ struct ProgramRankLibraryView: View {
             Text("No ranks match those filters")
                 .font(Font.unbound.bodyMStrong)
                 .foregroundStyle(Color.unbound.textSecondary)
-            Text("Clear the search or log a ranked movement.")
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textTertiary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 44)

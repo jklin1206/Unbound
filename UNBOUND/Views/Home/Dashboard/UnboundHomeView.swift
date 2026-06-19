@@ -50,6 +50,7 @@ struct UnboundHomeView: View {
     @State var showingShop = false
     @State var showingBackdropPicker = false
     @State var showRankInfo = false
+    @State var showTrialRecords = false
     @State var bodyWeightJustLogged = false
 
     // Ambient animation state
@@ -72,7 +73,6 @@ struct UnboundHomeView: View {
     @State var showScanCaptureFlow = false
 
     @State var showTrialPicker = false
-    @State var showActiveVow = false
 
     init(services: ServiceContainer) {
         _model = StateObject(wrappedValue: HomeViewModel(services: services))
@@ -101,6 +101,7 @@ struct UnboundHomeView: View {
             if model.isLoading {
                 HomeLoadingSkeleton()
             } else {
+                ScrollViewReader { proxy in
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
                         homeHeroStack
@@ -126,11 +127,30 @@ struct UnboundHomeView: View {
                     }
                     .frame(maxWidth: .infinity)
                 }
+                #if DEBUG
+                .task {
+                    guard ProcessInfo.processInfo.arguments.contains("--unbound-scroll-tiles") else { return }
+                    try? await Task.sleep(nanoseconds: 900_000_000)
+                    withAnimation { proxy.scrollTo("homeTiles", anchor: .center) }
+                }
+                #endif
+                }
             }
         }
         .task {
             bindCosmeticStores()
             await model.load()
+            #if DEBUG
+            // Screenshot harness: open a Home sheet straight from a launch arg
+            // (mirrors --unbound-open-cosmetics on Profile), so the real screens
+            // can be captured without blind taps.
+            let args = ProcessInfo.processInfo.arguments
+            if args.contains("--unbound-open-shop") { showingShop = true }
+            else if args.contains("--unbound-open-ranks") { showRankLibrary = true }
+            else if args.contains("--unbound-open-backdrops") { showingBackdropPicker = true }
+            else if args.contains("--unbound-open-weight") { showingBodyWeightHistory = true }
+            else if args.contains("--unbound-open-rank-info") { showRankInfo = true }
+            #endif
         }
         .onChange(of: model.isLoading) { _, isLoading in
             guard !isLoading else { return }
@@ -141,6 +161,11 @@ struct UnboundHomeView: View {
         }
         .tierBloomToast()
         .onReceive(NotificationCenter.default.publisher(for: .rankAdvanced)) { _ in
+            Task { await model.refreshRanksAndStats() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .overallRankTrialCompleted)) { _ in
+            // A passed gate advances the rank — recompute readiness so the world
+            // card moves to the next gate and the progression strip lights it up.
             Task { await model.refreshRanksAndStats() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .skillTierAdvanced)) { _ in
@@ -341,6 +366,20 @@ struct UnboundHomeView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $showTrialRecords) {
+            TrialRecordsShelf(
+                progress: OverallRankTrialStore.shared.load(userId: services.auth.currentUserId ?? "anonymous"),
+                onSelectGate: { format in
+                    showTrialRecords = false
+                    guard let definition = OverallRankTrialDefinitions.all.first(where: { $0.format == format }) else { return }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                        enterRankGate(definition)
+                    }
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .requestOpenRankInfo)) { _ in
             showRankInfo = true
         }
@@ -375,18 +414,6 @@ struct UnboundHomeView: View {
                     model.trialsState = services.trials.state(userId: userId)
                 }
             )
-        }
-        .sheet(isPresented: $showActiveVow, onDismiss: {
-            // A Fuel self-report or auto-seal inside the card may have advanced
-            // the vow; pull the latest state so the command label stays in sync.
-            if let userId = services.auth.currentUserId {
-                model.trialsState = services.trials.state(userId: userId)
-            }
-        }) {
-            if let trial = model.trialsState.currentTrial {
-                ActiveVowSheet(trial: trial)
-                    .environmentObject(services)
-            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .weeklyVowCompleted)) { _ in
             if let userId = services.auth.currentUserId {

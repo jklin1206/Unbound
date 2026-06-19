@@ -99,7 +99,7 @@ extension UnboundHomeView {
         if model.latestBodyWeightKg != nil {
             return "FROM PROFILE"
         }
-        return "NO ENTRIES YET"
+        return "NO LOGS YET"
     }
 
     var bodyWeightStatusColor: Color {

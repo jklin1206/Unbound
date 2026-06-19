@@ -15,11 +15,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         suiteName = "WeeklyVowsServiceTests-\(UUID().uuidString)"
         defaults = UserDefaults(suiteName: suiteName)!
         store = WeeklyVowsStore(defaults: defaults)
-        service = WeeklyVowsService(
-            store: store,
-            recoveryCompletionsProvider: { _ in [] },
-            cardioSessionsProvider: { _ in [] }
-        )
+        service = WeeklyVowsService(store: store)
     }
     override func tearDown() {
         defaults.removePersistentDomain(forName: suiteName)
@@ -84,14 +80,13 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertTrue(state.skippedCurrentWeek)
         XCTAssertNil(state.currentVow)
         XCTAssertTrue(state.weeklyVowPenaltyLedger.isEmpty)
-        XCTAssertEqual(state.pendingVowDebtXP, 0)
     }
 
     func testSkippingPickedVowAddsPenalty() async {
         let card = makeVowCard(lane: .fuel, bet: .medium, target: VowTarget(count: 5, noun: "fuel anchor"))
         pickLaneVow(card)
         // Make the vow touched so the skip binds the stake.
-        await service.logFuelAnchor(userId: "u-1")
+        await service.logVowProgress(userId: "u-1")
 
         service.skipThisWeek(userId: "u-1")
 
@@ -102,7 +97,41 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.vowId, card.id)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.weekStart, state.currentWeekStart)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.lane, .fuel)
-        XCTAssertEqual(state.pendingVowDebtXP, card.bet.oweXP)
+        XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.penaltyXP, card.bet.oweXP)
+    }
+
+    /// Regression: abandoning a touched Fuel vow charges its stake AND must reset
+    /// its self-report anchors. The weekly card id is stable, so without the
+    /// reset, re-picking the same card resumes the old tally and can re-seal an
+    /// already-broken, already-charged vow — double-paying its win token.
+    func testAbandonedFuelVowAnchorsDoNotResumeOnRepick() async {
+        let a = makeVowCard(lane: .fuel, bet: .medium, target: VowTarget(count: 3, noun: "fuel anchor"))
+        let b = makeVowCard(lane: .engine, bet: .small, target: VowTarget(count: 1, noun: "engine session"))
+        var state = service.state(userId: "u-1")
+        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
+        state.currentWeekCards = [a, b]
+        store.save(state, userId: "u-1")
+
+        service.pickVowCard(a, userId: "u-1")
+        let d1 = Date(timeIntervalSince1970: 1_700_000_000)
+        await service.logVowProgress(userId: "u-1", at: d1)
+        await service.logVowProgress(userId: "u-1", at: d1.addingTimeInterval(86_400))  // 2/3
+        XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 2)
+
+        // Bound switch A → B charges A's stake (and must clear A's anchors).
+        service.pickVowCard(b, userId: "u-1")
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowPenaltyLedger.first?.penaltyXP, a.bet.oweXP)
+
+        // Re-pick A: anchors start at 0, so a single tap can't instantly re-seal.
+        service.pickVowCard(a, userId: "u-1")
+        XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 0,
+                       "abandoned fuel anchors must not resume on re-pick")
+        await service.logVowProgress(userId: "u-1", at: d1.addingTimeInterval(2 * 86_400))
+        XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 1)
+        XCTAssertNotEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed,
+                          "must not re-seal from resumed anchors")
+        // Win token must not have been paid a second time: lane stays uncounted.
+        XCTAssertNil(service.state(userId: "u-1").completionsByLane[.fuel])
     }
 
     /// Spec §10 switching grace: switching away from an UNTOUCHED vow is free
@@ -121,10 +150,9 @@ final class WeeklyVowsServiceTests: XCTestCase {
         let final = service.state(userId: "u-1")
         XCTAssertEqual(final.currentVow?.id, b.id)
         XCTAssertTrue(final.weeklyVowPenaltyLedger.isEmpty)
-        XCTAssertEqual(final.pendingVowDebtXP, 0)
     }
 
-    // MARK: - Missed vow rolls into debt (ensureCurrentWeek)
+    // MARK: - Missed vow records its stake (ensureCurrentWeek)
 
     func testMissedPickedVowAddsBetDebtOnWeekRoll() async {
         let missedCard = makeVowCard(lane: .engine, bet: .large, target: VowTarget(count: 1, noun: "engine session"))
@@ -147,7 +175,6 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 1)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.penaltyXP, VowBet.large.oweXP)
         XCTAssertEqual(state.weeklyVowPenaltyLedger.first?.lane, .engine)
-        XCTAssertEqual(state.pendingVowDebtXP, VowBet.large.oweXP)
     }
 
     func testPenaltyDedupeIncludesVowWeekStart() async {
@@ -173,19 +200,17 @@ final class WeeklyVowsServiceTests: XCTestCase {
                 penaltyXP: card.bet.oweXP
             )
         ]
-        stale.pendingVowDebtXP = card.bet.oweXP
         store.save(stale, userId: "u-1")
 
         await service.ensureCurrentWeek(userId: "u-1")
 
         let state = service.state(userId: "u-1")
         XCTAssertEqual(state.weeklyVowPenaltyLedger.count, 2)
-        XCTAssertEqual(state.pendingVowDebtXP, card.bet.oweXP * 2)
     }
 
-    // MARK: - Broken-vow debt comes from the bet
+    // MARK: - Broken-vow stake comes from the bet
 
-    func testBrokenVowAddsDebtFromBet() {
+    func testBrokenVowRecordsStakeFromBet() {
         let card = makeVowCard(lane: .engine, bet: .large)
         var state = service.state(userId: "u-1")
         state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
@@ -202,7 +227,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         Task { await service.ensureCurrentWeek(userId: "u-1"); exp.fulfill() }
         wait(for: [exp], timeout: 5)
 
-        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, VowBet.large.oweXP)
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowPenaltyLedger.first?.penaltyXP, VowBet.large.oweXP)
     }
 
     // MARK: - equipTitle
@@ -234,32 +259,58 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertNil(service.state(userId: "u-1").equippedTitle)
     }
 
-    // MARK: - Lane completion (seal / fuel / auto-verify / switching grace)
+    // MARK: - Lane completion (seal / self-report / switching grace)
 
     func testFuelTapIncrementsAndSealsAtTarget() async {
         let card = makeVowCard(lane: .fuel, bet: .small, target: VowTarget(count: 3, noun: "fuel anchor"))
         pickLaneVow(card)
+        // One log per day — a 3-anchor vow takes three days to clear.
+        let d1 = Date(timeIntervalSince1970: 1_700_000_000)
+        let d2 = d1.addingTimeInterval(86_400)
+        let d3 = d2.addingTimeInterval(86_400)
 
-        await service.logFuelAnchor(userId: "u-1")
-        XCTAssertEqual(service.fuelAnchorCount(userId: "u-1"), 1)
+        await service.logVowProgress(userId: "u-1", at: d1)
+        XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 1)
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
 
-        await service.logFuelAnchor(userId: "u-1")
-        XCTAssertEqual(service.fuelAnchorCount(userId: "u-1"), 2)
+        await service.logVowProgress(userId: "u-1", at: d2)
+        XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 2)
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
 
-        await service.logFuelAnchor(userId: "u-1")
+        await service.logVowProgress(userId: "u-1", at: d3)
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed)
         XCTAssertEqual(service.state(userId: "u-1").completionsByLane[.fuel], 1)
     }
 
-    func testFuelTapDoesNothingForNonFuelVow() async {
+    func testLogIsGatedToOncePerDay() async {
+        let card = makeVowCard(lane: .fuel, bet: .small, target: VowTarget(count: 3, noun: "fuel anchor"))
+        pickLaneVow(card)
+        let day = Date(timeIntervalSince1970: 1_700_000_000)
+
+        await service.logVowProgress(userId: "u-1", at: day)
+        XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 1)
+        XCTAssertFalse(service.canLogVowToday(userId: "u-1", now: day))
+
+        // Same day again → ignored.
+        await service.logVowProgress(userId: "u-1", at: day.addingTimeInterval(60))
+        XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 1, "second same-day log is ignored")
+
+        // Next day → allowed again.
+        let nextDay = day.addingTimeInterval(86_400)
+        XCTAssertTrue(service.canLogVowToday(userId: "u-1", now: nextDay))
+        await service.logVowProgress(userId: "u-1", at: nextDay)
+        XCTAssertEqual(service.vowProgressCount(userId: "u-1"), 2)
+    }
+
+    /// Every lane self-reports the same way now — a recovery vow seals from a
+    /// progress tap just like fuel.
+    func testRecoveryVowSelfReportsAndSeals() async {
         let card = makeVowCard(lane: .recovery, bet: .small, target: VowTarget(count: 1, noun: "recovery reset"))
         pickLaneVow(card)
 
-        await service.logFuelAnchor(userId: "u-1")
-        XCTAssertEqual(service.fuelAnchorCount(userId: "u-1"), 0)
-        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .pending)
+        await service.logVowProgress(userId: "u-1")
+        XCTAssertEqual(service.state(userId: "u-1").currentVow?.capstoneState, .completed)
+        XCTAssertEqual(service.state(userId: "u-1").completionsByLane[.recovery], 1)
     }
 
     func testSealVowPaysBetWinAndMarksCompleted() async {
@@ -287,113 +338,6 @@ final class WeeklyVowsServiceTests: XCTestCase {
         XCTAssertEqual(service.state(userId: "u-1").completionsByLane[.recovery], 1)
     }
 
-    // MARK: - Auto-verify: recovery source (routine-sourced PerformanceLogs)
-
-    /// A routine-sourced recovery PerformanceLog completed in-week.
-    private func recoveryPerfLog(
-        titled title: String = "Recovery Reset",
-        completedAt t: TimeInterval = 1_700_000_900
-    ) -> PerformanceLog {
-        PerformanceLog(
-            id: UUID().uuidString,
-            userId: "u-1",
-            source: .routine,
-            title: title,
-            startedAt: Date(timeIntervalSince1970: t - 600),
-            completedAt: Date(timeIntervalSince1970: t),
-            blocks: []
-        )
-    }
-
-    private func cardioSession(at t: TimeInterval = 1_700_000_900) -> CardioSession {
-        CardioSession(
-            userId: "u-1",
-            type: .run,
-            durationMinutes: 20,
-            perceivedEffort: 5,
-            date: Date(timeIntervalSince1970: t)
-        )
-    }
-
-    private func makeAutoService(
-        recovery: @escaping (String) async -> [PerformanceLog] = { _ in [] },
-        cardio: @escaping (String) async -> [CardioSession] = { _ in [] }
-    ) -> WeeklyVowsService {
-        WeeklyVowsService(
-            store: store,
-            recoveryCompletionsProvider: recovery,
-            cardioSessionsProvider: cardio
-        )
-    }
-
-    private func pick(_ card: WeeklyVowCard, on autoService: WeeklyVowsService, userId: String = "u-1") {
-        var state = autoService.state(userId: userId)
-        state.currentWeekStart = Date(timeIntervalSince1970: 1_700_000_000)
-        state.currentWeekCards = [card]
-        store.save(state, userId: userId)
-        autoService.pickVowCard(card, userId: userId)
-        // pickVowCard stamps pickedAt = now; pin it to the controlled test week so
-        // the fixed-timestamp recovery/cardio logs (just after weekStart) count as
-        // post-commitment under the pick-time filter.
-        var picked = store.load(userId: userId)
-        picked.currentVow?.pickedAt = Date(timeIntervalSince1970: 1_700_000_001)
-        store.save(picked, userId: userId)
-    }
-
-    private func runRefresh(on autoService: WeeklyVowsService, userId: String = "u-1") {
-        let exp = expectation(description: "auto-verify")
-        Task { await autoService.refreshAutoVerifiedVow(userId: userId); exp.fulfill() }
-        wait(for: [exp], timeout: 5)
-    }
-
-    func testRefreshAutoVerifiedVowSealsWhenRecoveryLogsQualify() {
-        let autoService = makeAutoService(recovery: { _ in [self.recoveryPerfLog()] })
-        let card = makeVowCard(lane: .recovery, bet: .small, target: VowTarget(count: 1, noun: "recovery reset"))
-        pick(card, on: autoService)
-
-        runRefresh(on: autoService)
-
-        XCTAssertEqual(autoService.state(userId: "u-1").currentVow?.capstoneState, .completed)
-        XCTAssertEqual(autoService.state(userId: "u-1").completionsByLane[.recovery], 1)
-    }
-
-    func testRefreshAutoVerifiedVowSealsWhenCardioQualifies() {
-        let autoService = makeAutoService(cardio: { _ in [self.cardioSession()] })
-        let card = makeVowCard(lane: .engine, bet: .small, target: VowTarget(count: 1, noun: "easy cardio session"))
-        pick(card, on: autoService)
-
-        runRefresh(on: autoService)
-
-        XCTAssertEqual(autoService.state(userId: "u-1").currentVow?.capstoneState, .completed)
-        XCTAssertEqual(autoService.state(userId: "u-1").completionsByLane[.engine], 1)
-    }
-
-    func testRefreshAutoVerifiedVowIsNoOpForFuel() {
-        // Even if recovery/cardio sources are non-empty, a Fuel vow never auto-seals.
-        let autoService = makeAutoService(
-            recovery: { _ in [self.recoveryPerfLog()] },
-            cardio: { _ in [self.cardioSession()] }
-        )
-        let card = makeVowCard(lane: .fuel, bet: .small, target: VowTarget(count: 1, noun: "fuel anchor"))
-        pick(card, on: autoService)
-
-        runRefresh(on: autoService)
-
-        XCTAssertEqual(autoService.state(userId: "u-1").currentVow?.capstoneState, .pending)
-        XCTAssertNil(autoService.state(userId: "u-1").completionsByLane[.fuel])
-    }
-
-    func testRefreshAutoVerifiedVowDoesNotSealBelowTarget() {
-        // Only 1 recovery log, target needs 2.
-        let autoService = makeAutoService(recovery: { _ in [self.recoveryPerfLog()] })
-        let card = makeVowCard(lane: .recovery, bet: .medium, target: VowTarget(count: 2, noun: "recovery reset"))
-        pick(card, on: autoService)
-
-        runRefresh(on: autoService)
-
-        XCTAssertEqual(autoService.state(userId: "u-1").currentVow?.capstoneState, .pending)
-    }
-
     func testSwitchingBeforeProgressIsFree() {
         let a = makeVowCard(lane: .recovery, bet: .small, target: VowTarget(count: 1, noun: "recovery reset"))
         let b = makeVowCard(lane: .engine, bet: .large, target: VowTarget(count: 1, noun: "easy cardio session"))
@@ -406,7 +350,7 @@ final class WeeklyVowsServiceTests: XCTestCase {
         service.pickVowCard(b, userId: "u-1")  // no progress on A → free switch
 
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.id, b.id)
-        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, 0)
+        XCTAssertTrue(service.state(userId: "u-1").weeklyVowPenaltyLedger.isEmpty)
     }
 
     func testSwitchingAfterProgressOwesStake() async {
@@ -418,11 +362,11 @@ final class WeeklyVowsServiceTests: XCTestCase {
         store.save(state, userId: "u-1")
 
         service.pickVowCard(a, userId: "u-1")
-        await service.logFuelAnchor(userId: "u-1")  // progress on A
+        await service.logVowProgress(userId: "u-1")  // progress on A
         service.pickVowCard(b, userId: "u-1") // bound switch → owes A's stake
 
         XCTAssertEqual(service.state(userId: "u-1").currentVow?.id, b.id)
-        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, VowBet.medium.oweXP) // 250
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowPenaltyLedger.first?.penaltyXP, VowBet.medium.oweXP) // 250
     }
 
     // MARK: - skipThisWeek grace (spec §10)
@@ -437,18 +381,18 @@ final class WeeklyVowsServiceTests: XCTestCase {
 
         XCTAssertTrue(service.state(userId: "u-1").skippedCurrentWeek)
         XCTAssertNil(service.state(userId: "u-1").currentVow)
-        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, 0)
+        XCTAssertTrue(service.state(userId: "u-1").weeklyVowPenaltyLedger.isEmpty)
     }
 
     func testSkipVowWithProgressOwesStake() async {
         // A Fuel vow with a logged anchor is bound; skipping it owes the stake.
         let card = makeVowCard(lane: .fuel, bet: .medium, target: VowTarget(count: 5, noun: "fuel anchor"))
         pickLaneVow(card)
-        await service.logFuelAnchor(userId: "u-1")  // progress binds the vow
+        await service.logVowProgress(userId: "u-1")  // progress binds the vow
 
         service.skipThisWeek(userId: "u-1")
 
         XCTAssertTrue(service.state(userId: "u-1").skippedCurrentWeek)
-        XCTAssertEqual(service.state(userId: "u-1").pendingVowDebtXP, VowBet.medium.oweXP)
+        XCTAssertEqual(service.state(userId: "u-1").weeklyVowPenaltyLedger.first?.penaltyXP, VowBet.medium.oweXP)
     }
 }
