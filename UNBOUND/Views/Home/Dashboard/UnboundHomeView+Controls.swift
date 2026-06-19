@@ -129,6 +129,17 @@ extension UnboundHomeView {
     var homeCommandStrip: some View {
         HStack(alignment: .top, spacing: 0) {
             HomeCommandStripButton(
+                artwork: .loadouts,
+                title: "Loadouts",
+                tint: Color.unbound.accent,
+                accessibilityLabel: "Open your saved workouts"
+            ) {
+                UnboundHaptics.medium()
+                HomeProgramLandingIntent.pendingLoadouts = true
+                NotificationCenter.default.post(name: .requestOpenLoadouts, object: nil)
+            }
+
+            HomeCommandStripButton(
                 artwork: .weight,
                 title: "Weight",
                 tint: bodyWeightStatusColor,

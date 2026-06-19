@@ -52,6 +52,7 @@ enum HomeCommandArtworkKind {
     case backdrops
     case rankLibrary
     case weight
+    case loadouts
 
     /// Rendered 3D tile artwork, when one exists for this command. Falls back to
     /// the tinted SF glyph (`HomeCommandMiniGlyph`) when nil.
@@ -61,7 +62,7 @@ enum HomeCommandArtworkKind {
         case .backdrops:   return "home_dock_backdrops"
         case .rankLibrary: return "home_dock_rank_library"
         case .shop:        return "home_dock_shop"
-        case .rankTrial, .trialKey, .vow: return nil
+        case .rankTrial, .trialKey, .vow, .loadouts: return nil
         }
     }
 }
@@ -157,6 +158,7 @@ struct HomeCommandMiniGlyph: View {
         case .backdrops:   return "photo.on.rectangle.angled"
         case .rankLibrary: return "list.bullet.rectangle.portrait.fill"
         case .weight:      return "scalemass.fill"
+        case .loadouts:    return "square.stack.3d.up.fill"
         }
     }
 

@@ -226,6 +226,11 @@ struct ProgramOverviewView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .task {
+            if HomeProgramLandingIntent.pendingLoadouts {
+                HomeProgramLandingIntent.pendingLoadouts = false
+                selectedTab = .myWorkouts
+            }
+
             await loadProgramSurface()
 
             #if DEBUG
@@ -305,6 +310,10 @@ struct ProgramOverviewView: View {
             weekOffset = 0
             selectedDayDate = Calendar.current.startOfDay(for: programToday)
             applySavedWorkout(workout, to: programToday, allowExtraSession: true)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .requestOpenLoadouts)) { _ in
+            HomeProgramLandingIntent.pendingLoadouts = false
+            selectedTab = .myWorkouts
         }
         .fullScreenCover(item: $workoutReadyDraft) { draft in
             WorkoutReadyView(draft: draft)

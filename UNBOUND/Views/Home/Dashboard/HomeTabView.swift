@@ -94,6 +94,9 @@ struct HomeTabView: View {
         .onReceive(NotificationCenter.default.publisher(for: .requestNavigateToProgramTab)) { _ in
             selectedTab = 1
         }
+        .onReceive(NotificationCenter.default.publisher(for: .requestOpenLoadouts)) { _ in
+            selectedTab = 1
+        }
         #if DEBUG
         .fullScreenCover(isPresented: $debugShowCardioLogger) {
             LogCardioView()

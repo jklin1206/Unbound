@@ -33,6 +33,9 @@ extension Notification.Name {
     /// profile behind an ⓘ before; the gate details are Home's concern now).
     static let requestOpenRankInfo = Notification.Name("unbound.requestOpenRankInfo")
     static let requestNavigateToProgramTab = Notification.Name("unbound.requestNavigateToProgramTab")
+    /// Opens the Train tab on its LOADOUTS sub-tab (the user's own saved/custom
+    /// workouts) — the one-tap Home path to "train what I chose".
+    static let requestOpenLoadouts = Notification.Name("unbound.requestOpenLoadouts")
     static let trialCapstoneCompleted = Notification.Name("unbound.trialCapstoneCompleted")
     static let trialExpired = Notification.Name("unbound.trialExpired")
     // Squad notification names
@@ -50,4 +53,14 @@ extension Notification.Name {
     static let friendChallengeAccepted = Notification.Name("unbound.friendChallengeAccepted")
     static let squadRoutineDropShared  = Notification.Name("unbound.squadRoutineDropShared")
     static let savedWorkoutScheduleTodayRequested = Notification.Name("unbound.savedWorkoutScheduleTodayRequested")
+}
+
+/// One-shot navigation intent: Home's Loadouts command sets this, and
+/// `ProgramOverviewView` consumes it on appear. The notification alone is not
+/// enough — when the Train tab has never been opened this session the program
+/// view isn't subscribed yet and misses it, so the flag carries the intent
+/// across the view's creation.
+@MainActor
+enum HomeProgramLandingIntent {
+    static var pendingLoadouts = false
 }
