@@ -274,7 +274,7 @@ final class ProgramScheduler {
 
     /// First date whose program category can host the given skill. This is
     /// the bridge from Skill Detail's "Add Program Focus" action to the
-    /// Program tab's next eligible Workout Ready draft.
+    /// Program tab's next eligible workout draft.
     func nextEligibleDate(
         forSkillId skillId: String,
         from startDate: Date = Date(),

@@ -17,7 +17,7 @@ All shipped app code lives under `UNBOUND/`, in five layers plus utilities:
 
 Persistence is local-first: `Services/Database/` is a file-backed JSON document store, `Services/Sync/SyncEngine.swift` drains an outbox to Supabase, and `Services/Supabase/` holds the single shared Supabase client (`UnboundSupabase`). Squad data is the exception — it lives directly in Supabase tables behind `Services/Squads/*Backend` wrappers.
 
-**How a workout flows through the layers:** onboarding answers feed `ProgramViewModel`, which calls `ProgramGenerationService` → the pure `DeterministicProgramGenerator` → the program is saved in `ProgramStore`. On training day, `DailyWorkoutResolver` turns the program day into a draft shown by `WorkoutReadyView`, which launches `ActiveWorkoutContainerView` (Views/Program/ActiveWorkout). Set edits mutate the `ActiveWorkoutSession` model and autosave through `WorkoutDraftStore`. On COMPLETE, the container assembles a `PerformanceLog` and hands it to `TrainingCompletionService.complete(...)` — the canonical once-per-log cascade (progression, XP, attributes, proof, squad missions, friend challenges) — whose `TrainingCompletionResult` drives the full-screen `WorkoutRewardSequenceView`.
+**How a workout flows through the layers:** onboarding answers feed `ProgramViewModel`, which calls `ProgramGenerationService` → the pure `DeterministicProgramGenerator` → the program is saved in `ProgramStore`. On training day, `DailyWorkoutResolver` turns the program day into a draft that launches `ActiveWorkoutContainerView` (Views/Program/ActiveWorkout) directly. Set edits mutate the `ActiveWorkoutSession` model and autosave through `WorkoutDraftStore`. On COMPLETE, the container assembles a `PerformanceLog` and hands it to `TrainingCompletionService.complete(...)` — the canonical once-per-log cascade (progression, XP, attributes, proof, squad missions, friend challenges) — whose `TrainingCompletionResult` drives the full-screen `WorkoutRewardSequenceView`.
 
 ## Key flows (exact files, in order)
 
@@ -37,7 +37,7 @@ Persistence is local-first: `Services/Database/` is a file-backed JSON document 
 3. `UNBOUND/Services/ProgramGeneration/DeterministicProgramGenerator.swift` — pure function `ProgramGeneratorInput` → `TrainingProgram` (extensions: `+MovementSelection`, `+Prescription`, `+Schedule`, `+Progression`, `+WorkoutBuilder`, ...). No IO, no AI.
 4. `UNBOUND/Services/Program/ProgramStore.swift` — the single on-device owner of the active program (local-first; cloud push via the sync outbox).
 5. `UNBOUND/Services/ProgramGeneration/SupabaseProgramService.swift` — cloud persistence after every generate.
-6. `UNBOUND/Services/ProgramGeneration/DailyWorkoutResolver.swift` — later resolves a program day + active modifiers into the concrete draft shown in Workout Ready (launched via `UNBOUND/Views/Program/Overview/ProgramWorkoutLaunchCoordinator.swift`).
+6. `UNBOUND/Services/ProgramGeneration/DailyWorkoutResolver.swift` — later resolves a program day + active modifiers into the concrete draft that launches straight into `ActiveWorkoutContainerView` (routing decided by `UNBOUND/Views/Program/Overview/ProgramWorkoutLaunchCoordinator.swift`).
 
 ### 3. Rank/tier computation for a skill
 

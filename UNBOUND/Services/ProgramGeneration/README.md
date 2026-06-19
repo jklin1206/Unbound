@@ -10,7 +10,7 @@ Deterministic, on-device training-program generation: turns scan/profile/progres
 | `ArcGenerator.swift` | Expands a completed Calibration Week program into the first 28-day Arc (preserving split shape, tagging session roles). |
 | `BlockRolloverScheduler.swift` | Pure helpers mapping the active arc start date to the current day number / days remaining; `DevProgramClock` for dev time travel. |
 | `BlockRolloverService.swift` | Orchestrates the 2-week-block rollover: `resolveRollover` (pure decision: bias + stale-exercise rotation) and `performRollover` (reads services, writes state). |
-| `DailyWorkoutResolver.swift` | Resolves the base program day plus active modifiers (skill goals, equipment, trial prep, deload) into the draft shown in Workout Ready; defines `DailyWorkoutModifierContext`. |
+| `DailyWorkoutResolver.swift` | Resolves the base program day plus active modifiers (skill goals, equipment, trial prep, deload) into the draft that launches the active workout; defines `DailyWorkoutModifierContext`. |
 | `DailyWorkoutResolver+DraftModifiers.swift` | Modifier pipeline for `TrainingSessionDraft`: substitution → trial prep → deload → short session. |
 | `DailyWorkoutResolver+MovementSubstitution.swift` | Picks a same-slot replacement `CatalogExercise` for equipment/avoidance constraints. |
 | `DailyWorkoutResolver+WorkoutModifiers.swift` | Modifier pipeline for legacy `Workout`: substitution → trial prep → skill-block taper → deload → short session. |
