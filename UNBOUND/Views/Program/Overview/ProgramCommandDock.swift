@@ -87,7 +87,7 @@ struct ProgramCommandDock: View {
             commandTile(
                 title: setupTile.title,
                 icon: setupTile.isLoading ? "arrow.triangle.2.circlepath" : setupTile.icon,
-                tint: setupTile.tint,
+                tint: Color.unbound.coachCyan,
                 accessory: setupTile.badge == "BASE" ? nil : setupTile.badge,
                 action: onChangeSetup
             )
