@@ -37,13 +37,45 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     // MARK: Protocol surface
 
     var currentUserId: String? {
+        Self.resolveUserId()
+    }
+
+    /// Single source of truth for identity resolution: debug override (DEBUG
+    /// only) → cached Supabase UID → legacy anonymous UID. Used by both the
+    /// synchronous `currentUserId` accessor and the initial-state seed so the
+    /// two can never drift. `defaults` is injectable for unit tests.
+    static func resolveUserId(defaults: UserDefaults = .standard) -> String? {
         #if DEBUG
-        if let debugUserId = UserDefaults.standard.string(forKey: debugUserIdOverrideKey) {
+        if let debugUserId = defaults.string(forKey: debugUserIdOverrideKey) {
             return debugUserId
         }
         #endif
-        return UserDefaults.standard.string(forKey: cachedUserIdKey)
-            ?? UserDefaults.standard.string(forKey: legacyLocalUserIdKey)
+        return defaults.string(forKey: cachedUserIdKey)
+            ?? defaults.string(forKey: legacyLocalUserIdKey)
+    }
+
+    /// Clears identity on an *involuntary* sign-out (an expired/invalidated
+    /// Supabase session surfacing as `.signedOut`/`.userDeleted`), as opposed to
+    /// the deliberate `signOut()`.
+    ///
+    /// Critically, when the user had a cached (signed-in) session this also
+    /// drops the legacy anonymous id. Otherwise `resolveUserId` falls back to
+    /// that stale pre-auth identity, surfacing a *different* (usually zeroed)
+    /// streak/profile until the next token refresh flips it back — the "streak
+    /// keeps losing its place" flapping. Dropping it resolves identity to nil so
+    /// the app routes to re-auth, which restores the real id and streak.
+    ///
+    /// A never-signed-in anonymous user (no cached id) keeps their legacy id, so
+    /// a spurious event can't strand their local-only progress.
+    /// Returns whether a cached session was present (i.e. the legacy id was dropped).
+    @discardableResult
+    static func clearSessionOnRemoteSignOut(defaults: UserDefaults = .standard) -> Bool {
+        let hadCachedSession = defaults.string(forKey: cachedUserIdKey) != nil
+        defaults.removeObject(forKey: cachedUserIdKey)
+        if hadCachedSession {
+            defaults.removeObject(forKey: legacyLocalUserIdKey)
+        }
+        return hadCachedSession
     }
 
     var isAuthenticated: Bool { currentUserId != nil }
@@ -59,13 +91,7 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
     }
 
     private static func initialUserId() -> String? {
-        #if DEBUG
-        if let debugUserId = UserDefaults.standard.string(forKey: debugUserIdOverrideKey) {
-            return debugUserId
-        }
-        #endif
-        return UserDefaults.standard.string(forKey: cachedUserIdKey)
-            ?? UserDefaults.standard.string(forKey: legacyLocalUserIdKey)
+        resolveUserId()
     }
 
     // MARK: Sign in with Apple
@@ -284,7 +310,7 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
                         self.cacheUserId(session.user.id.uuidString)
                     }
                 case .signedOut, .userDeleted:
-                    UserDefaults.standard.removeObject(forKey: cachedUserIdKey)
+                    Self.clearSessionOnRemoteSignOut()
                     AnalyticsService.shared.reset()
                     self.authStateSubject.send(nil)
                 default:
@@ -332,6 +358,30 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
         return hash.compactMap { String(format: "%02x", $0) }.joined()
     }
 }
+
+#if DEBUG
+extension AuthService {
+    /// Test seam: seed identity keys into an isolated `UserDefaults` so unit
+    /// tests can exercise `resolveUserId` / `clearSessionOnRemoteSignOut`
+    /// without reaching the file-private key constants.
+    static func seedIdentityForTesting(
+        cachedUserId: String?,
+        legacyUserId: String?,
+        in defaults: UserDefaults
+    ) {
+        if let cachedUserId {
+            defaults.set(cachedUserId, forKey: cachedUserIdKey)
+        } else {
+            defaults.removeObject(forKey: cachedUserIdKey)
+        }
+        if let legacyUserId {
+            defaults.set(legacyUserId, forKey: legacyLocalUserIdKey)
+        } else {
+            defaults.removeObject(forKey: legacyLocalUserIdKey)
+        }
+    }
+}
+#endif
 
 // MARK: - ASAuthorizationControllerPresentationContextProviding
 

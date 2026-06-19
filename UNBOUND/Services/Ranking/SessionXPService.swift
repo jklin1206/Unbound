@@ -71,9 +71,16 @@ final class SessionXPService: SessionXPServiceProtocol {
 
     private let logger = LoggingService.shared
     private let defaults = UserDefaults.standard
-    private let keyPrefix = "unbound.sessionxp."
     private let bonusKeyPrefix = "unbound.sessionxpbonus."
     private let streakResetKey = "unbound.streakResetDays"
+
+    /// The UserDefaults key the per-user record is persisted under. Exposed so
+    /// the sign-in data migration re-keys the streak to the exact same slot the
+    /// service reads from — a mismatch here would silently fail to carry the
+    /// streak over (see UserDataMigrationCoordinator.migrateSessionXP).
+    nonisolated static func storageKey(for userId: String) -> String {
+        "unbound.sessionxp." + userId
+    }
 
     private init() {
         // Default streak-reset window (days). 14 = "life happens, don't punish."
@@ -84,6 +91,39 @@ final class SessionXPService: SessionXPServiceProtocol {
 
     func record(userId: String) -> SessionXPRecord {
         load(userId: userId) ?? .empty(userId: userId, weekStart: Self.currentWeekStart())
+    }
+
+    /// Carries a SessionXP record from a pre-auth (legacy) userId onto the
+    /// signed-in userId, atomically on the main actor so it can't interleave
+    /// with a concurrent `recordSession` read-modify-write on the same key.
+    /// This is the streak's half of the sign-in data migration (Bug #3): the
+    /// legacy slot is left in place as a backup; the signed-in slot is the new
+    /// source of truth. Returns the outcome so the migration coordinator can
+    /// build its summary and defer the completion flag on a corrupt/failed run.
+    func migrateRecord(from legacyUserId: String, to supabaseUserId: String) -> SessionXPMigrationOutcome {
+        guard let legacyData = defaults.data(forKey: key(for: legacyUserId)) else {
+            return .noLegacy
+        }
+        guard let legacy = try? JSONDecoder.unbound.decode(SessionXPRecord.self, from: legacyData) else {
+            // Data present but unreadable — surface as a failure so the migration
+            // retries instead of silently losing the streak.
+            return .failed
+        }
+
+        let result: SessionXPRecord
+        let outcome: SessionXPMigrationOutcome
+        if let existing = load(userId: supabaseUserId) {
+            let merged = SessionXPRecord.merging(legacy: legacy, target: existing)
+            guard merged != existing else { return .unchanged }
+            result = merged
+            outcome = .merged
+        } else {
+            result = legacy.rekeyed(to: supabaseUserId)
+            outcome = .rekeyed
+        }
+
+        guard persisted(result) else { return .failed }
+        return outcome
     }
 
     @discardableResult
@@ -231,7 +271,7 @@ final class SessionXPService: SessionXPServiceProtocol {
 
     // MARK: Persistence
 
-    private func key(for userId: String) -> String { keyPrefix + userId }
+    private func key(for userId: String) -> String { Self.storageKey(for: userId) }
 
     private func bonusKey(for userId: String) -> String { bonusKeyPrefix + userId }
 
@@ -253,8 +293,17 @@ final class SessionXPService: SessionXPServiceProtocol {
     }
 
     private func persist(_ record: SessionXPRecord) {
-        guard let data = try? JSONEncoder.unbound.encode(record) else { return }
+        _ = persisted(record)
+    }
+
+    /// Persists a record, returning whether the encode + write succeeded so the
+    /// sign-in migration can report a write failure rather than silently
+    /// dropping the streak.
+    @discardableResult
+    private func persisted(_ record: SessionXPRecord) -> Bool {
+        guard let data = try? JSONEncoder.unbound.encode(record) else { return false }
         defaults.set(data, forKey: key(for: record.userId))
+        return true
     }
 
     // MARK: Helpers
