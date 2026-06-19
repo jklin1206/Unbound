@@ -81,6 +81,24 @@ enum HomeLoadDerivations {
 
     static func hasLogged(_ logs: [WorkoutLog]) -> Bool { !logs.isEmpty }
 
+    /// True when *today's specific program day* has a log — matched on program +
+    /// day number + the local calendar day. Unlike `SessionXPRecord.loggedToday()`
+    /// (which is true for ANY session today, including rank trials or extra
+    /// workouts), this only fires when the displayed quest itself was completed.
+    static func didLogProgramDayToday(
+        _ logs: [WorkoutLog],
+        programId: String,
+        dayNumber: Int,
+        now: Date = .now,
+        calendar: Calendar = .current
+    ) -> Bool {
+        logs.contains { log in
+            log.programId == programId
+                && log.dayNumber == dayNumber
+                && calendar.isDate(log.startedAt, inSameDayAs: now)
+        }
+    }
+
     static func bodyRegionLoads(_ logs: [WorkoutLog],
                                 now: Date = .now,
                                 calendar baseCal: Calendar = .current,

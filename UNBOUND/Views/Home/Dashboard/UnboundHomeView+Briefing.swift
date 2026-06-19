@@ -99,7 +99,7 @@ extension UnboundHomeView {
             aggregateRank: model.aggregateRank,
             hasPlateaus: !model.plateaus.isEmpty,
             shouldShowCalibrationCard: model.shouldShowCalibrationCard,
-            loggedToday: model.sessionXP?.loggedToday() ?? false
+            questLoggedToday: model.todayProgramDayLogged
         ) { canStart, isRest, isCleared in
             UnboundHaptics.medium()
             if isCleared {
@@ -141,7 +141,7 @@ extension UnboundHomeView {
             hasProgramDay: model.todayProgramDay != nil,
             isRestDay: model.todayProgramDay?.isRestDay == true,
             hasWorkout: model.todayProgramDay?.workout != nil,
-            loggedToday: model.sessionXP?.loggedToday() ?? false,
+            questLoggedToday: model.todayProgramDayLogged,
             currentStreak: model.sessionXP?.currentStreak ?? 0,
             daySeed: HomeSystemVoice.daySeed()
         )

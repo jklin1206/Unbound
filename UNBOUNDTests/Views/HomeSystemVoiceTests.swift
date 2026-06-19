@@ -7,7 +7,7 @@ final class HomeSystemVoiceTests: XCTestCase {
         hasProgramDay: Bool = true,
         isRestDay: Bool = false,
         hasWorkout: Bool = true,
-        loggedToday: Bool = false,
+        questLoggedToday: Bool = false,
         currentStreak: Int = 0,
         daySeed: Int = 100
     ) -> HomeSystemVoice.Context {
@@ -15,7 +15,7 @@ final class HomeSystemVoiceTests: XCTestCase {
             hasProgramDay: hasProgramDay,
             isRestDay: isRestDay,
             hasWorkout: hasWorkout,
-            loggedToday: loggedToday,
+            questLoggedToday: questLoggedToday,
             currentStreak: currentStreak,
             daySeed: daySeed
         )
@@ -26,7 +26,7 @@ final class HomeSystemVoiceTests: XCTestCase {
     func test_loggedToday_takesPriorityOverEverything() {
         // Logged on a rest day with a workout present still resolves to cleared.
         XCTAssertEqual(
-            HomeSystemVoice.state(for: ctx(isRestDay: true, hasWorkout: true, loggedToday: true)),
+            HomeSystemVoice.state(for: ctx(isRestDay: true, hasWorkout: true, questLoggedToday: true)),
             .cleared)
     }
 
@@ -51,14 +51,14 @@ final class HomeSystemVoiceTests: XCTestCase {
     // MARK: - Determinism (no strobing across re-renders)
 
     func test_sameContext_yieldsSameLine() {
-        let c = ctx(loggedToday: true, currentStreak: 0, daySeed: 4242)
+        let c = ctx(questLoggedToday: true, currentStreak: 0, daySeed: 4242)
         XCTAssertEqual(HomeSystemVoice.line(for: c), HomeSystemVoice.line(for: c))
     }
 
     func test_lineIsMemberOfItsPool() {
         XCTAssertTrue(HomeSystemVoice.quest.contains(HomeSystemVoice.line(for: ctx())))
         XCTAssertTrue(HomeSystemVoice.cleared.contains(
-            HomeSystemVoice.line(for: ctx(loggedToday: true, currentStreak: 0))))
+            HomeSystemVoice.line(for: ctx(questLoggedToday: true, currentStreak: 0))))
         XCTAssertTrue(HomeSystemVoice.rest.contains(
             HomeSystemVoice.line(for: ctx(isRestDay: true, hasWorkout: false))))
         XCTAssertTrue(HomeSystemVoice.awaiting.contains(
@@ -68,13 +68,13 @@ final class HomeSystemVoiceTests: XCTestCase {
     // MARK: - Streak beat
 
     func test_streakAtOrAboveThreshold_interpolatesNumber_andLeavesNoPlaceholder() {
-        let line = HomeSystemVoice.line(for: ctx(loggedToday: true, currentStreak: 14))
+        let line = HomeSystemVoice.line(for: ctx(questLoggedToday: true, currentStreak: 14))
         XCTAssertTrue(line.contains("14"), "expected the streak count in: \(line)")
         XCTAssertFalse(line.contains("{n}"), "placeholder leaked in: \(line)")
     }
 
     func test_streakBelowThreshold_usesGenericCleared_noDigits() {
-        let line = HomeSystemVoice.line(for: ctx(loggedToday: true, currentStreak: 2))
+        let line = HomeSystemVoice.line(for: ctx(questLoggedToday: true, currentStreak: 2))
         XCTAssertTrue(HomeSystemVoice.cleared.contains(line))
         XCTAssertFalse(line.contains(where: \.isNumber))
     }
@@ -102,10 +102,10 @@ final class HomeSystemVoiceTests: XCTestCase {
     // MARK: - Completed-console voice
 
     func test_consoleCleared_onlyWhenLoggedAndStartable() {
-        XCTAssertTrue(HomeSystemVoice.consoleCleared(loggedToday: true, canStartWorkout: true))
-        XCTAssertFalse(HomeSystemVoice.consoleCleared(loggedToday: true, canStartWorkout: false))
-        XCTAssertFalse(HomeSystemVoice.consoleCleared(loggedToday: false, canStartWorkout: true))
-        XCTAssertFalse(HomeSystemVoice.consoleCleared(loggedToday: false, canStartWorkout: false))
+        XCTAssertTrue(HomeSystemVoice.consoleCleared(questLoggedToday: true, canStartWorkout: true))
+        XCTAssertFalse(HomeSystemVoice.consoleCleared(questLoggedToday: true, canStartWorkout: false))
+        XCTAssertFalse(HomeSystemVoice.consoleCleared(questLoggedToday: false, canStartWorkout: true))
+        XCTAssertFalse(HomeSystemVoice.consoleCleared(questLoggedToday: false, canStartWorkout: false))
     }
 
     func test_completionQuote_isMemberAndDeterministic() {
@@ -117,6 +117,22 @@ final class HomeSystemVoiceTests: XCTestCase {
     func test_completionQuote_rotatesAcrossDays() {
         let quotes = Set((0..<60).map { HomeSystemVoice.completionQuote(daySeed: $0) })
         XCTAssertGreaterThan(quotes.count, 1, "completion quote never rotated across 60 days")
+    }
+
+    // MARK: - Daily seed (local calendar)
+
+    func test_daySeed_stableWithinLocalDay_advancesNextDay() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "America/Chicago")!
+        let morning = cal.date(from: DateComponents(year: 2026, month: 6, day: 19, hour: 8))!
+        let lateEvening = cal.date(from: DateComponents(year: 2026, month: 6, day: 19, hour: 23))!
+        let nextDay = cal.date(from: DateComponents(year: 2026, month: 6, day: 20, hour: 8))!
+        // Same local day -> same seed even across the UTC-midnight boundary (~7pm local).
+        XCTAssertEqual(HomeSystemVoice.daySeed(asOf: morning, calendar: cal),
+                       HomeSystemVoice.daySeed(asOf: lateEvening, calendar: cal))
+        // Next local day -> seed advances.
+        XCTAssertNotEqual(HomeSystemVoice.daySeed(asOf: morning, calendar: cal),
+                          HomeSystemVoice.daySeed(asOf: nextDay, calendar: cal))
     }
 
     func test_canonicalOriginalStrings_arePreserved() {

@@ -11,6 +11,7 @@ The Home tab itself: `HomeTabView` is the app's root tab container, and `Unbound
 | `UnboundHomeView+DailyQuest.swift` | Daily quest card extension; swaps PHOTO/SCAN label off the monthly scan cadence rule. |
 | `UnboundHomeView+Loading.swift` | View-side load pieces only (data load lives in `HomeViewModel`): cosmetic store binding, session launch, bodyweight formatting. |
 | `HomeDashboardSections.swift` | Reusable home sections: `HomeTopBarSection`, `HomeBriefingSection`, `HomeTrainingConsoleSection`, `HomeWeekPathSection`, shimmer bar. |
+| `HomeSystemVoice.swift` | The `[ SYSTEM ]` directive voice: state machine (cleared/rest/quest/awaiting) + per-day deterministic line pools, plus the completed-console anime quote. |
 | `HomeChromeViews.swift` | Home chrome: background contrast scrim, command artwork kinds, `HomeIconCommand` dock button. |
 | `HomeLoadingSkeleton.swift` | Shimmer placeholder skeleton shown while the home dashboard loads. |
 | `HomeLoadDerivations.swift` | Pure, dependency-free derivations from one recent-logs fetch (dedupes three `workout_logs` fetches; unit-testable). |

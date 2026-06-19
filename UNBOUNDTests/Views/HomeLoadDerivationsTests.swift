@@ -96,6 +96,42 @@ final class HomeLoadDerivationsTests: XCTestCase {
         XCTAssertEqual(status.recoveryText(relativeTo: now), "Ready in 1d 12h")
     }
 
+    // MARK: - didLogProgramDayToday
+
+    func test_didLogProgramDayToday_trueWhenProgramDayMatchesAndIsToday() {
+        let now = date(2026, 6, 19, 12)
+        let logs = [pdLog(programId: "p1", dayNumber: 3, startedAt: date(2026, 6, 19, 9))]
+        XCTAssertTrue(HomeLoadDerivations.didLogProgramDayToday(
+            logs, programId: "p1", dayNumber: 3, now: now, calendar: cal()))
+    }
+
+    func test_didLogProgramDayToday_falseForWrongDayProgramOrDate() {
+        let now = date(2026, 6, 19, 12)
+        let logs = [
+            pdLog(programId: "p1", dayNumber: 4, startedAt: date(2026, 6, 19, 9)),  // other day#
+            pdLog(programId: "p2", dayNumber: 3, startedAt: date(2026, 6, 19, 9)),  // other program
+            pdLog(programId: "p1", dayNumber: 3, startedAt: date(2026, 6, 18, 9))   // yesterday
+        ]
+        XCTAssertFalse(HomeLoadDerivations.didLogProgramDayToday(
+            logs, programId: "p1", dayNumber: 3, now: now, calendar: cal()))
+    }
+
+    private func pdLog(programId: String, dayNumber: Int, startedAt: Date) -> WorkoutLog {
+        WorkoutLog(
+            id: UUID().uuidString,
+            userId: "u",
+            programId: programId,
+            dayNumber: dayNumber,
+            plannedWorkoutName: "T",
+            startedAt: startedAt,
+            completedAt: startedAt,
+            exerciseEntries: [],
+            overallNotes: nil,
+            overallRPE: nil,
+            durationMinutes: 30
+        )
+    }
+
     private func log(startedAt: Date, entries: [ExerciseLogEntry]) -> WorkoutLog {
         WorkoutLog(
             id: UUID().uuidString,

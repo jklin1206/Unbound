@@ -27,7 +27,9 @@ enum HomeSystemVoice {
         var hasProgramDay: Bool
         var isRestDay: Bool
         var hasWorkout: Bool
-        var loggedToday: Bool
+        /// Today's *program quest* was logged (not merely any session today) —
+        /// so the System line and the console agree on what "cleared" means.
+        var questLoggedToday: Bool
         var currentStreak: Int
         var daySeed: Int
     }
@@ -36,9 +38,10 @@ enum HomeSystemVoice {
     static let streakThreshold = 3
 
     static func state(for ctx: Context) -> State {
-        // loggedToday wins: once you've done the work, the System acknowledges
-        // it regardless of what kind of day it was.
-        if ctx.loggedToday { return .cleared }
+        // Clearing today's quest wins: once the displayed quest is done, the
+        // System acknowledges it. (A non-program session keeps the streak alive
+        // but does not claim the quest is cleared — that's the console's rule too.)
+        if ctx.questLoggedToday { return .cleared }
         if ctx.hasProgramDay && ctx.isRestDay { return .rest }
         if ctx.hasWorkout { return .quest }
         return .awaiting
@@ -61,9 +64,15 @@ enum HomeSystemVoice {
         }
     }
 
-    /// Days since the Unix epoch — stable within a calendar day, advances daily.
-    static func daySeed(asOf now: Date = Date()) -> Int {
-        Int(now.timeIntervalSince1970 / 86_400)
+    /// A stable per-day integer that advances at the user's *local* midnight —
+    /// matched to `loggedToday()` / the displayed day, both of which use
+    /// `Calendar.current`. (Bucketing on UTC would flip the line mid-evening for
+    /// users west of UTC.) Counts whole calendar days to local start-of-day, so
+    /// it's DST-safe.
+    static func daySeed(asOf now: Date = Date(), calendar: Calendar = .current) -> Int {
+        let reference = Date(timeIntervalSinceReferenceDate: 0)
+        let startOfDay = calendar.startOfDay(for: now)
+        return calendar.dateComponents([.day], from: reference, to: startOfDay).day ?? 0
     }
 
     // MARK: - Completed-console voice
@@ -74,10 +83,10 @@ enum HomeSystemVoice {
     // re-inviting BEGIN SESSION and shows a rotating anime-energy line instead.
     // Unlike the [ SYSTEM ] line, this subtitle has room for a full sentence.
 
-    /// True when today's quest is done: a session was logged AND the day was a
-    /// startable workout (not a rest day, not an empty plan day).
-    static func consoleCleared(loggedToday: Bool, canStartWorkout: Bool) -> Bool {
-        loggedToday && canStartWorkout
+    /// True when today's quest is done: the program day was logged AND the day
+    /// was a startable workout (not a rest day, not an empty plan day).
+    static func consoleCleared(questLoggedToday: Bool, canStartWorkout: Bool) -> Bool {
+        questLoggedToday && canStartWorkout
     }
 
     /// One anime-energy line for the completed hero. Deterministic per day.

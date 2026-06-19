@@ -231,7 +231,7 @@ struct HomeTrainingConsoleSection: View {
     let aggregateRank: RankTier
     let hasPlateaus: Bool
     let shouldShowCalibrationCard: Bool
-    let loggedToday: Bool
+    let questLoggedToday: Bool
     let onPrimary: (_ canStart: Bool, _ isRest: Bool, _ isCleared: Bool) -> Void
 
     var body: some View {
@@ -241,7 +241,7 @@ struct HomeTrainingConsoleSection: View {
         let canStart = day?.canStartWorkoutSession ?? false
         // Today's quest is done: the hero shows a "cleared" state instead of
         // re-inviting BEGIN SESSION on a workout already logged.
-        let isCleared = HomeSystemVoice.consoleCleared(loggedToday: loggedToday, canStartWorkout: canStart)
+        let isCleared = HomeSystemVoice.consoleCleared(questLoggedToday: questLoggedToday, canStartWorkout: canStart)
         let status = isCleared ? "CLEARED" : todayStatusValue
         let heroSubtitle = isCleared
             ? HomeSystemVoice.completionQuote(daySeed: HomeSystemVoice.daySeed())

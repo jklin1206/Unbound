@@ -32,6 +32,7 @@ final class HomeViewModel: ObservableObject {
     @Published var calibrationSkipRatio: Double = 0
     @Published var hasLoggedAnyWorkout: Bool = false
     @Published var lastLog: WorkoutLog?
+    @Published var recentLogs: [WorkoutLog] = []
     @Published var weekSessionDays: Set<Int> = [] // Mon=1...Sun=7
     @Published var bodyRegionLoads: [BodyRegion: Double] = [:]
     @Published var bodyRegionStatuses: [BodyRegion: BodyLoadRegionStatus] = [:]
@@ -208,6 +209,7 @@ final class HomeViewModel: ObservableObject {
     }
 
     func applyRecentLogs(_ logs: [WorkoutLog]) {
+        recentLogs = logs
         lastLog = HomeLoadDerivations.lastLog(logs)
         hasLoggedAnyWorkout = HomeLoadDerivations.hasLogged(logs)
         weekSessionDays = HomeLoadDerivations.weekSessionDays(logs.map(\.startedAt))
@@ -360,6 +362,21 @@ final class HomeViewModel: ObservableObject {
             calendar: .current
         )
         .day(for: Date(), in: program)
+    }
+
+    /// True when today's displayed program quest has actually been logged — the
+    /// signal that drives the Home "cleared" state. Keys off the program day, not
+    /// streak XP, so a rank trial or extra session can't falsely clear the quest.
+    var todayProgramDayLogged: Bool {
+        guard let program,
+              let day = todayProgramDay,
+              day.canStartWorkoutSession
+        else { return false }
+        return HomeLoadDerivations.didLogProgramDayToday(
+            recentLogs,
+            programId: program.id,
+            dayNumber: day.dayNumber
+        )
     }
 
     var todayPlannedBodyRegions: [BodyRegion] {
