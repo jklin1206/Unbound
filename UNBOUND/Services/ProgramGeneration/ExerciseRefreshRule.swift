@@ -23,25 +23,4 @@ enum ExerciseRefreshRule {
         return history.consecutiveBlocksPrescribed >= 3
     }
 
-    /// Find a same-pattern alternative in a catalog pool.
-    ///
-    /// Preference order:
-    /// 1. Another exercise in the same `progressionFamily` with different name
-    /// 2. Any exercise with identical `muscleGroups` and different name
-    /// 3. nil if no suitable alternative exists
-    static func alternative(
-        for entry: CatalogExercise,
-        in pool: [CatalogExercise]
-    ) -> CatalogExercise? {
-        if let family = entry.progressionFamily {
-            if let sibling = pool.first(where: {
-                $0.progressionFamily == family && $0.name != entry.name
-            }) {
-                return sibling
-            }
-        }
-        return pool.first(where: {
-            $0.muscleGroups == entry.muscleGroups && $0.name != entry.name
-        })
-    }
 }

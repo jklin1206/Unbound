@@ -6,10 +6,9 @@ import Foundation
 /// to detect when to prompt a Checkpoint / generate the next Arc. Normal
 /// Arcs are 28 days; first-run Calibration Week stays 7 days.
 ///
-/// Distinct from `ProgramPhaseEngine` — the legacy phase engine computes
-/// Accumulation/Intensification/etc. signals from logs + progression. This
-/// scheduler does only one thing: map the active arc start date to the current
-/// day number. Legacy programs without arcs still use `program.createdAt`.
+/// Pure date math: maps the active arc start date to the current day number
+/// and days remaining. Legacy programs without arcs fall back to
+/// `program.createdAt` as the reference point.
 enum BlockRolloverScheduler {
 
     /// True if the current program has run its full declared duration.

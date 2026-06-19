@@ -2,30 +2,6 @@ import XCTest
 @testable import UNBOUND
 
 final class ArcGeneratorTests: XCTestCase {
-    func testInitialArcExpandsCalibrationWeekToTwentyEightDaysAndTagsRoles() {
-        let calibration = ProgramTestFactory.makeProgram(
-            days: [
-                ProgramTestFactory.makeDay(dayNumber: 1, label: "Push", role: .push, muscleGroups: [.chest]),
-                ProgramTestFactory.makeDay(dayNumber: 2, label: "Pull", role: .pull, muscleGroups: [.back, .lats]),
-                ProgramTestFactory.makeDay(dayNumber: 3, label: "Legs", role: .legs, muscleGroups: [.legs])
-            ],
-            createdAt: Date(timeIntervalSince1970: 0),
-            withArc: false
-        )
-
-        let arcProgram = ArcGenerator.generateInitialArc(
-            from: calibration,
-            startDate: calibration.createdAt
-        )
-
-        XCTAssertEqual(arcProgram.durationDays, 28)
-        XCTAssertEqual(arcProgram.days.count, 28)
-        XCTAssertEqual(arcProgram.days[0].sessionRole, .push)
-        XCTAssertEqual(arcProgram.days[1].sessionRole, .pull)
-        XCTAssertEqual(arcProgram.days[2].sessionRole, .legs)
-        XCTAssertEqual(arcProgram.currentArc?.dayNumber(asOf: calibration.createdAt, calendar: .fixedGMT), 1)
-    }
-
     func testNextArcSkippedCheckpointPreservesSavedWorkoutOwnershipAndChainsArc() throws {
         var program = ProgramTestFactory.makeProgram(
             days: [

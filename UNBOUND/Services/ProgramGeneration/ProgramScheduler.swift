@@ -147,10 +147,6 @@ final class ProgramScheduler {
         return smoothBackToBackRepeats(schedule)
     }
 
-    func optimizedWeeklySchedule(activeGoalIds: Set<String>) -> [DayCategory] {
-        optimizedWeeklySchedule(programFocusIds: activeGoalIds)
-    }
-
     private func categoryPriority(_ category: DayCategory) -> Int {
         switch category {
         case .pull: return 0
@@ -328,9 +324,6 @@ final class ProgramScheduler {
         !SkillProgressService.shared.programFocusIds.isEmpty
     }
 
-    func hasActiveGoals() -> Bool {
-        hasProgramFocuses()
-    }
 }
 
 // MARK: - Array safe-index helper

@@ -1,32 +1,6 @@
 import Foundation
 
 enum ArcGenerator {
-    static func generateInitialArc(
-        from calibrationProgram: TrainingProgram,
-        startDate: Date = Date()
-    ) -> TrainingProgram {
-        var updated = calibrationProgram
-        updated.durationDays = Arc.durationDays
-        updated.days = expandToArcDays(from: calibrationProgram.days, programId: calibrationProgram.id)
-        let arc = Arc(programId: calibrationProgram.id, startDate: startDate, state: .active)
-        updated.arcs = [arc]
-        updated.currentArcId = arc.id
-        updated.rationale = ProgramRationale(
-            headline: "Arc 1 ready",
-            summaryCopy: "Calibration proof was converted into a 28-day Arc. The split shape is preserved and each day is tagged by session role.",
-            decisions: [
-                ProgramRationale.Decision(
-                    inputSummary: "Calibration Week completed",
-                    decisionApplied: "Started Arc 1 from the user's logged standards.",
-                    iconSystemName: "calendar.badge.checkmark",
-                    reasonCategory: .checkpointRecommendation,
-                    revertible: false
-                )
-            ]
-        )
-        return updated
-    }
-
     static func generateNextArc(
         from previousProgram: TrainingProgram,
         checkpoint: CheckpointOutcome?,

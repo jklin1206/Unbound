@@ -68,15 +68,6 @@ enum WaveAdjuster {
         )
     }
 
-    static func revert(
-        adjustmentID: String,
-        in appliedAdjustmentIDs: Set<String>
-    ) -> Set<String> {
-        var updated = appliedAdjustmentIDs
-        updated.remove(adjustmentID)
-        return updated
-    }
-
     private static func waveTwoWorkout(from workout: Workout) -> Workout {
         var adjusted = workout
         adjusted.mainExercises = workout.mainExercises.map { exercise in
