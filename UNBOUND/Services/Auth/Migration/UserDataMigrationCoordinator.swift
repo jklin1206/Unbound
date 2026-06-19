@@ -5,9 +5,11 @@ struct UserDataMigrationSummary: Equatable, Sendable {
     var workingWeights = UserDataMigrationCollectionSummary()
     var skillProgress = UserDataMigrationCollectionSummary()
     var scans = UserDataMigrationCollectionSummary()
+    var sessionXP = UserDataMigrationCollectionSummary()
 
     var migratedLocally: Int {
-        workoutLogs.localWrites + workingWeights.localWrites + skillProgress.localWrites + scans.localWrites
+        workoutLogs.localWrites + workingWeights.localWrites + skillProgress.localWrites
+            + scans.localWrites + sessionXP.localWrites
     }
 
     var remoteDeferred: Int {
@@ -22,6 +24,7 @@ struct UserDataMigrationSummary: Equatable, Sendable {
             && workingWeights.failures == 0
             && skillProgress.failures == 0
             && scans.failures == 0
+            && sessionXP.failures == 0
     }
 }
 
@@ -70,6 +73,18 @@ protocol UserDataMigrationPhotoMoving: Sendable {
     func movePhotoDirectory(from legacyUserId: String, to supabaseUserId: String) async throws
 }
 
+/// Carries the local SessionXP record (streak / total / weekly counters) from
+/// the anonymous UID to the authenticated UID. SessionXP is local-only
+/// (UserDefaults), so without this the streak is orphaned on sign-in and resets
+/// to zero — the user "loses their place" the moment they authenticate (Bug #3).
+///
+/// The read-merge-write is done as one atomic operation (returning an outcome)
+/// rather than exposing separate read/write hooks, so it can't interleave with a
+/// concurrent session being recorded on the same key.
+protocol UserDataMigrationSessionXPStoring: Sendable {
+    func migrate(legacyUserId: String, supabaseUserId: String) async -> SessionXPMigrationOutcome
+}
+
 /// Persists a per-(legacy → supabase) `migrationCompleted` flag so a migration
 /// interrupted by a crash/kill is resumed on the next launch and only treated
 /// as done once every collection has migrated cleanly (Bug #2).
@@ -83,6 +98,7 @@ struct UserDataMigrationCoordinator: Sendable {
     private let remote: any UserDataMigrationRemoteWriting
     private let scanStore: any UserDataMigrationScanStoring
     private let photoMover: any UserDataMigrationPhotoMoving
+    private let sessionXPStore: any UserDataMigrationSessionXPStoring
     private let flagStore: any UserDataMigrationFlagStoring
     private let logger: LoggingService
 
@@ -91,6 +107,7 @@ struct UserDataMigrationCoordinator: Sendable {
         remote: any UserDataMigrationRemoteWriting = SupabaseUserDataMigrationRemoteStore(),
         scanStore: any UserDataMigrationScanStoring = ProductionUserDataMigrationScanStore(),
         photoMover: any UserDataMigrationPhotoMoving = StorageService.shared,
+        sessionXPStore: any UserDataMigrationSessionXPStoring = ProductionUserDataMigrationSessionXPStore(),
         flagStore: any UserDataMigrationFlagStoring = UserDefaultsUserDataMigrationFlagStore(),
         logger: LoggingService = .shared
     ) {
@@ -98,6 +115,7 @@ struct UserDataMigrationCoordinator: Sendable {
         self.remote = remote
         self.scanStore = scanStore
         self.photoMover = photoMover
+        self.sessionXPStore = sessionXPStore
         self.flagStore = flagStore
         self.logger = logger
     }
@@ -147,12 +165,17 @@ struct UserDataMigrationCoordinator: Sendable {
             legacyUserId: legacyUserId,
             supabaseUserId: supabaseUserId
         )
+        let sessionXP = await migrateSessionXP(
+            legacyUserId: legacyUserId,
+            supabaseUserId: supabaseUserId
+        )
 
         let summary = UserDataMigrationSummary(
             workoutLogs: workoutLogs,
             workingWeights: workingWeights,
             skillProgress: skillProgress,
-            scans: scans
+            scans: scans,
+            sessionXP: sessionXP
         )
 
         // Only flip the persisted flag once EVERY collection migrated cleanly.
@@ -219,6 +242,44 @@ struct UserDataMigrationCoordinator: Sendable {
             }
         }
 
+        return summary
+    }
+
+    /// Carries the local SessionXP record (streak / counters) from the anonymous
+    /// UID to the authenticated UID. SessionXP is local-only, so this is what
+    /// stops the streak resetting to zero on sign-in (Bug #3). The read-merge-
+    /// write happens atomically inside the store (see SessionXPService) and
+    /// reports an outcome; a `.failed` (corrupt legacy / write error) is counted
+    /// as a failure so the migration is retried rather than silently losing the
+    /// streak.
+    private func migrateSessionXP(
+        legacyUserId: String,
+        supabaseUserId: String
+    ) async -> UserDataMigrationCollectionSummary {
+        var summary = UserDataMigrationCollectionSummary()
+
+        let outcome = await sessionXPStore.migrate(
+            legacyUserId: legacyUserId,
+            supabaseUserId: supabaseUserId
+        )
+        switch outcome {
+        case .noLegacy:
+            break
+        case .rekeyed:
+            summary.scanned = 1
+            summary.localWrites = 1
+        case .merged:
+            summary.scanned = 1
+            summary.existingTargets = 1
+            summary.localWrites = 1
+        case .unchanged:
+            summary.scanned = 1
+            summary.existingTargets = 1
+        case .failed:
+            summary.scanned = 1
+            summary.failures = 1
+            logger.log("SessionXP migration failed (corrupt legacy record or write error)", level: .error)
+        }
         return summary
     }
 
