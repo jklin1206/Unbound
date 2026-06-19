@@ -201,16 +201,19 @@ struct UnboundHomeView: View {
             workoutReadyDraft = nil
             Task { await model.refreshWorkoutCompletionState() }
         }) { draft in
-            // Rank trials walk in through the gate entrance; weekly vows keep the
-            // standard ready screen (this cover is shared by both).
+            // Rank trials walk in through the gate entrance; today's session drops
+            // straight into the live workout (no intermediate review screen).
             if draft.source == .overallRankTrial {
                 GateTrialLaunchView(draft: draft, services: services, onFinished: {
                     workoutReadyDraft = nil
                 })
                 .environmentObject(services)
             } else {
-                WorkoutReadyView(draft: draft)
-                    .environmentObject(services)
+                ActiveWorkoutContainerView(draft: draft, services: services, onFinished: {
+                    UserDefaults.standard.set(0, forKey: "unbound.shortSessionDate")
+                    workoutReadyDraft = nil
+                })
+                .environmentObject(services)
             }
         }
         .fullScreenCover(item: $captureMode) { mode in

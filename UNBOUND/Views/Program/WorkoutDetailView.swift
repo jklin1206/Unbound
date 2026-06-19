@@ -9,7 +9,7 @@ struct WorkoutDetailView: View {
     /// mutations route through it so they persist back to the program doc.
     var programViewModel: ProgramViewModel? = nil
 
-    @State private var showWorkoutReady = false
+    @State private var activeWorkoutDraft: TrainingSessionDraft?
     @State private var isEditing = false
     @State private var swapTargetExerciseId: String?
     @State private var swapAlternatives: [CatalogExercise] = []
@@ -96,16 +96,12 @@ struct WorkoutDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $showWorkoutReady) {
-            if let readyDraft {
-                WorkoutReadyView(draft: readyDraft)
-                    .environmentObject(services)
-            } else {
-                Text("Sign in before starting a workout.")
-                    .font(.body)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .padding()
-            }
+        .fullScreenCover(item: $activeWorkoutDraft) { draft in
+            ActiveWorkoutContainerView(draft: draft, services: services, onFinished: {
+                UserDefaults.standard.set(0, forKey: "unbound.shortSessionDate")
+                activeWorkoutDraft = nil
+            })
+            .environmentObject(services)
         }
         .sheet(item: Binding(
             get: { swapTargetExerciseId.map(SwapTarget.init(id:)) },
@@ -238,7 +234,7 @@ struct WorkoutDetailView: View {
 
     private var logWorkoutButton: some View {
         Button {
-            showWorkoutReady = true
+            activeWorkoutDraft = readyDraft
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "play.fill")
