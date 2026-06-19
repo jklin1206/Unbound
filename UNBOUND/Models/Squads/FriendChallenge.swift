@@ -6,6 +6,9 @@ struct FriendChallenge: Codable, Identifiable, Equatable, Sendable {
     let challengedId: UUID
     let squadId: UUID
     let kind: Kind
+    /// Set only for `heaviestLift` (the catalog display name the lift is scoped
+    /// to). Nil for every other kind.
+    let exerciseName: String?
     let startedAt: Date
     let expiresAt: Date
     var acceptedAt: Date?
@@ -19,57 +22,57 @@ struct FriendChallenge: Codable, Identifiable, Equatable, Sendable {
 
     enum Kind: String, Codable, CaseIterable, Sendable {
         case mostSessions
-        case noMissedDays
-        case firstToFinishTrial
-        case mostAlignedSessions
         case earlyRiser
-        case proteinGoal
+        case mostWeight
+        case mostReps
+        case heaviestLift
 
-        static let creationOptions: [Kind] = [
-            .mostSessions,
-            .earlyRiser
-        ]
+        static let creationOptions: [Kind] = Kind.allCases
+        var isSupportedForCreation: Bool { true }
 
-        var isSupportedForCreation: Bool {
-            Self.creationOptions.contains(self)
-        }
+        /// Heaviest Lift is scoped to one exercise chosen at creation.
+        var requiresExercisePick: Bool { self == .heaviestLift }
+
+        /// MAX-semantics kinds show a best-so-far score, not a running total.
+        var usesMaxScore: Bool { self == .heaviestLift }
 
         var displayName: String {
             switch self {
             case .mostSessions: return "Most Sessions"
-            case .noMissedDays: return "No Missed Days"
-            case .firstToFinishTrial: return "First Challenge Clear"
-            case .mostAlignedSessions: return "Most Aligned"
             case .earlyRiser: return "Early Riser (8am)"
-            case .proteinGoal: return "Protein Goal"
+            case .mostWeight: return "Most Weight"
+            case .mostReps: return "Most Reps"
+            case .heaviestLift: return "Heaviest Lift"
             }
         }
 
         var subtitle: String {
             switch self {
             case .mostSessions: return "Most workout sessions this week."
-            case .noMissedDays: return "Longest consecutive day streak."
-            case .firstToFinishTrial: return "First to clear the weekly test."
-            case .mostAlignedSessions: return "Most aligned-axis sessions."
             case .earlyRiser: return "Most workouts before 8 AM."
-            case .proteinGoal: return "Most days hitting protein target."
+            case .mostWeight: return "Most combined kg moved this week."
+            case .mostReps: return "Most combined reps this week."
+            case .heaviestLift: return "Pick a lift. Heaviest single set wins."
             }
         }
 
         var systemImage: String {
             switch self {
             case .mostSessions: return "calendar.badge.checkmark"
-            case .noMissedDays: return "flame.fill"
-            case .firstToFinishTrial: return "flag.checkered"
-            case .mostAlignedSessions: return "scope"
             case .earlyRiser: return "sunrise.fill"
-            case .proteinGoal: return "fork.knife"
+            case .mostWeight: return "scalemass.fill"
+            case .mostReps: return "repeat"
+            case .heaviestLift: return "trophy.fill"
             }
         }
 
         func progressLabel(for value: Int) -> String {
-            let noun = value == 1 ? "session" : "sessions"
-            return "\(value) \(noun)"
+            switch self {
+            case .mostSessions, .earlyRiser:
+                return value == 1 ? "1 session" : "\(value.formatted(.number)) sessions"
+            case .mostWeight, .heaviestLift: return "\(value.formatted(.number)) kg"
+            case .mostReps: return "\(value.formatted(.number)) reps"
+            }
         }
     }
 }

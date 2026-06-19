@@ -151,6 +151,21 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
         missionProgressIncrements.append((squadId: squadId, delta: delta, sourceLogId: sourceLogId))
     }
 
+    var contributionsToReturn: [MissionContribution] = []
+    func fetchMissionContributions(missionId: UUID) async throws -> [MissionContribution] {
+        return contributionsToReturn
+    }
+
+    var pickSquadMissionResult: SquadMission? = nil
+    func pickSquadMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission? {
+        return pickSquadMissionResult
+    }
+
+    var completedMissionCount: Int = 0
+    func fetchCompletedMissionCount(squadId: UUID, since: Date, until: Date) async throws -> Int {
+        return completedMissionCount
+    }
+
     var linkedSessions: [UUID: [LinkedSession]] = [:]   // squadId → rows
 
     func fetchRecentLinkedSessions(squadId: UUID, limit: Int) async throws -> [LinkedSession] {

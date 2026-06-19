@@ -186,6 +186,62 @@ final class SquadLeaderboardTests: XCTestCase {
         XCTAssertEqual(claim.assetName, "squad_reward_season_1_winner")
     }
 
+    func testSquadMissionsRewardRowLockedBelow4() {
+        let season = makeSeason()
+        let squadId = UUID()
+        let alpha = makeMember(name: "Alpha", squadId: squadId)
+        let squad = makeSquad(id: squadId, captainId: alpha.userId, streakWeeks: 0)
+
+        let rewards3 = SquadSeasonRewardsBuilder.makeRewards(
+            squad: squad, rows: [], season: season, missionsCompleted: 3
+        )
+        let row3 = rewards3.first { $0.id == "squad-missions" }!
+        XCTAssertEqual(row3.progress, 3)
+        XCTAssertEqual(row3.target, 4)
+        XCTAssertFalse(row3.isUnlocked)
+    }
+
+    func testSquadMissionsRewardRowUnlockedAt4() {
+        let season = makeSeason()
+        let squadId = UUID()
+        let alpha = makeMember(name: "Alpha", squadId: squadId)
+        let squad = makeSquad(id: squadId, captainId: alpha.userId, streakWeeks: 0)
+
+        let rewards4 = SquadSeasonRewardsBuilder.makeRewards(
+            squad: squad, rows: [], season: season, missionsCompleted: 4
+        )
+        let row4 = rewards4.first { $0.id == "squad-missions" }!
+        XCTAssertTrue(row4.isUnlocked)
+        XCTAssertEqual(row4.progress, 4)
+    }
+
+    func testSquadMissionsRewardRowClampsAbove4() {
+        let season = makeSeason()
+        let squadId = UUID()
+        let alpha = makeMember(name: "Alpha", squadId: squadId)
+        let squad = makeSquad(id: squadId, captainId: alpha.userId, streakWeeks: 0)
+
+        let rewardsOver = SquadSeasonRewardsBuilder.makeRewards(
+            squad: squad, rows: [], season: season, missionsCompleted: 10
+        )
+        let rowOver = rewardsOver.first { $0.id == "squad-missions" }!
+        XCTAssertEqual(rowOver.progress, 4)
+        XCTAssertTrue(rowOver.isUnlocked)
+    }
+
+    func testExistingCallSiteCompilesWith0Default() {
+        // makeRewards without missionsCompleted must compile and return the row with 0
+        let season = makeSeason()
+        let squadId = UUID()
+        let alpha = makeMember(name: "Alpha", squadId: squadId)
+        let squad = makeSquad(id: squadId, captainId: alpha.userId, streakWeeks: 0)
+
+        let rewards = SquadSeasonRewardsBuilder.makeRewards(squad: squad, rows: [], season: season)
+        let row = rewards.first { $0.id == "squad-missions" }!
+        XCTAssertEqual(row.progress, 0)
+        XCTAssertFalse(row.isUnlocked)
+    }
+
     private func makeSeason() -> SquadSeason {
         SquadSeason(
             title: "S1 2026",

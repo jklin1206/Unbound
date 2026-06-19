@@ -23,10 +23,11 @@ struct JoinSquadSheet: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         TextField("6-character code", text: $code)
-                            .textFieldStyle(.roundedBorder)
                             .textCase(.uppercase)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.characters)
+                            .font(.system(size: 22, weight: .heavy, design: .monospaced))
+                            .tracking(6)
                             .focused($isCodeFocused)
                             .submitLabel(.join)
                             .onSubmit { submitIfReady() }
@@ -39,10 +40,13 @@ struct JoinSquadSheet: View {
                                 let result = String(filtered)
                                 if result != newValue { code = result }
                             }
+                            .squadInputChrome(isFocused: isCodeFocused)
 
                         Text("\(code.count)/6")
-                            .font(.caption)
-                            .foregroundStyle(Color.unbound.textSecondary)
+                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                            .tracking(0.8)
+                            .foregroundStyle(Color.unbound.textTertiary)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
                     }
 
                     if let error {

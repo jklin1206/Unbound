@@ -7,6 +7,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { isJsonObject, requireJsonObjectBody, requirePost, requireServiceFunctionAuth } from "../_shared/service_auth.ts"
+import { trainTogetherUpdate, computeLinkedSessionWeekIso } from "./helpers.ts"
 
 const LINKED_SLACK_MINUTES = 5
 
@@ -105,12 +106,56 @@ serve(async (req) => {
   const dedupedParticipants = Array.from(new Set(participants))
 
   // 4. Insert linked_sessions + activity
-  await supabase.from("linked_sessions").insert({
-    squad_id: squadId,
-    user_ids: dedupedParticipants,
-    started_at: startedAt.toISOString(),
-    ended_at: endedAt.toISOString()
-  })
+  const { data: linkedRow } = await supabase
+    .from("linked_sessions")
+    .insert({
+      squad_id: squadId,
+      user_ids: dedupedParticipants,
+      started_at: startedAt.toISOString(),
+      ended_at: endedAt.toISOString()
+    })
+    .select("id")
+    .maybeSingle()
+
+  // 4a. train_together mission hook — progress fires here (not via increment_for_user,
+  //     which requires a workout_log uuid). The receipts unique key (squad_id, source_log_id)
+  //     with a "linked:" prefix namespaces these away from log uuids and acts as the
+  //     dedup gate: a duplicate insert errors and the update is skipped.
+  if (linkedRow?.id) {
+    const weekIso = computeLinkedSessionWeekIso(new Date())
+    const { data: mission } = await supabase
+      .from("squad_missions")
+      .select("id, mission_kind, current_progress, target")
+      .eq("squad_id", squadId)
+      .eq("week_iso", weekIso)
+      .is("completed_at", null)
+      .limit(1)
+      .maybeSingle()
+
+    if (mission?.mission_kind === "train_together") {
+      const { error: receiptErr } = await supabase
+        .from("squad_mission_progress_receipts")
+        .insert({
+          squad_id: squadId,
+          mission_id: mission.id,
+          source_log_id: `linked:${linkedRow.id}`,
+          user_id: null,
+          delta: 1
+        })
+      if (!receiptErr) {
+        const update = trainTogetherUpdate(mission, linkedRow.id)
+        if (update) {
+          await supabase
+            .from("squad_missions")
+            .update({
+              current_progress: update.progress,
+              ...(update.completedAt ? { completed_at: update.completedAt } : {})
+            })
+            .eq("id", mission.id)
+        }
+      }
+    }
+  }
 
   const durationMinutes = Math.round((endedAt.getTime() - startedAt.getTime()) / 60000)
   await supabase.from("squad_activity").insert({

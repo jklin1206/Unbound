@@ -264,6 +264,74 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
             .execute()
     }
 
+    func fetchMissionContributions(missionId: UUID) async throws -> [MissionContribution] {
+        struct ReceiptRow: Decodable {
+            let user_id: UUID?
+            let delta: Int
+        }
+        let rows: [ReceiptRow] = try await db
+            .from("squad_mission_progress_receipts")
+            .select("user_id, delta")
+            .eq("mission_id", value: missionId.uuidString)
+            .execute()
+            .value
+        return MissionContribution.aggregate(rows: rows.map { ($0.user_id, $0.delta) })
+    }
+
+    func pickSquadMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission? {
+        struct PickParams: Encodable, Sendable {
+            let p_squad_id: String
+            let p_kind: String
+        }
+        // MissionRow mirrors the service's private struct — replicated here for RPC decode.
+        struct MissionRow: Decodable {
+            let id: UUID
+            let squad_id: UUID
+            let week_iso: String
+            let mission_kind: String
+            let target: Int
+            let current_progress: Int
+            let completed_at: Date?
+            let created_at: Date
+
+            func toModel() -> SquadMission? {
+                guard let k = SquadMission.Kind(rawValue: mission_kind) else { return nil }
+                return SquadMission(
+                    id: id,
+                    squadId: squad_id,
+                    weekIso: week_iso,
+                    kind: k,
+                    target: target,
+                    currentProgress: current_progress,
+                    completedAt: completed_at,
+                    createdAt: created_at
+                )
+            }
+        }
+        let rows: [MissionRow] = try await UnboundSupabase.client
+            .rpc(
+                "pick_squad_mission",
+                params: PickParams(p_squad_id: squadId.uuidString, p_kind: kind.rawValue)
+            )
+            .execute()
+            .value
+        return rows.first?.toModel()
+    }
+
+    func fetchCompletedMissionCount(squadId: UUID, since: Date, until: Date) async throws -> Int {
+        struct CountRow: Decodable { let id: UUID }
+        let rows: [CountRow] = try await db
+            .from("squad_missions")
+            .select("id")
+            .eq("squad_id", value: squadId.uuidString)
+            .not("completed_at", operator: .is, value: "null")
+            .gte("completed_at", value: ISO8601DateFormatter().string(from: since))
+            .lt("completed_at", value: ISO8601DateFormatter().string(from: until))
+            .execute()
+            .value
+        return rows.count
+    }
+
     func fetchRecentLinkedSessions(squadId: UUID, limit: Int) async throws -> [LinkedSession] {
         struct LinkedSessionRow: Codable {
             let id: UUID
