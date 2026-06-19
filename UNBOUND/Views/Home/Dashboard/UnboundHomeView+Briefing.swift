@@ -130,15 +130,18 @@ extension UnboundHomeView {
         )
     }
 
-    /// What the System announces above the quest console.
+    /// What the System announces above the quest console. Varied + deterministic
+    /// per day via HomeSystemVoice, including the "just cleared it" streak beat.
     var systemDirectiveText: String {
-        if model.todayProgramDay?.isRestDay == true {
-            return "Recovery directive issued"
-        }
-        if model.todayProgramDay?.workout != nil {
-            return "Daily quest available"
-        }
-        return "Awaiting quest selection"
+        let ctx = HomeSystemVoice.Context(
+            hasProgramDay: model.todayProgramDay != nil,
+            isRestDay: model.todayProgramDay?.isRestDay == true,
+            hasWorkout: model.todayProgramDay?.workout != nil,
+            loggedToday: model.sessionXP?.loggedToday() ?? false,
+            currentStreak: model.sessionXP?.currentStreak ?? 0,
+            daySeed: HomeSystemVoice.daySeed()
+        )
+        return HomeSystemVoice.line(for: ctx)
     }
 
     var avatarInitial: String {
