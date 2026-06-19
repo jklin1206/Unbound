@@ -98,10 +98,14 @@ extension UnboundHomeView {
             aggregateTier: model.aggregateTier,
             aggregateRank: model.aggregateRank,
             hasPlateaus: !model.plateaus.isEmpty,
-            shouldShowCalibrationCard: model.shouldShowCalibrationCard
-        ) { canStart, isRest in
+            shouldShowCalibrationCard: model.shouldShowCalibrationCard,
+            loggedToday: model.sessionXP?.loggedToday() ?? false
+        ) { canStart, isRest, isCleared in
             UnboundHaptics.medium()
-            if canStart {
+            if isCleared {
+                // Today's quest is done — review, don't silently re-run it.
+                NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
+            } else if canStart {
                 beginTodaySession()
             } else if isRest {
                 captureMode = .photo

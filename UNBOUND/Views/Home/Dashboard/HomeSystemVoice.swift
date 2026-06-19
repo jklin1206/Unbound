@@ -66,6 +66,25 @@ enum HomeSystemVoice {
         Int(now.timeIntervalSince1970 / 86_400)
     }
 
+    // MARK: - Completed-console voice
+    //
+    // The home hero (HomeTrainingConsoleSection) has no notion of completion on
+    // its own — canStartWorkoutSession stays true after you train. These give it
+    // a real "cleared" state: once you've logged today's quest, the hero stops
+    // re-inviting BEGIN SESSION and shows a rotating anime-energy line instead.
+    // Unlike the [ SYSTEM ] line, this subtitle has room for a full sentence.
+
+    /// True when today's quest is done: a session was logged AND the day was a
+    /// startable workout (not a rest day, not an empty plan day).
+    static func consoleCleared(loggedToday: Bool, canStartWorkout: Bool) -> Bool {
+        loggedToday && canStartWorkout
+    }
+
+    /// One anime-energy line for the completed hero. Deterministic per day.
+    static func completionQuote(daySeed: Int) -> String {
+        pick(completionQuotes, seed: daySeed, salt: 11)
+    }
+
     /// Deterministic pool index. `salt` keeps different states from landing on
     /// the same rotation phase on the same day. Modulo is normalized so a
     /// negative product can't trap (no `abs`, no Int.min edge case).
@@ -121,5 +140,21 @@ enum HomeSystemVoice {
         "Awaiting quest selection",
         "No directive assigned",
         "Choose your path"
+    ]
+
+    // Anime-energy, original (no real character quotes — IP-safe, consistent
+    // with the "The System" voice chosen for this surface). Kept to ~two lines
+    // so the hero subtitle doesn't truncate.
+    static let completionQuotes: [String] = [
+        "The limit you feel is a lie you agreed to.",
+        "Strength isn't given. You take it, rep by rep.",
+        "Monsters aren't born. They're trained into being.",
+        "Surpass yesterday. That's the only opponent left.",
+        "Comfort is the cage. Today you walked out.",
+        "Every rep was a vow. You kept it.",
+        "Will is the one muscle that never tears.",
+        "The blade dulls without friction. So would you.",
+        "Discipline is the quietest kind of power.",
+        "You didn't find the limit. You moved it."
     ]
 }

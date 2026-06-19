@@ -96,6 +96,27 @@ final class HomeSystemVoiceTests: XCTestCase {
         XCTAssertFalse(HomeSystemVoice.clearedStreak.isEmpty)
         XCTAssertFalse(HomeSystemVoice.rest.isEmpty)
         XCTAssertFalse(HomeSystemVoice.awaiting.isEmpty)
+        XCTAssertFalse(HomeSystemVoice.completionQuotes.isEmpty)
+    }
+
+    // MARK: - Completed-console voice
+
+    func test_consoleCleared_onlyWhenLoggedAndStartable() {
+        XCTAssertTrue(HomeSystemVoice.consoleCleared(loggedToday: true, canStartWorkout: true))
+        XCTAssertFalse(HomeSystemVoice.consoleCleared(loggedToday: true, canStartWorkout: false))
+        XCTAssertFalse(HomeSystemVoice.consoleCleared(loggedToday: false, canStartWorkout: true))
+        XCTAssertFalse(HomeSystemVoice.consoleCleared(loggedToday: false, canStartWorkout: false))
+    }
+
+    func test_completionQuote_isMemberAndDeterministic() {
+        let q = HomeSystemVoice.completionQuote(daySeed: 4242)
+        XCTAssertTrue(HomeSystemVoice.completionQuotes.contains(q))
+        XCTAssertEqual(q, HomeSystemVoice.completionQuote(daySeed: 4242))
+    }
+
+    func test_completionQuote_rotatesAcrossDays() {
+        let quotes = Set((0..<60).map { HomeSystemVoice.completionQuote(daySeed: $0) })
+        XCTAssertGreaterThan(quotes.count, 1, "completion quote never rotated across 60 days")
     }
 
     func test_canonicalOriginalStrings_arePreserved() {
