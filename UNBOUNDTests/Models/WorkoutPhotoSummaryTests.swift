@@ -99,4 +99,30 @@ final class WorkoutPhotoSummaryTests: XCTestCase {
         ]))
         XCTAssertEqual(summary.exercises, ["Zone 2 Run · 20 min"])
     }
+
+    func testWarmupOnlyExerciseExcluded() {
+        let summary = WorkoutPhotoSummary(performanceLog: log(blocks: [
+            PerformanceBlock(kind: .strength, title: "Main", exercises: [
+                PerformanceExercise(name: "Warmup Only", plannedSets: 2, plannedTarget: "x", sets: [
+                    PerformanceSet(setNumber: 1, reps: 12, isWarmup: true),
+                    PerformanceSet(setNumber: 2, reps: 10, isWarmup: true),
+                ]),
+                PerformanceExercise(name: "Bench Press", plannedSets: 1, plannedTarget: "5", sets: [
+                    PerformanceSet(setNumber: 1, reps: 5),
+                ]),
+            ])
+        ]))
+        XCTAssertEqual(summary.exercises, ["Bench Press · 1×5"])
+    }
+
+    func testCardioExerciseSetsShowMinutes() {
+        let summary = WorkoutPhotoSummary(performanceLog: log(blocks: [
+            PerformanceBlock(kind: .cardio, title: "Conditioning", exercises: [
+                PerformanceExercise(name: "Treadmill Run", plannedSets: 1, plannedTarget: "20m", sets: [
+                    PerformanceSet(setNumber: 1, durationSeconds: 1200),
+                ])
+            ])
+        ]))
+        XCTAssertEqual(summary.exercises, ["Treadmill Run · 20 min"])
+    }
 }

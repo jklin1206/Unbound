@@ -54,11 +54,11 @@ extension WorkoutPhotoSummary {
         )
     }
 
-    /// One compact line for an exercise, or nil when it was skipped / had no sets.
+    /// One compact line for an exercise, or nil when it was skipped or had only
+    /// warmup sets (a warmup-only entry isn't part of "what you did").
     private static func line(for exercise: PerformanceExercise) -> String? {
         guard !exercise.skipped else { return nil }
-        let working = exercise.sets.filter { !$0.isWarmup }
-        let sets = working.isEmpty ? exercise.sets : working
+        let sets = exercise.sets.filter { !$0.isWarmup }
         guard !sets.isEmpty else { return nil }
 
         let count = sets.count
@@ -69,6 +69,12 @@ extension WorkoutPhotoSummary {
         let holds = sets.compactMap(\.holdSeconds)
         if holds.count == count, let first = holds.first, holds.allSatisfy({ $0 == first }) {
             return "\(exercise.name) · \(count)×\(first)s"
+        }
+        // Cardio / duration-based sets carry time, not reps — total the minutes.
+        let durations = sets.compactMap(\.durationSeconds)
+        if durations.count == count {
+            let minutes = max(1, Int((Double(durations.reduce(0, +)) / 60).rounded()))
+            return "\(exercise.name) · \(minutes) min"
         }
         return "\(exercise.name) · \(count) \(count == 1 ? "set" : "sets")"
     }
