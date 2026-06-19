@@ -103,18 +103,48 @@ private struct HomeCommandMiniGlyph: View {
     let tint: Color
 
     var body: some View {
-        ZStack {
-            Image(systemName: systemName)
-                .font(.system(size: fontSize, weight: .black))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
+        Group {
+            if let assetName = assetName {
+                Image(assetName)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .padding(assetPadding)
+            } else {
+                ZStack {
+                    Image(systemName: systemName)
+                        .font(.system(size: fontSize, weight: .black))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(tint)
 
-            if kind == .rankLibrary {
-                RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                    .fill(Color.unbound.textPrimary.opacity(0.70))
-                    .frame(width: 16, height: 3)
-                    .offset(y: 9)
+                    if kind == .rankLibrary {
+                        RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                            .fill(Color.unbound.textPrimary.opacity(0.70))
+                            .frame(width: 16, height: 3)
+                            .offset(y: 9)
+                    }
+                }
             }
+        }
+    }
+
+    private var assetName: String? {
+        switch kind {
+        case .shop: return "home_command_shop"
+        case .backdrops: return "home_command_backdrops"
+        case .rankLibrary: return "home_command_ranks"
+        case .weight: return "home_command_weight"
+        default: return nil
+        }
+    }
+
+    private var assetPadding: CGFloat {
+        switch kind {
+        case .weight: return 2
+        case .backdrops: return 1
+        case .rankLibrary: return 4
+        case .shop: return 3
+        default: return 0
         }
     }
 
