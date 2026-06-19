@@ -233,7 +233,11 @@ struct WorkoutDetailView: View {
     }
 
     private var logWorkoutButton: some View {
-        Button {
+        // Signed-out users have no draft (readyDraft returns nil), so tapping would
+        // be a silent no-op now that the WorkoutReady sign-in sheet is gone.
+        // Disable + dim instead of presenting nothing.
+        let isSignedOut = services.auth.currentUserId == nil
+        return Button {
             activeWorkoutDraft = readyDraft
         } label: {
             HStack(spacing: 10) {
@@ -250,9 +254,11 @@ struct WorkoutDetailView: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color.unbound.accent)
             )
+            .opacity(isSignedOut ? 0.5 : 1)
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
+        .disabled(isSignedOut)
     }
 
     // MARK: - Header
