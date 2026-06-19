@@ -140,21 +140,4 @@ extension SquadDetailView {
         .squadPanel(cornerRadius: 18, tint: Color.unbound.textTertiary)
     }
 
-    @MainActor
-    func saveRoutineDrop(_ drop: SquadRoutineDrop) {
-        let saved = drop.savedWorkoutCopy()
-        SavedWorkoutStore.shared.save(saved)
-        routineDropStatus = "Saved \(drop.title) to your workouts."
-    }
-
-    @MainActor
-    func useRoutineDropToday(_ drop: SquadRoutineDrop) {
-        let saved = drop.savedWorkoutCopy()
-        SavedWorkoutStore.shared.save(saved)
-        routineDropStatus = "Saved \(drop.title) and sent it to today's Program."
-        NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-            NotificationCenter.default.post(name: .savedWorkoutScheduleTodayRequested, object: saved)
-        }
-    }
 }
