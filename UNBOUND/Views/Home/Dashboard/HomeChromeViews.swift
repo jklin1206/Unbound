@@ -52,6 +52,36 @@ enum HomeCommandArtworkKind {
     case backdrops
     case rankLibrary
     case weight
+
+    /// Rendered 3D tile artwork, when one exists for this command. Falls back to
+    /// the tinted SF glyph (`HomeCommandMiniGlyph`) when nil.
+    var assetName: String? {
+        switch self {
+        case .weight:      return "home_dock_weight"
+        case .backdrops:   return "home_dock_backdrops"
+        case .rankLibrary: return "home_dock_rank_library"
+        case .shop:        return "home_dock_shop"
+        case .rankTrial, .trialKey, .vow: return nil
+        }
+    }
+}
+
+/// A home command icon — the rendered 3D tile when an asset exists, otherwise the
+/// tinted SF glyph. Scales to the caller's frame.
+struct HomeCommandArtwork: View {
+    let kind: HomeCommandArtworkKind
+    let tint: Color
+
+    var body: some View {
+        if let asset = kind.assetName, UIImage(named: asset) != nil {
+            Image(asset)
+                .resizable()
+                .scaledToFit()
+                .accessibilityHidden(true)
+        } else {
+            HomeCommandMiniGlyph(kind: kind, tint: tint)
+        }
+    }
 }
 
 struct HomeIconCommand: View {

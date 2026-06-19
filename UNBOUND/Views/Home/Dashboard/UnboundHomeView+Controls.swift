@@ -8,11 +8,11 @@ extension UnboundHomeView {
     }
 
     var homeControlSurface: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             homeMissionStatusBand
-            homeTrialKeyBand
             homeUtilityDockBand
                 .id("homeTiles")
+            homeTrialKeyBand
         }
         .padding(.top, 4)
         .padding(.bottom, 14)
@@ -456,21 +456,21 @@ private struct HomeCommandStripButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .center, spacing: 7) {
-                HomeCommandMiniGlyph(kind: artwork, tint: tint)
-                    .frame(width: 38, height: 38)
+            VStack(alignment: .center, spacing: 8) {
+                HomeCommandArtwork(kind: artwork, tint: tint)
+                    .frame(width: 48, height: 48)
 
                 Text(title.uppercased())
                     .font(.system(size: 9, weight: .black, design: .monospaced))
                     .tracking(0.7)
                     .foregroundStyle(Color.unbound.textTertiary)
-                    .lineLimit(2)
+                    .lineLimit(1)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.68)
-                    .frame(height: 20, alignment: .top)
+                    .frame(height: 14, alignment: .top)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 74)
+            .frame(height: 78)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
