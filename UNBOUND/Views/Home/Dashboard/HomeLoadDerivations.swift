@@ -82,20 +82,33 @@ enum HomeLoadDerivations {
     static func hasLogged(_ logs: [WorkoutLog]) -> Bool { !logs.isEmpty }
 
     /// True when *today's specific program day* was completed — matched on
-    /// program + day number + the local calendar day, against the canonical
-    /// `PerformanceLog` record (the superset every completion writes; a derived
-    /// `WorkoutLog` is filtered and absent for cardio-/routine-only quests).
-    /// Unlike `SessionXPRecord.loggedToday()` (true for ANY session today,
-    /// including rank trials or extra workouts), this only fires when the
-    /// displayed quest itself was completed.
+    /// program + day number + the local calendar day. Unlike
+    /// `SessionXPRecord.loggedToday()` (true for ANY session today, including
+    /// rank trials or extra workouts), this only fires when the displayed quest
+    /// itself was completed.
+    ///
+    /// Two sources are checked because neither alone is complete:
+    /// - `WorkoutLog` is the SYNCED record (`SyncCollectionMap`), so it's what a
+    ///   restore / new device sees — but `workoutLog(from:)` drops cardio/.routine
+    ///   blocks, so cardio-/routine-only quests never produce one.
+    /// - `PerformanceLog` is the canonical superset every completion writes, so it
+    ///   catches cardio/routine — but it's local-only, absent after a restore.
+    /// The union covers synced strength (cross-device) and local cardio/routine.
     static func didCompleteProgramDayToday(
-        _ logs: [PerformanceLog],
+        workoutLogs: [WorkoutLog],
+        performanceLogs: [PerformanceLog],
         programId: String,
         dayNumber: Int,
         now: Date = .now,
         calendar: Calendar = .current
     ) -> Bool {
-        logs.contains { log in
+        let workoutMatch = workoutLogs.contains { log in
+            log.programId == programId
+                && log.dayNumber == dayNumber
+                && calendar.isDate(log.completedAt ?? log.startedAt, inSameDayAs: now)
+        }
+        if workoutMatch { return true }
+        return performanceLogs.contains { log in
             log.programId == programId
                 && log.dayNumber == dayNumber
                 && calendar.isDate(log.completedAt, inSameDayAs: now)

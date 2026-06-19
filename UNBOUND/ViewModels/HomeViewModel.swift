@@ -32,8 +32,10 @@ final class HomeViewModel: ObservableObject {
     @Published var calibrationSkipRatio: Double = 0
     @Published var hasLoggedAnyWorkout: Bool = false
     @Published var lastLog: WorkoutLog?
-    /// Canonical completion records for today's-quest-cleared detection (catches
-    /// cardio-/routine-only quests that never produce a derived WorkoutLog).
+    /// Today's-quest-cleared detection reads both records: synced `workoutLogs`
+    /// (what a restore/new device sees) and local `performanceLogs` (catches
+    /// cardio-/routine-only quests that produce no derived WorkoutLog).
+    @Published var recentLogs: [WorkoutLog] = []
     @Published var recentPerformanceLogs: [PerformanceLog] = []
     @Published var weekSessionDays: Set<Int> = [] // Mon=1...Sun=7
     @Published var bodyRegionLoads: [BodyRegion: Double] = [:]
@@ -224,6 +226,7 @@ final class HomeViewModel: ObservableObject {
     }
 
     func applyRecentLogs(_ logs: [WorkoutLog]) {
+        recentLogs = logs
         lastLog = HomeLoadDerivations.lastLog(logs)
         hasLoggedAnyWorkout = HomeLoadDerivations.hasLogged(logs)
         weekSessionDays = HomeLoadDerivations.weekSessionDays(logs.map(\.startedAt))
@@ -384,15 +387,16 @@ final class HomeViewModel: ObservableObject {
     /// True when today's displayed program quest has actually been completed —
     /// the signal that drives the Home "cleared" state. Keys off the program day
     /// (not streak XP), so a rank trial or extra session can't falsely clear the
-    /// quest, and reads the canonical PerformanceLog so cardio-/routine-only
-    /// quests count too.
+    /// quest; reads synced workoutLogs (restore/new-device) and local
+    /// performanceLogs (cardio-/routine-only quests).
     var todayProgramDayLogged: Bool {
         guard let program,
               let day = todayProgramDay,
               day.canStartWorkoutSession
         else { return false }
         return HomeLoadDerivations.didCompleteProgramDayToday(
-            recentPerformanceLogs,
+            workoutLogs: recentLogs,
+            performanceLogs: recentPerformanceLogs,
             programId: program.id,
             dayNumber: day.dayNumber
         )
