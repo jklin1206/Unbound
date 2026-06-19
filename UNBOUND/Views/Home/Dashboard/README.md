@@ -34,3 +34,4 @@ Where to find X:
 - Skill tree tab content → `../SkillTree/`
 - Muscle/body-region heat rendering → `BodyLoadHeatmapView.swift`
 - Home Trials section (rank-gate deck + locked fallback + vow pick) → `HomeTrialDeck.swift`, `RankTrialInlineCard.swift`
+- The `[ SYSTEM ]` hero directive line → `HomeSystemVoice.swift`
