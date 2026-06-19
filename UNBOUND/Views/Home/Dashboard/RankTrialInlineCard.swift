@@ -232,9 +232,20 @@ struct HomeTrialsDemoHarness: View {
             Color.unbound.bg.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
-                    section("ALL GATES CLEARED") {
-                        HomeAllGatesClearedCard(peakRankName: "Unbound")
-                        HomeGateProgressionStrip(states: gateStates(cleared: totalGates, hasCurrent: false), onTap: {})
+                    section("TRIAL DECK · SWIPE") {
+                        HomeTrialDeck(
+                            gates: RankTrialFormat.allCases.enumerated().map { i, format in
+                                HomeTrialDeck.Gate(
+                                    id: i,
+                                    format: format,
+                                    world: GateWorldCatalog.world(for: format),
+                                    state: i < 2 ? .cleared : (i == 2 ? .current : .locked)
+                                )
+                            },
+                            currentReadiness: fixtureReadiness(open: true),
+                            onBegin: {},
+                            onShowRecords: {}
+                        )
                     }
 
                     section("ACTIVE VOW") {
@@ -243,16 +254,6 @@ struct HomeTrialsDemoHarness: View {
 
                     section("NO VOW PICKED") {
                         HomeVowPickStrip(onTap: {})
-                    }
-
-                    section("IN PROGRESS · REQUIREMENTS SHOW") {
-                        NextGateCard(readiness: fixtureReadiness(open: false), world: world)
-                        HomeGateProgressionStrip(states: gateStates(cleared: 2, hasCurrent: true), onTap: {})
-                    }
-
-                    section("READY TO ENTER") {
-                        NextGateCard(readiness: fixtureReadiness(open: true), world: world, onBegin: {})
-                        HomeGateProgressionStrip(states: gateStates(cleared: 0, hasCurrent: true), onTap: {})
                     }
                 }
                 .padding(20)

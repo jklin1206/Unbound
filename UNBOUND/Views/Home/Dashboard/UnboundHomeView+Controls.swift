@@ -39,27 +39,29 @@ extension UnboundHomeView {
         .padding(.bottom, 2)
     }
 
-    @ViewBuilder
     private var rankGateBlock: some View {
-        if let readiness = model.overallRankTrialReadiness,
-           let definition = readiness.definition {
-            VStack(spacing: 10) {
-                NextGateCard(
-                    readiness: readiness,
-                    world: GateWorldCatalog.world(for: definition.format),
-                    onBegin: { enterRankGate(definition) }
-                )
-                HomeGateProgressionStrip(states: gateMarkerStates(), onTap: { showTrialRecords = true })
-            }
-        } else if passedGateCount >= RankTrialFormat.allCases.count {
-            VStack(spacing: 10) {
-                HomeAllGatesClearedCard(peakRankName: model.aggregateTier.displayName)
-                HomeGateProgressionStrip(states: gateMarkerStates(), onTap: { showTrialRecords = true })
-            }
-        } else {
-            HomeRankGateLockedRow(
-                detail: "No gate available",
-                onTap: { showTrialRecords = true }
+        HomeTrialDeck(
+            gates: trialDeckGates,
+            currentReadiness: model.overallRankTrialReadiness,
+            onBegin: {
+                if let definition = model.overallRankTrialReadiness?.definition {
+                    enterRankGate(definition)
+                }
+            },
+            onShowRecords: { showTrialRecords = true }
+        )
+    }
+
+    /// All 8 gate worlds with their cleared / current / locked state, in order —
+    /// the swipeable deck source.
+    private var trialDeckGates: [HomeTrialDeck.Gate] {
+        let states = gateMarkerStates()
+        return RankTrialFormat.allCases.enumerated().map { index, format in
+            HomeTrialDeck.Gate(
+                id: index,
+                format: format,
+                world: GateWorldCatalog.world(for: format),
+                state: index < states.count ? states[index] : .locked
             )
         }
     }
