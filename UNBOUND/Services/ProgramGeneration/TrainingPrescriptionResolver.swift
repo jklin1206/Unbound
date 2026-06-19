@@ -37,6 +37,29 @@ enum TrainingPrescriptionResolver {
             updated.target = resolvedTarget(current: updated.target, state: state)
         }
         updated = applyBias(to: updated, state: state)
+        if state.blockType == .deload {
+            updated = applyDeload(to: updated)
+        }
+        return updated
+    }
+
+    /// A deload block lightens the working set: one fewer set and ~10% off the
+    /// suggested load — matching the Deload action's promise ("loads drop ~10%
+    /// and volume drops a set per lift"). The reduction is temporary: it rides
+    /// the `.deload` block on the ProgressionState and lifts once the block
+    /// advances, so the stored working weight is never lost.
+    private static func applyDeload(
+        to prescription: TrainingBlockPrescription
+    ) -> TrainingBlockPrescription {
+        var updated = prescription
+        updated.sets = max(1, updated.sets - 1)
+        if let weight = updated.suggestedWeightKg, weight > 0 {
+            updated.suggestedWeightKg = WeightPlatePolicy.snappedSuggestionKilograms(weight * 0.9)
+        }
+        updated.notes = appendNote(
+            "Deload week: one less set and ~10% lighter. Full load returns next block.",
+            to: updated.notes
+        )
         return updated
     }
 

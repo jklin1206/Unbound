@@ -339,6 +339,59 @@ final class DailyWorkoutResolverTests: XCTestCase {
         XCTAssertEqual(WeekPhase.deload.workoutDeloadFactor, 0.5)
     }
 
+    func testProgressionDeloadBlockDropsASetAndReducesLoad() {
+        // The Deload coach action (CoachActionExecutor.insertDeload → DeloadPlanner)
+        // sets every ProgressionState to a .deload block. The live DeloadConfirmSheet
+        // promises "loads drop ~10% and volume drops a set per lift" — that must reach
+        // the resolved prescription, not just RPE/rep targets.
+        var state = ProgressionState.seed(
+            userId: "u1",
+            exercise: "bench press",
+            startingWeightKg: 100,
+            block: .deload
+        )
+        state.targetRPE = BlockType.deload.targetRPE
+
+        let base = TrainingSessionDraft(
+            userId: "u1",
+            source: .custom,
+            title: "Deload Push",
+            estimatedMinutes: 35,
+            blocks: [
+                TrainingBlock(
+                    kind: .strength,
+                    title: "Push",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "Bench Press",
+                            sets: 4,
+                            target: .repsRange(8, 10),
+                            restSeconds: 120,
+                            muscleGroups: [.chest]
+                        )
+                    ]
+                )
+            ]
+        )
+
+        UserDefaults.standard.set(TrainingWeightUnit.kilograms.rawValue, forKey: WeightPlatePolicy.unitDefaultsKey)
+        defer { UserDefaults.standard.removeObject(forKey: WeightPlatePolicy.unitDefaultsKey) }
+
+        let resolved = DailyWorkoutResolver.composedUserDraft(
+            base,
+            userId: "u1",
+            progressionStates: [MovementCatalog.normalized(state.exerciseKey): state]
+        )
+
+        let prescription = resolved.blocks.first?.prescriptions.first
+        XCTAssertEqual(prescription?.sets, 3, "deload should drop a set per lift (4 → 3)")
+        XCTAssertEqual(prescription?.suggestedWeightKg, 90, "deload should drop load ~10% (100 → 90kg)")
+        XCTAssertTrue(
+            prescription?.notes?.localizedCaseInsensitiveContains("deload") == true,
+            "deload prescription should be annotated"
+        )
+    }
+
     func testAvoidedMovementModifierSwapsCompatibleAlternative() {
         let workout = Workout(
             name: "Avoided Push",
