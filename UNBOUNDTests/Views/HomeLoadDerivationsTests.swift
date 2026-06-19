@@ -96,39 +96,51 @@ final class HomeLoadDerivationsTests: XCTestCase {
         XCTAssertEqual(status.recoveryText(relativeTo: now), "Ready in 1d 12h")
     }
 
-    // MARK: - didLogProgramDayToday
+    // MARK: - didCompleteProgramDayToday
 
-    func test_didLogProgramDayToday_trueWhenProgramDayMatchesAndIsToday() {
+    func test_didCompleteProgramDayToday_trueWhenProgramDayMatchesAndIsToday() {
         let now = date(2026, 6, 19, 12)
-        let logs = [pdLog(programId: "p1", dayNumber: 3, startedAt: date(2026, 6, 19, 9))]
-        XCTAssertTrue(HomeLoadDerivations.didLogProgramDayToday(
+        let logs = [pdLog(programId: "p1", dayNumber: 3, completedAt: date(2026, 6, 19, 9))]
+        XCTAssertTrue(HomeLoadDerivations.didCompleteProgramDayToday(
             logs, programId: "p1", dayNumber: 3, now: now, calendar: cal()))
     }
 
-    func test_didLogProgramDayToday_falseForWrongDayProgramOrDate() {
+    func test_didCompleteProgramDayToday_matchesCardioOnlyQuest_noStrengthBlocks() {
+        // A cardio-only completion writes a PerformanceLog with no strength
+        // blocks; the cleared check must still fire (the WorkoutLog-only basis
+        // would have missed it).
+        let now = date(2026, 6, 19, 12)
+        let logs = [pdLog(programId: "p1", dayNumber: 3, completedAt: date(2026, 6, 19, 18), blocks: [])]
+        XCTAssertTrue(HomeLoadDerivations.didCompleteProgramDayToday(
+            logs, programId: "p1", dayNumber: 3, now: now, calendar: cal()))
+    }
+
+    func test_didCompleteProgramDayToday_falseForWrongDayProgramOrDate() {
         let now = date(2026, 6, 19, 12)
         let logs = [
-            pdLog(programId: "p1", dayNumber: 4, startedAt: date(2026, 6, 19, 9)),  // other day#
-            pdLog(programId: "p2", dayNumber: 3, startedAt: date(2026, 6, 19, 9)),  // other program
-            pdLog(programId: "p1", dayNumber: 3, startedAt: date(2026, 6, 18, 9))   // yesterday
+            pdLog(programId: "p1", dayNumber: 4, completedAt: date(2026, 6, 19, 9)),  // other day#
+            pdLog(programId: "p2", dayNumber: 3, completedAt: date(2026, 6, 19, 9)),  // other program
+            pdLog(programId: "p1", dayNumber: 3, completedAt: date(2026, 6, 18, 9))   // yesterday
         ]
-        XCTAssertFalse(HomeLoadDerivations.didLogProgramDayToday(
+        XCTAssertFalse(HomeLoadDerivations.didCompleteProgramDayToday(
             logs, programId: "p1", dayNumber: 3, now: now, calendar: cal()))
     }
 
-    private func pdLog(programId: String, dayNumber: Int, startedAt: Date) -> WorkoutLog {
-        WorkoutLog(
-            id: UUID().uuidString,
+    private func pdLog(
+        programId: String,
+        dayNumber: Int,
+        completedAt: Date,
+        blocks: [PerformanceBlock] = []
+    ) -> PerformanceLog {
+        PerformanceLog(
             userId: "u",
+            source: .program,
+            title: "T",
+            startedAt: completedAt,
+            completedAt: completedAt,
             programId: programId,
             dayNumber: dayNumber,
-            plannedWorkoutName: "T",
-            startedAt: startedAt,
-            completedAt: startedAt,
-            exerciseEntries: [],
-            overallNotes: nil,
-            overallRPE: nil,
-            durationMinutes: 30
+            blocks: blocks
         )
     }
 
