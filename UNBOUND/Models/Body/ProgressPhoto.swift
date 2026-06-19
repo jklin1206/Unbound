@@ -5,6 +5,7 @@ struct ProgressPhoto: Codable, Identifiable, Equatable {
     enum Source: String, Codable {
         case manual
         case scan
+        case workout
     }
 
     let id: String
@@ -15,6 +16,9 @@ struct ProgressPhoto: Codable, Identifiable, Equatable {
     var angle: ScanAngle?
     var blockNumber: Int?
     var source: Source
+    /// Snapshot of the workout this photo was taken after (source == .workout).
+    /// Decodes as nil on older rows that predate the field. Local-only.
+    var workout: WorkoutPhotoSummary?
 
     init(
         id: String,
@@ -24,7 +28,8 @@ struct ProgressPhoto: Codable, Identifiable, Equatable {
         note: String? = nil,
         angle: ScanAngle? = nil,
         blockNumber: Int? = nil,
-        source: Source
+        source: Source,
+        workout: WorkoutPhotoSummary? = nil
     ) {
         self.id = id
         self.userId = userId
@@ -34,5 +39,6 @@ struct ProgressPhoto: Codable, Identifiable, Equatable {
         self.angle = angle
         self.blockNumber = blockNumber
         self.source = source
+        self.workout = workout
     }
 }

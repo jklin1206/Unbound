@@ -316,7 +316,12 @@ struct ActiveWorkoutContainerView: View {
             )
         }
         .fullScreenCover(item: $rewardSequence) { summary in
-            WorkoutRewardSequenceView(summary: summary) {
+            WorkoutRewardSequenceView(
+                summary: summary,
+                onAddWorkoutPhoto: { image in
+                    Task { await saveWorkoutPhoto(image, context: summary.workoutPhotoContext, services: services) }
+                }
+            ) {
                 finishRewardSequence()
             }
             .interactiveDismissDisabled(true)
@@ -675,11 +680,14 @@ struct ActiveWorkoutContainerView: View {
             // us as live (best-effort; the row also auto-expires after 3h).
             Task { await services.squadPresence.clearPresence(userId: uid) }
 
-            let summary = makeRewardSequenceSummary(
+            var summary = makeRewardSequenceSummary(
                 performanceLog: performanceLog,
                 completionResult: completionResult,
                 rankTrialResult: rankTrialResult
             )
+            // Tag the final beat so it can offer an opt-in post-workout photo
+            // linked to this session. Travels with the summary into the gate tail too.
+            summary.workoutPhotoContext = WorkoutPhotoSummary(performanceLog: performanceLog)
             let hasReward = totalLoggedWorkingSets > 0
                 || summary.progression?.hasContent == true
                 || summary.weeklyVowCallout != nil

@@ -14,7 +14,6 @@ The Weekly Vows system — historically named "Trials", and most types here carr
 | `TrialsStore.swift` | `WeeklyVowsStore` — UserDefaults persistence for `WeeklyVowsState` per userId (reads legacy `trialsState` key too). |
 | `VowBadgeTrack.swift` | Vow badge milestone thresholds and crossing detection for badge unlocks tied to vow streaks. |
 | `VowBankPool.swift` | Curated weekly vow card bank pool — the universe of cards the weekly draw selects from. |
-| `VowDebtLedger.swift` | Consume-debt abstraction for applying broken-vow XP garnish against the user's ledger. |
 | `VowWeeklyDraw.swift` | Deterministic weekly 3-card draw from the bank pool, keyed to the user + ISO week. |
 | `WeeklyVowRewards.swift` | Reward + penalty policy: `WeeklyVowPenaltyCatalog` applies missed-vow XP penalties to a capped ledger. |
 
@@ -22,7 +21,6 @@ The Weekly Vows system — historically named "Trials", and most types here carr
 
 - **How the 3 weekly cards are picked** → `VowWeeklyDraw.swift` (draw) + `VowBankPool.swift` (card universe).
 - **Sealing a vow (self-report taps) + completion/penalty** → `TrialsService.swift`; reward/penalty policy in `WeeklyVowRewards.swift`.
-- **Broken-vow XP garnish** → `VowDebtLedger.swift`.
 - **Vow lifecycle orchestration + state** → `TrialsService.swift` + `TrialsStore.swift`.
 - **Titles earned from vows** → `TitleCatalog.swift`.
 - **Vow badge milestones** → `VowBadgeTrack.swift`.

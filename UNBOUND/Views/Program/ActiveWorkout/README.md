@@ -11,6 +11,7 @@ The live in-workout logging screen: `ActiveWorkoutContainerView` owns the `Activ
 | `ActiveWorkoutContainerView+Intents.swift` | Overflow-menu intent handling (warmup toggle, add/remove set, skip, notes, swap) + DEBUG fill-planned-sets. |
 | `ActiveWorkoutContainerView+Keypad.swift` | Wires the session into the shared `NumberPadEditorModel` (per-cell config, live-write/commit/RPE closures); dock chrome lives in `../../Components/Unbound/NumberPadEditor.swift`. |
 | `ActiveWorkoutContainerView+RewardSummary.swift` | Assembles the post-workout `WorkoutRewardSequenceSummary` (incl. rank-trial callout) from the completion result. |
+| `ActiveWorkoutContainerView+WorkoutPhoto.swift` | Saves an opt-in post-workout photo captured on the reward final beat — local JPEG + a `.workout` `ProgressPhoto` carrying the session's `WorkoutPhotoSummary`. |
 | `ActiveWorkoutDemoHarness.swift` | TEMPORARY proof harness — boots the real container with a seeded draft via `-activeWorkoutDemo` launch arg for screenshots. |
 | `ActiveWorkoutSheets.swift` | `EditorSheet` + `NotesEditSheet` presented from the workout. |
 | `DeckOfProofDrawStage.swift` | `DeckOfProofDrawStage` — the card-draw trial stage view. |
