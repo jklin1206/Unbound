@@ -153,17 +153,19 @@ enum HomeSystemVoice {
 
     // Anime-energy, original (no real character quotes — IP-safe, consistent
     // with the "The System" voice chosen for this surface). Kept to ~two lines
-    // so the hero subtitle doesn't truncate.
+    // so the hero subtitle doesn't truncate. Training-arc / proof / earned
+    // language only — no "restriction / holding you back" framing (AGENTS.md
+    // brand guardrail).
     static let completionQuotes: [String] = [
-        "The limit you feel is a lie you agreed to.",
+        "Another day forged into the record.",
         "Strength isn't given. You take it, rep by rep.",
         "Monsters aren't born. They're trained into being.",
         "Surpass yesterday. That's the only opponent left.",
-        "Comfort is the cage. Today you walked out.",
+        "Strength earned today can't be unmade.",
         "Every rep was a vow. You kept it.",
         "Will is the one muscle that never tears.",
         "The blade dulls without friction. So would you.",
         "Discipline is the quietest kind of power.",
-        "You didn't find the limit. You moved it."
+        "Today is logged. The arc remembers."
     ]
 }
