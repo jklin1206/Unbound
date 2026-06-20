@@ -251,10 +251,10 @@ git commit -m "$(printf 'feat(progression): advance on reps alone, drop the RPE 
 
 1. **(this plan)** Progression RPE-free.
 2. **Forward-looking cue** on the set row (`▲ +2.5kg` / `chase reps` / `+2 reps`), read-only from `ProgressionState` — pairs with the shipped PREV column. (Depends on the column being merged to `main`.)
-3. **Time-model collapse** — `Block` replaces `Arc`/`Wave`/`Phase`; removes `ProgressionState.blockType`/`targetRPE` phase coupling and phase-driven rep ranges.
-4. **One-tap block check-in** renewal (pure manual signal; no RPE pre-fill).
+3. **Time-model collapse** — `Arc` absorbs `Wave`/`Phase`/the 2-week `ProgramBlock` rollover (Arc is the surviving on-theme unit); removes `ProgressionState.blockType`/`targetRPE` phase coupling and phase-driven rep ranges.
+4. **One-tap arc check-in** renewal (pure manual signal; no RPE pre-fill).
 5. **Goal-in/program-out onboarding** + delete the hidden biasers (`WeakPointBiaser`, `RegionFatigueBudget`, `AccessoryBiasRefreshRule`, `LoadBiasApplier`).
-6. **Migration** — regenerate into the block model on next open.
+6. **Migration** — regenerate into the arc model on next open.
 
 ## Self-Review
 
