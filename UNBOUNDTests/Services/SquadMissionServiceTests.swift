@@ -125,6 +125,118 @@ final class SquadMissionServiceTests: XCTestCase {
         XCTAssertGreaterThan(mission.target, 0)
     }
 
+    // MARK: - C1: Kind v2 raw values and legacy mapping
+
+    func testMissionKindV2RawValuesAndLegacyMapping() {
+        XCTAssertEqual(SquadMission.Kind(rawValue: "total_weight"), .totalWeight)
+        XCTAssertEqual(SquadMission.Kind(rawValue: "train_together"), .trainTogether)
+        // legacy rows from pre-v2 weeks still decode to a sensible kind
+        XCTAssertEqual(SquadMission.Kind(rawValue: "alignedSessions"), .totalSessions)
+        XCTAssertEqual(SquadMission.Kind(rawValue: "perfectAttendance"), .crewCoverage)
+        XCTAssertEqual(SquadMission.Kind(rawValue: "linkedSessions"), .trainTogether)
+        XCTAssertNil(SquadMission.Kind(rawValue: "bogus"))
+    }
+
+    func testMissionProgressDisplay() {
+        XCTAssertEqual(SquadMission.Kind.totalWeight.progressText(12500), "12,500 kg")
+        XCTAssertEqual(SquadMission.Kind.totalSessions.progressText(7), "7 sessions")
+        XCTAssertEqual(SquadMission.Kind.crewCoverage.progressText(3), "3 covered")
+    }
+
+    // MARK: - C2: Catalog targets match backend contract
+
+    func testCatalogTargetsMatchBackendContract() {
+        XCTAssertEqual(SquadMissionCatalog.target(for: .totalWeight, memberCount: 4), 32_000)
+        XCTAssertEqual(SquadMissionCatalog.target(for: .totalSessions, memberCount: 4), 16)
+        XCTAssertEqual(SquadMissionCatalog.target(for: .totalReps, memberCount: 4), 2_400)
+        XCTAssertEqual(SquadMissionCatalog.target(for: .crewCoverage, memberCount: 4), 4)
+        XCTAssertEqual(SquadMissionCatalog.target(for: .trainTogether, memberCount: 4), 3)
+    }
+
+    // MARK: - C3: MissionContribution aggregation
+
+    func testContributionAggregationSumsPerUser() {
+        let userA = UUID(uuidString: "AAAAAAAA-0000-0000-0000-000000000001")!
+        let userB = UUID(uuidString: "BBBBBBBB-0000-0000-0000-000000000002")!
+        let rows: [(userId: UUID?, delta: Int)] = [
+            (userA, 10),
+            (userB, 5),
+            (userA, 3),
+            (nil, 1),   // train_together linked: receipt
+        ]
+        let result = MissionContribution.aggregate(rows: rows)
+        let totalA = result.first { $0.userId == userA }?.total
+        let totalB = result.first { $0.userId == userB }?.total
+        let totalLinked = result.first { $0.userId == nil }?.total
+        XCTAssertEqual(totalA, 13)
+        XCTAssertEqual(totalB, 5)
+        XCTAssertEqual(totalLinked, 1)
+        XCTAssertEqual(result.count, 3)
+    }
+
+    func testContributionAggregateEmptyIsEmpty() {
+        XCTAssertTrue(MissionContribution.aggregate(rows: []).isEmpty)
+    }
+
+    func testContributionAggregateIsSortedDescending() {
+        let u1 = UUID()
+        let u2 = UUID()
+        let rows: [(userId: UUID?, delta: Int)] = [(u1, 2), (u2, 10)]
+        let result = MissionContribution.aggregate(rows: rows)
+        XCTAssertEqual(result.first?.total, 10)
+        XCTAssertEqual(result.last?.total, 2)
+    }
+
+    // MARK: - C3: pickMission forwards to backend
+
+    func testPickMissionForwardsToBackend() async throws {
+        let squad = seededSquad()
+        let backend = MockSquadBackend()
+        let weekIso = SquadMissionService.currentWeekIso()
+        let stubbedMission = SquadMission(
+            id: UUID(),
+            squadId: squad.id,
+            weekIso: weekIso,
+            kind: SquadMissionCatalog.templates[0].kind,
+            target: SquadMissionCatalog.target(for: SquadMissionCatalog.templates[0].kind, memberCount: 4),
+            currentProgress: 0,
+            completedAt: nil,
+            createdAt: .now
+        )
+        backend.pickSquadMissionResult = stubbedMission
+
+        let stubSquad = StubSquadService()
+        let service = SquadMissionService(
+            backend: backend,
+            squadService: stubSquad,
+            remoteReadsEnabled: false
+        )
+
+        let result = try await service.pickMission(squadId: squad.id, kind: .totalWeight)
+        XCTAssertEqual(result?.id, stubbedMission.id)
+        XCTAssertEqual(result?.kind, .totalWeight)
+    }
+
+    func testPickMissionReturnsNilWhenMissionAlreadyExists() async throws {
+        let backend = MockSquadBackend()
+        backend.pickSquadMissionResult = nil  // on conflict do nothing → no row
+        let service = SquadMissionService(
+            backend: backend,
+            squadService: StubSquadService(),
+            remoteReadsEnabled: false
+        )
+        let result = try await service.pickMission(squadId: UUID(), kind: .totalSessions)
+        XCTAssertNil(result)
+    }
+
+    // MARK: - C3: latestMission includes completed missions (remote path skipped in unit tests)
+
+    func testLatestMissionReturnsNilWhenRemoteDisabled() async {
+        let service = SquadMissionService(remoteReadsEnabled: false)
+        let result = await service.latestMission(squadId: UUID())
+        XCTAssertNil(result, "latestMission should return nil when remoteReadsEnabled=false")
+    }
+
     // MARK: - evaluateCompletion does NOT fire when progress < target
 
     func testEvaluateCompletionDoesNotFireBelowTarget() async {

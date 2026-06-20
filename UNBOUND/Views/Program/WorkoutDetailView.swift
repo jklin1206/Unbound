@@ -9,7 +9,7 @@ struct WorkoutDetailView: View {
     /// mutations route through it so they persist back to the program doc.
     var programViewModel: ProgramViewModel? = nil
 
-    @State private var showWorkoutReady = false
+    @State private var activeWorkoutDraft: TrainingSessionDraft?
     @State private var isEditing = false
     @State private var swapTargetExerciseId: String?
     @State private var swapAlternatives: [CatalogExercise] = []
@@ -96,16 +96,12 @@ struct WorkoutDetailView: View {
                 }
             }
         }
-        .sheet(isPresented: $showWorkoutReady) {
-            if let readyDraft {
-                WorkoutReadyView(draft: readyDraft)
-                    .environmentObject(services)
-            } else {
-                Text("Sign in before starting a workout.")
-                    .font(.body)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .padding()
-            }
+        .fullScreenCover(item: $activeWorkoutDraft) { draft in
+            ActiveWorkoutContainerView(draft: draft, services: services, onFinished: {
+                UserDefaults.standard.set(0, forKey: "unbound.shortSessionDate")
+                activeWorkoutDraft = nil
+            })
+            .environmentObject(services)
         }
         .sheet(item: Binding(
             get: { swapTargetExerciseId.map(SwapTarget.init(id:)) },
@@ -237,8 +233,12 @@ struct WorkoutDetailView: View {
     }
 
     private var logWorkoutButton: some View {
-        Button {
-            showWorkoutReady = true
+        // Signed-out users have no draft (readyDraft returns nil), so tapping would
+        // be a silent no-op now that the WorkoutReady sign-in sheet is gone.
+        // Disable + dim instead of presenting nothing.
+        let isSignedOut = services.auth.currentUserId == nil
+        return Button {
+            activeWorkoutDraft = readyDraft
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "play.fill")
@@ -254,9 +254,11 @@ struct WorkoutDetailView: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color.unbound.accent)
             )
+            .opacity(isSignedOut ? 0.5 : 1)
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
+        .disabled(isSignedOut)
     }
 
     // MARK: - Header

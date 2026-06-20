@@ -14,7 +14,6 @@ The Program tab: the three-tab training-plan surface (`ProgramOverviewView`) plu
 | `Routines/` | Routines tab — challenge cards, preview sheet, completion flow, travel overlay, helpers. |
 | `Schedule/` | Program schedule editor views. |
 | `SessionEditor/` | Workout builder/editor sheet (`SessionEditorView` + extensions, demo harness) — see its README. |
-| `WorkoutReady/` | Pre-workout review/launch screen (`WorkoutReadyView` + extensions) — see its README. |
 
 ## Root files
 
@@ -38,5 +37,5 @@ The Program tab: the three-tab training-plan surface (`ProgramOverviewView`) plu
 | `RecoveryView.swift` | Recovery plan screen — sleep-target card and activities list for a `RecoveryPlan`. |
 | `TowerTrialReadyPreview.swift` | Tower-trial preview visual — floor list + tower silhouette built from the trial's `TrainingBlock`s. |
 | `WhyThisProgramView.swift` | "Why this program" explainer rendering a `ProgramRationale` (hero + summary blocks). |
-| `WorkoutDetailView.swift` | Workout detail screen; optional `ProgramViewModel` enables edit mode (swap exercises, adjust sets) persisting to the program doc, and it can launch WorkoutReady. |
+| `WorkoutDetailView.swift` | Workout detail screen; optional `ProgramViewModel` enables edit mode (swap exercises, adjust sets) persisting to the program doc, and its LOG WORKOUT button launches `ActiveWorkoutContainerView` directly. |
 | `WorkoutLogSummaryView.swift` | Completed-workout summary for a `WorkoutLog` — total work sets, reps, and per-exercise breakdown in the user's weight unit. |

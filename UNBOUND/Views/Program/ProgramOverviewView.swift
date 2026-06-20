@@ -28,7 +28,6 @@ struct ProgramOverviewView: View {
     @State var selectedDay: ProgramDay?
     @State var showPaywall = false
     @State var showRationale = false
-    @State var workoutReadyDraft: TrainingSessionDraft?
     @State var activeWorkoutDraft: TrainingSessionDraft?
     @State var sessionEditorDraft: TrainingSessionDraft?
     @State var savedWorkoutEditorDraft: TrainingSessionDraft?
@@ -305,10 +304,6 @@ struct ProgramOverviewView: View {
             weekOffset = 0
             selectedDayDate = Calendar.current.startOfDay(for: programToday)
             applySavedWorkout(workout, to: programToday, allowExtraSession: true)
-        }
-        .fullScreenCover(item: $workoutReadyDraft) { draft in
-            WorkoutReadyView(draft: draft)
-                .environmentObject(services)
         }
         .fullScreenCover(item: $activeWorkoutDraft) { draft in
             ActiveWorkoutContainerView(draft: draft, services: services) {

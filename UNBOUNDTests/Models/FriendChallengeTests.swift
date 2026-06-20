@@ -28,6 +28,7 @@ final class FriendChallengeTests: XCTestCase {
             challengedId: UUID(),
             squadId: UUID(),
             kind: .mostSessions,
+            exerciseName: nil,
             startedAt: Date(timeIntervalSince1970: 1_700_000_000),
             expiresAt: Date(timeIntervalSince1970: 1_700_604_800),
             acceptedAt: nil,
@@ -44,6 +45,7 @@ final class FriendChallengeTests: XCTestCase {
         let c = FriendChallenge(
             id: UUID(), challengerId: UUID(), challengedId: UUID(), squadId: UUID(),
             kind: .mostSessions,
+            exerciseName: nil,
             startedAt: .now.addingTimeInterval(-3600),
             expiresAt: .now.addingTimeInterval(3600),
             acceptedAt: .now,
@@ -59,6 +61,7 @@ final class FriendChallengeTests: XCTestCase {
         let c = FriendChallenge(
             id: UUID(), challengerId: UUID(), challengedId: UUID(), squadId: UUID(),
             kind: .mostSessions,
+            exerciseName: nil,
             startedAt: .now.addingTimeInterval(-7200),
             expiresAt: .now.addingTimeInterval(-1),
             acceptedAt: .now.addingTimeInterval(-7000),
@@ -74,6 +77,7 @@ final class FriendChallengeTests: XCTestCase {
         let c = FriendChallenge(
             id: UUID(), challengerId: UUID(), challengedId: UUID(), squadId: UUID(),
             kind: .earlyRiser,
+            exerciseName: nil,
             startedAt: .now,
             expiresAt: .now.addingTimeInterval(86400),
             acceptedAt: nil,
@@ -91,40 +95,55 @@ final class FriendChallengeTests: XCTestCase {
         }
     }
 
-    func testSixKindsPresent() {
-        XCTAssertEqual(FriendChallenge.Kind.allCases.count, 6)
+    func testKindMenuIsAllReal() {
+        XCTAssertEqual(
+            Set(FriendChallenge.Kind.allCases),
+            [.mostSessions, .earlyRiser, .mostWeight, .mostReps, .heaviestLift]
+        )
+        XCTAssertEqual(Set(FriendChallenge.Kind.creationOptions), Set(FriendChallenge.Kind.allCases))
+        for kind in FriendChallenge.Kind.allCases {
+            XCTAssertTrue(kind.isSupportedForCreation)
+        }
     }
 
-    func testCreationOptionsExposeOnlySupportedSimpleKinds() {
-        XCTAssertEqual(
-            FriendChallenge.Kind.creationOptions,
-            [.mostSessions, .earlyRiser]
-        )
-        XCTAssertTrue(FriendChallenge.Kind.mostSessions.isSupportedForCreation)
-        XCTAssertTrue(FriendChallenge.Kind.earlyRiser.isSupportedForCreation)
-        XCTAssertFalse(FriendChallenge.Kind.noMissedDays.isSupportedForCreation)
-        XCTAssertFalse(FriendChallenge.Kind.firstToFinishTrial.isSupportedForCreation)
-        XCTAssertFalse(FriendChallenge.Kind.mostAlignedSessions.isSupportedForCreation)
-        XCTAssertFalse(FriendChallenge.Kind.proteinGoal.isSupportedForCreation)
+    func testHeaviestLiftRequiresExercise() {
+        XCTAssertTrue(FriendChallenge.Kind.heaviestLift.requiresExercisePick)
+        XCTAssertTrue(FriendChallenge.Kind.heaviestLift.usesMaxScore)
+        XCTAssertFalse(FriendChallenge.Kind.mostWeight.requiresExercisePick)
+        XCTAssertFalse(FriendChallenge.Kind.mostWeight.usesMaxScore)
+    }
+
+    func testLegacyKindRowsDecodeAsNilAndAreDropped() {
+        // Historical pre-v2 kinds were never re-creatable, so any stored rows are
+        // dropped rather than mapped.
+        XCTAssertNil(FriendChallenge.Kind(rawValue: "proteinGoal"))
+        XCTAssertNil(FriendChallenge.Kind(rawValue: "noMissedDays"))
+        XCTAssertNil(FriendChallenge.Kind(rawValue: "firstToFinishTrial"))
+        XCTAssertNil(FriendChallenge.Kind(rawValue: "mostAlignedSessions"))
+    }
+
+    func testProgressLabelFormatsPerKind() {
+        XCTAssertEqual(FriendChallenge.Kind.mostSessions.progressLabel(for: 1), "1 session")
+        XCTAssertEqual(FriendChallenge.Kind.mostSessions.progressLabel(for: 4), "4 sessions")
+        XCTAssertEqual(FriendChallenge.Kind.mostWeight.progressLabel(for: 1250), "1,250 kg")
+        XCTAssertEqual(FriendChallenge.Kind.heaviestLift.progressLabel(for: 100), "100 kg")
+        XCTAssertEqual(FriendChallenge.Kind.mostReps.progressLabel(for: 60), "60 reps")
     }
 
     func testProgressPolicyDeltasAreExplicit() {
         var log = makeLog(localStartHour: 7)
+        // Every supported kind signals +1 when the log qualifies; the server
+        // computes the real weighted delta.
         XCTAssertEqual(FriendChallengeProgressPolicy.progressDelta(for: .mostSessions, log: log), 1)
         XCTAssertEqual(FriendChallengeProgressPolicy.progressDelta(for: .earlyRiser, log: log), 1)
+        XCTAssertEqual(FriendChallengeProgressPolicy.progressDelta(for: .mostWeight, log: log), 1)
+        XCTAssertEqual(FriendChallengeProgressPolicy.progressDelta(for: .mostReps, log: log), 1)
+        XCTAssertEqual(FriendChallengeProgressPolicy.progressDelta(for: .heaviestLift, log: log), 1)
 
+        // earlyRiser keeps its before-8am gate.
         log.localStartHour = 8
         XCTAssertEqual(FriendChallengeProgressPolicy.progressDelta(for: .earlyRiser, log: log), 0)
-
-        let unsupported: [FriendChallenge.Kind] = [
-            .noMissedDays,
-            .firstToFinishTrial,
-            .mostAlignedSessions,
-            .proteinGoal
-        ]
-        for kind in unsupported {
-            XCTAssertEqual(FriendChallengeProgressPolicy.progressDelta(for: kind, log: log), 0)
-            XCTAssertNotNil(FriendChallengeProgressPolicy.unsupportedReason(for: kind))
-        }
+        // Non-time-gated kinds still signal regardless of the hour.
+        XCTAssertEqual(FriendChallengeProgressPolicy.progressDelta(for: .mostWeight, log: log), 1)
     }
 }
