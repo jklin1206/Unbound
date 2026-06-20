@@ -246,6 +246,26 @@ enum ExerciseClassification: String, Codable {
         case (_, .deload):                       return 6...8
         }
     }
+
+    /// Goal-keyed rep range — the fixed range used across an Arc (replaces the
+    /// per-phase `defaultRepRange(for block:)` in generation).
+    ///
+    /// `bodyweightSkill` here is the REP track only (clean reps before advancing the
+    /// variation). The HOLD track (isometrics → seconds) lives in
+    /// `calisthenicsPrescription`'s `.holdSeconds` branch, not here. For skills the
+    /// scaling is the skill-tree variation ladder, not these numbers — these are the
+    /// build target on the current variation.
+    func defaultRepRange(for goal: TrainingGoal) -> ClosedRange<Int> {
+        switch (self, goal) {
+        case (.upperCompound, .strength), (.lowerCompound, .strength): return 4...6
+        case (.upperCompound, _),         (.lowerCompound, _):         return 8...12
+        case (.accessory, .strength):                                  return 6...10
+        case (.accessory, _):                                          return 10...15
+        case (.bodyweightSkill, .strength):                            return 3...6
+        case (.bodyweightSkill, .skill):                               return 5...8
+        case (.bodyweightSkill, .hypertrophy):                         return 8...12
+        }
+    }
 }
 
 // MARK: - ProgressionAdvance event
