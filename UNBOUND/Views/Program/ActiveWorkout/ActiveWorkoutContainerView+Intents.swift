@@ -16,7 +16,7 @@ extension ActiveWorkoutContainerView {
                 switch session.exercises[exerciseIndex].metricKind {
                 case .reps:
                     set.reps = set.suggestedReps ?? RepRange.lowerBound(session.exercises[exerciseIndex].plannedReps) ?? 8
-                    set.weightKg = set.suggestedWeightKg ?? debugWeightKg(exerciseIndex: exerciseIndex, setIndex: setIndex)
+                    set.weightKg = set.lastPerformance?.weightKg ?? set.suggestedWeightKg ?? debugWeightKg(exerciseIndex: exerciseIndex, setIndex: setIndex)
                 case .holdSeconds:
                     set.holdSeconds = set.suggestedHoldSeconds ?? 30
                 case .durationSeconds:
