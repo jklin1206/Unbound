@@ -20,6 +20,7 @@ struct SetLogGridRow: View {
     let suggestedDistanceMeters: Int?
     let suggestedCalories: Int?
     let suggestedRPE: Int?
+    let lastPerformance: LastSetPerformance?
     let metricKind: TrainingMetricKind
     let tracksHold: Bool
     let logged: Bool
@@ -51,7 +52,7 @@ struct SetLogGridRow: View {
                 .frame(width: 26, alignment: .leading)
 
                 cell(actual: weightKg.map(formatLoggedWeight),
-                     suggested: suggestedWeightKg.map(formatSuggestionWeight),
+                     suggested: (lastPerformance?.weightKg ?? suggestedWeightKg).map(formatSuggestionWeight),
                      action: onEditWeight)
                 cell(actual: metricActual,
                      suggested: metricSuggested,
@@ -72,6 +73,12 @@ struct SetLogGridRow: View {
                 confirmControl.frame(width: 40)
             }
 
+            if let line = lastReferenceLine {
+                Text(line)
+                    .font(Font.unbound.monoS)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .padding(.leading, 34)
+            }
         }
         .padding(.vertical, 8)
         .padding(.horizontal, (!calmStyle && isCurrent) ? 8 : 0)
@@ -116,6 +123,36 @@ struct SetLogGridRow: View {
         case .calories:
             return suggestedCalories.map { "\($0)" }
         }
+    }
+
+    private var lastReferenceLine: String? {
+        guard let last = lastPerformance else { return nil }
+        var parts: [String] = []
+        switch metricKind {
+        case .reps:
+            if let kg = last.weightKg, let r = last.reps {
+                if let s = suggestedWeightKg, s != kg { parts.append("target " + formatSuggestionWeight(s)) }
+                parts.append("last " + formatLoggedWeight(kg) + " × \(r)")
+            } else if let r = last.reps {
+                parts.append("last \(r) reps")
+            }
+        case .holdSeconds:
+            if let d = last.durationSeconds { parts.append("last \(d)s") }
+        case .durationSeconds:
+            if let d = last.durationSeconds { parts.append("last " + Self.time(d)) }
+        case .distanceMeters, .calories:
+            if let r = last.reps { parts.append("last \(r)") }
+        }
+        guard !parts.isEmpty else { return nil }
+        parts.append(Self.relativeAge(last.performedAt))
+        return parts.joined(separator: " · ")
+    }
+
+    private static func relativeAge(_ date: Date) -> String {
+        let days = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
+        if days <= 0 { return "today" }
+        if days == 1 { return "1d ago" }
+        return "\(days)d ago"
     }
 
     @ViewBuilder private var confirmControl: some View {

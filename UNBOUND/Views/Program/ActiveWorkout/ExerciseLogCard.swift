@@ -210,6 +210,7 @@ struct ExerciseLogCard: View {
                 suggestedDistanceMeters: set.suggestedDistanceMeters,
                 suggestedCalories: set.suggestedCalories,
                 suggestedRPE: set.suggestedRPE,
+                lastPerformance: set.lastPerformance,
                 metricKind: metricKind,
                 tracksHold: tracksHold,
                 logged: set.logged,
