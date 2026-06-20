@@ -44,33 +44,38 @@ One time-word: **block**. A block is **4 weeks**, same split throughout.
 Gone: `Arc`, `Wave`, `Phase`, Calibration-Week, scan-at-boundary, checkpoints,
 grace windows, and all hidden biasers.
 
-## Progression — double progression, RPE-modulated
+## Progression — pure double progression (engine already exists)
 
-The rule must be legible: a user can always see *why* today's number is today's
-number. The reference line under a set reads e.g. `+2.5kg · hit 12 @ RPE 7`.
+**Correction from discovery (2026-06-20):** the progression engine the original draft
+proposed *building* **already exists and runs in production.** `ProgressionEngine`
+(`Services/Progression/ProgressionEngine.swift`), wired into the save path at
+`TrainingCompletionService.swift:572` (every completed workout), already does double
+progression: add weight after hitting the **top of the rep range for 2 consecutive
+sessions**, plate-aware jumps via `WeightPlatePolicy.progressedWeightKilograms`,
+accessories reps-first, bodyweight via the skill tree, plus `AutoDeloadService` +
+`PlateauDetector`. **We keep it — we do not rebuild it.**
 
-**Trigger (pure double progression):**
-- Each exercise has a **rep range** (e.g. 8–12) at a fixed working weight.
-- Hit the **top of the range on all working sets** → next session the **weight goes
-  up** and reps reset to the bottom of the range.
-- Otherwise → **same weight, chase the reps.**
+**RPE is removed** (it was pulled from the logger UI, so it is no longer entered). The
+engine's RPE gate (`isCleanRPEHit` / `isGrindyRPE`) currently *requires* RPE — with no
+RPE logged it returns "not a clean hit" and the engine **would never bump** (a latent
+bug). The fix is to make progression **pure rep-based**: drop the RPE gate so the
+advance criterion is `hitTopOfRange` for 2 consecutive sessions, full stop.
+- Each exercise has a **rep range** (e.g. 8–12) at a working weight.
+- Hit the **top of the range for 2 sessions running** → **weight goes up** (plate-aware),
+  reps reset to the bottom. Otherwise → **same weight, chase the reps.**
+- Accessories add reps to a ceiling first, then load; bodyweight via the skill tree
+  (all existing `ProgressionEngine` behavior, unchanged).
 
-**RPE sizes the step (the influence, not a replacement):** when the range is
-cleared, the average working-set RPE picks the increment:
-- avg RPE ≤ 7 (easy) → **confident / larger** bump.
-- avg RPE 8–9 (hard) → **smaller** bump.
-- avg RPE ≥ 9.5 (barely) → **tiny** bump, or hold the same weight one more session.
+**Tradeoff (accepted):** without RPE the engine can't tell a grind from an easy set — it
+advances on reps alone. `AutoDeloadService` + `PlateauDetector` still catch a too-heavy
+weight, so it self-corrects. The block check-in (one tap) is now a **pure manual signal**
+(no RPE pre-fill).
 
-Increments are per-movement (small for isolation/upper, larger for compound/lower)
-and rounded by the existing `WeightPlatePolicy`. Bodyweight / hold movements use the
-same trigger on reps / hold-seconds; "weight up" becomes "rep-range or hold-target up."
-
-**RPE also informs renewal:** the block's average RPE **pre-fills** the boundary
-check-in — low avg → suggests *too easy*, high avg → suggests *brutal* — so the one
-tap is informed, not blind. The user can always override the suggestion.
-
-This replaces the `ProgressionState` / `TrainingPrescriptionResolver` /
-`LoadBiasApplier` stack with one comprehensible function over the user's logged sets.
+**The legible part — the cue (new):** "progression you can see" is a **forward-looking
+cue under the set row**, computed read-only from `ProgressionState`: `▲ +2.5kg` (one more
+top-range session bumps), `chase reps` (hit the top to advance), `+2 reps` (accessory), or
+nothing for bodyweight. The engine already publishes the *after-the-fact* bump toast
+(`WeightBumpToast`); the cue adds the *before*.
 
 ## Visible inputs (replacing hidden knobs)
 
