@@ -128,8 +128,10 @@ final class GoalRepRangeTests: XCTestCase {
         XCTAssertEqual(ExerciseClassification.upperCompound.defaultRepRange(for: .hypertrophy), 8...12)
         XCTAssertEqual(ExerciseClassification.accessory.defaultRepRange(for: .hypertrophy), 10...15)
     }
-    func test_skill_usesBodyweightRange() {
-        XCTAssertEqual(ExerciseClassification.bodyweightSkill.defaultRepRange(for: .skill), 5...12)
+    func test_bodyweightRepTrack_variesByGoal() {
+        XCTAssertEqual(ExerciseClassification.bodyweightSkill.defaultRepRange(for: .strength), 3...6)
+        XCTAssertEqual(ExerciseClassification.bodyweightSkill.defaultRepRange(for: .skill), 5...8)
+        XCTAssertEqual(ExerciseClassification.bodyweightSkill.defaultRepRange(for: .hypertrophy), 8...12)
     }
 }
 ```
@@ -143,13 +145,21 @@ In `ProgressionState.swift`, inside `extension ExerciseClassification` (next to 
 ```swift
     /// Goal-keyed rep range — the fixed range used across an Arc (replaces the
     /// per-phase `defaultRepRange(for block:)` in generation). ⚑ Balance defaults.
+    ///
+    /// `bodyweightSkill` here is the REP track only (clean reps before advancing the
+    /// variation). The HOLD track (isometrics → seconds) lives in
+    /// `calisthenicsPrescription`'s `defaultMetric == .holdSeconds` branch, not here.
+    /// For skills, the *scaling* is the skill-tree variation ladder (harder variation
+    /// resets the target), not these numbers — these are just the build target.
     func defaultRepRange(for goal: TrainingGoal) -> ClosedRange<Int> {
         switch (self, goal) {
         case (.upperCompound, .strength), (.lowerCompound, .strength): return 4...6
         case (.upperCompound, _),         (.lowerCompound, _):         return 8...12
         case (.accessory, .strength):                                  return 6...10
         case (.accessory, _):                                          return 10...15
-        case (.bodyweightSkill, _):                                    return 5...12
+        case (.bodyweightSkill, .strength):                            return 3...6
+        case (.bodyweightSkill, .skill):                               return 5...8
+        case (.bodyweightSkill, .hypertrophy):                         return 8...12
         }
     }
 ```
@@ -272,9 +282,14 @@ Replace `prescription(for blockType:...)` (`+Prescription.swift:69-124`) with:
     }
 ```
 
-- [ ] **Step 4: Rewrite `calisthenicsPrescription` to switch on goal**
+- [ ] **Step 4: Rewrite `calisthenicsPrescription` to switch on goal — keep BOTH tracks**
 
-Apply the same shape to `calisthenicsPrescription` (`+Prescription.swift:137-218`): change its signature to `(for goal: TrainingGoal, isCalibrationWeek: Bool, state:isPrimary:fallbackRPE:definition:)`, keep the bodyweight rep/hold logic, add the `if isCalibrationWeek { … easy }` guard, and replace the `switch blockType` with `switch goal` (skill/hypertrophy keep the existing bodyweight ranges; strength uses the lower end). Preserve all existing hold/`RankTemplate` handling verbatim — only the phase switch changes.
+Bodyweight has two tracks and BOTH must survive (this is the correction from the skill-range review):
+
+1. **Hold track** — `definition.defaultMetric == .holdSeconds || .durationSeconds` (`+Prescription.swift:144`). Keep it as a *seconds* prescription. Phases scaled the hold down (15-25s → 8-15s); with phases gone, use a single build target — `"15-25s"` (⚑ balance) — and let the **skill tree** make the *variation* harder. A hold target does not vary by goal.
+2. **Rep track** — the `else` branch (`:181`). Keep it as *clean reps*; source the range from `state.targetRepMin/Max` else `ExerciseClassification.bodyweightSkill.defaultRepRange(for: goal)` (Task 2: strength 3-6 / skill 5-8 / build 8-12 "clean").
+
+Change the signature to `(for goal: TrainingGoal, isCalibrationWeek: Bool, state:isPrimary:fallbackRPE:definition:)`, add the `if isCalibrationWeek { … easy }` guard at the top of *each* track, and replace both `switch blockType` blocks with the single goal-driven target above. The **scaling for skills is the skill-tree variation ladder** (`bodyweightSkill` → tier unlock, already in `ProgressionEngine`), NOT a phase cycle — so the per-Arc target is fixed and correct. Preserve all existing `RankTemplate` / `defaultMetric` handling verbatim — only the phase switch is removed.
 
 - [ ] **Step 5: Collapse `blockType(forDayNumber:)` and re-thread callers**
 
