@@ -206,7 +206,7 @@ final class GoalDrivenPrescriptionTests: XCTestCase {
             definition: MovementCatalog.canonicalExercise(named: "bench press")!,
             input: .stubbed(goal: .strength))
         XCTAssertEqual(rx.reps, "4-6")
-        XCTAssertEqual(rx.rpe, 8)
+        XCTAssertEqual(rx.rpe, 0, "prescriptions no longer carry an RPE target")
     }
     func test_hypertrophyGoal_givesModerateRepPrimary() {
         let rx = DeterministicProgramGenerator.prescription(
@@ -222,8 +222,8 @@ final class GoalDrivenPrescriptionTests: XCTestCase {
             isPrimary: true, fallbackRPE: 7,
             definition: MovementCatalog.canonicalExercise(named: "bench press")!,
             input: .stubbed(goal: .hypertrophy))
-        XCTAssertEqual(rx.rpe, 6)
         XCTAssertEqual(rx.reps, "8 easy")
+        XCTAssertEqual(rx.rpe, 0)
     }
 }
 ```
@@ -253,7 +253,7 @@ Replace `prescription(for blockType:...)` (`+Prescription.swift:69-124`) with:
         }
 
         if isCalibrationWeek {
-            return (sets: 2, reps: "8 easy", restSeconds: 60, rpe: 6,
+            return (sets: 2, reps: "8 easy", restSeconds: 60, rpe: 0,
                     note: "Calibration. Move well and keep reps easy.")
         }
 
@@ -262,22 +262,21 @@ Replace `prescription(for blockType:...)` (`+Prescription.swift:69-124`) with:
             ?? classification.defaultRepRange(for: goal)
         let reps = "\(range.lowerBound)-\(range.upperBound)"
 
+        // rpe: 0 → `toExercise` nils it → no RPE shown anywhere. Fully RPE-free:
+        // effort lives in the rep range + the note. (`targetRPE` retires in 3d.)
         switch goal {
         case .strength:
             return (sets: isPrimary ? 4 : 3, reps: reps,
-                    restSeconds: isPrimary ? 180 : 90,
-                    rpe: max(8, state?.targetRPE ?? fallbackRPE),
-                    note: "Strength. Heavy, clean reps — add weight when the top of the range feels solid.")
+                    restSeconds: isPrimary ? 180 : 90, rpe: 0,
+                    note: "Strength. Heavy, clean reps — leave ~1 in reserve; add weight when the top of the range feels solid.")
         case .hypertrophy:
             return (sets: isPrimary ? 4 : 3, reps: reps,
-                    restSeconds: isPrimary ? 120 : 75,
-                    rpe: max(7, state?.targetRPE ?? fallbackRPE),
-                    note: "Build. Chase the top of the rep range, then add weight.")
+                    restSeconds: isPrimary ? 120 : 75, rpe: 0,
+                    note: "Build. Push near the top of the rep range (~1–2 in reserve), then add weight.")
         case .skill:
             return (sets: isPrimary ? 4 : 3, reps: reps,
-                    restSeconds: isPrimary ? 120 : 75,
-                    rpe: max(7, state?.targetRPE ?? fallbackRPE),
-                    note: "Quality reps. Progress reps before load.")
+                    restSeconds: isPrimary ? 120 : 75, rpe: 0,
+                    note: "Quality reps. Stop before form breaks; progress the variation before load.")
         }
     }
 ```
@@ -289,7 +288,7 @@ Bodyweight has two tracks and BOTH must survive (this is the correction from the
 1. **Hold track** — `definition.defaultMetric == .holdSeconds || .durationSeconds` (`+Prescription.swift:144`). Keep it as a *seconds* prescription. Phases scaled the hold down (15-25s → 8-15s); with phases gone, use a single build target — `"15-25s"` (⚑ balance) — and let the **skill tree** make the *variation* harder. A hold target does not vary by goal.
 2. **Rep track** — the `else` branch (`:181`). Keep it as *clean reps*; source the range from `state.targetRepMin/Max` else `ExerciseClassification.bodyweightSkill.defaultRepRange(for: goal)` (Task 2: strength 3-6 / skill 5-8 / build 8-12 "clean").
 
-Change the signature to `(for goal: TrainingGoal, isCalibrationWeek: Bool, state:isPrimary:fallbackRPE:definition:)`, add the `if isCalibrationWeek { … easy }` guard at the top of *each* track, and replace both `switch blockType` blocks with the single goal-driven target above. The **scaling for skills is the skill-tree variation ladder** (`bodyweightSkill` → tier unlock, already in `ProgressionEngine`), NOT a phase cycle — so the per-Arc target is fixed and correct. Preserve all existing `RankTemplate` / `defaultMetric` handling verbatim — only the phase switch is removed.
+Change the signature to `(for goal: TrainingGoal, isCalibrationWeek: Bool, state:isPrimary:fallbackRPE:definition:)`, add the `if isCalibrationWeek { … easy }` guard at the top of *each* track, and replace both `switch blockType` blocks with the single goal-driven target above. The **scaling for skills is the skill-tree variation ladder** (`bodyweightSkill` → tier unlock, already in `ProgressionEngine`), NOT a phase cycle — so the per-Arc target is fixed and correct. Preserve all existing `RankTemplate` / `defaultMetric` handling verbatim — only the phase switch is removed. Both tracks return `rpe: 0` (RPE-free) — intensity is the rep/hold target + the note, nothing more.
 
 - [ ] **Step 5: Collapse `blockType(forDayNumber:)` and re-thread callers**
 
@@ -376,7 +375,7 @@ git commit -m "$(printf 'refactor(program): delete dead ProgramPhaseEngine + Pha
 
 - **3b — Drop Wave:** delete `WaveAdjuster` + `Wave` enum + `Arc.wave*Range`/`currentWave` + `ProgramViewModel` wave methods (~10 sites) + `ProgramWaveAdjustment*` views + `WaveAdjustmentStore`. Self-contained view-time overlay; no generation/load impact.
 - **3c — One renewal:** simplify `RolloverCoordinator` to a single 28-day boundary (drop scan-at-boundary + grace window); pick ONE next-Arc generator (`BlockRolloverService.performRollover` vs `ArcGenerator.generateNextArc`) and retire the other.
-- **3d — Slim the model:** collapse `BlockType` to a deload flag, drop `weekInBlock` (only `DeloadPlanner` reads it), drop `ArcState.checkpointDue` if Checkpoint goes, remove the now-unused `defaultRepRange(for block:)`.
+- **3d — Slim the model:** collapse `BlockType` to a deload flag, drop `weekInBlock` (only `DeloadPlanner` reads it), drop `ArcState.checkpointDue` if Checkpoint goes, remove the now-unused `defaultRepRange(for block:)`, remove the now-always-`0` `rpe` from `GeneratedPrescription` + the `toExercise` rpe line, and delete the dead `ProgressionState.targetRPE` / `BlockType.targetRPE`.
 
 ## Self-Review
 

@@ -70,7 +70,9 @@ advance criterion is `hitTopOfRange` for 2 consecutive sessions, full stop.
 
 **Tradeoff (accepted):** without RPE the engine can't tell a grind from an easy set — it
 advances on reps alone. `AutoDeloadService` + `PlateauDetector` still catch a too-heavy
-weight, so it self-corrects. The arc check-in (one tap) is now a **pure manual signal**
+weight, so it self-corrects. The program also no longer **prescribes or displays** an
+RPE target — intensity is carried entirely by the rep range + a one-line note. The arc
+check-in (one tap) is now a **pure manual signal**
 (no RPE pre-fill).
 
 **The legible part — the cue (new):** "progression you can see" is a **forward-looking
