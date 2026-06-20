@@ -3,11 +3,10 @@ import Foundation
 struct ArcContext: Equatable, Sendable {
     var arc: Arc
     var dayNumber: Int
-    var wave: Wave
     var daysRemaining: Int
 
     var displayText: String {
-        "Arc day \(dayNumber) · \(wave == .wave1 ? "Wave 1" : "Wave 2") · \(daysRemaining)d left"
+        "Arc day \(dayNumber) · \(daysRemaining)d left"
     }
 }
 
@@ -18,8 +17,7 @@ enum ArcScheduler {
         calendar: Calendar = .current
     ) -> ArcContext? {
         guard let arc = program.currentArc,
-              let dayNumber = arc.dayNumber(asOf: date, calendar: calendar),
-              let wave = arc.currentWave(asOf: date, calendar: calendar)
+              let dayNumber = arc.dayNumber(asOf: date, calendar: calendar)
         else {
             return nil
         }
@@ -27,7 +25,6 @@ enum ArcScheduler {
         return ArcContext(
             arc: arc,
             dayNumber: dayNumber,
-            wave: wave,
             daysRemaining: max(0, Arc.durationDays - dayNumber)
         )
     }

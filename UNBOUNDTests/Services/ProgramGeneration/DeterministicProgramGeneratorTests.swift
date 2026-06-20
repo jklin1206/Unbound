@@ -71,8 +71,6 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         let input = makeInput(frequency: .three, trainingDays: [.monday, .wednesday, .friday])
         let program = try DeterministicProgramGenerator.generate(input: input)
         XCTAssertEqual(program.durationDays, 28)
-        XCTAssertEqual(program.currentArc?.currentWave(asOf: input.blockStartDate), .wave1)
-        XCTAssertEqual(program.currentArc?.currentWave(asOf: input.blockStartDate.addingTimeInterval(14 * 86_400)), .wave2)
     }
 
     func testCalibrationWeekGeneratesSevenDayLearningProgram() throws {
@@ -137,8 +135,6 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         XCTAssertEqual(program.currentArc?.programId, program.id)
         XCTAssertEqual(program.currentArc?.startDate, input.blockStartDate)
         XCTAssertEqual(program.currentArc?.endDate, input.blockStartDate.addingTimeInterval(28 * 86_400))
-        XCTAssertEqual(program.currentArc?.wave1Range, 1...14)
-        XCTAssertEqual(program.currentArc?.wave2Range, 15...28)
     }
 
     func testGeneratedDaysCarrySessionRoles() throws {

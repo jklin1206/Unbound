@@ -181,11 +181,6 @@ struct ProgramDay: Codable, Identifiable, Hashable {
     }
 }
 
-enum Wave: String, Codable, Hashable, Sendable {
-    case wave1
-    case wave2
-}
-
 enum ArcState: String, Codable, Hashable, Sendable {
     case planned
     case active
@@ -195,7 +190,6 @@ enum ArcState: String, Codable, Hashable, Sendable {
 
 struct Arc: Codable, Identifiable, Hashable, Sendable {
     static let durationDays = 28
-    static let waveLengthDays = 14
 
     let id: String
     let programId: String
@@ -206,9 +200,6 @@ struct Arc: Codable, Identifiable, Hashable, Sendable {
     var endDate: Date {
         Calendar.gregorianArc.date(byAdding: .day, value: Self.durationDays, to: startDate) ?? startDate
     }
-
-    var wave1Range: ClosedRange<Int> { 1...Self.waveLengthDays }
-    var wave2Range: ClosedRange<Int> { (Self.waveLengthDays + 1)...Self.durationDays }
 
     init(
         id: String = UUID().uuidString,
@@ -232,10 +223,6 @@ struct Arc: Codable, Identifiable, Hashable, Sendable {
         return elapsed + 1
     }
 
-    func currentWave(asOf date: Date, calendar: Calendar = .gregorianArc) -> Wave? {
-        guard let day = dayNumber(asOf: date, calendar: calendar) else { return nil }
-        return day <= Self.waveLengthDays ? .wave1 : .wave2
-    }
 }
 
 enum ProgramBodyRegion: Hashable, Sendable {

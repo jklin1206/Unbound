@@ -107,20 +107,15 @@ final class BlockRolloverSchedulerTests: XCTestCase {
 }
 
 final class ArcModelTests: XCTestCase {
-    func testArcDateMathAndWaveBoundary() {
+    func testArcDateMath() {
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let arc = Arc(id: "arc-1", programId: "p-1", startDate: start)
 
         XCTAssertEqual(arc.dayNumber(asOf: start), 1)
-        XCTAssertEqual(arc.currentWave(asOf: start), .wave1)
         XCTAssertEqual(arc.dayNumber(asOf: start.addingTimeInterval(13 * 86_400)), 14)
-        XCTAssertEqual(arc.currentWave(asOf: start.addingTimeInterval(13 * 86_400)), .wave1)
         XCTAssertEqual(arc.dayNumber(asOf: start.addingTimeInterval(14 * 86_400)), 15)
-        XCTAssertEqual(arc.currentWave(asOf: start.addingTimeInterval(14 * 86_400)), .wave2)
         XCTAssertEqual(arc.dayNumber(asOf: start.addingTimeInterval(27 * 86_400)), 28)
-        XCTAssertEqual(arc.currentWave(asOf: start.addingTimeInterval(27 * 86_400)), .wave2)
         XCTAssertNil(arc.dayNumber(asOf: start.addingTimeInterval(28 * 86_400)))
-        XCTAssertNil(arc.currentWave(asOf: start.addingTimeInterval(28 * 86_400)))
     }
 
     func testTrainingProgramDecodesLegacyPayloadWithoutArcFields() throws {

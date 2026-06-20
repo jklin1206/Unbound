@@ -9,7 +9,6 @@ final class ProgramViewModel {
     var selectedDay: ProgramDay?
     var showTrainingDayNutrition = true
     var workoutLogs: [Int: WorkoutLog] = [:]  // dayNumber -> log
-    var activeWaveAdjustments: [WaveAdjustment] = []
     var progressionStates: [String: ProgressionState] = [:]
 
     var currentProfile: UserProfile?
@@ -58,7 +57,6 @@ final class ProgramViewModel {
             program = cached
             state = .loaded(cached)
             await loadTrackingData()
-            refreshWaveAdjustments(asOf: selectedDayDate)
         }
 
         // Background: learn the authoritative programId; reconcile only
@@ -76,7 +74,6 @@ final class ProgramViewModel {
                         program = refreshed
                         state = .loaded(refreshed)
                         await loadTrackingData()
-                        refreshWaveAdjustments(asOf: selectedDayDate)
                     }
                 }
             } else if cached == nil {
@@ -102,7 +99,6 @@ final class ProgramViewModel {
                 program = generated
                 state = .loaded(generated)
                 store.adopt(generated, userId: userId)
-                refreshWaveAdjustments(asOf: selectedDayDate)
             }
         } catch {
             if cached == nil {
@@ -141,7 +137,6 @@ final class ProgramViewModel {
     func refreshCompletionState(asOf date: Date) async {
         await refreshHistory()
         await loadTrackingData()
-        refreshWaveAdjustments(asOf: date)
     }
 
     func loadProgram(programId: String) async {
@@ -155,13 +150,11 @@ final class ProgramViewModel {
             state = .loaded(cached)
             services.analytics.track(.programViewed(programId: programId))
             await loadTrackingData()
-            refreshWaveAdjustments()
             await store.revalidate(userId: userId, expectedProgramId: programId)
             if let refreshed = store.program, refreshed.id != cached.id {
                 self.program = refreshed
                 state = .loaded(refreshed)
                 await loadTrackingData()
-                refreshWaveAdjustments()
             }
             return
         }
@@ -177,7 +170,6 @@ final class ProgramViewModel {
             if let userId { store.adopt(fetched, userId: userId) }
             services.analytics.track(.programViewed(programId: programId))
             await loadTrackingData()
-            refreshWaveAdjustments()
         } catch {
             state = .error(.databaseReadFailed(underlying: error))
         }
@@ -414,7 +406,6 @@ final class ProgramViewModel {
         state = .loaded(protectedGenerated)
         await ProgramStore.shared.save(protectedGenerated, userId: userId)
         await loadTrackingData()
-        refreshWaveAdjustments()
         return protectedGenerated
     }
 
@@ -485,39 +476,6 @@ final class ProgramViewModel {
         program = updated
         if case .loaded = state { state = .loaded(updated) }
         await ProgramStore.shared.save(updated, userId: userId)
-        refreshWaveAdjustments()
-    }
-
-    func refreshWaveAdjustments(asOf date: Date = Date()) {
-        guard let program,
-              let userId = services.auth.currentUserId
-        else {
-            activeWaveAdjustments = []
-            return
-        }
-
-        let revertedIDs = WaveAdjustmentStore.shared.revertedAdjustmentIDs(
-            userId: userId,
-            programId: program.id
-        )
-        activeWaveAdjustments = WaveAdjuster.applyIfNeeded(
-            program: program,
-            asOf: date,
-            appliedAdjustmentIDs: revertedIDs
-        ).adjustments
-    }
-
-    func revertWaveAdjustment(_ adjustment: WaveAdjustment, asOf date: Date = Date()) {
-        guard let program,
-              let userId = services.auth.currentUserId
-        else { return }
-
-        WaveAdjustmentStore.shared.markReverted(
-            adjustment.id,
-            userId: userId,
-            programId: program.id
-        )
-        refreshWaveAdjustments(asOf: date)
     }
 
     func completeCheckpoint(_ outcome: CheckpointOutcome) async {
@@ -539,7 +497,6 @@ final class ProgramViewModel {
         program = updated
         if case .loaded = state { state = .loaded(updated) }
         await ProgramStore.shared.save(updated, userId: userId)
-        refreshWaveAdjustments()
     }
 
     // MARK: - Private mutation helpers
