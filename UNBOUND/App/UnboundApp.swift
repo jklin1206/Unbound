@@ -73,17 +73,10 @@ struct UnboundApp: App {
                         trackAppOpenedIfNeeded()
                         Task { await SyncEngine.shared.flush() }
                         Task { await NotificationService.applyStoredPreferences() }
-                        if let uid = services.auth.currentUserId {
-                            Task {
-                                await RolloverCoordinator.shared
-                                    .evaluateOnForeground(userId: uid, services: services)
-                            }
-                        }
                         // Friend challenges have no server cron (unlike squad
                         // missions, which the evaluate_squad_mission cron closes).
                         // Their winner-selection lives in Swift, so we settle any
-                        // past-deadline challenges on foreground — matching the
-                        // existing RolloverCoordinator.evaluateOnForeground pattern.
+                        // past-deadline challenges on foreground.
                         Task { await services.friendChallenge.evaluateExpired() }
                     }
                 }
