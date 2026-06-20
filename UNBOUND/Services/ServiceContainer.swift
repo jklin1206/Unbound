@@ -26,7 +26,6 @@ final class ServiceContainer: ObservableObject {
     let skin: any SkinServiceProtocol
     let sessionXP: any SessionXPServiceProtocol
     let badges: any BadgeServiceProtocol
-    let programPhase: any ProgramPhaseEngineProtocol
     let attribute: any AttributeServiceProtocol
     let userSkillTier: UserSkillTierStore
     let liftTier: LiftTierService
@@ -65,7 +64,6 @@ final class ServiceContainer: ObservableObject {
         self.skin = SkinService.shared
         self.sessionXP = SessionXPService.shared
         self.badges = BadgeService.shared
-        self.programPhase = ProgramPhaseEngine.shared
         self.attribute = AttributeService.shared
         self.userSkillTier = UserSkillTierStore.shared
         self.liftTier = LiftTierService.shared
@@ -104,7 +102,6 @@ final class ServiceContainer: ObservableObject {
         skin: any SkinServiceProtocol,
         sessionXP: any SessionXPServiceProtocol,
         badges: any BadgeServiceProtocol,
-        programPhase: any ProgramPhaseEngineProtocol,
         attribute: any AttributeServiceProtocol
     ) {
         self.logging = LoggingService.shared
@@ -131,7 +128,6 @@ final class ServiceContainer: ObservableObject {
         self.skin = skin
         self.sessionXP = sessionXP
         self.badges = badges
-        self.programPhase = programPhase
         self.attribute = attribute
         self.userSkillTier = UserSkillTierStore.shared
         self.liftTier = LiftTierService.shared
@@ -171,7 +167,6 @@ final class ServiceContainer: ObservableObject {
             skin: MockSkinService(),
             sessionXP: MockSessionXPService(),
             badges: MockBadgeService(),
-            programPhase: MockProgramPhaseEngine(),
             attribute: MockAttributeService()
         )
     }
