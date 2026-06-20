@@ -87,6 +87,36 @@ The only things shaping the program are things the user can see and set:
 Deleted as hidden machinery: `WeakPointBiaser`, `RegionFatigueBudget`,
 `AccessoryBiasRefreshRule`, `LoadBiasApplier`.
 
+## Set-row display — the Previous column
+
+"Progression you can see" is only real if the set row *shows* it. Today the
+last-performance feature renders it as a dim text line under the row
+(`SetLogGridRow.lastReferenceLine`); that is replaced by a **dedicated "Previous"
+column** (the Strong/Hevy pattern the user chose).
+
+**Layout:** `Set# · PREVIOUS · Weight · Reps · RPE · ✓` — a new column slots between
+the set number and the weight cell (header label added at `ExerciseLogCard`'s column
+header, `SET / WEIGHT / REPS / RPE` → `SET / PREVIOUS / WEIGHT / REPS / RPE`).
+
+- **Previous cell** (dim, mono, `textTertiary`): last time's matching set, formatted by
+  metric — `135×8` (weight×reps), `12` (bodyweight reps), `30s` (hold), `5:00`
+  (duration), `400m`, `15` (calories). A subtle `→` shows it carrying into today's
+  editable weight — consistent with the locked "last drives prefill" decision.
+- **No history** (first time doing the exercise): Previous shows `—`, no arrow.
+- **Progression cue** (under the row, only when meaningful): the double-progression +
+  RPE outcome, short and tinted (`success`/`coachCyan`) — `▲ +2.5kg` (earned a jump),
+  `chase reps` (hold weight, climb reps), `▲ +1 rep` / `▲ +5s` (bodyweight / holds).
+  Because "last" now lives in the column, this line carries only the *why / what's next*.
+- **Style:** fill-only, **no hard border, no left accent bar** — honors the established
+  calm language; works in both `calmStyle` (hairline) and legacy (filled-cell) rows.
+  Previous stays compact/dim so it doesn't crowd the editable cells on a phone.
+
+**Ship split:** the **Previous column** needs only `LastPerformanceLookup` (already
+built) → it can land independently, including on the current last-performance branch.
+The **progression cue** depends on the new double-progression engine → it lands with
+that engine. Every visual lands a pixel-council color check before "done" (tokens
+only: `Color.unbound.*`, AA contrast on true-black).
+
 ## Data flow
 
 ```
@@ -172,3 +202,8 @@ next block.
   `BlockRolloverService`, `ProgressionState` (shrink), onboarding inputs,
   `Program.swift` model types (drop `Arc`/`Wave`/`Phase`), the program-tab surface
   copy that names arcs/waves.
+- **Modify (set-row display):** `SetLogGridRow.swift` (Previous column replaces
+  `lastReferenceLine`; progression cue under the row), `ExerciseLogCard.swift`
+  (add `PREVIOUS` column header at the `SET / WEIGHT / REPS / RPE` row, ~line 184).
+  The Previous column is shippable now on the last-performance branch; the
+  progression cue lands with the engine.
