@@ -41,6 +41,8 @@ extension ActiveWorkoutSession {
         var suggestedCalories: Int?
         var suggestedRPE: Int?
         var suggestedRestSeconds: Int?
+        /// Most-recent prior performance for this working set, for display + weight prefill.
+        var lastPerformance: LastSetPerformance? = nil
         var qualityFlags: Set<PerformanceQualityFlag>
 
         init(id: String, weightKg: Double?, reps: Int?, rpe: Int?,
@@ -57,6 +59,7 @@ extension ActiveWorkoutSession {
              suggestedCalories: Int? = nil,
              suggestedRPE: Int? = nil,
              suggestedRestSeconds: Int? = nil,
+             lastPerformance: LastSetPerformance? = nil,
              qualityFlags: Set<PerformanceQualityFlag> = []) {
             self.id = id; self.weightKg = weightKg; self.reps = reps
             self.rpe = rpe; self.holdSeconds = holdSeconds
@@ -72,6 +75,7 @@ extension ActiveWorkoutSession {
             self.suggestedCalories = suggestedCalories
             self.suggestedRPE = suggestedRPE
             self.suggestedRestSeconds = suggestedRestSeconds
+            self.lastPerformance = lastPerformance
             self.qualityFlags = qualityFlags
         }
 
@@ -79,7 +83,8 @@ extension ActiveWorkoutSession {
             case id, weightKg, reps, rpe, isWarmup, logged
             case holdSeconds, durationSeconds, distanceMeters, calories
             case suggestedWeightKg, suggestedReps, suggestedHoldSeconds
-            case suggestedDurationSeconds, suggestedDistanceMeters, suggestedCalories, suggestedRPE, suggestedRestSeconds, qualityFlags
+            case suggestedDurationSeconds, suggestedDistanceMeters, suggestedCalories, suggestedRPE, suggestedRestSeconds
+            case lastPerformance, qualityFlags
         }
 
         init(from decoder: Decoder) throws {
@@ -102,6 +107,7 @@ extension ActiveWorkoutSession {
             suggestedCalories = try c.decodeIfPresent(Int.self, forKey: .suggestedCalories)
             suggestedRPE = try c.decodeIfPresent(Int.self, forKey: .suggestedRPE)
             suggestedRestSeconds = try c.decodeIfPresent(Int.self, forKey: .suggestedRestSeconds)
+            lastPerformance = try c.decodeIfPresent(LastSetPerformance.self, forKey: .lastPerformance)
             qualityFlags = try c.decodeIfPresent(Set<PerformanceQualityFlag>.self, forKey: .qualityFlags) ?? []
         }
     }
