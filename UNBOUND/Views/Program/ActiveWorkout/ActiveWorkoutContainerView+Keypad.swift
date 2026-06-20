@@ -83,7 +83,7 @@ extension ActiveWorkoutContainerView {
               session.exercises[target.ei].sets.indices.contains(target.si) else { return "—" }
         let set = session.exercises[target.ei].sets[target.si]
         if target.isWeight {
-            guard let kg = set.suggestedWeightKg ?? set.weightKg else { return "—" }
+            guard let kg = set.lastPerformance?.weightKg ?? set.suggestedWeightKg ?? set.weightKg else { return "—" }
             return displayNumber(WeightPlatePolicy.editingValue(fromKilograms: kg, unit: editWeightUnit))
         }
         let value: Int?
