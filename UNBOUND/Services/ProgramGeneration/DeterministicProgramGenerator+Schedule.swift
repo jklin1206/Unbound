@@ -53,12 +53,11 @@ extension DeterministicProgramGenerator {
                     workout = buildCalibrationWorkout(sessionIndex: sessionIndex, input: input, bias: bias)
                     label = workout.name
                 } else {
-                    let blockType = blockType(forDayNumber: dayNumber, input: input)
                     workout = buildWorkout(
                         for: template,
                         input: input,
                         bias: bias,
-                        blockType: blockType,
+                        goal: input.goal,
                         sessionIndex: sessionIndex
                     )
                     label = labelFor(template: template, bias: bias)

@@ -209,7 +209,7 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
 
         XCTAssertEqual(exercise.suggestedWeightKg, 60)
         XCTAssertEqual(exercise.reps, "6-9")
-        XCTAssertEqual(exercise.rpe, 8)
+        XCTAssertNil(exercise.rpe, "prescriptions are RPE-free now")
 
         let draft = DailyWorkoutResolver.programDraft(
             from: workout,
@@ -538,7 +538,7 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
             .first { $0.name == seededExercise.name }
 
         XCTAssertEqual(adjusted?.reps, "6-8")
-        XCTAssertEqual(adjusted?.rpe, 8)
+        XCTAssertNil(adjusted?.rpe, "prescriptions are RPE-free now")
     }
 
     func testGrindyProgressionStateRegressesLoadRepsRestAndRPE() throws {
@@ -592,7 +592,7 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
 
         XCTAssertEqual(adjusted.suggestedWeightKg, 95)
         XCTAssertEqual(adjusted.reps, "6-8")
-        XCTAssertEqual(adjusted.rpe, 7)
+        XCTAssertNil(adjusted.rpe, "prescriptions are RPE-free now")
         XCTAssertEqual(adjusted.restSeconds, baselineExercise.restSeconds + 30)
         XCTAssertEqual(adjusted.notes?.contains("Progression adjusted"), true)
     }
