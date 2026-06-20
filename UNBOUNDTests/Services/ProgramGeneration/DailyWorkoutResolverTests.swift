@@ -555,7 +555,7 @@ final class DailyWorkoutResolverTests: XCTestCase {
 
         let prescription = resolved.blocks.first?.prescriptions.first
         XCTAssertEqual(prescription?.target, .repsRange(5, 7))
-        XCTAssertEqual(prescription?.rpe, 8)
+        XCTAssertNil(prescription?.rpe, "RPE-free: resolver no longer overlays a stored targetRPE")
         XCTAssertEqual(prescription?.suggestedWeightKg, 100)
     }
 
