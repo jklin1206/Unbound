@@ -89,33 +89,34 @@ Deleted as hidden machinery: `WeakPointBiaser`, `RegionFatigueBudget`,
 
 ## Set-row display — the Previous column
 
-"Progression you can see" is only real if the set row *shows* it. Today the
-last-performance feature renders it as a dim text line under the row
-(`SetLogGridRow.lastReferenceLine`); that is replaced by a **dedicated "Previous"
-column** (the Strong/Hevy pattern the user chose).
+"Progression you can see" is only real if the set row *shows* it. The dim
+last-performance text line is replaced by a **co-equal "Previous" column** rendered in
+the **same boxed style** as Weight and Reps (not a cramped sidecar, not dim text). RPE
+is **removed from the logger grid** entirely to make room — three equal columns breathe.
 
-**Layout:** `Set# · PREVIOUS · Weight · Reps · RPE · ✓` — a new column slots between
-the set number and the weight cell (header label added at `ExerciseLogCard`'s column
-header, `SET / WEIGHT / REPS / RPE` → `SET / PREVIOUS / WEIGHT / REPS / RPE`).
+**Layout:** `Set# · PREV · Weight · Reps · ✓` — three equal-width value columns. The
+`ExerciseLogCard` header becomes `SET / PREV / WEIGHT / REPS` (the RPE header is gone).
 
-- **Previous cell** (dim, mono, `textTertiary`): last time's matching set, formatted by
-  metric — `135×8` (weight×reps), `12` (bodyweight reps), `30s` (hold), `5:00`
-  (duration), `400m`, `15` (calories). A subtle `→` shows it carrying into today's
-  editable weight — consistent with the locked "last drives prefill" decision.
-- **No history** (first time doing the exercise): Previous shows `—`, no arrow.
-- **Progression cue** (under the row, only when meaningful): the double-progression +
-  RPE outcome, short and tinted (`success`/`coachCyan`) — `▲ +2.5kg` (earned a jump),
-  `chase reps` (hold weight, climb reps), `▲ +1 rep` / `▲ +5s` (bodyweight / holds).
-  Because "last" now lives in the column, this line carries only the *why / what's next*.
-- **Style:** fill-only, **no hard border, no left accent bar** — honors the established
-  calm language; works in both `calmStyle` (hairline) and legacy (filled-cell) rows.
-  Previous stays compact/dim so it doesn't crowd the editable cells on a phone.
+- **All three value fields are rounded boxes** (recessed `bg` fill against the card,
+  `cornerRadius 10`). The **current set's Weight/Reps carry a quiet cyan border** as the
+  active-input cue; **PREV is borderless** — same box, read-only, a slightly quieter
+  shade (`textSecondary`) so it reads as history. (This intentionally swaps the prior
+  `calmStyle` hairline for a boxed field on this screen.)
+- **PREV shows one clean value** matched by metric: weight for loaded lifts (`135`),
+  reps for bodyweight (`12`), seconds for holds (`30s`). No `×reps` — a single number
+  per box keeps the columns consistent, and once the engine lands, `PREV → WEIGHT`
+  reads as the actual progression jump.
+- **No history** (first time): PREV shows `—`.
+- **RPE:** removed from the row (no column, no per-set field). `SetLog.rpe` is retained
+  in the model but has no logger UI; `confirmAsPlanned` still seeds a default.
+- **Progression cue** (future, with the engine): a short tinted line under the row —
+  `▲ +2.5kg` / `chase reps` / `▲ +1 rep` — carrying the *why / what's next*.
 
-**Ship split:** the **Previous column** needs only `LastPerformanceLookup` (already
-built) → it can land independently, including on the current last-performance branch.
-The **progression cue** depends on the new double-progression engine → it lands with
-that engine. Every visual lands a pixel-council color check before "done" (tokens
-only: `Color.unbound.*`, AA contrast on true-black).
+**Ship split:** the **Previous column + boxed fields + RPE removal** need only
+`LastPerformanceLookup` (already built) → shipped now on the last-performance branch.
+The **progression cue** depends on the new double-progression engine and lands with it.
+Every visual lands a pixel-council color check before "done" (tokens only:
+`Color.unbound.*`, AA contrast on the recessed `bg` fill).
 
 ## Data flow
 
@@ -202,8 +203,8 @@ next block.
   `BlockRolloverService`, `ProgressionState` (shrink), onboarding inputs,
   `Program.swift` model types (drop `Arc`/`Wave`/`Phase`), the program-tab surface
   copy that names arcs/waves.
-- **Modify (set-row display):** `SetLogGridRow.swift` (Previous column replaces
-  `lastReferenceLine`; progression cue under the row), `ExerciseLogCard.swift`
-  (add `PREVIOUS` column header at the `SET / WEIGHT / REPS / RPE` row, ~line 184).
-  The Previous column is shippable now on the last-performance branch; the
-  progression cue lands with the engine.
+- **Modify (set-row display):** `SetLogGridRow.swift` (co-equal boxed PREV column
+  replaces `lastReferenceLine`; all value fields → rounded boxes; RPE UI removed;
+  progression cue under the row lands later with the engine), `ExerciseLogCard.swift`
+  (header `SET / PREV / WEIGHT / REPS`, RPE header removed). Shippable now on the
+  last-performance branch.

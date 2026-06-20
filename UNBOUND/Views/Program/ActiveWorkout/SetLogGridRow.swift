@@ -51,6 +51,8 @@ struct SetLogGridRow: View {
                 }
                 .frame(width: 26, alignment: .leading)
 
+                previousCell
+
                 cell(actual: weightKg.map(formatLoggedWeight),
                      suggested: (lastPerformance?.weightKg ?? suggestedWeightKg).map(formatSuggestionWeight),
                      action: onEditWeight)
@@ -58,26 +60,7 @@ struct SetLogGridRow: View {
                      suggested: metricSuggested,
                      action: onEditReps)
 
-                Button(action: onPickRPE) {
-                    Text(display(actual: rpe.map(String.init),
-                                 suggested: suggestedRPE.map(String.init)))
-                        .font(Font.unbound.monoM)
-                        .foregroundStyle(valueColor(hasActual: rpe != nil,
-                                                    hasSuggested: suggestedRPE != nil))
-                        .frame(width: 44)
-                        .padding(.vertical, 10)
-                        .background { valueFieldBackground() }
-                }
-                .buttonStyle(.plain)
-
                 confirmControl.frame(width: 40)
-            }
-
-            if let line = lastReferenceLine {
-                Text(line)
-                    .font(Font.unbound.monoS)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .padding(.leading, 34)
             }
         }
         .padding(.vertical, 8)
@@ -125,34 +108,41 @@ struct SetLogGridRow: View {
         }
     }
 
-    private var lastReferenceLine: String? {
+    /// "What you did last time" for the Previous column — one clean value, matched by
+    /// metric (weight for loaded lifts; reps / seconds otherwise).
+    private var previousText: String? {
         guard let last = lastPerformance else { return nil }
-        var parts: [String] = []
         switch metricKind {
         case .reps:
-            if let kg = last.weightKg, let r = last.reps {
-                if let s = suggestedWeightKg, s != kg { parts.append("target " + formatSuggestionWeight(s)) }
-                parts.append("last " + formatLoggedWeight(kg) + " × \(r)")
+            if let kg = last.weightKg {
+                return formatLoggedWeight(kg)
             } else if let r = last.reps {
-                parts.append("last \(r) reps")
+                return "\(r)"
             }
+            return nil
         case .holdSeconds:
-            if let d = last.durationSeconds { parts.append("last \(d)s") }
+            return last.durationSeconds.map { "\($0)s" }
         case .durationSeconds:
-            if let d = last.durationSeconds { parts.append("last " + Self.time(d)) }
+            return last.durationSeconds.map(Self.time)
         case .distanceMeters, .calories:
-            if let r = last.reps { parts.append("last \(r)") }
+            return last.reps.map { "\($0)" }
         }
-        guard !parts.isEmpty else { return nil }
-        parts.append(Self.relativeAge(last.performedAt))
-        return parts.joined(separator: " · ")
     }
 
-    private static func relativeAge(_ date: Date) -> String {
-        let days = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
-        if days <= 0 { return "today" }
-        if days == 1 { return "1d ago" }
-        return "\(days)d ago"
+    /// Previous column — same boxed style as Weight/Reps, in a quieter read-only
+    /// shade. Last time's matching value; em-dash when there's no history.
+    @ViewBuilder private var previousCell: some View {
+        Text(previousText ?? "—")
+            .font(Font.unbound.monoM)
+            .foregroundStyle(Color.unbound.textSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.unbound.bg.opacity(0.6))
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
     }
 
     @ViewBuilder private var confirmControl: some View {
@@ -202,22 +192,16 @@ struct SetLogGridRow: View {
         .buttonStyle(.plain)
     }
 
-    /// Editable-value affordance. Calm style: a hairline underline (accent when
-    /// the set is current) instead of a filled box, so the row reads as a form
-    /// field without the box-soup. Legacy/trial style: the filled cell.
+    /// Editable-value affordance: a soft rounded box for every value field, with a
+    /// quiet cyan border on the current set so it reads as the active input.
     @ViewBuilder
     private func valueFieldBackground() -> some View {
-        if calmStyle {
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                Rectangle()
-                    .fill(isCurrent ? Color.unbound.coachCyan.opacity(0.40) : Color.unbound.borderSubtle)
-                    .frame(height: 1)
+        RoundedRectangle(cornerRadius: 10)
+            .fill(Color.unbound.bg.opacity(isCurrent ? 0.9 : 0.6))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(Color.unbound.coachCyan.opacity(isCurrent ? 0.65 : 0), lineWidth: 1)
             }
-        } else {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(isCurrent ? Color.unbound.bg.opacity(0.84) : Color.unbound.surfaceElevated)
-        }
     }
 
     /// Actual value wins when present (user touched it); else the dim
@@ -230,7 +214,7 @@ struct SetLogGridRow: View {
 
     private func valueColor(hasActual: Bool, hasSuggested: Bool) -> Color {
         if logged || hasActual { return Color.unbound.textPrimary }
-        return Color.unbound.textTertiary   // dim suggestion or em-dash
+        return Color.unbound.textSecondary   // dim suggestion / em-dash — AA-large on the recessed bg box
     }
 
     private var weightUnit: TrainingWeightUnit {
