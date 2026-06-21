@@ -13,6 +13,7 @@ struct RankDetailRankTab: View {
     let vm: RankDetailViewModel
     var onLogged: (() async -> Void)?
     @EnvironmentObject private var services: ServiceContainer
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // Presentation-only state for the inline reveal + logging flow.
     @State private var errorMessage: String?
@@ -30,7 +31,8 @@ struct RankDetailRankTab: View {
         VStack(alignment: .leading, spacing: 16) {
             if let banner = rankUpBanner {
                 rankUpBannerView(banner)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    // Reduce Motion: banner still appears/disappears but without the slide.
+                    .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
             }
 
             header
@@ -41,7 +43,13 @@ struct RankDetailRankTab: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $isSessionPresented, onDismiss: {
-            Task { await onLogged?() }
+            // The session may have ranked this skill up — reload the VM so the
+            // climb + current-rank header refresh from the skill's new tier, then
+            // bubble up so the library list refreshes too.
+            Task {
+                await vm.load(services: services)
+                await onLogged?()
+            }
         }) {
             if let node = vm.skillNode {
                 SkillSessionView(skillId: node.id, skillTitle: node.title)
@@ -335,22 +343,33 @@ struct RankDetailRankTab: View {
         }
     }
 
-    /// Drive the inline rank-up animation: ignite the reached rung, fill the
+    /// Drive the inline rank-up reveal: ignite the reached rung, fill the
     /// spine up to it (the rung's own `isCleared` is now true after reload), and
     /// show a banner that auto-dismisses after ~2s.
+    /// Reduce Motion: state still updates (functional), but no spring/ease animation.
     private func igniteRankUp(to tier: SkillTier) {
         let token = UUID()
         bannerToken = token
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+        if reduceMotion {
             ignitedTier = tier
             rankUpBanner = "RANK UP — \(tier.displayName)"
+        } else {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                ignitedTier = tier
+                rankUpBanner = "RANK UP — \(tier.displayName)"
+            }
         }
         Task {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             guard bannerToken == token else { return }
-            withAnimation(.easeInOut(duration: 0.3)) {
+            if reduceMotion {
                 rankUpBanner = nil
                 ignitedTier = nil
+            } else {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    rankUpBanner = nil
+                    ignitedTier = nil
+                }
             }
         }
     }
@@ -384,12 +403,7 @@ struct RankDetailRankTab: View {
         .foregroundStyle(Color.unbound.textPrimary)
         .frame(maxWidth: .infinity)
         .frame(height: 56)
-        .background(
-            ZStack {
-                Color.unbound.surfaceElevated
-                Rectangle().fill(.thinMaterial).opacity(0.18)
-            }
-        )
+        .background(Color.unbound.surfaceElevated)
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .strokeBorder(borderTint, lineWidth: 1)

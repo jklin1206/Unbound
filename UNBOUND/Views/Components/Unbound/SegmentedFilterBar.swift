@@ -9,6 +9,8 @@ struct SegmentedFilterBar<Item: Hashable>: View {
     let title: (Item) -> String
     @Binding var selection: Item
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
@@ -17,7 +19,12 @@ struct SegmentedFilterBar<Item: Hashable>: View {
                     Button {
                         guard !isSelected else { return }
                         UnboundHaptics.soft()
-                        withAnimation(.snappy(duration: 0.22)) { selection = item }
+                        // Reduce Motion: skip the snappy crossfade, select instantly.
+                        if reduceMotion {
+                            selection = item
+                        } else {
+                            withAnimation(.snappy(duration: 0.22)) { selection = item }
+                        }
                     } label: {
                         Text(title(item))
                             .font(Font.unbound.bodyMStrong)

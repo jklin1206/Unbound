@@ -43,7 +43,7 @@ struct ProgramRankTargetBodyFigure: View {
 
                     spec.path(in: drawRect, viewBox: viewBox)
                         .stroke(
-                            isTargeted ? regionTint.opacity(0.92) : Color.black.opacity(0.30),
+                            isTargeted ? regionTint.opacity(0.92) : Color.unbound.borderSubtle.opacity(0.6),
                             style: StrokeStyle(
                                 lineWidth: isTargeted ? separatorWidth + 0.35 : separatorWidth,
                                 lineCap: .round,
@@ -69,7 +69,7 @@ struct ProgramRankTargetBodyFigure: View {
                 .foregroundStyle(Color.unbound.textTertiary)
                 .padding(.horizontal, 7)
                 .padding(.vertical, 4)
-                .background(Capsule().fill(Color.black.opacity(0.42)))
+                .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Color.unbound.bg.opacity(0.72)))
                 .padding(6)
         }
         .background(
@@ -116,28 +116,25 @@ struct ProgramRankTargetRegionStrip: View {
                 .font(Font.unbound.captionS.weight(.heavy))
                 .tracking(1.2)
                 .foregroundStyle(Color.unbound.textTertiary)
-                .padding(.horizontal, 10)
-                .frame(height: 30)
-                .background(
-                    Capsule()
-                        .fill(Color.unbound.bg.opacity(0.48))
-                )
         } else {
+            // Calm color-coded legend (no pills): a tint dot per region + label,
+            // matching the colors on the body figures above.
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
+                HStack(spacing: 14) {
                     ForEach(regions, id: \.self) { region in
                         let regionTint = ProgramRankTargetRegionPalette.tint(
                             for: region,
                             fallback: tint
                         )
-                        Text(region.displayName.uppercased())
-                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                            .tracking(0.7)
-                            .foregroundStyle(regionTint)
-                            .padding(.horizontal, 9)
-                            .frame(height: 30)
-                            .background(Capsule().fill(regionTint.opacity(0.13)))
-                            .overlay(Capsule().strokeBorder(regionTint.opacity(0.32), lineWidth: 1))
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(regionTint)
+                                .frame(width: 6, height: 6)
+                            Text(region.displayName.uppercased())
+                                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                                .tracking(0.7)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                        }
                     }
                 }
                 .padding(.horizontal, 1)

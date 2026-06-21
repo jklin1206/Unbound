@@ -9,6 +9,7 @@ struct UnderlineTabBar<Tab: Hashable>: View {
     @Binding var selection: Tab
 
     @Namespace private var underlineNS
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 0) {
@@ -33,7 +34,7 @@ struct UnderlineTabBar<Tab: Hashable>: View {
                         ZStack {
                             Color.clear.frame(height: 2)
                             if isSelected {
-                                Capsule()
+                                Rectangle()
                                     .fill(Color.unbound.accent)
                                     .frame(height: 2)
                                     .matchedGeometryEffect(id: "underline", in: underlineNS)
@@ -52,7 +53,8 @@ struct UnderlineTabBar<Tab: Hashable>: View {
             Rectangle().fill(Color.unbound.border).frame(height: 1)
         }
         // Animate only the underline + label tint, scoped to this bar.
-        .animation(.snappy(duration: 0.26), value: selection)
+        // Reduce Motion: skip the slide, let the underline jump instantly.
+        .animation(reduceMotion ? nil : .snappy(duration: 0.26), value: selection)
     }
 }
 

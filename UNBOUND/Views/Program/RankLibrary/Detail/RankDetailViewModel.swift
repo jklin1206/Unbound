@@ -27,6 +27,14 @@ final class RankDetailViewModel {
     let graph: SkillGraph
     let nodeStates: [String: NodeState]
 
+    /// True when this entry is a skill (logs + ranks by its OWN criterion via the
+    /// session flow + tierCriteria ladder). False for an exercise (logs via the
+    /// ruler + ranks by the movement's strength ladder). This is the single source
+    /// of truth for logging/ranking behavior — NOT whether a `MovementDefinition`
+    /// happens to resolve. A skill often maps to a (reps-templated) movement for
+    /// the muscle map + equipment, but must never inherit a reps ruler from it.
+    let isSkillEntry: Bool
+
     // MARK: Loaded async
 
     var progress: MovementProgressState?
@@ -92,27 +100,35 @@ final class RankDetailViewModel {
             source: row.source
         )
         let resolvedNode = Self.resolveNode(for: row, definition: resolvedDefinition)
+        let isSkill = row.source == .skill
 
         self.row = row
         self.graph = SkillGraph.shared
         self.nodeStates = SkillProgressService.shared.nodeStates
         self.skillNode = resolvedNode
         self.movementDefinition = resolvedDefinition
-        self.kind = resolvedDefinition != nil ? .exercise : .skill
-        self.loggingIsRulerBased = resolvedDefinition != nil
-        self.title = resolvedDefinition?.displayName ?? row.title
+        self.isSkillEntry = isSkill
+        // Entry type drives everything: a skill ranks + logs by its own criterion,
+        // an exercise by the movement. The movement is still kept resolved (for the
+        // Overview muscle map + equipment) but never makes a skill ruler-based.
+        self.kind = isSkill ? .skill : .exercise
+        self.loggingIsRulerBased = !isSkill && (resolvedDefinition != nil)
+        self.title = isSkill ? row.title : (resolvedDefinition?.displayName ?? row.title)
         self.visualAssetName = row.visualAssetName
         self.displayedTier = row.tier
         self.formCues = resolvedNode?.formCues ?? []
         self.ladderRows = Self.ladderRows(
-            node: resolvedNode,
+            // Skill entries climb the SKILL ladder (skillNode); exercise entries the
+            // STRENGTH ladder (movement). Pass node: nil for exercises so a happened-
+            // to-resolve skillNode can never pull them onto a tierCriteria ladder.
+            node: isSkill ? resolvedNode : nil,
             definition: resolvedDefinition,
             earnedTier: row.tier,
             isEarned: row.isEarned,
             isRankHidden: row.isRankHidden
         )
         self.nextGateText = Self.nextGateText(
-            node: resolvedNode,
+            node: isSkill ? resolvedNode : nil,
             definition: resolvedDefinition,
             currentTier: row.isEarned ? row.tier : nil
         )
@@ -129,8 +145,11 @@ final class RankDetailViewModel {
         self.nodeStates = nodeStates
         self.skillNode = node
         self.movementDefinition = resolvedDefinition
-        self.kind = resolvedDefinition != nil ? .exercise : .skill
-        self.loggingIsRulerBased = resolvedDefinition != nil
+        // A skill-tree node is always a skill: session-logged, tierCriteria ladder.
+        // The movement (if any) stays resolved only for the muscle map + equipment.
+        self.isSkillEntry = true
+        self.kind = .skill
+        self.loggingIsRulerBased = false
         self.title = node.title
         self.visualAssetName = SkillTraditionalVisualResolver.assetName(for: node)
         self.displayedTier = earnedTier
@@ -195,26 +214,50 @@ final class RankDetailViewModel {
 
         statItems = Self.statItems(for: progress)
 
-        // Re-derive the rank-dependent display from the freshly loaded progress so
-        // a just-logged rank-up actually climbs the ladder. The init-time values
-        // are computed from the original row tier and would otherwise stay stale,
-        // leaving the climb frozen after a successful log. Exercise/ruler case only
-        // (pure skills rank up through the session flow, not here).
-        if movementDefinition != nil, let progress {
+        // Re-derive the rank-dependent display from the freshly loaded state so a
+        // just-logged rank-up actually climbs the ladder. The init-time values are
+        // computed from the original tier and would otherwise stay stale, leaving
+        // the climb frozen after a successful log. Split by entry type: exercises
+        // rank from movement progress, skills from their persisted skill tier.
+        if !isSkillEntry, let progress {
+            // EXERCISE/ruler case: re-derive from the loaded MovementProgressState.
             if let proven = resolvedTier(for: progress), proven.rawValue > displayedTier.rawValue {
                 displayedTier = proven
             }
             let earned = displayedTier > .initiate || progress.totalAP > 0
             ladderRows = Self.ladderRows(
-                node: skillNode,
+                node: nil,
                 definition: movementDefinition,
                 earnedTier: displayedTier,
                 isEarned: earned,
                 isRankHidden: false
             )
             nextGateText = Self.nextGateText(
-                node: skillNode,
+                node: nil,
                 definition: movementDefinition,
+                currentTier: earned ? displayedTier : nil
+            )
+        } else if isSkillEntry, let node = skillNode {
+            // SKILL case: re-derive from the skill's CURRENT persisted tier (same
+            // source ProgramRankLibraryView uses), so a session that just ranked
+            // this skill up climbs the ladder when the detail reloads.
+            let skillTier = UserSkillTierStore.shared.load(userId: userId).tier(for: node.id)
+            if skillTier.rawValue > displayedTier.rawValue {
+                displayedTier = skillTier
+            }
+            // Live nodeStates (the init snapshot can predate a just-run session).
+            let proven = SkillProgressService.shared.nodeStates[node.id] == .proven
+            let earned = proven || displayedTier > .initiate
+            ladderRows = Self.ladderRows(
+                node: node,
+                definition: nil,
+                earnedTier: displayedTier,
+                isEarned: earned,
+                isRankHidden: node.earnedRankIsBelowFloor(displayedTier)
+            )
+            nextGateText = Self.nextGateText(
+                node: node,
+                definition: nil,
                 currentTier: earned ? displayedTier : nil
             )
         }
