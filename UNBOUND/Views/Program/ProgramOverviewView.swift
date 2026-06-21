@@ -353,7 +353,7 @@ struct ProgramOverviewView: View {
         }
         .fullScreenCover(item: $pushedSkillNode) { node in
             NavigationStack {
-                SkillDetailView(
+                RankDetailView(
                     node: node,
                     graph: SkillGraph.shared,
                     nodeStates: skillProgress.nodeStates

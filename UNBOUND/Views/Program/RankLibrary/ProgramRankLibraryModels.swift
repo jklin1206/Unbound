@@ -43,6 +43,17 @@ struct ProgramRankLibraryRow: Identifiable {
     }
 }
 
+extension ProgramRankLibraryRow: Hashable {
+    // Identity is the stable row id; used by navigationDestination(item:).
+    static func == (lhs: ProgramRankLibraryRow, rhs: ProgramRankLibraryRow) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
+
 enum ProgramRankLibrarySource: Equatable {
     case skill
     case exercise

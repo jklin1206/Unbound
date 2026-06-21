@@ -1,0 +1,67 @@
+import Foundation
+
+/// The four tabs of the unified rank-detail screen. The container renders one
+/// pane per case; each pane consumes the matching derived data on
+/// `RankDetailViewModel`. Order here is the on-screen left-to-right order.
+enum RankDetailTab: String, CaseIterable, Hashable {
+    case overview
+    case rank
+    case stats
+    case history
+
+    var title: String {
+        switch self {
+        case .overview: return "Overview"
+        case .rank:     return "Rank"
+        case .stats:    return "Stats"
+        case .history:  return "History"
+        }
+    }
+}
+
+// MARK: - Shared display models
+//
+// Plain value types the four tabs render. The view model owns the (heavier)
+// resolution logic and hands the tabs these flat, already-formatted rows so the
+// tab views stay dumb and presentational.
+
+/// One rung of the 9-tier rank ladder, pre-annotated with its cleared/current/
+/// next status relative to the user's earned tier.
+struct RankLadderRow: Identifiable, Hashable {
+    let id: SkillTier
+    let tier: SkillTier
+    let criteriaText: String
+    let isCleared: Bool
+    let isCurrent: Bool
+    let isNext: Bool
+
+    init(
+        tier: SkillTier,
+        criteriaText: String,
+        isCleared: Bool,
+        isCurrent: Bool,
+        isNext: Bool
+    ) {
+        self.id = tier
+        self.tier = tier
+        self.criteriaText = criteriaText
+        self.isCleared = isCleared
+        self.isCurrent = isCurrent
+        self.isNext = isNext
+    }
+}
+
+/// One labelled stat tile (best / PR / accumulated ledger / last-logged).
+struct RankStatItem: Identifiable, Hashable {
+    let id: String
+    let label: String
+    let value: String
+    var systemImage: String?
+
+    init(id: String, label: String, value: String, systemImage: String? = nil) {
+        self.id = id
+        self.label = label
+        self.value = value
+        self.systemImage = systemImage
+    }
+}

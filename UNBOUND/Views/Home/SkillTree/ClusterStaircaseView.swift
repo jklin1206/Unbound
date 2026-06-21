@@ -107,7 +107,7 @@ struct ClusterStaircaseView: View {
         }
         .background(Color.unbound.bg.ignoresSafeArea())
         .fullScreenCover(item: $selectedNode) { node in
-            SkillDetailView(
+            RankDetailView(
                 node: node,
                 graph: graph,
                 nodeStates: nodeStates

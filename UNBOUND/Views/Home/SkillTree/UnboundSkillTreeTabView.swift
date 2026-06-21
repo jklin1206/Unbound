@@ -59,7 +59,7 @@ struct UnboundSkillTreeTabView: View {
             await rankVM.load(userId: userId)
         }
         .fullScreenCover(item: $selectedNode) { node in
-            SkillDetailView(
+            RankDetailView(
                 node: node,
                 graph: SkillGraph.shared,
                 nodeStates: liveStatesForFullGraph()
@@ -303,5 +303,5 @@ struct UnboundSkillTreeTabView: View {
     }
 }
 
-// Legacy `SkillNodeDetailSheet` removed in Phase 3a — the full-screen
-// `SkillDetailView` replaces it. Presenters now use `.fullScreenCover(item:)`.
+// Legacy `SkillNodeDetailSheet` removed in Phase 3a — the unified
+// `RankDetailView` replaces it. Presenters now use `.fullScreenCover(item:)`.

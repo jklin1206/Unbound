@@ -100,7 +100,7 @@ struct HomeTabView: View {
                 .environmentObject(services)
         }
         .fullScreenCover(item: $debugPresentedSkillNode) { node in
-            SkillDetailView(
+            RankDetailView(
                 node: node,
                 graph: SkillGraph.shared,
                 nodeStates: SkillProgressService.shared.nodeStates
