@@ -26,18 +26,18 @@ enum SquadLogoCatalog {
     static let defaultId = "forge"
 
     static let presets: [SquadLogoPreset] = [
-        SquadLogoPreset(id: "forge", title: "Forge", assetName: "squad_logo_forge", palette: .forge),
-        SquadLogoPreset(id: "ember", title: "Ember", assetName: "squad_logo_ember", palette: .ember),
-        SquadLogoPreset(id: "volt", title: "Volt", assetName: "squad_logo_volt", palette: .volt),
-        SquadLogoPreset(id: "crown", title: "Crown", assetName: "squad_logo_crown", palette: .crown),
-        SquadLogoPreset(id: "barbell", title: "Barbell", assetName: "squad_logo_barbell", palette: .steel),
-        SquadLogoPreset(id: "pulse", title: "Pulse", assetName: "squad_logo_pulse", palette: .pulse),
-        SquadLogoPreset(id: "nova", title: "Nova", assetName: "squad_logo_nova", palette: .nova),
-        SquadLogoPreset(id: "glacier", title: "Glacier", assetName: "squad_logo_glacier", palette: .glacier),
-        SquadLogoPreset(id: "focus", title: "Focus", assetName: "squad_logo_focus", palette: .neon),
-        SquadLogoPreset(id: "prism", title: "Prism", assetName: "squad_logo_prism", palette: .prism),
-        SquadLogoPreset(id: "eclipse", title: "Eclipse", assetName: "squad_logo_eclipse", palette: .dusk),
-        SquadLogoPreset(id: "signal", title: "Signal", assetName: "squad_logo_signal", palette: .signal)
+        SquadLogoPreset(id: "forge", title: "Alchemy", assetName: "squad_logo_forge", palette: .forge),
+        SquadLogoPreset(id: "ember", title: "Slayer", assetName: "squad_logo_ember", palette: .ember),
+        SquadLogoPreset(id: "volt", title: "Hero Bolt", assetName: "squad_logo_volt", palette: .volt),
+        SquadLogoPreset(id: "crown", title: "Straw Hat", assetName: "squad_logo_crown", palette: .crown),
+        SquadLogoPreset(id: "barbell", title: "Scouts", assetName: "squad_logo_barbell", palette: .steel),
+        SquadLogoPreset(id: "pulse", title: "Domain", assetName: "squad_logo_pulse", palette: .pulse),
+        SquadLogoPreset(id: "nova", title: "Spiral", assetName: "squad_logo_nova", palette: .nova),
+        SquadLogoPreset(id: "glacier", title: "Soul Moon", assetName: "squad_logo_glacier", palette: .glacier),
+        SquadLogoPreset(id: "focus", title: "Limitless", assetName: "squad_logo_focus", palette: .neon),
+        SquadLogoPreset(id: "prism", title: "Stand", assetName: "squad_logo_prism", palette: .prism),
+        SquadLogoPreset(id: "eclipse", title: "Saiyan", assetName: "squad_logo_eclipse", palette: .dusk),
+        SquadLogoPreset(id: "signal", title: "Sync", assetName: "squad_logo_signal", palette: .signal)
     ]
 
     static func preset(for id: String?) -> SquadLogoPreset {
