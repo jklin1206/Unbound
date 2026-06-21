@@ -12,6 +12,11 @@ struct ProgramRankLibraryRowView: View {
     private var usesTraditionalExerciseArt: Bool {
         row.visualAssetName?.hasPrefix("exercise_visual_") == true
     }
+    private var movementDefinition: MovementDefinition? {
+        guard row.source == .exercise else { return nil }
+        return MovementCatalog.definition(for: row.sourceId)
+            ?? MovementCatalog.resolvedTrainingMovement(name: row.title)?.standard
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -52,6 +57,12 @@ struct ProgramRankLibraryRowView: View {
                         .foregroundStyle(Color.unbound.textSecondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.74)
+
+                    if let movementDefinition,
+                       !ExerciseEquipmentAssetStrip.items(for: movementDefinition).isEmpty {
+                        ExerciseEquipmentAssetStrip(definition: movementDefinition, maxItems: 3, itemSize: 24)
+                            .padding(.top, -1)
+                    }
                 }
             }
             .padding(.leading, 12)

@@ -8,6 +8,7 @@ import UIKit
 struct ExerciseDetailSections: View {
     let muscleGroups: [MuscleGroup]
     var bodyRegions: [BodyRegion] = []
+    var equipmentDefinition: MovementDefinition? = nil
     var showsProgramming: Bool = true
     let sets: Int
     let reps: String
@@ -19,6 +20,11 @@ struct ExerciseDetailSections: View {
         VStack(alignment: .leading, spacing: 0) {
             muscleGroupsSection
                 .padding(.top, 8)
+            if let equipmentDefinition,
+               !ExerciseEquipmentAssetStrip.items(for: equipmentDefinition).isEmpty {
+                equipmentSection(equipmentDefinition)
+                    .padding(.top, 26)
+            }
             if showsProgramming {
                 programmingSection
                     .padding(.top, 26)
@@ -31,6 +37,21 @@ struct ExerciseDetailSections: View {
                 substitutionSection(sub: sub)
                     .padding(.top, 26)
             }
+        }
+    }
+
+    private func equipmentSection(_ definition: MovementDefinition) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("EQUIPMENT")
+                .font(Font.unbound.captionS)
+                .tracking(1.5)
+                .foregroundColor(Color.unbound.textTertiary)
+            ExerciseEquipmentAssetStrip(
+                definition: definition,
+                maxItems: 4,
+                itemSize: 34,
+                showsLabels: true
+            )
         }
     }
 

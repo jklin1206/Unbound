@@ -115,6 +115,7 @@ final class TrialReadinessService {
                     .sled,
                     .cardioMachine,
                     .pullupBar,
+                    .parallettes,
                     .bodyweight,
                     .openSpace
                 ])

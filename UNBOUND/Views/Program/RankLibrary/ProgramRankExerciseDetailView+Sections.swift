@@ -15,6 +15,16 @@ extension ProgramRankExerciseDetailView {
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(2)
                     .minimumScaleFactor(0.74)
+
+                if !ExerciseEquipmentAssetStrip.items(for: definition).isEmpty {
+                    ExerciseEquipmentAssetStrip(
+                        definition: definition,
+                        maxItems: 4,
+                        itemSize: 34,
+                        showsLabels: true
+                    )
+                    .padding(.top, 2)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

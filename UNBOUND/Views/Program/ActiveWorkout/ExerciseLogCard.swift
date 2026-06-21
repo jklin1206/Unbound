@@ -67,6 +67,16 @@ struct ExerciseLogCard: View {
 
             targetSummary(calm: calm)
 
+            if let movementDefinition,
+               !ExerciseEquipmentAssetStrip.items(for: movementDefinition).isEmpty {
+                ExerciseEquipmentAssetStrip(
+                    definition: movementDefinition,
+                    maxItems: rankTrialStyle ? 4 : 3,
+                    itemSize: calm ? 28 : 30
+                )
+                .padding(.bottom, isExpanded ? 0 : 2)
+            }
+
             if isUnmatched {
                 unmatchedWarning
             }
@@ -169,6 +179,7 @@ struct ExerciseLogCard: View {
         ExerciseDetailSections(
             muscleGroups: muscleGroups,
             bodyRegions: movementDefinition?.bodyRegions ?? [],
+            equipmentDefinition: movementDefinition,
             showsProgramming: false,
             sets: plannedSets,
             reps: plannedReps,
