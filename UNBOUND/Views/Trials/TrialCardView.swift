@@ -5,24 +5,25 @@ import SwiftUI
 // Single card in the weekly Binding Vow pick tray. Sized ~460pt tall so it fills
 // most of the viewport in a TabView/.page swiper without clipping.
 //
-// Layout top → bottom:
-//   1. Theme tag (axis name or WILDCARD) + kind badge
-//   2. Custom vow mark
-//   3. Display name (big title)
-//   4. Blurb (narrative subtitle)
-//   5. Session prescription pills
-//   6. Standard hint footer
+// Binding Vows v2: a card is lane + bet + target. Phase 5 owns the premium
+// sigil/seal styling; this is the minimal compile-correct treatment.
 
 struct TrialCardView: View {
     let card: TrialCard
 
-    private var tint: Color { card.theme.tintColor }
+    private var tint: Color { card.lane.tintColor }
+
+    /// The whole point of the vow, in plain words: "Log 3 fuel anchors".
+    private var goalText: String {
+        let plural = card.target.count == 1 ? card.target.noun : "\(card.target.noun)s"
+        return "Log \(card.target.count) \(plural)"
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // ── Theme tag row ──────────────────────────────────────────
+        VStack(alignment: .leading, spacing: 16) {
+            // ── Lane tag row ───────────────────────────────────────────
             HStack(spacing: 8) {
-                Text(card.theme.displayLabel)
+                Text(card.lane.displayLabel)
                     .font(.system(size: 10, weight: .heavy, design: .monospaced))
                     .tracking(1.6)
                     .foregroundStyle(tint)
@@ -33,58 +34,47 @@ struct TrialCardView: View {
 
                 Spacer(minLength: 0)
 
-                kindBadge
+                betBadge
             }
 
-            Spacer().frame(height: 20)
+            // ── Sigil + the goal, big ─────────────────────────────────
+            HStack(alignment: .center, spacing: 14) {
+                WeeklyVowProofAsset(lane: card.lane, tint: tint)
+                    .frame(width: 54, height: 54)
+                    .accessibilityHidden(true)
 
-            WeeklyVowProofAsset(kind: card.kind, tint: tint)
-                .frame(width: 76, height: 76)
-                .accessibilityHidden(true)
-
-            Spacer().frame(height: 18)
-
-            // ── Big title ─────────────────────────────────────────────
-            Text(card.displayName)
-                .font(.system(size: 36, weight: .black))
-                .foregroundStyle(Color.unbound.textPrimary)
-                .lineLimit(2)
-                .minimumScaleFactor(0.72)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer().frame(height: 14)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(card.displayName.uppercased())
+                        .font(.system(size: 10.5, weight: .heavy, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(tint)
+                        .lineLimit(1)
+                    Text(goalText)
+                        .font(.system(size: 26, weight: .black))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.7)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
 
             // ── Blurb ─────────────────────────────────────────────────
             Text(card.blurb)
-                .font(Font.unbound.bodyM)
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Color.unbound.textSecondary)
-                .lineSpacing(3)
+                .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Spacer().frame(height: 24)
+            vowTerms
 
-            // ── Session prescription pills ───────────────────────────
-            vowPrescription
-
-            Spacer(minLength: 20)
-
-            // ── Standard divider ─────────────────────────────────────
-            Rectangle()
-                .fill(Color.white.opacity(0.07))
-                .frame(height: 0.5)
-
-            Spacer().frame(height: 16)
-
-            // ── Standard hint ────────────────────────────────────────
-            proofHint
+            Spacer(minLength: 0)
         }
         .padding(22)
-        .frame(maxWidth: .infinity, minHeight: 460, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 300, alignment: .topLeading)
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(Color.unbound.surface)
-                // Subtle tint wash in top-leading corner
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(
                         LinearGradient(
@@ -111,90 +101,61 @@ struct TrialCardView: View {
 
     // MARK: - Sub-views
 
-    private var kindBadge: some View {
-        let badgeTint: Color
-        switch card.kind {
-        case .ember:
-            badgeTint = Color.unbound.accent
-        case .overdrive:
-            badgeTint = Color(red: 0.3, green: 0.75, blue: 0.5)
-        case .apex:
-            badgeTint = Color(red: 0.9, green: 0.75, blue: 0.3)
-        }
-        return Text(card.kind.displayName.uppercased())
+    private var betBadge: some View {
+        Text("\(card.bet.displayLabel) BET")
             .font(.system(size: 9, weight: .bold, design: .monospaced))
             .tracking(1.4)
-            .foregroundStyle(badgeTint)
+            .foregroundStyle(tint)
             .padding(.horizontal, 9)
             .padding(.vertical, 4)
             .background(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(badgeTint.opacity(0.12))
+                    .fill(tint.opacity(0.12))
             )
     }
 
-    @ViewBuilder
-    private var vowPrescription: some View {
-        if let prescription = card.prescription {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("SESSION")
-                    .font(.system(size: 9, weight: .bold))
-                    .tracking(1.5)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                HStack(spacing: 8) {
-                    vowPill(card.kind.shortDescription.uppercased())
-                    vowPill(prescription.summary.uppercased())
-                }
-            }
+    // How to complete it + what's at stake, in plain readable rows.
+    private var vowTerms: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            termRow(icon: "calendar", text: "Log one a day — self-reported this week")
+            termRow(icon: "trophy.fill", text: "Win +\(card.bet.winXP) XP   ·   Miss −\(card.bet.oweXP) XP")
         }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.bg.opacity(0.35))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(tint.opacity(0.20), lineWidth: 1)
+        )
     }
 
-    private func vowPill(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 10, weight: .heavy, design: .monospaced))
-            .tracking(1.2)
-            .foregroundStyle(tint)
-            .lineLimit(1)
-            .minimumScaleFactor(0.72)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(tint.opacity(0.14))
-            )
-    }
-
-    private var proofHint: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(tint.opacity(0.8))
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("STANDARD")
-                    .font(.system(size: 9, weight: .bold))
-                    .tracking(1.6)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text(card.capstone.displayName)
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.80)
-            }
-
+    private func termRow(icon: String, text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(tint)
+                .frame(width: 20)
+            Text(text)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.unbound.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
     }
+
 }
 
 struct WeeklyVowProofAsset: View {
-    let kind: WeeklyVowKind
+    let lane: VowLane
     let tint: Color
     var compact: Bool = false
 
     var body: some View {
         ZStack {
-            if let image = UIImage(named: kind.proofAssetName) {
+            if let image = UIImage(named: lane.sealAssetName) {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
@@ -227,55 +188,10 @@ struct WeeklyVowProofAsset: View {
                 .inset(by: compact ? 7 : 10)
                 .stroke(tint.opacity(0.22), lineWidth: 1)
 
-            Image(systemName: kind.proofAssetSymbolName)
+            Image(systemName: lane.sealSymbolName)
                 .font(.system(size: compact ? 18 : 28, weight: .black))
                 .foregroundStyle(tint)
                 .shadow(color: tint.opacity(0.35), radius: compact ? 8 : 14)
-        }
-    }
-}
-
-struct WeeklyVowCoachValidationStrip: View {
-    let tint: Color
-    var compact: Bool = false
-
-    private let lenses: [(label: String, detail: String, icon: String)] = [
-        ("Home", "Clear setup", "house.fill"),
-        ("Pro", "Load checked", "clipboard.fill"),
-        ("Elite", "Clean standard", "medal.fill")
-    ]
-
-    var body: some View {
-        HStack(spacing: compact ? 6 : 8) {
-            ForEach(lenses, id: \.label) { lens in
-                HStack(spacing: 5) {
-                    Image(systemName: lens.icon)
-                        .font(.system(size: compact ? 9 : 10, weight: .bold))
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(lens.label.uppercased())
-                            .font(.system(size: compact ? 7 : 8, weight: .heavy, design: .monospaced))
-                            .tracking(1.0)
-                        if !compact {
-                            Text(lens.detail)
-                                .font(Font.unbound.captionS)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.72)
-                        }
-                    }
-                }
-                .foregroundStyle(tint)
-                .padding(.horizontal, compact ? 7 : 9)
-                .frame(height: compact ? 26 : 34)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(tint.opacity(0.11))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(tint.opacity(0.24), lineWidth: 1)
-                )
-            }
         }
     }
 }
@@ -308,53 +224,31 @@ private struct VowFacetShape: InsettableShape {
 
 // MARK: - Previews
 
-#Preview("Aligned card") {
+#Preview("Recovery card") {
     ZStack {
         Color.unbound.bg.ignoresSafeArea()
         TrialCardView(card: TrialCard(
-            id: "weekly-vow-W20-ember",
-            kind: .ember,
-            theme: .axis(.power),
+            id: "weekly-vow-W20-recovery",
+            lane: .recovery,
+            bet: .small,
             displayName: "Iron Reset",
-            blurb: "A low-day proof for clean power work.",
-            capstone: TrialCapstone(
-                displayName: "Low-Day Proof",
-                description: "Complete easy power work at RPE 3-5.",
-                evaluation: .manualClaim
-            ),
-            prescription: WeeklyVowPrescription(
-                placement: .recoveryDay,
-                minMinutes: 8,
-                maxMinutes: 12,
-                minRPE: 3,
-                maxRPE: 5
-            )
+            blurb: "A low-day reset that protects recovery.",
+            target: VowTarget(count: 1, noun: "recovery reset")
         ))
         .padding(20)
     }
 }
 
-#Preview("Prestige card") {
+#Preview("Engine card") {
     ZStack {
         Color.unbound.bg.ignoresSafeArea()
         TrialCardView(card: TrialCard(
-            id: "weekly-vow-W20-apex",
-            kind: .apex,
-            theme: .wildcard,
-            displayName: "Pull-Up Standard",
-            blurb: "A dedicated weekend proof.",
-            capstone: TrialCapstone(
-                displayName: "Circuit Finisher",
-                description: "Complete a 20-minute AMRAP with at least 4 movements.",
-                evaluation: .manualClaim
-            ),
-            prescription: WeeklyVowPrescription(
-                placement: .dedicatedSession,
-                minMinutes: 20,
-                maxMinutes: 45,
-                minRPE: 8,
-                maxRPE: 9
-            )
+            id: "weekly-vow-W20-engine",
+            lane: .engine,
+            bet: .large,
+            displayName: "Engine Build",
+            blurb: "Conditioning work that builds the engine.",
+            target: VowTarget(count: 3, noun: "engine session")
         ))
         .padding(20)
     }

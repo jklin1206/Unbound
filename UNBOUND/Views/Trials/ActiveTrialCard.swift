@@ -1,222 +1,171 @@
 import SwiftUI
 
-// MARK: - ActiveTrialCard
+// MARK: - ActiveTrialCard (Binding Vow card)
 //
-// Shows the current active Binding Vow in the Home contextualStack.
+// The week's Binding Vow on the Home Trials section. Leads with the goal in plain
+// big text — what to do and how many — then a prominent log button (how to log).
+// One tap on LOG records one toward the target (once a day); hitting the target
+// seals the vow.
 
 struct ActiveTrialCard: View {
     let trial: Trial
 
     @EnvironmentObject private var services: ServiceContainer
-    @State private var trainingDraft: TrainingSessionDraft?
+
+    @State private var progressCount: Int = 0
+    @State private var canLogToday: Bool = true
 
     private var card: TrialCard { trial.chosenCard }
-    private var tint: Color { card.theme.tintColor }
-    private var canLaunchTraining: Bool {
-        trial.capstoneState == .windowOpen
-    }
+    private var tint: Color { card.lane.tintColor }
+    private var isSealed: Bool { trial.capstoneState == .completed }
+    private var actionable: Bool { !isSealed && canLogToday }
+    private var filledTint: Color { isSealed ? Color.unbound.success : tint }
 
-    /// 0.0 = not started, 1.0 = complete.
-    /// For now: pending=0, windowOpen=0.5, completed=1.0, missed=0.
-    private var capstoneProgress: Double {
-        switch trial.capstoneState {
-        case .pending:    return 0.0
-        case .windowOpen: return 0.5
-        case .completed:  return 1.0
-        case .missed:     return 0.0
-        }
+    /// The whole point of the vow, in plain words: "Log 3 fuel anchors".
+    private var goalText: String {
+        let plural = card.target.count == 1 ? card.target.noun : "\(card.target.noun)s"
+        return "Log \(card.target.count) \(plural)"
     }
 
     var body: some View {
-        Button {
-            startTraining()
-        } label: {
-            cardContent
-        }
-        .buttonStyle(.plain)
-        .disabled(!canLaunchTraining)
-        .accessibilityIdentifier("weeklyVow.activeCard.startTraining")
-        .accessibilityLabel("Start Binding Vow training")
-        .fullScreenCover(item: $trainingDraft) { draft in
-            WorkoutReadyView(draft: draft)
-                .environmentObject(services)
-        }
-    }
-
-    private var cardContent: some View {
-        HStack(alignment: .center, spacing: 14) {
-            WeeklyVowProofAsset(kind: card.kind, tint: tint, compact: true)
-                .frame(width: 54, height: 54)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Text(card.theme.displayLabel.uppercased())
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .tracking(1.4)
-                        .foregroundStyle(tint)
-                        .lineLimit(1)
-
-                    Text(capstoneStateLabel)
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .tracking(1.1)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .lineLimit(1)
-                }
-
-                Text(card.displayName)
-                    .font(.system(size: 22, weight: .black))
-                    .foregroundStyle(Color.unbound.textPrimary)
+        VStack(alignment: .leading, spacing: 14) {
+            // Category + running count.
+            HStack(spacing: 8) {
+                WeeklyVowProofAsset(lane: card.lane, tint: tint, compact: true)
+                    .frame(width: 30, height: 30)
+                    .accessibilityHidden(true)
+                Text("BINDING VOW · \(card.lane.displayLabel)")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(tint)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-
-                HStack(spacing: 7) {
-                    Text("VOW")
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .tracking(1.2)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .lineLimit(1)
-                    Text(card.capstone.displayName.uppercased())
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .tracking(0.8)
-                        .foregroundStyle(tint)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.64)
-                }
+                Spacer(minLength: 0)
+                Text("\(progressCount)/\(card.target.count)")
+                    .font(.system(size: 16, weight: .black, design: .monospaced))
+                    .foregroundStyle(filledTint)
+                    .monospacedDigit()
             }
-            .layoutPriority(1)
 
-            Spacer(minLength: 0)
+            // The goal, big — what the vow is + how to complete it.
+            VStack(alignment: .leading, spacing: 5) {
+                Text(goalText)
+                    .font(.system(size: 24, weight: .black))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.75)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(card.blurb)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
-            capstonePill
+            progressPips
+
+            // How to log — one prominent action.
+            affordance
         }
-        .padding(14)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            ZStack(alignment: .trailing) {
-                Color.unbound.surface
-                TrialActiveCutShape()
-                    .fill(
-                        LinearGradient(
-                            colors: [tint.opacity(0.16), .clear],
-                            startPoint: .trailing,
-                            endPoint: .leading
-                        )
-                    )
-                    .frame(width: 178)
-            }
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface)
         )
-        .overlay(alignment: .leading) {
-            Rectangle()
-                .fill(tint)
-                .frame(width: 2)
-                .shadow(color: tint.opacity(0.45), radius: 8)
-        }
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(tint.opacity(0.24), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(tint.opacity(0.22), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onAppear(perform: refreshState)
+        .accessibilityIdentifier("weeklyVow.activeCard")
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Binding vow: \(goalText) this week. \(progressCount) of \(card.target.count) logged.")
     }
-
-    // MARK: - Helpers
 
     @ViewBuilder
-    private var capstonePill: some View {
-        if trial.capstoneState == .completed {
-            HStack(spacing: 5) {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 9, weight: .bold))
-                Text("DONE")
-                    .font(.system(size: 9, weight: .bold))
-                    .tracking(1.2)
-            }
-            .foregroundStyle(Color.unbound.success)
-            .frame(width: 64, height: 30)
-            .background(Capsule().fill(Color.unbound.success.opacity(0.14)))
-        } else if canLaunchTraining {
-            HStack(spacing: 5) {
-                Text("TRAIN")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.2)
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 10, weight: .black))
-            }
-            .foregroundStyle(Color.unbound.bg)
-            .frame(width: 64, height: 30)
-            .background(Capsule().fill(tint))
-        } else {
-            HStack(spacing: 5) {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 9, weight: .bold))
-                Text("ARMED")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.1)
-            }
-            .foregroundStyle(tint)
-            .frame(width: 64, height: 30)
-            .background(Capsule().fill(tint.opacity(0.13)))
-        }
-    }
-
-    private func startTraining() {
-        guard canLaunchTraining else { return }
-        UnboundHaptics.medium()
-        trainingDraft = services.trials.trainingDraft(for: trial, date: Date())
-    }
-
-    private var capstoneStateLabel: String {
-        switch trial.capstoneState {
-        case .pending:    return "OPENS SAT"
-        case .windowOpen: return "OPEN"
-        case .completed:  return "COMPLETE"
-        case .missed:     return "MISSED"
-        }
-    }
-}
-
-private struct TrialProgressGlyph: View {
-    let progress: Double
-    let tint: Color
-
-    var body: some View {
-        ZStack(alignment: .bottom) {
-            ForEach(0..<3, id: \.self) { index in
-                TrialActiveCutShape()
-                    .fill(tint.opacity(0.10 + Double(index) * 0.07))
-                    .frame(width: 13, height: CGFloat(38 + index * 8))
-                    .offset(x: CGFloat(index - 1) * 14)
-            }
-
-            HStack(alignment: .bottom, spacing: 4) {
-                ForEach(0..<3, id: \.self) { index in
-                    TrialActiveCutShape()
-                        .fill(tint)
-                        .frame(width: 10, height: fillHeight(for: index))
-                        .shadow(color: tint.opacity(0.28), radius: 6)
+    private var progressPips: some View {
+        if card.target.count <= 8 {
+            HStack(spacing: 6) {
+                ForEach(0..<card.target.count, id: \.self) { i in
+                    Capsule()
+                        .fill(i < progressCount ? filledTint : Color.unbound.surfaceElevated)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 8)
                 }
             }
+        } else {
+            ProgressView(value: Double(min(progressCount, card.target.count)),
+                         total: Double(card.target.count))
+                .tint(filledTint)
         }
-        .animation(.spring(response: 0.42, dampingFraction: 0.82), value: progress)
     }
 
-    private func fillHeight(for index: Int) -> CGFloat {
-        let target = progress * 3
-        let fill = min(max(target - Double(index), 0), 1)
-        return CGFloat(12 + fill * 34)
+    @ViewBuilder
+    private var affordance: some View {
+        if isSealed {
+            statusRow(text: "Vow sealed this week", icon: "checkmark.seal.fill",
+                      color: Color.unbound.success, fill: Color.unbound.success.opacity(0.14))
+        } else if canLogToday {
+            Button(action: handleTap) {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 18, weight: .bold))
+                    Text("Log a \(card.target.noun)")
+                        .font(.system(size: 15, weight: .heavy))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Spacer(minLength: 0)
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 13, weight: .bold))
+                        .opacity(0.8)
+                }
+                .foregroundStyle(Color.unbound.bg)
+                .padding(.horizontal, 16)
+                .frame(height: 50)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 13, style: .continuous).fill(tint)
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Log one \(card.target.noun). \(progressCount) of \(card.target.count) so far.")
+        } else {
+            statusRow(text: "Logged today — back tomorrow", icon: "checkmark.circle.fill",
+                      color: Color.unbound.textSecondary, fill: Color.unbound.surfaceElevated.opacity(0.6))
+        }
     }
-}
 
-private struct TrialActiveCutShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let lean = rect.width * 0.38
-        path.move(to: CGPoint(x: rect.minX + lean, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX - lean, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.closeSubpath()
-        return path
+    private func statusRow(text: String, icon: String, color: Color, fill: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(color)
+            Text(text)
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(color)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 50)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 13, style: .continuous).fill(fill)
+        )
+    }
+
+    private func handleTap() {
+        guard actionable else { return }
+        guard let userId = services.auth.currentUserId else { return }
+        UnboundHaptics.tick()
+        Task { @MainActor in
+            await services.trials.logVowProgress(userId: userId, at: Date())
+            refreshState()
+        }
+    }
+
+    private func refreshState() {
+        guard let userId = services.auth.currentUserId else { return }
+        progressCount = services.trials.vowProgressCount(userId: userId)
+        canLogToday = services.trials.canLogVowToday(userId: userId, now: Date())
     }
 }
 
@@ -225,22 +174,24 @@ private struct TrialActiveCutShape: Shape {
 #Preview {
     ZStack {
         Color.unbound.bg.ignoresSafeArea()
-        ActiveTrialCard(
-            trial: Trial(
-                id: "weekly-vow-W20-ember",
-                userId: "preview",
-                weekStart: Date(),
-                chosenCard: TrialCard(
-                    id: "weekly-vow-W20-ember",
-                    kind: .ember,
-                    theme: .axis(.power),
-                    displayName: "Iron Reset",
-                    blurb: "A low-day proof for clean power work.",
-                    capstone: TrialCapstone(displayName: "Low-Day Proof", description: "Complete easy power work.", evaluation: .manualClaim)
-                ),
-                capstoneState: .windowOpen
+        VStack(spacing: 12) {
+            ActiveTrialCard(
+                trial: Trial(
+                    id: "weekly-vow-W20-fuel",
+                    userId: "preview",
+                    weekStart: Date(),
+                    chosenCard: TrialCard(
+                        id: "weekly-vow-W20-fuel",
+                        lane: .fuel,
+                        bet: .medium,
+                        displayName: "First Spark",
+                        blurb: "Hit your fuel anchors this week.",
+                        target: VowTarget(count: 3, noun: "fuel anchor")
+                    ),
+                    capstoneState: .windowOpen
+                )
             )
-        )
+        }
         .padding(20)
         .environmentObject(ServiceContainer.mock)
     }

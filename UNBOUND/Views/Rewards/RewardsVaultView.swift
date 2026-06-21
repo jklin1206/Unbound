@@ -342,8 +342,10 @@ struct RewardsVaultView: View {
             let need = Self.titleThresholds.first { $0.tier == tid.tier }?.count ?? 0
             let (label, have): (String, Int) = {
                 switch tid.path {
-                case .axis(let key):      return (key.buildVocab, state.completionsByAxis[key] ?? 0)
-                case .cardKind(let kind): return (kind.displayName, state.completionsByCardKind[kind] ?? 0)
+                // Axis/cardKind title tracks are retired in Binding Vows v2; their
+                // counters no longer accrue, so they render as locked legacy rewards.
+                case .axis(let key):      return (key.buildVocab, 0)
+                case .cardKind(let kind): return (kind.displayName, 0)
                 case .badge:              return ("badge", 0)
                 case .shop:               return ("shop", 0)
                 case .squadSeasonWinner:  return ("squad season leaderboard", 0)

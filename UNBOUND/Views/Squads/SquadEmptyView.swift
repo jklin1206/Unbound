@@ -49,7 +49,7 @@ struct SquadEmptyView: View {
                             .lineLimit(2)
                             .minimumScaleFactor(0.72)
 
-                        Text("3-8 athletes. Linked workouts earn XP boosts. Real friends only.")
+                        Text("Up to 10 athletes. Linked workouts earn XP boosts. Real friends only.")
                             .font(Font.unbound.bodyM)
                             .foregroundStyle(Color.unbound.textSecondary)
                             .multilineTextAlignment(.center)
@@ -58,7 +58,7 @@ struct SquadEmptyView: View {
                     .padding(.horizontal, 16)
 
                     HStack(spacing: 8) {
-                        emptyMetric("3-8", "CREW")
+                        emptyMetric("10", "MAX CREW")
                         emptyMetric("XP", "BOOSTS")
                         emptyMetric("LIVE", "CHAT")
                     }

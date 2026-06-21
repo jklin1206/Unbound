@@ -366,7 +366,7 @@ struct ProgramMonthPlannerView: View {
                 Circle()
                     .fill(Color.unbound.accent)
                     .frame(width: 7, height: 7)
-                Text("Workout")
+                Text("Loadout")
                     .font(Font.unbound.captionS)
                     .foregroundStyle(Color.unbound.textSecondary)
             }
@@ -405,7 +405,7 @@ struct ProgramMonthPlannerView: View {
         let rests = monthMarkers.values.filter { $0.isRest }.count
         if workouts == 0 && rests == 0 { return "Nothing planned yet" }
         var parts: [String] = []
-        if workouts > 0 { parts.append("\(workouts) workout\(workouts == 1 ? "" : "s")") }
+        if workouts > 0 { parts.append("\(workouts) loadout\(workouts == 1 ? "" : "s")") }
         if rests > 0 { parts.append("\(rests) rest") }
         return parts.joined(separator: " · ")
     }
@@ -552,7 +552,7 @@ private struct ProgramMonthWorkoutPickerView: View {
                 )
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(planMarker?.title ?? "Choose Workout")
+                Text(planMarker?.title ?? "Choose Loadout")
                     .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
@@ -571,7 +571,7 @@ private struct ProgramMonthWorkoutPickerView: View {
         VStack(spacing: 0) {
             actionRow(
                 title: "Rest Day",
-                subtitle: "No workout",
+                subtitle: "No loadout",
                 icon: "moon.fill",
                 tint: Color.unbound.textSecondary,
                 action: onMarkRest
@@ -621,7 +621,7 @@ private struct ProgramMonthWorkoutPickerView: View {
                     .background(Circle().fill(Color.unbound.accent))
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Build Workout")
+                    Text("Build Loadout")
                         .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
                     Text("Create once, then place it here.")
@@ -658,7 +658,7 @@ private struct ProgramMonthWorkoutPickerView: View {
                 .frame(width: 40, height: 40)
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(workout.title.isEmpty ? "Workout" : workout.title)
+                    Text(workout.title.isEmpty ? "Loadout" : workout.title)
                         .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(1)

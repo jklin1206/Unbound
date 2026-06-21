@@ -6,8 +6,8 @@ final class RoutineLibraryTests: XCTestCase {
 
     func testRoutinesAllWellFormed() {
         let routines = RoutineLibrary.placeholderRoutines
-        XCTAssertEqual(routines.count, 29)
-        XCTAssertEqual(Set(routines.map(\.id)).count, 29, "duplicate routine id")
+        XCTAssertEqual(routines.count, 39)
+        XCTAssertEqual(Set(routines.map(\.id)).count, 39, "duplicate routine id")
 
         for r in routines {
             let (run, _) = RoutineRun.build(r.steps)
@@ -40,6 +40,16 @@ final class RoutineLibraryTests: XCTestCase {
     func testCategoriesCoverAllFour() {
         let cats = Set(RoutineLibrary.placeholderRoutines.map(\.category))
         XCTAssertEqual(cats, [.cardio, .mobility, .challenge, .altCircuit])
+    }
+
+    func testRoutineTitlesAvoidRepeatingDungeonSuffix() {
+        for category in RoutineCategory.allCases {
+            XCTAssertFalse(category.label.contains("LOADOUT DUNGEON"), "\(category): loadout category should not repeat dungeon")
+        }
+
+        for routine in RoutineLibrary.placeholderRoutines {
+            XCTAssertFalse(routine.title.contains("Dungeon"), "\(routine.id): title should avoid repeated dungeon suffix")
+        }
     }
 
     func testRoutinesUseNamedDifficultyTiers() {
@@ -78,6 +88,78 @@ final class RoutineLibraryTests: XCTestCase {
                 )
             }
         }
+    }
+
+    func testInspiredDungeonsDoNotNameSourceReferences() {
+        let sourceCodedIds = [
+            "hero-entry-exam",
+            "ninja-academy-circuit",
+            "spirit-shot-conditioning",
+            "hunter-exam-roadwork",
+            "pirate-crew-conditioning",
+            "alchemy-gate-circuit",
+            "saitama-protocol",
+            "8-gates-protocol",
+            "beach-forge",
+            "3d-maneuver-conditioning",
+            "daily-quest",
+            "thunder-circuit",
+            "gravity-chamber",
+            "vessel-protocol"
+        ]
+        let bannedTerms = [
+            "reference",
+            "anime",
+            "one-punch",
+            "saitama",
+            "naruto",
+            "baki",
+            "attack on titan",
+            "solo leveling",
+            "demon slayer",
+            "dragon ball",
+            "jujutsu"
+        ]
+
+        for id in sourceCodedIds {
+            let routine = RoutineLibrary.placeholderRoutines.first { $0.id == id }
+            let searchable = routine.map(routineSearchText) ?? ""
+            XCTAssertNotNil(routine, "\(id): expected inspired dungeon")
+            for term in bannedTerms {
+                XCTAssertFalse(searchable.contains(term), "\(id): visible copy names source term \(term)")
+            }
+        }
+    }
+
+    func testDungeonPlansAvoidIncompleteShorthand() {
+        let bannedTerms = [
+            "...",
+            "…",
+            "repeat gate",
+            "repeat previous",
+            "same as",
+            "and so on"
+        ]
+
+        for routine in RoutineLibrary.placeholderRoutines {
+            let searchable = routineSearchText(routine)
+            for term in bannedTerms {
+                XCTAssertFalse(searchable.contains(term), "\(routine.id): dungeon plan uses incomplete shorthand \(term)")
+            }
+        }
+    }
+
+    func testRoutineUnlockPolicyKeepsStarterDungeonsOpenAndGatesHigherTiers() {
+        let daily = RoutineLibrary.placeholderRoutines.first { $0.id == "daily-quest" }!
+        XCTAssertTrue(RoutineUnlockPolicy.state(for: daily, currentTier: .initiate).isUnlocked)
+
+        let tabata = RoutineLibrary.placeholderRoutines.first { $0.id == "tabata-core" }!
+        XCTAssertFalse(RoutineUnlockPolicy.state(for: tabata, currentTier: .initiate).isUnlocked)
+        XCTAssertTrue(RoutineUnlockPolicy.state(for: tabata, currentTier: .apprentice).isUnlocked)
+
+        let gravity = RoutineLibrary.placeholderRoutines.first { $0.id == "gravity-chamber" }!
+        XCTAssertFalse(RoutineUnlockPolicy.state(for: gravity, currentTier: .vessel).isUnlocked)
+        XCTAssertTrue(RoutineUnlockPolicy.state(for: gravity, currentTier: .ascendant).isUnlocked)
     }
 
     func testRoutineCoverAssetsAreBundled() {
@@ -188,6 +270,20 @@ final class RoutineLibraryTests: XCTestCase {
         XCTAssertTrue(ids.contains("hotel-full-20"))
         XCTAssertTrue(ids.contains("gym-full-45"))
         XCTAssertTrue(ids.contains("athletic-full-28"))
+    }
+
+    func testCardioLibraryIncludesMachineAndFootworkOptions() {
+        let ids = Set(
+            RoutineLibrary.placeholderRoutines
+                .filter { $0.category == .cardio }
+                .map(\.id)
+        )
+
+        XCTAssertGreaterThanOrEqual(ids.count, 7)
+        XCTAssertTrue(ids.contains("incline-siege-walk"))
+        XCTAssertTrue(ids.contains("stair-tower-climb"))
+        XCTAssertTrue(ids.contains("rower-engine-intervals"))
+        XCTAssertTrue(ids.contains("jump-rope-footwork"))
     }
 
     func testRoutineStepVisualAssetsAreBundled() {

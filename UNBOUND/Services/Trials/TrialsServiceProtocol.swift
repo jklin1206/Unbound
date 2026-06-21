@@ -1,46 +1,6 @@
 // UNBOUND/Services/Trials/TrialsServiceProtocol.swift
 import Foundation
 
-struct WeeklyVowCompletionReceipt: Equatable, Sendable {
-    let vow: WeeklyVow
-    let performanceLogId: String
-    let completedAt: Date
-    let callout: WeeklyVowRewardCallout
-    let completionBonus: WeeklyVowCompletionBonus
-
-    init(
-        vow: WeeklyVow,
-        performanceLog: PerformanceLog,
-        completionBonus: WeeklyVowCompletionBonus
-    ) {
-        self.vow = vow
-        self.performanceLogId = performanceLog.id
-        self.completedAt = performanceLog.completedAt
-        self.completionBonus = completionBonus
-        self.callout = WeeklyVowRewardCallout(
-            id: "weekly-vow-\(vow.id)-\(performanceLog.id)",
-            vowId: vow.id,
-            performanceLogId: performanceLog.id,
-            cardKind: vow.chosenCard.kind,
-            theme: vow.chosenCard.theme,
-            title: "\(vow.chosenCard.displayName) Cleared",
-            subtitle: vow.chosenCard.displayName,
-            proofName: vow.chosenCard.capstone.displayName,
-            receiptLine: "Receipt \(Self.shortReceiptId(performanceLog.id))",
-            shareTitle: "Binding Vow Cleared",
-            shareSubtitle: "\(vow.chosenCard.displayName) - \(vow.chosenCard.capstone.displayName)",
-            completedAt: performanceLog.completedAt,
-            completionBonus: completionBonus
-        )
-    }
-
-    private static func shortReceiptId(_ id: String) -> String {
-        let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return "SAVED" }
-        return String(trimmed.prefix(8)).uppercased()
-    }
-}
-
 @MainActor
 protocol WeeklyVowsServiceProtocol: AnyObject {
     /// If currentWeekStart is stale or absent, roll the week and generate
@@ -48,38 +8,13 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
     /// Posts .weeklyVowWeekRolled.
     func ensureCurrentWeek(userId: String) async
 
-    /// User picks one of the 3 cards. Persists as currentVow.
+    /// User picks one of the 3 cards. Persists as currentVow. Abandoning a
+    /// touched prior vow docks its stake off XP.
     func pickVowCard(_ card: WeeklyVowCard, userId: String)
 
-    /// User skipped the pick this week. No vow active; no chip; no penalty.
+    /// User skipped the pick this week. No vow active; no chip. Abandoning a
+    /// touched vow docks its stake off XP.
     func skipThisWeek(userId: String)
-
-    /// Build real trainable work for a committed vow. The returned draft is
-    /// routed through Workout Ready and the active logger.
-    func trainingDraft(for vow: WeeklyVow, date: Date) -> TrainingSessionDraft
-
-    /// Build real trainable work for the user's current vow, if one exists.
-    func trainingDraftForCurrentVow(userId: String, date: Date) -> TrainingSessionDraft?
-
-    /// Legacy adapter retained for older callers. Binding vows now complete
-    /// only through `recordCompletedVowWork` after a saved routed workout.
-    func completeVow(userId: String, at date: Date)
-
-    /// Mark the current vow complete only after its routed PerformanceLog was
-    /// accepted by TrainingCompletionService.
-    @discardableResult
-    func recordCompletedVowWork(
-        performanceLog: PerformanceLog,
-        completionResult: TrainingCompletionResult
-    ) -> WeeklyVowCompletionReceipt?
-
-    /// Legacy adapter retained for older callers. Raw history can no longer
-    /// seal vows; saved routed workout receipts are required.
-    func evaluateVowProofFromLog(
-        userId: String,
-        history: [ExerciseLogEntry],
-        bodyweightKg: Double
-    ) async
 
     /// Caller invokes from app foreground / home appear to transition
     /// pending -> windowOpen when Saturday 00:00 has elapsed.
@@ -93,37 +28,20 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
 
     /// Read current state for UI.
     func state(userId: String) -> WeeklyVowsState
-}
 
-extension WeeklyVowsServiceProtocol {
-    func trainingDraft(for vow: WeeklyVow) -> TrainingSessionDraft {
-        trainingDraft(for: vow, date: Date())
-    }
+    /// Seal a vow as cleared: pay the bet's win token (flat XP), increment the
+    /// lane counter, and notify. Idempotent against an already-closed vow.
+    func sealVow(userId: String, vow: WeeklyVow, at date: Date) async
 
-    func trainingDraftForCurrentVow(userId: String) -> TrainingSessionDraft? {
-        trainingDraftForCurrentVow(userId: userId, date: Date())
-    }
+    /// Self-report tap for the active vow (any lane). Seals at target. Gated to
+    /// once per calendar day.
+    func logVowProgress(userId: String, at date: Date) async
 
-    // Temporary Trial* adapters while callers migrate.
-    func pickCard(_ card: TrialCard, userId: String) {
-        pickVowCard(card, userId: userId)
-    }
+    /// Current self-report tally for the active vow (0 if none).
+    func vowProgressCount(userId: String) -> Int
 
-    func completeCapstone(userId: String, at date: Date) {
-        completeVow(userId: userId, at: date)
-    }
-
-    func evaluateCapstoneFromLog(
-        userId: String,
-        history: [ExerciseLogEntry],
-        bodyweightKg: Double
-    ) async {
-        await evaluateVowProofFromLog(userId: userId, history: history, bodyweightKg: bodyweightKg)
-    }
-
-    func checkCapstoneWindow(userId: String, now: Date) {
-        checkVowWindow(userId: userId, now: now)
-    }
+    /// True if the active vow can still be logged today (once-a-day gate).
+    func canLogVowToday(userId: String, now: Date) -> Bool
 }
 
 typealias TrialsServiceProtocol = WeeklyVowsServiceProtocol

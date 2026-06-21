@@ -13,6 +13,7 @@ struct ActiveWorkoutDemoHarness: View {
     }
 
     private static var demoDraft: TrainingSessionDraft {
+        if let trial = rankTrialDraft() { return trial }
         func rx(_ name: String, kg: Double) -> TrainingBlockPrescription {
             TrainingBlockPrescription(
                 exerciseName: name,
@@ -39,6 +40,25 @@ struct ActiveWorkoutDemoHarness: View {
             estimatedMinutes: 35,
             blocks: [block]
         )
+    }
+
+    /// `UNBOUND_ACTIVE_TRIAL=<format>` boots the REAL container into a live rank
+    /// trial so the gate header, station-clear beats, and pass/fail verdict can be
+    /// driven + screenshotted end to end (format = a `RankTrialFormat` rawValue).
+    private static func rankTrialDraft() -> TrainingSessionDraft? {
+        guard let raw = ProcessInfo.processInfo.environment["UNBOUND_ACTIVE_TRIAL"],
+              !raw.isEmpty else { return nil }
+        let norm = raw.lowercased()
+        guard let definition = OverallRankTrialDefinitions.all.first(where: {
+            $0.format.rawValue.lowercased() == norm
+        }) else { return nil }
+        let equipment: Set<MovementEquipment> = [.bodyweight, .openSpace, .dumbbell, .kettlebell, .pullupBar, .band]
+        let resolution = RankTrialLoadoutResolver.shared.resolve(
+            definition: definition, userId: DevBuildBootstrapper.userId, equipment: equipment)
+        return definition.makeDraft(
+            userId: DevBuildBootstrapper.userId,
+            resolvedTrial: resolution.resolvedTrial,
+            bodyweightKg: 82)
     }
 }
 #endif

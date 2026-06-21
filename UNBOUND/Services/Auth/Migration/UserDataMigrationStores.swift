@@ -82,6 +82,17 @@ struct ProductionUserDataMigrationScanStore: UserDataMigrationScanStoring, @unch
     }
 }
 
+/// Bridges the SessionXP sign-in re-key to `SessionXPService`, the @MainActor
+/// owner of the streak record. Delegating (instead of poking UserDefaults
+/// directly) makes the read-merge-write atomic with respect to a session being
+/// recorded on the same key, and guarantees the migrated streak lands in the
+/// exact slot the service reads from.
+struct ProductionUserDataMigrationSessionXPStore: UserDataMigrationSessionXPStoring, @unchecked Sendable {
+    func migrate(legacyUserId: String, supabaseUserId: String) async -> SessionXPMigrationOutcome {
+        await SessionXPService.shared.migrateRecord(from: legacyUserId, to: supabaseUserId)
+    }
+}
+
 /// Persists the per-(legacy → supabase) migration-completed flag in
 /// UserDefaults. Local-only and survives relaunches, which is exactly what the
 /// resume guard needs.

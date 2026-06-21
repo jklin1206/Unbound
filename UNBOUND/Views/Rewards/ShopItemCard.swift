@@ -34,12 +34,6 @@ struct ShopItemCard: View {
                     .foregroundStyle(Color.unbound.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                     .layoutPriority(1)
-
-                Text(item.subtitle)
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .layoutPriority(1)
             }
 
             Spacer(minLength: 0)
@@ -116,28 +110,17 @@ struct ShopItemCard: View {
             ShopSkillTreeMapPreview(skin: skin, compact: true)
         case .profileBorder(let border):
             ZStack {
-                itemGradient
+                // Calm dark tile (no colourful gradient) + the code-drawn ring
+                // shown on a sample avatar, matching the cosmetics picker.
+                Color.unbound.bg.opacity(0.55)
                 ShopPreviewLinework(color: border.accent)
-                    .opacity(0.22)
-                Circle()
-                    .fill(Color.unbound.bg.opacity(0.82))
-                    .frame(width: 68, height: 68)
-                if let ui = UIImage(named: border.assetName) {
-                    Image(uiImage: ui)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 104, height: 104)
-                        .shadow(color: border.accent.opacity(0.34), radius: 10)
-                } else {
-                    Circle()
-                        .strokeBorder(border.accent, lineWidth: 8)
-                        .frame(width: 88, height: 88)
-                        .overlay(
-                            Circle()
-                                .strokeBorder(Color.white.opacity(0.30), lineWidth: 2)
-                                .padding(7)
-                        )
-                }
+                    .opacity(0.12)
+                CosmeticAvatar(
+                    tier: .initiate,
+                    size: 104,
+                    letterFallback: "U",
+                    shopBorder: border
+                )
             }
         case .profileBackground(let background):
             ShopBackdropArtworkPreview(
@@ -281,7 +264,7 @@ struct ArcCurrencyAmount: View {
     var valueFont: Font = .system(size: 16, weight: .black, design: .rounded)
     var valueColor: Color = Color.unbound.textPrimary
     var labelFont: Font = .system(size: 8, weight: .black, design: .monospaced)
-    var labelColor: Color = Color.unbound.rankGold
+    var labelColor: Color = Color.unbound.impact
 
     private var formattedAmount: String {
         compact ? Self.compactText(for: amount) : amount.formatted()
@@ -322,7 +305,7 @@ struct ArcCurrencyAmount: View {
             .resizable()
             .scaledToFit()
             .frame(width: iconSize, height: iconSize)
-            .shadow(color: Color.unbound.rankGold.opacity(0.24), radius: 4)
+            .shadow(color: Color.unbound.impact.opacity(0.24), radius: 4)
             .accessibilityHidden(true)
     }
 

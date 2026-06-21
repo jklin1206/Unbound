@@ -50,6 +50,55 @@ extension View {
     }
 }
 
+// MARK: Glass card — premium frosted surface for Home modules
+
+struct UnboundGlassCardStyle: ViewModifier {
+    var cornerRadius: CGFloat = 20
+    var tint: Color = .clear
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        return content
+            .background(
+                ZStack {
+                    // Frosted pane — blurs the textured background behind it.
+                    shape.fill(.ultraThinMaterial)
+                    // Faint colour identity over the frost (kept subtle — violet
+                    // is for impact, not chrome).
+                    shape.fill(tint.opacity(0.08))
+                }
+            )
+            .overlay(
+                // The glass edge: a top-lit hairline that catches light. This is
+                // what reads as "a pane of glass" rather than a flat outline.
+                shape.strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.22),
+                            Color.white.opacity(0.04),
+                            Color.clear
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
+            )
+            .clipShape(shape)
+            .shadow(color: Color.black.opacity(0.5), radius: 22, x: 0, y: 12)
+    }
+}
+
+extension View {
+    /// Premium frosted-glass card surface for Home modules. Material-forward with
+    /// a top-lit glass edge + soft float; the optional `tint` gives a faint colour
+    /// identity without a flat outline. Falls back to opaque under Reduce
+    /// Transparency automatically (it's a system material).
+    func premiumGlassCard(cornerRadius: CGFloat = 20, tint: Color = .clear) -> some View {
+        modifier(UnboundGlassCardStyle(cornerRadius: cornerRadius, tint: tint))
+    }
+}
+
 // MARK: Pressable — tracks press state + delivers heavy haptic
 
 struct UnboundPressableStyle: ViewModifier {

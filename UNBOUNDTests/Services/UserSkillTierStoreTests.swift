@@ -40,7 +40,7 @@ final class UserSkillTierStoreTests: XCTestCase {
         stateA.perSkill["pp.pullup"] = .forged
 
         var stateB = UserSkillTierState.empty
-        stateB.perSkill["pp.pullup"] = .ascendant
+        stateB.perSkill["pp.pullup"] = .unbound
 
         store.save(stateA, userId: "u-1")
         store.save(stateB, userId: "u-2")

@@ -58,9 +58,9 @@ final class VitalityRewardPolicyTests: XCTestCase {
 
         let award = await VitalityRewardPolicy.award(for: log, database: database)
 
-        XCTAssertEqual(award.signalXP, 2, accuracy: 0.001)
+        XCTAssertEqual(award.signalXP, 8, accuracy: 0.001)   // cap 18 − 10 used = 8 (signals would total 13)
         XCTAssertEqual(award.weeklyBonusXP, 0, accuracy: 0.001)
-        XCTAssertEqual(award.totalXP, 2, accuracy: 0.001)
+        XCTAssertEqual(award.totalXP, 8, accuracy: 0.001)
     }
 
     func testWeeklyConsistencyBonusAwardsOnFourthSupportDay() async throws {
@@ -79,9 +79,9 @@ final class VitalityRewardPolicyTests: XCTestCase {
 
         let award = await VitalityRewardPolicy.award(for: log, database: database)
 
-        XCTAssertEqual(award.signalXP, 4, accuracy: 0.001)
-        XCTAssertEqual(award.weeklyBonusXP, 15, accuracy: 0.001)
-        XCTAssertEqual(award.totalXP, 19, accuracy: 0.001)
+        XCTAssertEqual(award.signalXP, 6, accuracy: 0.001)    // easyWalk = 6 now
+        XCTAssertEqual(award.weeklyBonusXP, 25, accuracy: 0.001)
+        XCTAssertEqual(award.totalXP, 31, accuracy: 0.001)
     }
 
     func testWeeklyConsistencyBonusDoesNotRepeat() async throws {
@@ -97,7 +97,7 @@ final class VitalityRewardPolicyTests: XCTestCase {
 
         let award = await VitalityRewardPolicy.award(for: log, database: database)
 
-        XCTAssertEqual(award.signalXP, 3, accuracy: 0.001)
+        XCTAssertEqual(award.signalXP, 4, accuracy: 0.001)   // sleep = 4 now
         XCTAssertEqual(award.weeklyBonusXP, 0, accuracy: 0.001)
     }
 

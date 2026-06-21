@@ -47,7 +47,7 @@ struct ProgramDayActionRow: View {
                         )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Add Session")
+                .accessibilityLabel("Add Quest")
                 .accessibilityIdentifier("program.addExtraSession")
             }
 
@@ -63,7 +63,7 @@ struct ProgramDayActionRow: View {
                         )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Edit Session")
+                .accessibilityLabel("Edit Quest")
                 .accessibilityIdentifier("program.editSession")
             }
         }

@@ -169,7 +169,7 @@ enum SkillStandards {
         criteria: [SkillTier: TierCriterion],
         exerciseKey: String?
     ) -> RankTier? {
-        guard current.rawValue < SkillTier.ascendant.rawValue else { return nil }
+        guard current.rawValue < SkillTier.unbound.rawValue else { return nil }
         return SkillTier.allCases
             .filter { $0.rawValue > current.rawValue }
             .first { tier in

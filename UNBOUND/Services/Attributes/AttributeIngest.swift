@@ -162,7 +162,7 @@ enum AttributeIngest {
         at date: Date
     ) -> AttributeRankUpEvent? {
         guard currentTier != previousTier else { return nil }
-        let crownBand: Set<RankTitle> = [.vessel, .unbound, .ascendant]
+        let crownBand: Set<RankTitle> = [.vessel, .ascendant, .unbound]
         let level: AttributeRankUpEvent.Level = crownBand.contains(currentTier) ? .aTier : .tier
         return AttributeRankUpEvent(
             axis: axis,

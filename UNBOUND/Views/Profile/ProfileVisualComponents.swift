@@ -18,8 +18,14 @@ struct ProfileHeroAvatar: View {
         let badgeSize = size * 0.33
 
         ZStack {
+            // Dark seat: lets the framed avatar read cleanly on any banner art
+            // (bright halls were washing the frame out and making it float).
             Circle()
-                .fill(profileTint.opacity(0.14))
+                .fill(Color.black.opacity(0.5))
+                .frame(width: glowSize * 1.2, height: glowSize * 1.2)
+                .blur(radius: size * 0.3)
+            Circle()
+                .fill(profileTint.opacity(0.16))
                 .frame(width: glowSize, height: glowSize)
                 .blur(radius: size * 0.15)
 
@@ -181,9 +187,6 @@ struct RankTitlePlate: View {
                 .layoutPriority(1)
 
             Spacer(minLength: 0)
-            Image(systemName: "info.circle.fill")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(tier.rewardTextTint)
         }
         .padding(.vertical, 10)
         .overlay(alignment: .bottom) {
@@ -320,11 +323,8 @@ struct TrophyShowcaseRow: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(label), \(value)")
-        .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
-        .padding(.vertical, 8)
-        .overlay(alignment: .bottom) {
-            UnboundNativeDivider(opacity: 0.38)
-        }
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .padding(.vertical, 2)
     }
 }
 

@@ -59,8 +59,8 @@ final class AttributeProfileTests: XCTestCase {
         XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 15), .veteran)
         XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 25), .master)
         XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 40), .vessel)
-        XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 65), .unbound)
-        XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 100), .ascendant)
+        XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 65), .ascendant)
+        XCTAssertEqual(AttributeLevelCurve.rankTitle(forLevel: 100), .unbound)
     }
 
     func testLevelRankTitlesReflectAxisLevel() {

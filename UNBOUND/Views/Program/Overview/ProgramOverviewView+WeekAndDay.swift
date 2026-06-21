@@ -117,7 +117,7 @@ extension ProgramOverviewView {
             },
             onAddExtra: {
                 UnboundHaptics.soft()
-                openStartEmptyWorkout(title: "Extra Session")
+                openStartEmptyWorkout(title: "Extra Quest")
             },
             onEdit: {
                 guard let day else { return }
@@ -158,7 +158,7 @@ extension ProgramOverviewView {
                 selectedDay = day
             }
         case .addSession:
-            openStartEmptyWorkout(title: "Extra Session")
+            openStartEmptyWorkout(title: "Extra Quest")
         case .buildWorkout, .none:
             break
         }

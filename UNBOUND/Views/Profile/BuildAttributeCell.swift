@@ -18,35 +18,37 @@ struct BuildAttributeCell: View {
     }
 
     private var content: some View {
-        HStack(alignment: .center, spacing: 8) {
+        HStack(alignment: .center, spacing: 7) {
             Rectangle()
                 .fill(key.rewardTint)
                 .frame(width: 3, height: 30)
                 .opacity(isSelected ? 1 : 0.72)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(key.displayName.uppercased())
-                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                    .tracking(0.8)
-                    .foregroundStyle(key.rewardTint)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.68)
+            Text(key.displayName.uppercased())
+                .font(.system(size: 13, weight: .heavy, design: .monospaced))
+                .tracking(0.4)
+                .foregroundStyle(key.rewardTint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.42)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.trailing, 4)
 
-                HStack(spacing: 5) {
-                    AttributeRankBadge(rank: value.rankTitle, size: 16)
-                    Text("LVL \(value.level)")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .tracking(0)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                }
-            }
-            .layoutPriority(1)
-
-            Spacer(minLength: 0)
+            AttributeRankBadge(rank: value.rankTitle, size: 20)
+            Text("LVL \(value.level)")
+                .font(.system(size: 13, weight: .black, design: .monospaced))
+                .tracking(0)
+                .foregroundStyle(Color.unbound.textPrimary)
+                .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+                .layoutPriority(1)
         }
+        .padding(.horizontal, 8)
         .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(isSelected ? key.rewardTint.opacity(0.10) : Color.unbound.surfaceElevated.opacity(0.18))
+        )
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(key.rewardTint.opacity(isSelected ? 0.70 : 0.28))

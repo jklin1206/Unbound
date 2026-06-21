@@ -149,6 +149,77 @@ final class UserDataMigrationCoordinatorTests: XCTestCase {
         XCTAssertEqual(migrated.weeklySchedule[1], .legs)
         XCTAssertEqual(migrated.currentWeekPhase, .deload)
     }
+
+    // MARK: - SessionXP streak migration outcome → summary mapping (Bug #3)
+    //
+    // The read-merge-write itself is atomic inside the store (covered by
+    // SessionXPRecord.merging unit tests + the on-sim integration test). Here we
+    // only assert the coordinator maps each outcome into the summary correctly.
+
+    private func coordinator(sessionXPOutcome: SessionXPMigrationOutcome) -> UserDataMigrationCoordinator {
+        UserDataMigrationCoordinator(
+            local: MockMigrationLocalStore(),
+            remote: MockMigrationRemoteStore(authenticated: false),
+            sessionXPStore: StubMigrationSessionXPStore(outcome: sessionXPOutcome),
+            flagStore: NeverCompletedMigrationFlagStore()
+        )
+    }
+
+    func test_sessionXP_rekeyed_outcome_counts_as_local_write() async {
+        let summary = await coordinator(sessionXPOutcome: .rekeyed)
+            .migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+        XCTAssertEqual(summary.sessionXP.scanned, 1)
+        XCTAssertEqual(summary.sessionXP.localWrites, 1)
+        XCTAssertEqual(summary.sessionXP.failures, 0)
+        XCTAssertTrue(summary.allCollectionsSucceeded)
+    }
+
+    func test_sessionXP_merged_outcome_counts_existing_target_and_write() async {
+        let summary = await coordinator(sessionXPOutcome: .merged)
+            .migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+        XCTAssertEqual(summary.sessionXP.scanned, 1)
+        XCTAssertEqual(summary.sessionXP.existingTargets, 1)
+        XCTAssertEqual(summary.sessionXP.localWrites, 1)
+    }
+
+    func test_sessionXP_noLegacy_outcome_is_noop() async {
+        let summary = await coordinator(sessionXPOutcome: .noLegacy)
+            .migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+        XCTAssertEqual(summary.sessionXP.scanned, 0)
+        XCTAssertEqual(summary.sessionXP.localWrites, 0)
+        XCTAssertEqual(summary.sessionXP.failures, 0)
+    }
+
+    func test_sessionXP_failed_outcome_blocks_migration_completion() async {
+        // Bug #4: a corrupt/unwritable legacy streak must count as a failure so
+        // the migration is retried instead of silently completing + losing it.
+        let flagStore = NeverCompletedMigrationFlagStore()
+        let sut = UserDataMigrationCoordinator(
+            local: MockMigrationLocalStore(),
+            remote: MockMigrationRemoteStore(authenticated: false),
+            sessionXPStore: StubMigrationSessionXPStore(outcome: .failed),
+            flagStore: flagStore
+        )
+
+        let summary = await sut.migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+
+        XCTAssertEqual(summary.sessionXP.failures, 1)
+        XCTAssertFalse(summary.allCollectionsSucceeded)
+    }
+}
+
+private final class StubMigrationSessionXPStore: UserDataMigrationSessionXPStoring, @unchecked Sendable {
+    var outcome: SessionXPMigrationOutcome
+    private(set) var calls: [(legacy: String, supabase: String)] = []
+
+    init(outcome: SessionXPMigrationOutcome) {
+        self.outcome = outcome
+    }
+
+    func migrate(legacyUserId: String, supabaseUserId: String) async -> SessionXPMigrationOutcome {
+        calls.append((legacyUserId, supabaseUserId))
+        return outcome
+    }
 }
 
 private final class MockMigrationLocalStore: UserDataMigrationLocalStoring, @unchecked Sendable {
