@@ -14,6 +14,7 @@ Workout-session model layer: the live in-workout state machine (`ActiveWorkoutSe
 | `ActiveWorkoutSession+TrainingDraft.swift` | `init(trainingDraft:)` — boots a live session from a `TrainingSessionDraft`, converting blocks to `ActiveExercise`s. |
 | `AISession.swift` | `AISession`/`AIExercise`/`AIPrescriptionTarget` — legacy name for a user-contextualized skill session; shape kept so `SkillSessionView` rendering stays stable. |
 | `CardioSession.swift` | `CardioType` enum (run/bike/row/...) with display names + `CardioSession` record. |
+| `LastPerformanceLookup.swift` | `LastSetPerformance` + `LastPerformanceLookup` — pure lookup of the most-recent prior performance per exercise, built from recent completed `WorkoutLog`s (drives the logger's PREV column and weight prefill). |
 | `PerformanceLog.swift` | `PerformanceLog`/`PerformanceBlock` — the persisted record of a completed training session (source, blocks, RPE). |
 | `QuickLogDraftFactory.swift` | `QuickLogDraftFactory` (empty draft backing "Quick Log" free workouts) + `SavedWorkoutDraftFactory` (empty draft for saving a reusable template). |
 | `RestTimerModel.swift` | `@MainActor final class RestTimerModel: ObservableObject` — date-based rest countdown that survives UI dismissal and app backgrounding. |

@@ -14,9 +14,14 @@ The SQUAD tab: squad creation/joining, the squad detail surface (roster, mission
 | `SquadDetailView+Data.swift` | Extension: data loading/refresh for the detail screen. |
 | `SquadDetailView+Header.swift` | Extension: header composition. |
 | `SquadDetailView+Sections.swift` | Extension: body sections (roster, mission, honors, feed…). |
+| `SquadCrewTab.swift` | Extension: Crew tab content — squad streak section, crew roster, routine drops. |
+| `SquadChallengesTab.swift` | Extension: Challenges tab content — weekly co-op mission section + friend challenges. |
+| `SquadSeasonTab.swift` | Extension: Season tab content — squad leaderboard board + season rewards. |
 | `SquadMemberCard.swift` | Roster grid card for one member. |
 | `SquadMemberDetailView.swift` | Drill-in detail for a single member. |
 | `SquadMissionCard.swift` | Current squad mission: title, shared progress bar, reward preview. |
+| `SquadMissionCelebrationView.swift` | Full-screen takeover when the weekly squad mission completes; claim grants Arcs via `CurrencyWalletStore` (ledger-deduped by mission sourceId). |
+| `SquadMissionPickSheet.swift` | Captain-only sheet listing the 5 co-op mission kinds; tap a kind → `onPick` + dismiss. |
 | `SquadLeaderboardViews.swift` | `SquadStreakHeroView`, `SquadBoardView`, `SquadSeasonRewardsView` — streak/leaderboard/season surfaces. |
 | `WeeklyHonorsStrip.swift` | Horizontal strip of 3 weekly honor cards (between roster and feed). |
 | `ActivityFeedRow.swift` | One row of the squad activity feed. |
