@@ -21,8 +21,10 @@ final class GateCrossingCatalogTests: XCTestCase {
     }
 
     func test_investitureTitleIsDestinationRank() {
-        XCTAssertEqual(GateCrossingCatalog.crossing(for: .theForging).investitureTitle, "FORGED.")
-        XCTAssertEqual(GateCrossingCatalog.crossing(for: .theLastGate).investitureTitle, "UNBOUND.")
+        // investitureTitle == destinationRank.displayName.uppercased() — the rank
+        // names carry no trailing period (see SkillTier.displayName / unlockChip).
+        XCTAssertEqual(GateCrossingCatalog.crossing(for: .theForging).investitureTitle, "FORGED")
+        XCTAssertEqual(GateCrossingCatalog.crossing(for: .theLastGate).investitureTitle, "UNBOUND")
     }
 
     func test_copyIsBrandSafe() {

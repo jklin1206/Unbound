@@ -4,7 +4,6 @@ import UIKit
 
 enum DevProgramSandboxState: String, CaseIterable, Identifiable {
     case arcDay1 = "arc-day-1"
-    case wave2 = "wave-2"
     case checkpointDue = "checkpoint-due"
 
     var id: String { rawValue }
@@ -12,7 +11,6 @@ enum DevProgramSandboxState: String, CaseIterable, Identifiable {
     var startOffsetDays: Int {
         switch self {
         case .arcDay1: return 0
-        case .wave2: return -14
         case .checkpointDue: return -29
         }
     }
@@ -20,14 +18,13 @@ enum DevProgramSandboxState: String, CaseIterable, Identifiable {
     var scanDaysAgo: Int {
         switch self {
         case .arcDay1: return 31
-        case .wave2: return 16
         case .checkpointDue: return 31
         }
     }
 
     var arcState: ArcState {
         switch self {
-        case .arcDay1, .wave2: return .active
+        case .arcDay1: return .active
         case .checkpointDue: return .checkpointDue
         }
     }
@@ -35,7 +32,6 @@ enum DevProgramSandboxState: String, CaseIterable, Identifiable {
     var completedDayCount: Int {
         switch self {
         case .arcDay1: return 0
-        case .wave2: return 8
         case .checkpointDue: return 18
         }
     }

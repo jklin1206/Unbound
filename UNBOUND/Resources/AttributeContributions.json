@@ -754,6 +754,10 @@
       "control": 0.25,
       "endurance": 0.45
     },
+    "superman pull": {
+      "control": 0.7857,
+      "power": 0.2143
+    },
     "t-bar row": {
       "power": 0.7561,
       "control": 0.2439

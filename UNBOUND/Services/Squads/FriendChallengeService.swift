@@ -3,7 +3,7 @@ import Supabase
 
 @MainActor
 protocol FriendChallengeServiceProtocol: Sendable {
-    func createChallenge(challengedId: UUID, kind: FriendChallenge.Kind, squadId: UUID) async throws -> FriendChallenge
+    func createChallenge(challengedId: UUID, kind: FriendChallenge.Kind, squadId: UUID, exerciseName: String?) async throws -> FriendChallenge
     func activeChallenges(userId: UUID) async -> [FriendChallenge]
     func challengeStats(squadId: UUID) async -> [UUID: FriendChallengeStats]
     func challengeStats(squadId: UUID, season: SquadSeason) async -> [UUID: FriendChallengeStats]
@@ -15,6 +15,12 @@ protocol FriendChallengeServiceProtocol: Sendable {
 extension FriendChallengeServiceProtocol {
     func challengeStats(squadId: UUID, season: SquadSeason) async -> [UUID: FriendChallengeStats] {
         await challengeStats(squadId: squadId)
+    }
+
+    /// Convenience for the common case (no exercise scope); `heaviestLift`
+    /// callers must pass `exerciseName`.
+    func createChallenge(challengedId: UUID, kind: FriendChallenge.Kind, squadId: UUID) async throws -> FriendChallenge {
+        try await createChallenge(challengedId: challengedId, kind: kind, squadId: squadId, exerciseName: nil)
     }
 }
 
@@ -43,6 +49,7 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
         let challenged_id: UUID
         let squad_id: UUID
         let challenge_kind: String
+        let exercise_name: String?
         let started_at: Date
         let expires_at: Date
         let winner_user_id: UUID?
@@ -58,6 +65,7 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
                 challengedId: challenged_id,
                 squadId: squad_id,
                 kind: kind,
+                exerciseName: exercise_name,
                 startedAt: started_at,
                 expiresAt: expires_at,
                 acceptedAt: accepted_at,
@@ -73,6 +81,7 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
         let challenged_id: String
         let squad_id: String
         let challenge_kind: String
+        let exercise_name: String?
         let started_at: String
         let expires_at: String
     }
@@ -99,7 +108,8 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
     func createChallenge(
         challengedId: UUID,
         kind: FriendChallenge.Kind,
-        squadId: UUID
+        squadId: UUID,
+        exerciseName: String? = nil
     ) async throws -> FriendChallenge {
         guard kind.isSupportedForCreation else {
             logger.log(
@@ -108,13 +118,25 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
             )
             throw SquadError.unsupportedChallengeKind
         }
+        // Exercise-scoped kinds (heaviestLift) require a non-blank lift name; the
+        // stored string is matched verbatim against logged exerciseName server-side.
+        let trimmedExercise = exerciseName?.trimmingCharacters(in: .whitespaces)
+        if kind.requiresExercisePick && (trimmedExercise ?? "").isEmpty {
+            logger.log(
+                "FriendChallengeService.createChallenge missing exercise for kind: \(kind.rawValue)",
+                level: .warning
+            )
+            throw SquadError.unsupportedChallengeKind
+        }
+        let resolvedExercise = kind.requiresExercisePick ? trimmedExercise : nil
         guard remoteBackendEnabled else {
             throw SquadError.backendUnavailable
         }
         if let local = createLocalChallengeIfNeeded(
             challengedId: challengedId,
             kind: kind,
-            squadId: squadId
+            squadId: squadId,
+            exerciseName: resolvedExercise
         ) {
             return local
         }
@@ -130,6 +152,7 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
             challenged_id: challengedId.uuidString,
             squad_id: squadId.uuidString,
             challenge_kind: kind.rawValue,
+            exercise_name: resolvedExercise,
             started_at: iso.string(from: now),
             expires_at: iso.string(from: expires)
         )
@@ -250,13 +273,6 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
 
         for challenge in active {
             let isChallenger = challenge.challengerId == uid
-            if let reason = FriendChallengeProgressPolicy.unsupportedReason(for: challenge.kind) {
-                logger.log(
-                    "FriendChallengeService.recordProgress skipped \(challenge.kind.rawValue): \(reason)",
-                    level: .debug
-                )
-                continue
-            }
             let delta = FriendChallengeProgressPolicy.progressDelta(for: challenge.kind, log: log)
             guard delta > 0 else { continue }
             await incrementProgress(
@@ -347,7 +363,8 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
     private func createLocalChallengeIfNeeded(
         challengedId: UUID,
         kind: FriendChallenge.Kind,
-        squadId: UUID
+        squadId: UUID,
+        exerciseName: String?
     ) -> FriendChallenge? {
         guard currentUserUsesLocalChallenges,
               let userId = AuthService.shared.currentUserId,
@@ -361,6 +378,7 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
             challengedId: challengedId,
             squadId: squadId,
             kind: kind,
+            exerciseName: exerciseName,
             startedAt: now,
             expiresAt: now.addingTimeInterval(7 * 24 * 3600),
             acceptedAt: nil,

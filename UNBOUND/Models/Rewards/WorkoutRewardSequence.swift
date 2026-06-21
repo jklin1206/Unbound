@@ -40,6 +40,12 @@ struct WorkoutRewardSequenceSummary: Identifiable {
     var showsSessionSummary: Bool = true
     var showsFinalSummary: Bool = true
 
+    /// When set, the final beat offers an opt-in "Add a photo" button that
+    /// tags the captured photo with this workout. Only the program
+    /// training-completion path populates this; other reward presenters
+    /// leave it nil (no photo button).
+    var workoutPhotoContext: WorkoutPhotoSummary? = nil
+
     /// Unified per-exercise rank cards (skills AND lifts) for the RANKS beat:
     /// one card per movement showing the rank badge earned, progress toward the
     /// next rank, and any PR. Replaces the old per-(skill,tier) "proof" rows and

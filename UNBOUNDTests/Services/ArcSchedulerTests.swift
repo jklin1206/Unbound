@@ -2,7 +2,7 @@ import XCTest
 @testable import UNBOUND
 
 final class ArcSchedulerTests: XCTestCase {
-    func testMidArcContextShowsWaveTwoAndDaysRemaining() throws {
+    func testMidArcContextShowsDayAndDaysRemaining() throws {
         let program = ProgramTestFactory.makeProgram(
             days: [ProgramTestFactory.makeDay(dayNumber: 1)],
             createdAt: Date(timeIntervalSince1970: 0),
@@ -13,7 +13,6 @@ final class ArcSchedulerTests: XCTestCase {
         let context = try XCTUnwrap(ArcScheduler.context(for: program, asOf: date, calendar: .fixedGMT))
 
         XCTAssertEqual(context.dayNumber, 17)
-        XCTAssertEqual(context.wave, .wave2)
         XCTAssertEqual(context.daysRemaining, 11)
     }
 

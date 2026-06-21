@@ -11,6 +11,7 @@ The Home tab itself: `HomeTabView` is the app's root tab container, and `Unbound
 | `UnboundHomeView+DailyQuest.swift` | Daily quest card extension; swaps PHOTO/SCAN label off the monthly scan cadence rule. |
 | `UnboundHomeView+Loading.swift` | View-side load pieces only (data load lives in `HomeViewModel`): cosmetic store binding, session launch, bodyweight formatting. |
 | `HomeDashboardSections.swift` | Reusable home sections: `HomeTopBarSection`, `HomeBriefingSection`, `HomeTrainingConsoleSection`, `HomeWeekPathSection`, shimmer bar. |
+| `HomeSystemVoice.swift` | The `[ SYSTEM ]` directive voice: state machine (cleared/rest/quest/awaiting) + per-day deterministic line pools, plus the completed-console anime quote. |
 | `HomeChromeViews.swift` | Home chrome: background contrast scrim, command artwork kinds, `HomeIconCommand` dock button. |
 | `HomeLoadingSkeleton.swift` | Shimmer placeholder skeleton shown while the home dashboard loads. |
 | `HomeLoadDerivations.swift` | Pure, dependency-free derivations from one recent-logs fetch (dedupes three `workout_logs` fetches; unit-testable). |
@@ -22,6 +23,8 @@ The Home tab itself: `HomeTabView` is the app's root tab container, and `Unbound
 | `DayOneCalibrationCard.swift` | Calibration prompt with `.hero` (onboarding) and `.slim` (home default) modes. |
 | `CoachModesStrip.swift` | Three contextual AI coach mode buttons (travel, deload, plateau-fix) with their sheets. |
 | `BodyLoadHeatmapView.swift` | Body-region load heatmap: SVG-region figure, heat colors, selection strip, band pills. |
+| `HomeTrialDeck.swift` | `HomeTrialDeck` — horizontally-swipeable deck of rank-gate "world" cards (one `NextGateCard` per gate) with cleared/current/locked position dots. |
+| `RankTrialInlineCard.swift` | Home Trials chrome: `HomeRankGateLockedRow` (locked fallback → records list), `HomeVowPickStrip` (vow pick), and `HomeTrialsDemoHarness` (`-homeTrialsDemo`). |
 
 Where to find X:
 - Home tab routing / which tab shows what → `HomeTabView.swift`
@@ -30,3 +33,5 @@ Where to find X:
 - Home data loading logic → NOT here; it's in `HomeViewModel` (this folder keeps only view-side pieces, see `UnboundHomeView+Loading.swift`)
 - Skill tree tab content → `../SkillTree/`
 - Muscle/body-region heat rendering → `BodyLoadHeatmapView.swift`
+- Home Trials section (rank-gate deck + locked fallback + vow pick) → `HomeTrialDeck.swift`, `RankTrialInlineCard.swift`
+- The `[ SYSTEM ]` hero directive line → `HomeSystemVoice.swift`

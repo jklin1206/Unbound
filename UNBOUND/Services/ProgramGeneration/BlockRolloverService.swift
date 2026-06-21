@@ -308,6 +308,7 @@ enum BlockRolloverService {
             scanId: scan?.id,
             analysisId: analysis?.id,
             buildIdentity: buildIdentity,
+            goal: TrainingGoal.from(programTemplateKey: buildIdentity.programTemplateKey),
             trainingStyle: style,
             equipment: equipment,
             targetFrequency: frequency,

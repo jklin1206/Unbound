@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import PhotosUI
 
 // MARK: - WorkoutRewardSequenceView
 //
@@ -10,9 +11,16 @@ import UIKit
 
 struct WorkoutRewardSequenceView: View {
     let summary: WorkoutRewardSequenceSummary
+    /// Opt-in post-workout photo. Provided only by the program training-completion
+    /// path; nil elsewhere, which (with `summary.workoutPhotoContext`) hides the button.
+    var onAddWorkoutPhoto: ((UIImage) -> Void)? = nil
     let onDismiss: () -> Void
 
     @State var beat: Int = 0
+    @State private var showWorkoutCamera = false
+    @State private var showWorkoutLibrary = false
+    @State private var workoutLibraryItem: PhotosPickerItem?
+    @State private var workoutPhotoAdded = false
     @State var animatedXP: Int = 0
     @State var pageRevealed = false
     @State var attributeHexProgress: Double = 0
@@ -137,6 +145,67 @@ struct WorkoutRewardSequenceView: View {
                 animateXP()
             }
         }
+        .fullScreenCover(isPresented: $showWorkoutCamera) {
+            CameraPicker { image in handleWorkoutPhoto(image) }
+                .ignoresSafeArea()
+        }
+        .photosPicker(isPresented: $showWorkoutLibrary, selection: $workoutLibraryItem, matching: .images)
+        .onChange(of: workoutLibraryItem) { _, item in
+            guard let item else { return }
+            Task {
+                let image = (try? await item.loadTransferable(type: Data.self)).flatMap(UIImage.init(data:))
+                await MainActor.run {
+                    if let image { handleWorkoutPhoto(image) }
+                    workoutLibraryItem = nil
+                }
+            }
+        }
+    }
+
+    // MARK: - Post-workout photo
+
+    /// Opt-in capture on the final beat. Camera when available (device), else the
+    /// photo library (simulator / no camera). The actual save is owned by the
+    /// presenter via `onAddWorkoutPhoto`, so this view stays free of services.
+    @ViewBuilder
+    var addPhotoButton: some View {
+        if summary.workoutPhotoContext != nil, onAddWorkoutPhoto != nil {
+            Button {
+                UnboundHaptics.soft()
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    showWorkoutCamera = true
+                } else {
+                    showWorkoutLibrary = true
+                }
+            } label: {
+                HStack(spacing: 9) {
+                    Image(systemName: workoutPhotoAdded ? "checkmark.circle.fill" : "camera.fill")
+                        .font(.system(size: 13, weight: .bold))
+                    Text(workoutPhotoAdded ? "PHOTO ADDED" : "ADD A PHOTO")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .tracking(1.6)
+                }
+                .foregroundStyle(workoutPhotoAdded ? Color.unbound.textTertiary : Color.unbound.textPrimary.opacity(0.92))
+                .padding(.horizontal, 18)
+                .frame(height: 42)
+                .background(.ultraThinMaterial.opacity(0.16), in: Capsule())
+                .overlay(
+                    Capsule().stroke(
+                        (workoutPhotoAdded ? Color.unbound.success : Color.rewardBlue).opacity(0.5),
+                        lineWidth: 1.3
+                    )
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(workoutPhotoAdded)
+            .accessibilityIdentifier("workoutRewardAddPhotoButton")
+        }
+    }
+
+    private func handleWorkoutPhoto(_ image: UIImage) {
+        workoutPhotoAdded = true
+        UnboundHaptics.medium()
+        onAddWorkoutPhoto?(image)
     }
 
     // MARK: - Chrome

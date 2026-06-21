@@ -154,14 +154,19 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
         XCTAssertNil(variantState)
     }
 
+    // RPE is no longer logged or gated on, so hitting the top of the rep range
+    // advances purely on reps — even at high perceived effort. (This replaces the
+    // old "grindy RPE blocks the advance" behavior, which no longer exists.)
     @MainActor
-    func testGrindyRPEDoesNotAdvanceProgressionCounterOrWeight() async {
-        let userId = "grindy-rpe-\(UUID().uuidString)"
+    func testTopOfRangeAdvancesRegardlessOfEffort() async {
+        let userId = "rep-advance-\(UUID().uuidString)"
         let startedAt = Date(timeIntervalSince1970: 3_000)
 
+        // Fresh bench press seeds at accumulation range 8...10 → top of range = 10.
+        // Two sessions at 10 reps (high effort, no RPE recorded) bump the weight.
         await ProgressionEngine.shared.ingest(
             log: progressionLog(
-                id: "bench-grind-1-\(UUID().uuidString)",
+                id: "bench-rep-1-\(UUID().uuidString)",
                 userId: userId,
                 exerciseName: "bench press",
                 reps: 10,
@@ -173,7 +178,7 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
         )
         await ProgressionEngine.shared.ingest(
             log: progressionLog(
-                id: "bench-grind-2-\(UUID().uuidString)",
+                id: "bench-rep-2-\(UUID().uuidString)",
                 userId: userId,
                 exerciseName: "bench press",
                 reps: 10,
@@ -188,14 +193,13 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
             collection: "progression_states",
             documentId: "\(userId):bench press"
         )
-        XCTAssertEqual(state?.consecutiveSessionsAtTarget, 0)
-        XCTAssertEqual(state?.currentWorkingWeightKg, 60)
+        XCTAssertGreaterThan(state?.currentWorkingWeightKg ?? 0, 60, "two top-of-range sessions bump the weight")
+        XCTAssertEqual(state?.consecutiveSessionsAtTarget, 0, "counter resets after the bump")
         XCTAssertEqual(state?.lastSessionReps, 10)
-        XCTAssertEqual(state?.lastSessionRPE, 9)
-        XCTAssertEqual(state?.lastSessionHitTarget, false)
-        XCTAssertEqual(state?.lastSessionWasGrindy, true)
-        XCTAssertEqual(state?.underTargetSessionCount, 2)
-        XCTAssertEqual(state?.prescriptionBias, .easier)
+        XCTAssertNil(state?.lastSessionRPE, "RPE is no longer stored")
+        XCTAssertEqual(state?.lastSessionHitTarget, true)
+        XCTAssertEqual(state?.lastSessionWasGrindy, false, "no RPE → no grind signal")
+        XCTAssertEqual(state?.prescriptionBias, .hold)
     }
 
     @MainActor

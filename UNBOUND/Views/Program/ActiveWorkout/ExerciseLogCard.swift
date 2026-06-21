@@ -183,9 +183,9 @@ struct ExerciseLogCard: View {
     private func setGridSection(calm: Bool) -> some View {
         HStack(spacing: 8) {
             Text("SET").frame(width: 26, alignment: .leading)
+            Text("PREV").frame(maxWidth: .infinity)
             Text(weightHeader).frame(maxWidth: .infinity)
             Text(metricHeader).frame(maxWidth: .infinity)
-            Text("RPE").frame(width: 44)
             Spacer().frame(width: 40)
         }
         .font(Font.unbound.captionS)
@@ -210,6 +210,7 @@ struct ExerciseLogCard: View {
                 suggestedDistanceMeters: set.suggestedDistanceMeters,
                 suggestedCalories: set.suggestedCalories,
                 suggestedRPE: set.suggestedRPE,
+                lastPerformance: set.lastPerformance,
                 metricKind: metricKind,
                 tracksHold: tracksHold,
                 logged: set.logged,

@@ -72,6 +72,11 @@ final class CurrencyWalletStore: ObservableObject {
         persist()
     }
 
+    func hasGranted(sourceId: String) -> Bool {
+        let ledger = Set(defaults.stringArray(forKey: Self.grantLedgerKeyPrefix + userId) ?? [])
+        return ledger.contains(sourceId)
+    }
+
     @discardableResult
     func grant(_ amount: Int, sourceId: String) -> Bool {
         let reward = max(0, amount)

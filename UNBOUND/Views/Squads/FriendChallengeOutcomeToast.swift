@@ -54,6 +54,11 @@ struct FriendChallengeOutcomeToast: View {
                 Text(outcomeLabel)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.unbound.textPrimary)
+                if isWinner {
+                    Text("+\(SquadRewardPolicy.duelWinArcs) ARCS")
+                        .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(Color.unbound.accent)
+                }
             }
 
             Spacer(minLength: 12)
@@ -168,6 +173,16 @@ private struct FriendChallengeOutcomeToastModifier: ViewModifier {
             guard let challenge = note.object as? FriendChallenge else { return }
             // opponentName resolved at call site; fallback to "Opponent" here
             pendingChallenge = challenge
+            // Grant Arcs exactly once when the current user is the winner.
+            if let me = currentUserId, challenge.winnerUserId == me {
+                if let userId = services.auth.currentUserId {
+                    CurrencyWalletStore.shared.bind(userId: userId)
+                }
+                CurrencyWalletStore.shared.grant(
+                    SquadRewardPolicy.duelWinArcs,
+                    sourceId: SquadRewardPolicy.duelSourceId(challenge.id)
+                )
+            }
         }
     }
 }
@@ -194,6 +209,7 @@ extension View {
                 challengedId: opponent,
                 squadId: UUID(),
                 kind: .mostSessions,
+                exerciseName: nil,
                 startedAt: .now,
                 expiresAt: .now,
                 acceptedAt: Date(),

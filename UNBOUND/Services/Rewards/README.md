@@ -9,6 +9,7 @@ The post-training reward surface: diffing user state across a training event int
 | `CurrencyWalletStore.swift` | UserDefaults-backed Vows currency wallet (`ObservableObject`): balance, 1,500 starter grant, grant ledger, `ShopPurchaseResult` (purchased / alreadyOwned / insufficientFunds), DEBUG unlimited-balance mode. |
 | `RewardComputer.swift` | Central before/after snapshot differ: every caller (QuickLog, session end, ...) takes a snapshot before writing the log, then `after(snapshot:...)` derives PRs / rank-ups / badge unlocks / first-set into a `RewardSummary` for `WorkoutRewardSequenceView`. |
 | `RewardPayloadBuilder.swift` | Attaches `ProofEngineResult` outcomes (beats, tally, emblem ignition, exercise ranks) onto a `WorkoutRewardSequenceSummary`. |
+| `SquadRewardPolicy.swift` | Balance constants and dedup-safe `sourceId` builders for squad rewards (Arc amounts per the plan balance checkpoint). |
 
 ## Where to find X
 

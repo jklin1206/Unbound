@@ -1,15 +1,6 @@
 import SwiftUI
 
 extension ProgramOverviewView {
-    func launchWorkoutReady(for day: ProgramDay, date: Date) {
-        switch workoutDestination(for: day, date: date) {
-        case .dayDetail:
-            selectedDay = day
-        case .draft(let draft):
-            workoutReadyDraft = draft
-        }
-    }
-
     func launchSessionEditor(for day: ProgramDay, date: Date) {
         switch workoutDestination(for: day, date: date) {
         case .dayDetail:

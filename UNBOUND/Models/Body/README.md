@@ -15,11 +15,12 @@ Body-scan and physique-tracking models: the monthly scan checkpoint flow (`ScanC
 | `CheckpointSignals.swift` | `RecoveryState` and `CheckpointSignals` — the deterministic training-signal payload a checkpoint summarizes. |
 | `MuscleGroup.swift` | `MuscleGroup` — coarse 12-case muscle enum used for exercise tagging (chest, back, …, calves). |
 | `MuscleHeatGroup.swift` | `MuscleHeatGroup` — coarse 12-way training-signal partition; rawValues are a persistence contract with `ScanContext`'s signal map. |
-| `ProgressPhoto.swift` | `ProgressPhoto` — a saved progress photo (manual or scan source). |
+| `ProgressPhoto.swift` | `ProgressPhoto` — a saved progress photo (manual, scan, or post-workout source); a `.workout` photo carries an optional `WorkoutPhotoSummary`. |
 | `ScanAngle.swift` | `ScanAngle` — front/side/back capture angles with user-facing instructions. |
 | `ScanCheckpoint.swift` | `ScanCheckpoint` — the CURRENT monthly scan record (photos + `BuildIdentity` snapshot read from the attribute system); also `BuildIdentity: Codable` conformance. |
 | `ScanContext.swift` | Legacy `ScanContext` payload from the removed photo-analysis pipeline; kept for migration/decoding only. |
 | `ScanDeltaReport.swift` | Legacy `ScanDeltaReport` + `BodyPartDelta` — between-scan recap shape kept for persistence compatibility. |
+| `WorkoutPhotoSummary.swift` | `WorkoutPhotoSummary` — compact, denormalized snapshot (title, date, duration, exercise lines) of the workout a `.workout` progress photo was taken after; built from a `PerformanceLog`. |
 
 Where to find X:
 
@@ -29,3 +30,4 @@ Where to find X:
 - How logged sets become per-region load → `BodyRegionTrainingLedger.swift`, accumulated state in `BodyMapProgress.swift`
 - Camera capture instructions per angle → `ScanAngle.swift`
 - Progress photos → `ProgressPhoto.swift`
+- A post-workout photo's "what you did" snapshot → `WorkoutPhotoSummary.swift`

@@ -200,7 +200,6 @@ extension OverallRankTrialServiceTests {
             skin: MockSkinService(),
             sessionXP: MockSessionXPService(),
             badges: MockBadgeService(),
-            programPhase: MockProgramPhaseEngine(),
             attribute: MockAttributeService()
         )
     }

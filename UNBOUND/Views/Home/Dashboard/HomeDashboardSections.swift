@@ -231,14 +231,22 @@ struct HomeTrainingConsoleSection: View {
     let aggregateRank: RankTier
     let hasPlateaus: Bool
     let shouldShowCalibrationCard: Bool
-    let onPrimary: (_ canStart: Bool, _ isRest: Bool) -> Void
+    let questLoggedToday: Bool
+    let onPrimary: (_ canStart: Bool, _ isRest: Bool, _ isCleared: Bool) -> Void
 
     var body: some View {
         let workout = day?.workout
         let draft = day?.userWorkoutDraft
         let isRest = day?.isRestDay ?? false
         let canStart = day?.canStartWorkoutSession ?? false
-        let tint = Self.protocolTint(canStart: canStart, isRest: isRest)
+        // Today's quest is done: the hero shows a "cleared" state instead of
+        // re-inviting BEGIN SESSION on a workout already logged.
+        let isCleared = HomeSystemVoice.consoleCleared(questLoggedToday: questLoggedToday, canStartWorkout: canStart)
+        let status = isCleared ? "CLEARED" : todayStatusValue
+        let heroSubtitle = isCleared
+            ? HomeSystemVoice.completionQuote(daySeed: HomeSystemVoice.daySeed())
+            : Self.protocolHeroSubtitle(workout: workout, draft: draft, isRest: isRest)
+        let tint = isCleared ? Color.unbound.success : Self.protocolTint(canStart: canStart, isRest: isRest)
         let title = workout?.name ?? draft?.title ?? day?.label ?? (isRest ? "Recovery Protocol" : "Plan Session")
         let minutes = workout?.estimatedMinutes ?? draft?.estimatedMinutes ?? (isRest ? 18 : 30)
         // Quest voice for the focus tag — "TARGET · CHEST" instead of a bare
@@ -260,7 +268,7 @@ struct HomeTrainingConsoleSection: View {
                     HStack(spacing: 8) {
                         HomeProtocolStatusLine(
                             label: "STATUS",
-                            value: todayStatusValue,
+                            value: status,
                             tint: tint
                         )
                         HomeProtocolSignalTag(text: focus, tint: tint)
@@ -274,7 +282,7 @@ struct HomeTrainingConsoleSection: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .unboundTextShadow(strength: 0.82)
 
-                    Text(Self.protocolHeroSubtitle(workout: workout, draft: draft, isRest: isRest))
+                    Text(heroSubtitle)
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(2)
@@ -299,13 +307,13 @@ struct HomeTrainingConsoleSection: View {
                 .unboundTextShadow(strength: 0.72)
 
             Button {
-                onPrimary(canStart, isRest)
+                onPrimary(canStart, isRest, isCleared)
             } label: {
                 HStack(spacing: 11) {
-                    Text(Self.protocolPrimaryLabel(canStart: canStart, isRest: isRest).uppercased())
+                    Text(Self.protocolPrimaryLabel(canStart: canStart, isRest: isRest, isCleared: isCleared).uppercased())
                         .font(Font.unbound.bodyMStrong)
                         .tracking(1.4)
-                    Image(systemName: canStart ? "arrow.right" : (isRest ? "camera.fill" : "calendar.badge.plus"))
+                    Image(systemName: isCleared ? "checkmark" : (canStart ? "arrow.right" : (isRest ? "camera.fill" : "calendar.badge.plus")))
                         .font(.system(size: 13, weight: .bold))
                 }
                 .foregroundStyle(Color.unbound.textPrimary)
@@ -381,7 +389,8 @@ struct HomeTrainingConsoleSection: View {
         return "No quest queued. Select today's work to proceed."
     }
 
-    private static func protocolPrimaryLabel(canStart: Bool, isRest: Bool) -> String {
+    private static func protocolPrimaryLabel(canStart: Bool, isRest: Bool, isCleared: Bool) -> String {
+        if isCleared { return "Session Complete" }
         if canStart { return "Begin Session" }
         return isRest ? "Log Check-In" : "Plan Session"
     }

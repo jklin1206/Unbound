@@ -27,10 +27,19 @@ struct FriendChallengeCard: View {
             // Header: kind + days remaining
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(challenge.kind.displayName.uppercased())
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .tracking(1.5)
-                        .foregroundStyle(Color.unbound.textTertiary)
+                    if let exercise = challenge.exerciseName {
+                        Text("\(challenge.kind.displayName.uppercased()) — \(exercise.uppercased())")
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(1.5)
+                            .foregroundStyle(Color.unbound.textTertiary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    } else {
+                        Text(challenge.kind.displayName.uppercased())
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(1.5)
+                            .foregroundStyle(Color.unbound.textTertiary)
+                    }
                     Text(challenge.kind.subtitle)
                         .font(.system(size: 12))
                         .foregroundStyle(Color.unbound.textSecondary)
@@ -137,6 +146,7 @@ struct FriendChallengeCard: View {
         challengedId: challengedId,
         squadId: squadId,
         kind: .mostSessions,
+        exerciseName: nil,
         startedAt: .now,
         expiresAt: Calendar.current.date(byAdding: .day, value: 3, to: .now)!,
         acceptedAt: Date(),

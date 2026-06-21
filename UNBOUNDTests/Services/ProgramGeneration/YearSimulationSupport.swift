@@ -363,7 +363,6 @@ struct YearDayExport: Codable {
     let absoluteDay: Int
     let date: String
     let blockDay: Int
-    let wave: String?
     let label: String
     let isRestDay: Bool
     let completed: Bool

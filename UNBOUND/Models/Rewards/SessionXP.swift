@@ -5,7 +5,7 @@ import Foundation
 // Per-user session counter. Drives streaks + badge unlocks. Does NOT drive
 // RankTier — rank is strictly strength-based. XP is participation.
 
-struct SessionXPRecord: Codable, Sendable, Identifiable {
+struct SessionXPRecord: Codable, Sendable, Equatable, Identifiable {
     var id: String { "\(userId):sessionxp" }
     let userId: String
     var totalSessions: Int
@@ -125,7 +125,7 @@ struct SessionXPRecord: Codable, Sendable, Identifiable {
     }
 }
 
-struct SessionXPSourceReceipt: Codable, Sendable {
+struct SessionXPSourceReceipt: Codable, Sendable, Equatable {
     let streakExtended: Bool
     let streakBroken: Bool
     let streakCountAfter: Int
@@ -167,6 +167,94 @@ struct SessionXPDelta: Sendable {
 
     var streakIncreasedTo: Int? {
         streakExtended ? updated.currentStreak : nil
+    }
+}
+
+// MARK: - Sign-in re-key / merge
+//
+// SessionXP is keyed by userId, which changes on the anonymous → signed-in
+// transition. Carrying the record across that transition is what stops the
+// streak resetting to zero on sign-in (see UserDataMigrationCoordinator +
+// SessionXPService.migrateRecord).
+
+/// Outcome of carrying a SessionXP record across the sign-in identity change.
+enum SessionXPMigrationOutcome: Sendable, Equatable {
+    /// No pre-auth record existed — nothing to carry over.
+    case noLegacy
+    /// The legacy record was carried onto the signed-in id (no target existed).
+    case rekeyed
+    /// The legacy record was merged into an existing signed-in record.
+    case merged
+    /// A signed-in record already held the same data — no write needed.
+    case unchanged
+    /// Legacy data was present but unreadable (corrupt), or the write failed —
+    /// surfaced as a migration failure so it is retried rather than silently
+    /// dropping the streak.
+    case failed
+}
+
+extension SessionXPRecord {
+    /// Returns a copy of this record keyed to a new userId, preserving all
+    /// counters and receipts.
+    func rekeyed(to userId: String) -> SessionXPRecord {
+        SessionXPRecord(
+            userId: userId,
+            totalSessions: totalSessions,
+            currentStreak: currentStreak,
+            longestStreak: longestStreak,
+            lastSessionDate: lastSessionDate,
+            weeklyCount: weeklyCount,
+            weekStartDate: weekStartDate,
+            processedSourceReceipts: processedSourceReceipts
+        )
+    }
+
+    /// Combines a pre-auth (legacy) record with an existing post-auth (target)
+    /// record without ever regressing the streak, keyed to `target.userId`.
+    ///
+    /// The current streak is derived with the *same* day-gap policy the live
+    /// streak uses: the older run is bridged forward to the newer run's last
+    /// logged day. If the two runs are contiguous (within the grace window) the
+    /// streaks chain — e.g. a 3-day anonymous run ending yesterday plus a
+    /// session today reads as 4, not 1. If the gap broke the older run, the
+    /// newer run's streak stands on its own (a long-dead streak is never
+    /// resurrected). All-time bests and totals keep the better of both, and
+    /// receipts are unioned so source-idempotency survives the merge.
+    static func merging(
+        legacy: SessionXPRecord,
+        target: SessionXPRecord,
+        calendar: Calendar = .current
+    ) -> SessionXPRecord {
+        let legacyDate = legacy.lastSessionDate ?? .distantPast
+        let targetDate = target.lastSessionDate ?? .distantPast
+        let olderIsLegacy = legacyDate <= targetDate
+        let older = olderIsLegacy ? legacy : target
+        let newer = olderIsLegacy ? target : legacy
+
+        // Bridge the older run forward to the newer run's last logged day.
+        let bridge = ProgramAwareStreakPolicy.shouldExtendStreak(
+            from: older.lastSessionDate ?? .distantPast,
+            to: newer.lastSessionDate ?? .distantPast,
+            currentStreak: older.currentStreak,
+            calendar: calendar
+        )
+        // Contiguous → the chained streak (older run + bridged days), but never
+        // below the newer run's own count. Broken → the newer run is the live one.
+        let currentStreak = bridge.broken
+            ? newer.currentStreak
+            : max(bridge.streak, newer.currentStreak)
+
+        return SessionXPRecord(
+            userId: target.userId,
+            totalSessions: max(legacy.totalSessions, target.totalSessions),
+            currentStreak: currentStreak,
+            longestStreak: max(legacy.longestStreak, target.longestStreak, currentStreak),
+            lastSessionDate: newer.lastSessionDate,
+            weeklyCount: newer.weeklyCount,
+            weekStartDate: newer.weekStartDate,
+            processedSourceReceipts: legacy.processedSourceReceipts
+                .merging(target.processedSourceReceipts) { _, target in target }
+        )
     }
 }
 

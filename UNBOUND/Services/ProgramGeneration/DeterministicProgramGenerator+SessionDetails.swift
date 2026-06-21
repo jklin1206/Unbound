@@ -102,7 +102,7 @@ extension DeterministicProgramGenerator {
         return warmupExercises(for: .fullBody, input: input)
     }
 
-    static func cooldownExercises(for _: DayTemplate, blockType _: BlockType) -> [Exercise] {
+    static func cooldownExercises(for _: DayTemplate) -> [Exercise] {
         []
     }
 

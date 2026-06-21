@@ -33,7 +33,7 @@ struct DailyWorkoutModifierContext: Equatable, Sendable {
 }
 
 /// Resolves the user's base program day plus active program modifiers into
-/// the concrete draft shown in Workout Ready.
+/// the concrete draft that launches the active workout.
 ///
 /// V1 modifier support is deterministic: active skill goals become scheduled
 /// skill blocks, equipment/avoidance modifiers substitute same-slot movements,

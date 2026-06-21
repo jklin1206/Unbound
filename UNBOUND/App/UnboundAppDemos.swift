@@ -3,86 +3,6 @@ import SwiftUI
 import UIKit
 
 #if DEBUG
-@MainActor
-struct RankTrialReadyReviewView: View {
-    private let definition: OverallRankTrialDefinition
-    private let draft: TrainingSessionDraft
-
-    init() {
-        let definitions = OverallRankTrialDefinitions.all
-        let index = Self.requestedTrialIndex(in: definitions) ?? 0
-        let definition = definitions[index]
-        let equipment: Set<MovementEquipment> = [
-            .bodyweight,
-            .barbell,
-            .dumbbell,
-            .kettlebell,
-            .cable,
-            .machine,
-            .pullupBar,
-            .dipStation,
-            .rings,
-            .bench,
-            .box,
-            .band,
-            .sled,
-            .cardioMachine,
-            .openSpace
-        ]
-        let resolution = RankTrialLoadoutResolver.shared.resolve(
-            definition: definition,
-            userId: DevBuildBootstrapper.userId,
-            equipment: equipment
-        )
-        self.definition = definition
-        self.draft = definition.makeDraft(
-            userId: DevBuildBootstrapper.userId,
-            resolvedTrial: resolution.resolvedTrial,
-            bodyweightKg: 82
-        )
-    }
-
-    var body: some View {
-        WorkoutReadyView(draft: draft)
-            .accessibilityIdentifier("rankTrialReadyReview.\(definition.id)")
-    }
-
-    private static func requestedTrialIndex(in definitions: [OverallRankTrialDefinition]) -> Int? {
-        let args = ProcessInfo.processInfo.arguments
-        let env = ProcessInfo.processInfo.environment
-        let requested = value(after: "-rankTrialReadyReviewTrial", in: args)
-            ?? value(after: "--rank-trial-ready-review-trial", in: args)
-            ?? env["RANK_TRIAL_READY_REVIEW_TRIAL"]
-        guard let requested, !requested.isEmpty else { return nil }
-
-        if let numeric = Int(requested), definitions.indices.contains(numeric) {
-            return numeric
-        }
-
-        let normalized = requested
-            .replacingOccurrences(of: "-", with: "")
-            .replacingOccurrences(of: "_", with: "")
-            .replacingOccurrences(of: " ", with: "")
-            .lowercased()
-        return definitions.firstIndex { definition in
-            definition.id
-                .replacingOccurrences(of: "-", with: "")
-                .replacingOccurrences(of: "_", with: "")
-                .lowercased() == normalized
-            || definition.displayName
-                .replacingOccurrences(of: "The ", with: "")
-                .replacingOccurrences(of: " ", with: "")
-                .lowercased() == normalized
-            || definition.format.rawValue.lowercased() == normalized
-        }
-    }
-
-    private static func value(after flag: String, in args: [String]) -> String? {
-        guard let index = args.firstIndex(of: flag), args.indices.contains(index + 1) else { return nil }
-        return args[index + 1]
-    }
-}
-
 /// Launch with `-rewardDemo` to drop into the post-workout reward sequence and
 /// cycle through a battery of payload variants (no level-up, single rank,
 /// multi-rank feat, many exercises with different badges, the full kitchen sink
@@ -93,13 +13,29 @@ struct RewardDemoView: View {
     @State private var runID = UUID()
     private let scenarios = RewardDemoScenarios.all
 
+    /// The active scenario, tagged with a post-workout photo context so the
+    /// final beat shows the opt-in "Add a photo" button in the demo.
+    private var demoSummary: WorkoutRewardSequenceSummary {
+        var summary = scenarios[index].summary
+        summary.workoutPhotoContext = WorkoutPhotoSummary(
+            title: scenarios[index].label,
+            completedAt: Date(),
+            durationMinutes: 42,
+            exercises: ["Bench Press · 3×5", "Incline DB · 3×10", "Cable Fly · 3×12"]
+        )
+        return summary
+    }
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            WorkoutRewardSequenceView(summary: scenarios[index].summary, onDismiss: {
+            WorkoutRewardSequenceView(
+                summary: demoSummary,
+                onAddWorkoutPhoto: { _ in }
+            ) {
                 index = (index + 1) % scenarios.count
                 runID = UUID()
-            })
+            }
             .id(runID)
 
             VStack {

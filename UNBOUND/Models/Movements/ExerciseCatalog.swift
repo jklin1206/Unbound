@@ -214,7 +214,11 @@ enum ExerciseCatalog {
             .init(name: "meadows row", displayName: "Meadows Row", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "dumbbell row"),
             .init(name: "pendlay row", displayName: "Pendlay Row", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "bent-over row"),
             .init(name: "band row", displayName: "Band Row", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "inverted row"),
-            .init(name: "inverted row", displayName: "Inverted Row", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "dumbbell row")
+            .init(name: "inverted row", displayName: "Inverted Row", muscleGroups: [.back, .lats, .arms], defaultSubstitute: "dumbbell row"),
+            // Equipment-free pull: prone scapular-retraction / rear-delt raise. The
+            // only pulling pattern a no-gear athlete can train — keeps floor-only
+            // full-body programs from running push/legs/core with zero back work.
+            .init(name: "superman pull", displayName: "Superman Pull", muscleGroups: [.back, .shoulders], defaultSubstitute: "inverted row")
         ],
         .pullVertical: [
             .init(name: "negative pullup", displayName: "Negative Pull-Up", muscleGroups: [.back, .lats, .arms], defaultSubstitute: nil, progressionFamily: "pull", progressionTier: 0),

@@ -5,7 +5,7 @@ extension DeterministicProgramGenerator {
         for template: DayTemplate,
         input: ProgramGeneratorInput,
         bias: [MuscleGroup: Int],
-        blockType: BlockType,
+        goal: TrainingGoal,
         sessionIndex: Int = 0
     ) -> Workout {
         let compatibleCatalog = movementPool(input: input)
@@ -113,9 +113,9 @@ extension DeterministicProgramGenerator {
         }
 
         let warmup = warmupExercises(for: template, input: input)
-        let cooldown = cooldownExercises(for: template, blockType: blockType)
+        let cooldown = cooldownExercises(for: template)
         let mainExercises = uniqueWorkoutDefinitions(picked).map {
-            toExercise(definition: $0, input: input, blockType: blockType)
+            toExercise(definition: $0, input: input, goal: goal)
         }
         let compressed = compressedMainExercises(
             mainExercises,
@@ -129,7 +129,7 @@ extension DeterministicProgramGenerator {
             cooldown: cooldown
         )
         let notes = [
-            blockProgrammingNote(for: blockType),
+            blockProgrammingNote(for: goal),
             compressed.note
         ]
         .compactMap { $0 }
@@ -143,7 +143,7 @@ extension DeterministicProgramGenerator {
             cooldown: cooldown,
             estimatedMinutes: estimatedMinutes,
             notes: notes,
-            blockType: blockType
+            blockType: .accumulation
         )
     }
 
@@ -346,10 +346,13 @@ extension DeterministicProgramGenerator {
         let floorOnly = Equipment.isFloorOnlySelection(Set(input.equipment))
         let plans: [[MovementSlot]]
         if floorOnly {
+            // 3 movements/session fits a short floor-only budget. Rotate all five
+            // patterns across the week so a pull lands twice and core stays twice
+            // (it was previously over-weighted at every session, with zero pull).
             plans = [
-                [.horizontalPush, .squat, .core],
+                [.horizontalPush, .horizontalPull, .core],
                 [.squat, .hinge, .core],
-                [.horizontalPush, .hinge, .core]
+                [.horizontalPush, .squat, .horizontalPull]
             ]
         } else if input.trainingStyle == .bodyweight {
             plans = [

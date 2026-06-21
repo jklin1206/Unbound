@@ -482,16 +482,6 @@ struct DevPlayerToolsView: View {
             .accessibilityIdentifier("dev.program.seedArcDay1")
 
             Button {
-                run(successMessage: "Forced Wave 2 today. Program now opens on Arc day 15.") {
-                    await DevBuildBootstrapper.seedProgramScanSandbox(services: services, state: .wave2)
-                }
-            } label: {
-                Label("Force Wave 2 Today", systemImage: "waveform.path.ecg")
-                    .foregroundColor(Color.unbound.accent)
-            }
-            .accessibilityIdentifier("dev.program.forceWave2")
-
-            Button {
                 run(successMessage: "Forced checkpoint due. Program should show block-complete actions.") {
                     await DevBuildBootstrapper.seedProgramScanSandbox(services: services, state: .checkpointDue)
                 }
@@ -549,7 +539,7 @@ struct DevPlayerToolsView: View {
             Text("Program + Scan Sandbox")
                 .foregroundColor(Color.unbound.textSecondary)
         } footer: {
-            Text("Seeds real local program, scan state, dynamic setup contexts, Program Focuses, and user-owned workout fixtures. Launch args: --unbound-dev-program-sandbox arc-day-1|wave-2|checkpoint-due, --unbound-dev-dynamic-program \(DevDynamicProgramScenario.launchArgumentList).")
+            Text("Seeds real local program, scan state, dynamic setup contexts, Program Focuses, and user-owned workout fixtures. Launch args: --unbound-dev-program-sandbox arc-day-1|checkpoint-due, --unbound-dev-dynamic-program \(DevDynamicProgramScenario.launchArgumentList).")
                 .font(.caption(11))
                 .foregroundColor(Color.unbound.textTertiary)
         }

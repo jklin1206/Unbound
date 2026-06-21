@@ -71,8 +71,6 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         let input = makeInput(frequency: .three, trainingDays: [.monday, .wednesday, .friday])
         let program = try DeterministicProgramGenerator.generate(input: input)
         XCTAssertEqual(program.durationDays, 28)
-        XCTAssertEqual(program.currentArc?.currentWave(asOf: input.blockStartDate), .wave1)
-        XCTAssertEqual(program.currentArc?.currentWave(asOf: input.blockStartDate.addingTimeInterval(14 * 86_400)), .wave2)
     }
 
     func testCalibrationWeekGeneratesSevenDayLearningProgram() throws {
@@ -137,8 +135,6 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         XCTAssertEqual(program.currentArc?.programId, program.id)
         XCTAssertEqual(program.currentArc?.startDate, input.blockStartDate)
         XCTAssertEqual(program.currentArc?.endDate, input.blockStartDate.addingTimeInterval(28 * 86_400))
-        XCTAssertEqual(program.currentArc?.wave1Range, 1...14)
-        XCTAssertEqual(program.currentArc?.wave2Range, 15...28)
     }
 
     func testGeneratedDaysCarrySessionRoles() throws {
@@ -209,7 +205,7 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
 
         XCTAssertEqual(exercise.suggestedWeightKg, 60)
         XCTAssertEqual(exercise.reps, "6-9")
-        XCTAssertEqual(exercise.rpe, 8)
+        XCTAssertNil(exercise.rpe, "prescriptions are RPE-free now")
 
         let draft = DailyWorkoutResolver.programDraft(
             from: workout,
@@ -320,7 +316,11 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
             "incline",
             "inverted row",
             "ab wheel",
-            "hanging"
+            "hanging",
+            // Eponymous barbell rows whose names carry no equipment keyword — must
+            // not leak into a bodyweight program via name-derived classification.
+            "meadows",
+            "pendlay"
         ]
         for name in allNames {
             XCTAssertFalse(name.contains("barbell"),
@@ -410,6 +410,32 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         XCTAssertTrue(
             firstWeekSequences.contains { $0.localizedCaseInsensitiveContains("Glute Bridge") },
             "The first week should include a hinge pattern when floor-only equipment is available: \(firstWeekSequences)"
+        )
+    }
+
+    func testFloorOnlyBeginnerGetsAtLeastOnePullMovement() throws {
+        var input = makeInput(
+            frequency: .three,
+            trainingDays: [.monday, .wednesday, .friday],
+            trainingStyle: .bodyweight,
+            equipment: [.bodyweight],
+            experience: .never
+        )
+        input.sessionLengthMinutes = 30
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+        let mainNames = program.days
+            .compactMap(\.workout)
+            .flatMap { $0.mainExercises }
+            .map(\.name)
+
+        let hasPull = mainNames.contains { name in
+            guard let definition = MovementCatalog.canonicalExercise(named: name) else { return false }
+            return definition.movementSlot == .horizontalPull || definition.movementSlot == .verticalPull
+        }
+        XCTAssertTrue(
+            hasPull,
+            "A bodyweight-only beginner must get at least one pulling movement, not push/legs/core only; got: \(Set(mainNames).sorted())"
         )
     }
 
@@ -538,7 +564,7 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
             .first { $0.name == seededExercise.name }
 
         XCTAssertEqual(adjusted?.reps, "6-8")
-        XCTAssertEqual(adjusted?.rpe, 8)
+        XCTAssertNil(adjusted?.rpe, "prescriptions are RPE-free now")
     }
 
     func testGrindyProgressionStateRegressesLoadRepsRestAndRPE() throws {
@@ -592,7 +618,7 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
 
         XCTAssertEqual(adjusted.suggestedWeightKg, 95)
         XCTAssertEqual(adjusted.reps, "6-8")
-        XCTAssertEqual(adjusted.rpe, 7)
+        XCTAssertNil(adjusted.rpe, "prescriptions are RPE-free now")
         XCTAssertEqual(adjusted.restSeconds, baselineExercise.restSeconds + 30)
         XCTAssertEqual(adjusted.notes?.contains("Progression adjusted"), true)
     }

@@ -96,19 +96,11 @@ extension DevBuildBootstrapper {
         let days = (1...Arc.durationDays).map { day in
             let plan = weeklyPlan[(day - 1) % weeklyPlan.count]
             let isRest = plan.workoutIndex == nil
-            let wave = day <= Arc.waveLengthDays ? "Wave 1" : "Wave 2"
-            let workout = plan.workoutIndex.map { index -> Workout in
-                var copy = workouts[index]
-                if day > Arc.waveLengthDays {
-                    copy.blockType = .intensification
-                    copy.notes = "Wave 2 debug session: same pattern, slightly higher intent."
-                }
-                return copy
-            }
+            let workout = plan.workoutIndex.map { workouts[$0] }
             return ProgramDay(
                 id: "dev-day-\(day)",
                 dayNumber: day,
-                label: isRest ? "Recovery" : "\(wave) · \(plan.label)",
+                label: isRest ? "Recovery" : plan.label,
                 isRestDay: isRest,
                 workout: workout,
                 sessionRole: plan.role,

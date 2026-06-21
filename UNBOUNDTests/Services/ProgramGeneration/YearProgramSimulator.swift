@@ -288,20 +288,7 @@ struct BaselineYearProgramSimulator {
                 calibration: isCalibration ? .learningWeek(knownExerciseKeys: []) : .standardReady(knownExerciseKeys: Set(progression.states.keys))
             ))
 
-            let waveProbe = calendar.date(byAdding: .day, value: Arc.waveLengthDays, to: program.createdAt) ?? program.createdAt
-            let waveResult = WaveAdjuster.applyIfNeeded(program: program, asOf: waveProbe, calendar: calendar)
-            let simulatedProgram = waveResult.didApply ? waveResult.program : program
-            if waveResult.didApply && prescriptionSignature(waveResult.program) == prescriptionSignature(program) {
-                violations.append(
-                    YearConstraintViolation(
-                        severity: .warning,
-                        day: absoluteDay,
-                        date: dateString(cursor),
-                        code: "wave2_no_prescription_change",
-                        detail: "Wave 2 emitted \(waveResult.adjustments.count) adjustment rows but left the program prescription unchanged."
-                    )
-                )
-            }
+            let simulatedProgram = program
 
             programs.append(
                 YearProgramExport(
@@ -444,7 +431,6 @@ struct BaselineYearProgramSimulator {
                     absoluteDay: absoluteDay,
                     date: dateString(date),
                     blockDay: day.dayNumber,
-                    wave: waveLabel(program: program, date: date),
                     label: day.label,
                     isRestDay: true,
                     completed: true,
@@ -614,7 +600,6 @@ struct BaselineYearProgramSimulator {
                 absoluteDay: absoluteDay,
                 date: dateString(date),
                 blockDay: day.dayNumber,
-                wave: waveLabel(program: program, date: date),
                 label: day.label,
                 isRestDay: false,
                 completed: !missed,
@@ -813,11 +798,6 @@ struct BaselineYearProgramSimulator {
 
     private func isStressSpike(persona: YearSimulationPersona, absoluteDay: Int) -> Bool {
         persona.stressLevel >= 7 && absoluteDay % 23 == 0
-    }
-
-    private func waveLabel(program: TrainingProgram, date: Date) -> String? {
-        guard let wave = ArcScheduler.context(for: program, asOf: date, calendar: calendar)?.wave else { return nil }
-        return wave.rawValue
     }
 
     private func dateString(_ date: Date) -> String {

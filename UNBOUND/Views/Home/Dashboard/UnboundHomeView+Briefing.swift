@@ -98,10 +98,14 @@ extension UnboundHomeView {
             aggregateTier: model.aggregateTier,
             aggregateRank: model.aggregateRank,
             hasPlateaus: !model.plateaus.isEmpty,
-            shouldShowCalibrationCard: model.shouldShowCalibrationCard
-        ) { canStart, isRest in
+            shouldShowCalibrationCard: model.shouldShowCalibrationCard,
+            questLoggedToday: model.todayProgramDayLogged
+        ) { canStart, isRest, isCleared in
             UnboundHaptics.medium()
-            if canStart {
+            if isCleared {
+                // Today's quest is done — review, don't silently re-run it.
+                NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
+            } else if canStart {
                 beginTodaySession()
             } else if isRest {
                 captureMode = .photo
@@ -130,15 +134,18 @@ extension UnboundHomeView {
         )
     }
 
-    /// What the System announces above the quest console.
+    /// What the System announces above the quest console. Varied + deterministic
+    /// per day via HomeSystemVoice, including the "just cleared it" streak beat.
     var systemDirectiveText: String {
-        if model.todayProgramDay?.isRestDay == true {
-            return "Recovery directive issued"
-        }
-        if model.todayProgramDay?.workout != nil {
-            return "Daily quest available"
-        }
-        return "Awaiting quest selection"
+        let ctx = HomeSystemVoice.Context(
+            hasProgramDay: model.todayProgramDay != nil,
+            isRestDay: model.todayProgramDay?.isRestDay == true,
+            hasWorkout: model.todayProgramDay?.workout != nil,
+            questLoggedToday: model.todayProgramDayLogged,
+            currentStreak: model.sessionXP?.currentStreak ?? 0,
+            daySeed: HomeSystemVoice.daySeed()
+        )
+        return HomeSystemVoice.line(for: ctx)
     }
 
     var avatarInitial: String {

@@ -62,7 +62,9 @@ extension ActiveWorkoutSession {
         objectWillChange.send()
         markExerciseStarted(exerciseIndex: ei)
         if exercises[ei].sets[si].weightKg == nil {
-            exercises[ei].sets[si].weightKg = exercises[ei].sets[si].suggestedWeightKg
+            // Last-performance drives the weight prefill (spec Option A); suggested is the fallback.
+            exercises[ei].sets[si].weightKg = exercises[ei].sets[si].lastPerformance?.weightKg
+                ?? exercises[ei].sets[si].suggestedWeightKg
         }
         if exercises[ei].sets[si].reps == nil {
             exercises[ei].sets[si].reps = exercises[ei].sets[si].suggestedReps

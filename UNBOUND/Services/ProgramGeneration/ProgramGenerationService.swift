@@ -242,6 +242,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             scanId: scanId,
             analysisId: analysisId,
             buildIdentity: buildIdentity,
+            goal: TrainingGoal.from(programTemplateKey: buildIdentity.programTemplateKey),
             trainingStyle: resolvedStyle,
             equipment: resolvedEquipment,
             targetFrequency: frequency,
