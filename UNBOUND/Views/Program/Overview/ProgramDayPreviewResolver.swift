@@ -52,7 +52,9 @@ enum ProgramDayPreviewResolver {
             name: prescription.exerciseName,
             muscleGroups: prescription.muscleGroups,
             sets: prescription.sets,
-            reps: prescription.displayTargetText,
+            // At-a-glance preview shows reps only — the weight (and its line wrap)
+            // belongs in the workout detail / logger, not the day card.
+            reps: prescription.target.displayText,
             restSeconds: prescription.restSeconds,
             rpe: prescription.rpe,
             notes: prescription.notes,
