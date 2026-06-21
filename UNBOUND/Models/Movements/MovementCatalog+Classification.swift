@@ -317,7 +317,7 @@ extension MovementCatalog {
 
         if name.contains("smith") { equipment.insert(.smithMachine) }
         if !isBandVariant,
-           name.contains("barbell") || name.contains("safety bar") || name.contains("back squat") || name.contains("front squat") || name.contains("good morning") || name.contains("landmine") || name.contains("t bar row") {
+           name.contains("barbell") || name.contains("safety bar") || name.contains("back squat") || name.contains("front squat") || name.contains("good morning") || name.contains("landmine") || name.contains("t bar row") || name.contains("meadows") || name.contains("pendlay") {
             equipment.insert(.barbell)
         }
         if !isDumbbellVariant,

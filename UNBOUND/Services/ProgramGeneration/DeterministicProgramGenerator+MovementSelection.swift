@@ -28,9 +28,13 @@ extension DeterministicProgramGenerator {
 
     static func isFloorOnlyProgramMovement(_ definition: MovementDefinition) -> Bool {
         switch definition.movementSlot {
-        case .horizontalPull, .verticalPull, .carry:
+        case .verticalPull, .carry:
+            // Vertical pulls need a bar; carries need implements. Horizontal pulls
+            // fall through to the name filter below so an equipment-free pull
+            // (e.g. Superman Pull) survives while bar/anchor rows (inverted row)
+            // are still excluded by setup-required terms.
             return false
-        case .squat, .hinge, .horizontalPush, .verticalPush, .arms, .core, .calves, .cardio, .mobility, .routine, .skill:
+        case .horizontalPull, .squat, .hinge, .horizontalPush, .verticalPush, .arms, .core, .calves, .cardio, .mobility, .routine, .skill:
             break
         }
 
