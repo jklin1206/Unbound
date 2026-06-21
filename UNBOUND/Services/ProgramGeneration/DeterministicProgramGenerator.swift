@@ -12,6 +12,9 @@ struct ProgramGeneratorInput {
     let analysisId: String?
     /// BuildIdentity derived from AttributeService.
     let buildIdentity: BuildIdentity
+    /// Training objective — the single driver of rep ranges (replaces the phase
+    /// cycle). Defaults to hypertrophy; real call sites derive it from buildIdentity.
+    var goal: TrainingGoal = .hypertrophy
     var trainingStyle: TrainingStyle
     var equipment: [Equipment]
     let targetFrequency: TargetFrequency

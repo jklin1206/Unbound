@@ -178,12 +178,4 @@ extension ProgramOverviewView {
         )
     }
 
-    func waveAdjustments(for day: ProgramDay) -> [WaveAdjustment] {
-        viewModel.activeWaveAdjustments.filter { $0.dayNumber == day.dayNumber } ?? []
-    }
-
-    func revertWaveAdjustment(_ adjustment: WaveAdjustment) {
-        UnboundHaptics.soft()
-        viewModel.revertWaveAdjustment(adjustment, asOf: selectedDayDate)
-    }
 }

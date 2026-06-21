@@ -81,7 +81,6 @@ extension ProgramOverviewView {
             selectedDayDate = today
             weekOffset = 0
         }
-        viewModel.refreshWaveAdjustments(asOf: today)
         Task {
             await viewModel.refreshHistory()
             await viewModel.refreshTravelOverride()

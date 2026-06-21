@@ -120,7 +120,6 @@ final class MovementProgressServiceTests: XCTestCase {
             skin: MockSkinService(),
             sessionXP: MockSessionXPService(),
             badges: MockBadgeService(),
-            programPhase: MockProgramPhaseEngine(),
             attribute: MockAttributeService()
         )
     }

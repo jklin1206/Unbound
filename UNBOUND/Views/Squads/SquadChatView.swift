@@ -543,9 +543,15 @@ struct ChallengeDashboardRow: View {
                         .font(.system(size: 9, weight: .heavy, design: .monospaced))
                         .tracking(1.2)
                         .foregroundStyle(Color.unbound.textTertiary)
-                    Text(challenge.kind.displayName)
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
+                    if let exercise = challenge.exerciseName {
+                        Text("\(challenge.kind.displayName) — \(exercise)")
+                            .font(Font.unbound.bodyMStrong)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                    } else {
+                        Text(challenge.kind.displayName)
+                            .font(Font.unbound.bodyMStrong)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                    }
                 }
                 Spacer()
                 Text(challenge.isPending ? "INVITED" : "ACTIVE")
@@ -591,7 +597,7 @@ struct ChallengeDashboardRow: View {
                 .lineLimit(1)
             ProgressView(value: min(1, Double(progress) / 7.0))
                 .tint(Color.unbound.accent)
-            Text("\(progress) sessions")
+            Text(challenge.kind.progressLabel(for: progress))
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .foregroundStyle(Color.unbound.textTertiary)
         }

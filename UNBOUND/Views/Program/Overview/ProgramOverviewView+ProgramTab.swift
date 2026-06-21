@@ -200,10 +200,6 @@ extension ProgramOverviewView {
         }
         .task(id: program.id) {
             await loadBlockRolloverContext(program: program)
-            viewModel.refreshWaveAdjustments(asOf: selectedDayDate)
-        }
-        .task(id: selectedDayDate) {
-            viewModel.refreshWaveAdjustments(asOf: selectedDayDate)
         }
     }
 

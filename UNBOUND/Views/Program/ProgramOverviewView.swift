@@ -28,7 +28,6 @@ struct ProgramOverviewView: View {
     @State var selectedDay: ProgramDay?
     @State var showPaywall = false
     @State var showRationale = false
-    @State var workoutReadyDraft: TrainingSessionDraft?
     @State var activeWorkoutDraft: TrainingSessionDraft?
     @State var sessionEditorDraft: TrainingSessionDraft?
     @State var savedWorkoutEditorDraft: TrainingSessionDraft?
@@ -306,10 +305,6 @@ struct ProgramOverviewView: View {
             selectedDayDate = Calendar.current.startOfDay(for: programToday)
             applySavedWorkout(workout, to: programToday, allowExtraSession: true)
         }
-        .fullScreenCover(item: $workoutReadyDraft) { draft in
-            WorkoutReadyView(draft: draft)
-                .environmentObject(services)
-        }
         .fullScreenCover(item: $activeWorkoutDraft) { draft in
             ActiveWorkoutContainerView(draft: draft, services: services) {
                 UserDefaults.standard.set(0, forKey: "unbound.shortSessionDate")
@@ -346,9 +341,7 @@ struct ProgramOverviewView: View {
                 recoveryPlan: viewModel.recoveryPlan,
                 workoutLog: viewModel.logFor(dayNumber: day.dayNumber),
                 programViewModel: viewModel,
-                programId: viewModel.program?.id ?? "",
-                adjustments: waveAdjustments(for: day),
-                onUndoAdjustment: revertWaveAdjustment
+                programId: viewModel.program?.id ?? ""
             )
         }
         .fullScreenCover(item: $activeRoutinePlayer) { routine in

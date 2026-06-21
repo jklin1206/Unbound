@@ -30,9 +30,6 @@ struct RootView: View {
             || ProcessInfo.processInfo.environment["RANK_TRIAL_DEMOS"] == "1"
             || ProcessInfo.processInfo.environment["RANK_TRIAL_DEMO"] != nil {
             RankTrialDemoRecorderView()
-        } else if ProcessInfo.processInfo.arguments.contains("-rankTrialReadyReview")
-            || ProcessInfo.processInfo.environment["RANK_TRIAL_READY_REVIEW"] == "1" {
-            RankTrialReadyReviewView()
         } else if ProcessInfo.processInfo.arguments.contains("-activeWorkoutDemo") {
             ActiveWorkoutDemoHarness()
         } else if ProcessInfo.processInfo.arguments.contains("-sessionEditorDemo") {

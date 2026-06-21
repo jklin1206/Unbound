@@ -12,6 +12,7 @@ Training-program model types: the generated program itself (days, waves, arcs), 
 | `ProgramSurfaceState.swift` | `ProgramSurfaceState` — what the Program tab surface shows (noProgram / loading / loadError / blockComplete…); proof-state enums and `ProgramProofProgramFactory`. |
 | `ProgressionState.swift` | Per-exercise progression: `ProgressionState`, `BlockType`, `ProgressionPrescriptionBias`, `ExerciseClassification`, `ProgressionAdvance`, `ProgressionFamilyState`, `TierUnlock`, related notification names. |
 | `TrainingFeedbackMode.swift` | `TrainingFeedbackMode` — how much feedback the user wants during training. |
+| `TrainingGoal.swift` | `TrainingGoal` — the user's training objective (strength / hypertrophy / skill) that drives rep ranges + sets, replacing the per-day `BlockType` phase cycle; derived from `BuildIdentity`'s programTemplateKey until an explicit onboarding choice lands. |
 | `TrainingStyle.swift` | `TrainingStyle` plus the program training-context system: scope/mode enums, `ProgramTrainingContextSelection` / `Resolution` / `Resolver`. |
 | `TrainingWeightPolicy.swift` | `TrainingWeightUnit` (kg/lb) and `WeightPlatePolicy` — plate-rounding rules for prescribed weights. |
 | `TravelOverride.swift` | `TravelOverride` / `TravelDay` — bounded bodyweight plan that replaces normal program days while traveling. |

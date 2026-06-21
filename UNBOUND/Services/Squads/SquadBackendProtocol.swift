@@ -76,6 +76,19 @@ protocol SquadBackendProtocol: Sendable {
     /// that guards on squad membership and dedupes by `sourceLogId`.
     func incrementMissionProgress(squadId: UUID, delta: Int, sourceLogId: String) async throws
 
+    /// Fetch per-member contribution totals for a mission from the receipts ledger.
+    /// Rows are member-readable via RLS. Aggregated client-side by userId, summing delta.
+    func fetchMissionContributions(missionId: UUID) async throws -> [MissionContribution]
+
+    /// Captain-only: select a mission kind for the current ISO week via the
+    /// `pick_squad_mission` RPC. Returns nil when a mission already exists for
+    /// the week (on conflict do nothing → no row returned).
+    func pickSquadMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission?
+
+    /// Count completed squad missions within a date range (season bounds).
+    /// Members can read `squad_missions` via RLS.
+    func fetchCompletedMissionCount(squadId: UUID, since: Date, until: Date) async throws -> Int
+
     // MARK: Linked sessions
 
     /// Fetch the most recent `linked_sessions` rows for a squad (newest first).

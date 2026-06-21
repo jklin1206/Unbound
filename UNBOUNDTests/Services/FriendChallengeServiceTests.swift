@@ -40,15 +40,31 @@ final class FriendChallengeServiceTests: XCTestCase {
         }
     }
 
-    func testCreateChallengeRejectsUnsupportedKindBeforeBackend() async {
+    func testCreateChallengeRejectsHeaviestLiftWithoutExerciseBeforeBackend() async {
         let service = FriendChallengeService(remoteBackendEnabled: false)
         do {
             _ = try await service.createChallenge(
                 challengedId: UUID(),
-                kind: .proteinGoal,
-                squadId: UUID()
+                kind: .heaviestLift,
+                squadId: UUID(),
+                exerciseName: nil
             )
             XCTFail("Expected unsupportedChallengeKind to be thrown")
+        } catch SquadError.unsupportedChallengeKind {
+            // Expected: heaviestLift requires a non-blank exercise name.
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        // A blank/whitespace exercise name is also rejected.
+        do {
+            _ = try await service.createChallenge(
+                challengedId: UUID(),
+                kind: .heaviestLift,
+                squadId: UUID(),
+                exerciseName: "   "
+            )
+            XCTFail("Expected unsupportedChallengeKind for blank exercise name")
         } catch SquadError.unsupportedChallengeKind {
             // Expected
         } catch {
@@ -137,10 +153,12 @@ final class FriendChallengeServiceTests: XCTestCase {
         XCTAssertEqual(active.first?.challengedProgress, 0)
     }
 
-    func testRecordProgressSkipsUnsupportedLocalChallengeKind() async throws {
-        let challengerUserId = "dev-unsupported-challenge-progress"
+    func testRecordProgressSignalsHeaviestLiftLocalChallenge() async throws {
+        // Every v2 kind records a +1 signal locally (the server computes the real
+        // weighted/MAX delta); nothing is skipped as "unsupported" anymore.
+        let challengerUserId = "dev-heaviest-challenge-progress"
         let challengerId = try XCTUnwrap(SquadUserIdentity.uuid(from: challengerUserId))
-        let challengedId = try XCTUnwrap(SquadUserIdentity.uuid(from: "dev-unsupported-challenge-opponent"))
+        let challengedId = try XCTUnwrap(SquadUserIdentity.uuid(from: "dev-heaviest-challenge-opponent"))
         AuthService.shared.activateDevUser(id: challengerUserId)
 
         let service = FriendChallengeService(remoteBackendEnabled: true)
@@ -149,7 +167,8 @@ final class FriendChallengeServiceTests: XCTestCase {
             challengerId: challengerId,
             challengedId: challengedId,
             squadId: UUID(),
-            kind: .mostAlignedSessions,
+            kind: .heaviestLift,
+            exerciseName: "Bench Press",
             startedAt: .now.addingTimeInterval(-3600),
             expiresAt: .now.addingTimeInterval(3600),
             acceptedAt: .now,
@@ -159,14 +178,15 @@ final class FriendChallengeServiceTests: XCTestCase {
         ))
 
         await service.recordProgress(
-            log: makeLog(id: "unsupported-proof", userId: challengerUserId, localStartHour: 6),
+            log: makeLog(id: "heaviest-proof", userId: challengerUserId, localStartHour: 6),
             userId: challengerUserId,
-            sourceLogId: "unsupported-proof"
+            sourceLogId: "heaviest-proof"
         )
 
         let active = await service.activeChallenges(userId: challengerId)
-        XCTAssertEqual(active.first?.challengerProgress, 0)
+        XCTAssertEqual(active.first?.challengerProgress, 1)
         XCTAssertEqual(active.first?.challengedProgress, 0)
+        XCTAssertEqual(active.first?.exerciseName, "Bench Press")
     }
 
     func testEvaluateExpiredDoesNotCrash() async {
@@ -188,6 +208,7 @@ final class FriendChallengeServiceTests: XCTestCase {
             challengedId: challengedId,
             squadId: UUID(),
             kind: .mostSessions,
+            exerciseName: nil,
             startedAt: .now.addingTimeInterval(-8 * 24 * 3600),
             expiresAt: .now.addingTimeInterval(-1),  // already past deadline
             acceptedAt: .now.addingTimeInterval(-7 * 24 * 3600),
@@ -236,6 +257,7 @@ final class FriendChallengeServiceTests: XCTestCase {
             challengedId: challengedId,
             squadId: UUID(),
             kind: .mostSessions,
+            exerciseName: nil,
             startedAt: .now.addingTimeInterval(-8 * 24 * 3600),
             expiresAt: .now.addingTimeInterval(-1),
             acceptedAt: .now.addingTimeInterval(-7 * 24 * 3600),
@@ -269,6 +291,7 @@ final class FriendChallengeServiceTests: XCTestCase {
             challengedId: UUID(),
             squadId: UUID(),
             kind: .mostSessions,
+            exerciseName: nil,
             startedAt: .now.addingTimeInterval(-86400),
             expiresAt: .now.addingTimeInterval(-1),  // already expired
             acceptedAt: .now.addingTimeInterval(-86000),

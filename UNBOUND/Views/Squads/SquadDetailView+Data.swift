@@ -16,6 +16,7 @@ extension SquadDetailView {
         await refreshLeaderboardData()
         await awardEndedSeasonWinnerIfEligible()
         await refreshRoutineDrops()
+        await refreshMissionState()
     }
 
     @MainActor
@@ -27,6 +28,87 @@ extension SquadDetailView {
         await refreshLeaderboardData()
         await awardEndedSeasonWinnerIfEligible()
         await refreshRoutineDrops()
+        await refreshMissionState()
+    }
+
+    @MainActor
+    func refreshMissionState() async {
+        guard let squadId = state.currentSquad?.id else {
+            currentMissionState = nil
+            missionContributions = []
+            return
+        }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--unbound-demo-squad-mission") {
+            selectedTab = .challenges
+            let demoId = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE") ?? UUID()
+            currentMissionState = SquadMission(
+                id: demoId,
+                squadId: squadId,
+                weekIso: SquadMissionService.currentWeekIso(),
+                kind: .totalWeight,
+                target: 32000,
+                currentProgress: 18750,
+                completedAt: nil,
+                createdAt: .now
+            )
+            missionContributions = [
+                MissionContribution(userId: nil, total: 8200),
+                MissionContribution(userId: nil, total: 6100),
+                MissionContribution(userId: nil, total: 4450),
+            ]
+            return
+        }
+        if ProcessInfo.processInfo.arguments.contains("--unbound-demo-mission-celebration") {
+            selectedTab = .challenges
+            let demoId = UUID(uuidString: "CCCCCCCC-DDDD-EEEE-FFFF-AAAAAAAAAAAA") ?? UUID()
+            let completedMission = SquadMission(
+                id: demoId,
+                squadId: squadId,
+                weekIso: SquadMissionService.currentWeekIso(),
+                kind: .totalWeight,
+                target: 32000,
+                currentProgress: 33400,
+                completedAt: Date(),
+                createdAt: .now
+            )
+            currentMissionState = completedMission
+            missionContributions = [
+                MissionContribution(userId: UUID(uuidString: "11111111-1111-1111-1111-111111111111"), total: 14200),
+                MissionContribution(userId: UUID(uuidString: "22222222-2222-2222-2222-222222222222"), total: 11800),
+                MissionContribution(userId: UUID(uuidString: "33333333-3333-3333-3333-333333333333"), total: 7400),
+            ]
+            celebratedMission = completedMission
+            return
+        }
+        #endif
+        currentMissionState = await services.squadMission.latestMission(squadId: squadId)
+        if let mission = currentMissionState {
+            if let contributions = try? await services.squadMission.fetchMissionContributions(missionId: mission.id) {
+                missionContributions = contributions
+            } else {
+                missionContributions = []
+            }
+        } else {
+            missionContributions = []
+        }
+        // Trigger celebration for completed missions not yet claimed
+        if let mission = currentMissionState, mission.isCompleted {
+            if let userId = services.auth.currentUserId {
+                CurrencyWalletStore.shared.bind(userId: userId)
+            }
+            let sourceId = SquadRewardPolicy.missionSourceId(mission.id)
+            if !CurrencyWalletStore.shared.hasGranted(sourceId: sourceId) {
+                celebratedMission = mission
+            }
+        }
+        // Season-track: count completed missions within current season interval
+        let season = currentSeason
+        seasonMissionsCompleted = (try? await SquadBackend.shared.fetchCompletedMissionCount(
+            squadId: squadId,
+            since: season.interval.start,
+            until: season.interval.end
+        )) ?? 0
     }
 
     @MainActor
@@ -247,5 +329,16 @@ extension SquadDetailView {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
             NotificationCenter.default.post(name: .savedWorkoutScheduleTodayRequested, object: saved)
         }
+    }
+
+    @MainActor
+    func claimMissionReward(_ mission: SquadMission) {
+        if let userId = services.auth.currentUserId {
+            CurrencyWalletStore.shared.bind(userId: userId)
+        }
+        CurrencyWalletStore.shared.grant(
+            SquadRewardPolicy.missionArcs,
+            sourceId: SquadRewardPolicy.missionSourceId(mission.id)
+        )
     }
 }

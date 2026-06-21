@@ -30,9 +30,8 @@ enum TrainingPrescriptionResolver {
         if state.currentWorkingWeightKg > 0, updated.suggestedWeightKg == nil {
             updated.suggestedWeightKg = suggestedWeight(for: state)
         }
-        if updated.rpe == nil, state.targetRPE > 0 {
-            updated.rpe = state.targetRPE
-        }
+        // RPE-free: the engine no longer prescribes or displays RPE, so we do not
+        // re-add a stored targetRPE here (it would leak RPE back onto the card).
         if state.targetRepMin > 0, state.targetRepMax >= state.targetRepMin {
             updated.target = resolvedTarget(current: updated.target, state: state)
         }
@@ -62,7 +61,6 @@ enum TrainingPrescriptionResolver {
         switch state.prescriptionBias {
         case .easier:
             updated.restSeconds = min(240, updated.restSeconds + (isPrimary ? 30 : 15))
-            updated.rpe = max(5, min(updated.rpe ?? state.targetRPE, state.targetRPE - 1))
             if let weight = updated.suggestedWeightKg, weight > 0 {
                 updated.suggestedWeightKg = WeightPlatePolicy.snappedSuggestionKilograms(max(0, weight * 0.95))
             }

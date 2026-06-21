@@ -2,15 +2,12 @@ import Foundation
 
 // MARK: - ProgressionEngine
 //
-// Deterministic RPE-based progression per Hawks' rules:
+// Deterministic pure double progression:
 //
-//   • Target RPE is set by the current block
-//     - Accumulation: 7
-//     - Intensification: 8
-//     - Realization: 9
-//     - Deload: 6
-//   • Add weight when the athlete hits the TOP of the rep range at target
-//     RPE for 2 consecutive sessions of the same exercise.
+//   • Add weight when the athlete hits the TOP of the rep range for 2
+//     consecutive sessions of the same exercise. RPE is no longer logged, so
+//     it plays no part in the advance decision — AutoDeloadService +
+//     PlateauDetector are the safety net for too-heavy loads.
 //   • Weight jumps use WeightPlatePolicy so lb/kg users see natural plate
 //     jumps instead of raw conversion artifacts.
 //   • Accessories: add reps before adding weight. Once max reps hit, then
@@ -96,24 +93,21 @@ final class ProgressionEngine {
         guard !workingSets.isEmpty else { return }
 
         let bestSet = workingSets.max { a, b in
-            // Primary: reps; tiebreak: RPE; tiebreak: weight
+            // Primary: reps; tiebreak: weight (RPE no longer logged)
             if a.reps != b.reps { return a.reps < b.reps }
-            if (a.rpe ?? 0) != (b.rpe ?? 0) { return (a.rpe ?? 0) < (b.rpe ?? 0) }
             return (a.weightKg ?? 0) < (b.weightKg ?? 0)
         } ?? workingSets[0]
 
-        let hitTopOfRange = bestSet.reps >= state.targetRepMax
-        let hitTargetRPE = isCleanRPEHit(bestSet.rpe, targetRPE: state.targetRPE)
-        let wasGrindy = isGrindyRPE(bestSet.rpe, targetRPE: state.targetRPE)
+        let hitTarget = Self.sessionHitsTarget(bestSetReps: bestSet.reps, targetRepMax: state.targetRepMax)
 
         var next = state
         next.updatedAt = loggedAt
         next.lastSessionReps = bestSet.reps
-        next.lastSessionRPE = bestSet.rpe
-        next.lastSessionHitTarget = hitTopOfRange && hitTargetRPE
-        next.lastSessionWasGrindy = wasGrindy
+        next.lastSessionRPE = nil          // RPE is no longer logged
+        next.lastSessionHitTarget = hitTarget
+        next.lastSessionWasGrindy = false  // no RPE → no grind signal
 
-        if hitTopOfRange && hitTargetRPE {
+        if hitTarget {
             next.consecutiveSessionsAtTarget += 1
             next.underTargetSessionCount = 0
             next.prescriptionBias = .hold
@@ -121,7 +115,7 @@ final class ProgressionEngine {
             next.consecutiveSessionsAtTarget = 0
             let misses = (state.underTargetSessionCount ?? 0) + 1
             next.underTargetSessionCount = misses
-            next.prescriptionBias = wasGrindy || misses >= 2 ? .easier : .hold
+            next.prescriptionBias = misses >= 2 ? .easier : .hold
         }
 
         // Tier unlock: if this exercise belongs to a progression family
@@ -257,16 +251,10 @@ final class ProgressionEngine {
         }
     }
 
-    private func isCleanRPEHit(_ rpe: Int?, targetRPE: Int) -> Bool {
-        guard targetRPE > 0 else { return true }
-        guard let rpe else { return false }
-        return rpe <= targetRPE
-    }
-
-    private func isGrindyRPE(_ rpe: Int?, targetRPE: Int) -> Bool {
-        guard let rpe else { return false }
-        guard targetRPE > 0 else { return rpe >= 9 }
-        return rpe >= targetRPE + 2 || (rpe >= 9 && rpe > targetRPE)
+    /// Pure, rep-based advance check. RPE is no longer logged, so a session
+    /// "hits target" when its best working set reaches the top of the rep range.
+    static func sessionHitsTarget(bestSetReps: Int, targetRepMax: Int) -> Bool {
+        bestSetReps >= targetRepMax
     }
 
     private func accessoryRepCeiling(for state: ProgressionState) -> Int {

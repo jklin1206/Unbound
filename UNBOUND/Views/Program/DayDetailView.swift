@@ -9,8 +9,6 @@ struct DayDetailView: View {
     /// the user can swap exercises and adjust sets/reps.
     var programViewModel: ProgramViewModel? = nil
     var programId: String = ""
-    var adjustments: [WaveAdjustment] = []
-    var onUndoAdjustment: (WaveAdjustment) -> Void = { _ in }
 
     var body: some View {
         ZStack {
@@ -19,8 +17,6 @@ struct DayDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     dayHeader
-
-                    ProgramWaveAdjustmentPanel(adjustments: adjustments, onUndo: onUndoAdjustment)
 
                     if !day.isRestDay, let workout = day.workout {
                         WorkoutSectionRow(

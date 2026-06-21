@@ -4,14 +4,14 @@ extension DeterministicProgramGenerator {
     static func toExercise(
         definition: MovementDefinition,
         input: ProgramGeneratorInput,
-        blockType: BlockType
+        goal: TrainingGoal
     ) -> Exercise {
         let resolution = progressionResolution(for: definition, input: input)
         let definition = resolution.definition
         let state = resolution.state
         let primary = isPrimaryMovement(definition)
         let basePrescription = prescription(
-            for: blockType,
+            for: goal,
             state: state,
             isPrimary: primary,
             fallbackRPE: input.trainingFeedbackMode.defaultTargetRPE,
@@ -51,23 +51,8 @@ extension DeterministicProgramGenerator {
         )
     }
 
-    static func blockType(forDayNumber dayNumber: Int, input: ProgramGeneratorInput) -> BlockType {
-        if input.calibration.requiresLearningWeek { return .deload }
-        let dayInArc = ((max(1, dayNumber) - 1) % standardArcDurationDays) + 1
-        switch dayInArc {
-        case 1...14:
-            return .accumulation
-        case 15...21:
-            return .intensification
-        case 22...24:
-            return input.experience == .never ? .intensification : .realization
-        default:
-            return .deload
-        }
-    }
-
     static func prescription(
-        for blockType: BlockType,
+        for goal: TrainingGoal,
         state: ProgressionState?,
         isPrimary: Bool,
         fallbackRPE: Int,
@@ -76,7 +61,7 @@ extension DeterministicProgramGenerator {
     ) -> GeneratedPrescription {
         if usesCalisthenicsPrescription(definition: definition, input: input) {
             return calisthenicsPrescription(
-                for: blockType,
+                for: goal,
                 state: state,
                 isPrimary: isPrimary,
                 fallbackRPE: fallbackRPE,
@@ -84,41 +69,37 @@ extension DeterministicProgramGenerator {
             )
         }
 
-        switch blockType {
-        case .accumulation:
-            let reps = state.map { "\($0.targetRepMin)-\($0.targetRepMax)" } ?? "8-12"
+        let classification = ExerciseClassification.classify(exerciseKey: definition.displayName)
+        let range = state.map { $0.targetRepMin...$0.targetRepMax }
+            ?? classification.defaultRepRange(for: goal)
+        let reps = "\(range.lowerBound)-\(range.upperBound)"
+
+        // rpe: 0 → `toExercise` nils it → no RPE shown anywhere. Fully RPE-free:
+        // intensity is the rep range + the note.
+        switch goal {
+        case .strength:
+            return (
+                sets: isPrimary ? 4 : 3,
+                reps: reps,
+                restSeconds: isPrimary ? 180 : 90,
+                rpe: 0,
+                note: "Strength. Heavy, clean reps — leave ~1 in reserve; add weight when the top of the range feels solid."
+            )
+        case .hypertrophy:
             return (
                 sets: isPrimary ? 4 : 3,
                 reps: reps,
                 restSeconds: isPrimary ? 120 : 75,
-                rpe: max(7, state?.targetRPE ?? fallbackRPE),
-                note: "Volume focus. Leave 2 reps in reserve."
+                rpe: 0,
+                note: "Build. Push near the top of the rep range (~1–2 in reserve), then add weight."
             )
-        case .intensification:
-            let reps = state.map { "\($0.targetRepMin)-\($0.targetRepMax)" } ?? (isPrimary ? "5-8" : "8-10")
+        case .skill:
             return (
                 sets: isPrimary ? 4 : 3,
                 reps: reps,
-                restSeconds: isPrimary ? 150 : 90,
-                rpe: max(8, state?.targetRPE ?? 8),
-                note: "Load focus. Add weight only if bar speed and form stay clean."
-            )
-        case .realization, .peaking:
-            let reps = state.map { "\($0.targetRepMin)-\($0.targetRepMax)" } ?? (isPrimary ? "3-5" : "6-8")
-            return (
-                sets: isPrimary ? 3 : 2,
-                reps: reps,
-                restSeconds: isPrimary ? 180 : 90,
-                rpe: max(blockType == .peaking ? 9 : 8, state?.targetRPE ?? 0),
-                note: "Quality focus. No grinders; stop before form breaks."
-            )
-        case .deload:
-            return (
-                sets: isPrimary ? 2 : 2,
-                reps: "8 easy",
-                restSeconds: 60,
-                rpe: 6,
-                note: "Deload. Move well and keep reps easy."
+                restSeconds: isPrimary ? 120 : 75,
+                rpe: 0,
+                note: "Quality reps. Stop before form breaks; progress the variation before load."
             )
         }
     }
@@ -135,100 +116,46 @@ extension DeterministicProgramGenerator {
     }
 
     static func calisthenicsPrescription(
-        for blockType: BlockType,
+        for goal: TrainingGoal,
         state: ProgressionState?,
         isPrimary: Bool,
         fallbackRPE: Int,
         definition: MovementDefinition
     ) -> GeneratedPrescription {
+        // HOLD track (isometrics → seconds). Single per-Arc build target; the skill
+        // tree makes the *variation* harder over time, not these numbers. RPE-free.
         if definition.defaultMetric == .holdSeconds || definition.defaultMetric == .durationSeconds {
-            switch blockType {
-            case .accumulation:
-                return (
-                    sets: isPrimary ? 4 : 3,
-                    reps: "15-25s",
-                    restSeconds: isPrimary ? 105 : 75,
-                    rpe: max(7, state?.targetRPE ?? fallbackRPE),
-                    note: "Accumulate clean time. End the set when shape, shoulder position, or breathing breaks."
-                )
-            case .intensification:
-                return (
-                    sets: isPrimary ? 4 : 3,
-                    reps: "10-20s",
-                    restSeconds: isPrimary ? 120 : 90,
-                    rpe: 8,
-                    note: "Harder variation, shorter holds. Keep the line strict before extending time."
-                )
-            case .realization, .peaking:
-                return (
-                    sets: isPrimary ? 3 : 2,
-                    reps: "8-15s",
-                    restSeconds: isPrimary ? 150 : 90,
-                    rpe: blockType == .peaking ? 9 : 8,
-                    note: "Proof-quality holds only. Stop the attempt the moment position drifts."
-                )
-            case .deload:
-                return (
-                    sets: 2,
-                    reps: "10-20s easy",
-                    restSeconds: 60,
-                    rpe: 6,
-                    note: "Deload. Use an easier shape and leave every hold crisp."
-                )
-            }
+            return (
+                sets: isPrimary ? 4 : 3,
+                reps: "15-25s",
+                restSeconds: isPrimary ? 105 : 75,
+                rpe: 0,
+                note: "Accumulate clean time. End the set when shape, shoulder position, or breathing breaks; progress the variation before adding time."
+            )
         }
 
-        switch blockType {
-        case .accumulation:
-            let reps = state.map { "\($0.targetRepMin)-\($0.targetRepMax) clean" } ?? (isPrimary ? "4-8 clean" : "6-10 clean")
-            return (
-                sets: isPrimary ? 4 : 3,
-                reps: reps,
-                restSeconds: isPrimary ? 120 : 75,
-                rpe: max(7, state?.targetRPE ?? fallbackRPE),
-                note: "Build repeatable strict reps. Progress the variation only while range and tempo stay honest."
-            )
-        case .intensification:
-            let reps = state.map { "\($0.targetRepMin)-\($0.targetRepMax) clean" } ?? (isPrimary ? "3-6 clean" : "5-8 clean")
-            return (
-                sets: isPrimary ? 4 : 3,
-                reps: reps,
-                restSeconds: isPrimary ? 150 : 90,
-                rpe: max(8, state?.targetRPE ?? 8),
-                note: "Use a harder leverage or assistance level, not sloppy reps. No kipping unless the skill asks for it."
-            )
-        case .realization, .peaking:
-            let reps = state.map { "\($0.targetRepMin)-\($0.targetRepMax) strict" } ?? (isPrimary ? "2-5 strict" : "4-6 clean")
-            return (
-                sets: isPrimary ? 3 : 2,
-                reps: reps,
-                restSeconds: isPrimary ? 180 : 90,
-                rpe: max(blockType == .peaking ? 9 : 8, state?.targetRPE ?? 0),
-                note: "Proof-quality reps. Stop before partial range, swinging, or joint pain enters."
-            )
-        case .deload:
-            return (
-                sets: 2,
-                reps: "5-8 easy",
-                restSeconds: 60,
-                rpe: 6,
-                note: "Deload. Use an easier variation and keep every rep smooth."
-            )
-        }
+        // REP track (clean reps). Range from progression state, else the goal default.
+        let classification = ExerciseClassification.classify(exerciseKey: definition.displayName)
+        let range = state.map { $0.targetRepMin...$0.targetRepMax }
+            ?? classification.defaultRepRange(for: goal)
+        let reps = "\(range.lowerBound)-\(range.upperBound) clean"
+        return (
+            sets: isPrimary ? 4 : 3,
+            reps: reps,
+            restSeconds: isPrimary ? 120 : 90,
+            rpe: 0,
+            note: "Strict reps only. Progress the variation once range and tempo stay honest at the top of the range."
+        )
     }
 
-    static func blockProgrammingNote(for blockType: BlockType) -> String {
-        switch blockType {
-        case .accumulation:
-            return "Accumulation block: build volume and repeatable standards."
-        case .intensification:
-            return "Intensification block: tighten reps and push load with clean form."
-        case .realization:
-            return "Realization block: lower volume, higher intent, prove the work."
-        case .peaking:
-            return "Peaking block: test-specific work only."
-        case .deload:
-            return "Deload block: reduce fatigue so the next arc lands."
+    static func blockProgrammingNote(for goal: TrainingGoal) -> String {
+        switch goal {
+        case .strength:
+            return "Strength arc: heavy clean reps; add weight at the top of the range."
+        case .hypertrophy:
+            return "Build arc: chase the top of each rep range, then add weight."
+        case .skill:
+            return "Skills arc: strict reps and holds; progress the variation before load."
         }
     }
 
