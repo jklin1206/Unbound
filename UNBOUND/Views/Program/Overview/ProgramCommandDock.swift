@@ -15,10 +15,12 @@ struct ProgramCommandDock: View {
             pendingContext: ProgramTrainingContextOverride?,
             isLoading: Bool
         ) -> SetupTile {
+            // Setup/navigation tier reads cyan (paired with Month); the icon still
+            // hints the active style, the label stays a fixed "Setup".
             return SetupTile(
-                title: compactTrainingStyleLabel(style),
+                title: "Setup",
                 icon: trainingStyleIcon(style),
-                tint: trainingStyleTint(style),
+                tint: Color.unbound.coachCyan,
                 badge: contextDockBadge(
                     activeContext: activeContext,
                     pendingContext: pendingContext
@@ -27,30 +29,12 @@ struct ProgramCommandDock: View {
             )
         }
 
-        private static func compactTrainingStyleLabel(_ style: TrainingStyle) -> String {
-            switch style {
-            case .bodyweight: return "Calis"
-            case .freeWeights: return "Lift"
-            case .hybrid: return "Hybrid"
-            case .machines: return "Gym"
-            }
-        }
-
         private static func trainingStyleIcon(_ style: TrainingStyle) -> String {
             switch style {
             case .bodyweight: return "figure.strengthtraining.functional"
             case .freeWeights: return "dumbbell.fill"
             case .hybrid: return "arrow.triangle.2.circlepath"
             case .machines: return "cable.connector"
-            }
-        }
-
-        private static func trainingStyleTint(_ style: TrainingStyle) -> Color {
-            switch style {
-            case .bodyweight: return Color.unbound.success
-            case .freeWeights: return Color.unbound.accent
-            case .hybrid: return Color.unbound.coachCyan
-            case .machines: return Color.unbound.warnOrange
             }
         }
 

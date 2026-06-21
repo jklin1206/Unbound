@@ -67,7 +67,7 @@ struct CoachActionsRow: View {
             actionButton(
                 title: "Short",
                 icon: "timer",
-                tint: Color.unbound.coachCyan,
+                tint: Color.unbound.accent,
                 action: { sheet = .shortSession }
             )
         }
