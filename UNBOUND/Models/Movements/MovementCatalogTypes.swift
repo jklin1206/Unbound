@@ -77,6 +77,7 @@ enum MovementEquipment: String, Codable, CaseIterable, Hashable, Sendable {
     case rings
     case bench
     case box
+    case parallettes
     case band
     case sled
     case cardioMachine
@@ -97,6 +98,7 @@ enum MovementEquipment: String, Codable, CaseIterable, Hashable, Sendable {
         case .rings: return "Rings"
         case .bench: return "Bench"
         case .box: return "Box"
+        case .parallettes: return "Parallettes"
         case .band: return "Band"
         case .sled: return "Sled"
         case .cardioMachine: return "Cardio Machine"

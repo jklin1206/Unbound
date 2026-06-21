@@ -398,6 +398,13 @@ private struct ExerciseRow: View {
                             showsTrainingDetails && exercise.restSeconds > 0 ? "rest \(exercise.restSeconds)s" : nil,
                             equipmentLabel
                         ])
+
+                        if showsTrainingDetails,
+                           let definition = movementDefinition,
+                           !ExerciseEquipmentAssetStrip.items(for: definition).isEmpty {
+                            ExerciseEquipmentAssetStrip(definition: definition, maxItems: 3, itemSize: 28)
+                                .padding(.top, 2)
+                        }
                     }
 
                     Spacer(minLength: 8)
@@ -575,6 +582,11 @@ private struct EditableExerciseRow: View {
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
                     MetaLine(displayMuscleGroups.prefix(2).map(\.displayName))
+                    if let movementDefinition,
+                       !ExerciseEquipmentAssetStrip.items(for: movementDefinition).isEmpty {
+                        ExerciseEquipmentAssetStrip(definition: movementDefinition, maxItems: 3, itemSize: 28)
+                            .padding(.top, 2)
+                    }
                 }
                 Spacer()
                 Button {
