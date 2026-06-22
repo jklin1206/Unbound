@@ -118,4 +118,55 @@ final class LiveSkillRankAdvanceTests: XCTestCase {
         XCTAssertEqual(weakState.tier(for: hollowNodeId), advancedState.tier(for: hollowNodeId),
                        "Never demotes")
     }
+
+    // MARK: - Stage 2: cross-surface evidence
+
+    private func entry(name: String, movementId: String?, seconds: Int) -> ExerciseLogEntry {
+        ExerciseLogEntry(
+            id: "entry-\(name)", exerciseName: name, movementId: movementId,
+            rankStandardMovementId: movementId ?? name, plannedSets: 1, plannedReps: "—",
+            sets: [set(durationSeconds: seconds)], skipped: false, notes: nil
+        )
+    }
+
+    /// The criterion movement names the hold "hollow body hold". A log of the
+    /// library "Hollow Hold" (the same movement) must satisfy it; a log of
+    /// "Hollow Rock" (a different movement that merely associates) must not.
+    func testProofMatcherCountsTheSkillsOwnMovementButNotAssociates() {
+        XCTAssertTrue(
+            MovementProofMatcher.entry(
+                entry(name: "Hollow Hold", movementId: "exercise.hollow-hold", seconds: 60),
+                satisfies: "hollow body hold"
+            ),
+            "Library 'Hollow Hold' is the hollow-body movement and must count"
+        )
+        XCTAssertFalse(
+            MovementProofMatcher.entry(
+                entry(name: "Hollow Rock", movementId: "exercise.hollow-rock", seconds: 60),
+                satisfies: "hollow body hold"
+            ),
+            "'Hollow Rock' is a distinct movement and must NOT count toward the hollow-body hold"
+        )
+    }
+
+    /// End-to-end: logging the library exercise now advances the skill rank
+    /// (it never did before Stage 2), while logging the distinct Hollow Rock
+    /// leaves the hollow-body skill untouched.
+    func testLibraryExerciseAdvancesSkillButRockDoesNot() {
+        let (libraryAdvances, libraryState) = RankService.shared.tierAdvances(
+            fullHistory: [entry(name: "Hollow Hold", movementId: "exercise.hollow-hold", seconds: 60)],
+            bodyweightKg: bodyweightKg, priorState: .empty
+        )
+        XCTAssertTrue(libraryAdvances.contains { $0.skillId == hollowNodeId },
+                      "Logging the library Hollow Hold should advance Hollow Body")
+        XCTAssertGreaterThan(libraryState.tier(for: hollowNodeId).rawValue, SkillTier.initiate.rawValue)
+
+        let (rockAdvances, rockState) = RankService.shared.tierAdvances(
+            fullHistory: [entry(name: "Hollow Rock", movementId: "exercise.hollow-rock", seconds: 60)],
+            bodyweightKg: bodyweightKg, priorState: .empty
+        )
+        XCTAssertFalse(rockAdvances.contains { $0.skillId == hollowNodeId },
+                       "Logging Hollow Rock must NOT advance Hollow Body")
+        XCTAssertEqual(rockState.tier(for: hollowNodeId), .initiate)
+    }
 }

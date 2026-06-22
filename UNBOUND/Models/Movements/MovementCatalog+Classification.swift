@@ -40,6 +40,35 @@ extension MovementCatalog {
         variantOfMovementId(for: exercise) ?? "exercise.\(slug(exercise.name))"
     }
 
+    /// Curated "this exercise IS this skill's own movement" twins — beyond the
+    /// precise `skillId` that drill/target definitions already carry. Used by
+    /// `MovementProofMatcher` so logging the library exercise advances the SAME
+    /// skill rank as the drill or the skill block (the "one rank, fed from any
+    /// surface" unification). Only the movement that IS the skill belongs here,
+    /// never a merely-associated one: "Hollow Hold" is the hollow-body hold, but
+    /// "Hollow Rock" is a different (dynamic) movement and is excluded.
+    /// Pilot scope is hollow only — expand family-by-family with a per-pair
+    /// metric-compatibility audit (rep-vs-hold criteria must line up).
+    static let exerciseSkillTwins: [String: String] = [
+        "exercise.hollow-hold": "cl.hollow-body-30"
+    ]
+
+    /// The skill a movement *is* (its own rank source), or nil if it is not a
+    /// skill movement. Drills and skill targets carry a precise `skillId`;
+    /// exercise twins resolve through `exerciseSkillTwins`. Deliberately
+    /// excludes mere `skillAssociations`, which are too broad — Hollow Rock and
+    /// Hanging Knee Raise both associate with the hollow-body skill yet are
+    /// distinct movements that must not advance it.
+    static func owningSkillId(forMovementId movementId: String?) -> String? {
+        guard let movementId else { return nil }
+        if let definition = definition(for: movementId),
+           let skillId = definition.skillId,
+           SkillGraph.shared.node(id: skillId) != nil {
+            return skillId
+        }
+        return exerciseSkillTwins[movementId]
+    }
+
     static let exerciseAttributeWeights: [String: [AttributeKey: Double]] = {
         guard let url = Bundle.main.url(forResource: "AttributeContributions", withExtension: "json"),
               let data = try? Data(contentsOf: url),
