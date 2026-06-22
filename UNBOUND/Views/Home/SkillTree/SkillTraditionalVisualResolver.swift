@@ -98,7 +98,7 @@ enum SkillTraditionalVisualResolver {
         "cl.straddle-back-lever": ["straddle-back-lever"],
         "cl.full-back-lever": ["full-back-lever"],
         "cl.dragon-flag": ["dragon-flag"],
-        "ld.single-leg-glute-bridge": ["glute-bridge"],
+        "ld.single-leg-glute-bridge": ["single-leg-glute-bridge"],
         "ld.nordic-curl": ["nordic-curl"],
         "pp.incline-row": ["incline-row"],
         "pp.row": ["inverted-row"],
