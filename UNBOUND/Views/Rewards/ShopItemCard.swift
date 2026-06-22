@@ -86,7 +86,7 @@ struct ShopItemCard: View {
     private var previewAspectRatio: CGFloat {
         switch item.reward {
         case .homeBackground:
-            return ShopBackdropArtworkPreview.homePosterAspectRatio
+            return ShopBackdropArtworkPreview.homeVisibleAspectRatio
         case .profileBackground:
             return ShopBackdropArtworkPreview.profileBannerAspectRatio
         default:
@@ -178,6 +178,10 @@ struct ShopItemCard: View {
 struct ShopBackdropArtworkPreview: View {
     static let homePosterAspectRatio: CGFloat = UnboundBackdropAspect.homePoster
     static let profileBannerAspectRatio: CGFloat = UnboundBackdropAspect.profileBanner
+    /// The shop only shows the slice of a home backdrop the app actually renders:
+    /// the top hero band (top-anchored fill), not the full 9:16 poster. Buying
+    /// then previews exactly what lands behind the home header.
+    static let homeVisibleAspectRatio: CGFloat = 0.84
 
     let assetName: String?
     let accent: Color
@@ -237,10 +241,12 @@ struct ShopBackdropArtworkPreview: View {
                 .saturation(1)
                 .contrast(1)
         case .homePoster, .thumbnail:
+            // Top-anchored fill — show the SAME top slice of the poster the home
+            // hero shows, so the shop card matches what equips on the home screen.
             Image(uiImage: ui)
                 .resizable()
                 .scaledToFill()
-                .frame(width: size.width, height: size.height)
+                .frame(width: size.width, height: size.height, alignment: .top)
                 .clipped()
                 .saturation(isMuted ? 0.35 : 1.08)
                 .contrast(1.05)
