@@ -624,6 +624,11 @@ enum DevBuildBootstrapper {
     static let devScanSandboxArg = "--unbound-dev-scan"
     static let squadRosterProofArg = "--unbound-seed-squad-roster"
     static let squadActivityProofArg = "--unbound-proof-squad-activity"
+    /// `--unbound-dev-prove-skill <skillId>`: logs a qualifying proof of the
+    /// skill's top criterion movement through the REAL completion path, so the
+    /// live skill-rank advance can be demoed on-sim (pair with
+    /// `--unbound-dev-fresh-login` for a clean Initiate → advanced before/after).
+    static let proveSkillDemoArg = "--unbound-dev-prove-skill"
     static let devAccountModeKey = "unbound.dev.accountMode"
     static let freshLoginDevAccountMode = "fresh-login"
     static let resetCompletedWorkoutsDevAccountMode = "reset-completed-workouts"
@@ -685,6 +690,9 @@ enum DevBuildBootstrapper {
         }
         if ProcessInfo.processInfo.arguments.contains(squadActivityProofArg) {
             await seedSquadActivityProof()
+        }
+        if let skillId = launchArgumentValue(for: proveSkillDemoArg) {
+            await proveSkillForDemo(skillId: skillId)
         }
         UserDefaults.standard.set(true, forKey: didBootstrapKey)
     }

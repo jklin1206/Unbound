@@ -683,6 +683,76 @@ extension DevBuildBootstrapper {
         await resetSkillForProof(skillId: skillId)
     }
 
+    /// Logs a qualifying proof of `skillId`'s strongest rep/hold criterion
+    /// through the REAL `TrainingCompletionService` path, so the live skill-rank
+    /// advance (Stage 1) can be demoed on-sim. Pair with `--unbound-dev-fresh-login`
+    /// for a clean Initiate → advanced before/after. DEBUG launch-arg only.
+    static func proveSkillForDemo(skillId: String) async {
+        AuthService.shared.activateDevUser(id: userId)
+        guard let node = SkillGraph.shared.node(id: skillId) else { return }
+
+        // Strongest rep/hold threshold among the node's criteria → a visible jump.
+        var bestReps = 0
+        var bestSeconds = 0
+        var movementName: String?
+        for criterion in node.tierCriteria.values {
+            switch criterion {
+            case .reps(let n, let name):
+                if n >= bestReps { bestReps = n; movementName = name }
+            case .exerciseSeconds(let n, let name):
+                if n >= bestSeconds { bestSeconds = n; movementName = name }
+            default:
+                break
+            }
+        }
+        guard let movementName else { return }
+
+        let set = PerformanceSet(
+            setNumber: 1,
+            reps: bestReps > 0 ? bestReps : nil,
+            weightKg: nil,
+            holdSeconds: bestSeconds > 0 ? bestSeconds : nil,
+            durationSeconds: nil,
+            distanceMeters: nil,
+            calories: nil,
+            rpe: nil,
+            qualityFlags: [],
+            notes: nil
+        )
+        let resolved = MovementResolver.resolve(movementName)
+        let exercise = PerformanceExercise(
+            name: movementName,
+            movementId: resolved.movementId,
+            rankStandardMovementId: resolved.rankStandardMovementId,
+            plannedSets: 1,
+            plannedTarget: "Dev proof",
+            sets: [set],
+            notes: nil
+        )
+        let block = PerformanceBlock(
+            kind: .skill,
+            title: node.title,
+            exercises: [exercise],
+            durationSeconds: nil,
+            distanceMeters: nil,
+            calories: nil,
+            notes: "Dev skill proof"
+        )
+        let now = Date()
+        let log = PerformanceLog(
+            id: "dev-prove-\(skillId)-\(UUID().uuidString)",
+            userId: userId,
+            source: .custom,
+            title: "\(node.title) Dev Proof",
+            startedAt: now,
+            completedAt: now,
+            blocks: [block],
+            overallRPE: nil,
+            notes: nil
+        )
+        _ = try? await TrainingCompletionService.shared.complete(log, services: ServiceContainer())
+    }
+
     static func mondayZeroIndex(for date: Date) -> Int {
         let weekday = Calendar(identifier: .iso8601).component(.weekday, from: date)
         switch weekday {
