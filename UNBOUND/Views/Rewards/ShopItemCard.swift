@@ -86,7 +86,7 @@ struct ShopItemCard: View {
     private var previewAspectRatio: CGFloat {
         switch item.reward {
         case .homeBackground:
-            return ShopBackdropArtworkPreview.homePosterAspectRatio
+            return ShopBackdropArtworkPreview.homeVisibleAspectRatio
         case .profileBackground:
             return ShopBackdropArtworkPreview.profileBannerAspectRatio
         default:
@@ -98,13 +98,15 @@ struct ShopItemCard: View {
     private var preview: some View {
         switch item.reward {
         case .homeBackground(let background):
+            // Show the real backdrop art, not a generic house glyph over a dark
+            // scrim — the category tabs already say what surface this is, so the
+            // preview's job is to accurately render the scene you're buying.
             ShopBackdropArtworkPreview(
                 assetName: background.assetName,
                 accent: background.accent,
                 role: .homePoster,
-                symbolName: "house.fill",
-                symbolSize: 24,
-                scrimOpacity: 0.50
+                symbolName: nil,
+                scrimOpacity: 0.16
             )
         case .skillTreeSkin(let skin):
             ShopSkillTreeMapPreview(skin: skin, compact: true)
@@ -127,8 +129,7 @@ struct ShopItemCard: View {
                 assetName: background.assetName,
                 accent: background.accent,
                 role: .profileBanner,
-                symbolName: "person.crop.rectangle.stack.fill",
-                symbolSize: 23,
+                symbolName: nil,
                 scrimOpacity: 0.52
             )
         case .profileTitle(let titleID):
@@ -177,6 +178,10 @@ struct ShopItemCard: View {
 struct ShopBackdropArtworkPreview: View {
     static let homePosterAspectRatio: CGFloat = UnboundBackdropAspect.homePoster
     static let profileBannerAspectRatio: CGFloat = UnboundBackdropAspect.profileBanner
+    /// The shop only shows the slice of a home backdrop the app actually renders:
+    /// the top hero band (top-anchored fill), not the full 9:16 poster. Buying
+    /// then previews exactly what lands behind the home header.
+    static let homeVisibleAspectRatio: CGFloat = 0.84
 
     let assetName: String?
     let accent: Color
@@ -202,10 +207,13 @@ struct ShopBackdropArtworkPreview: View {
                         .opacity(0.24)
                 }
 
-                if effectiveScrimOpacity > 0 {
+                // Dissolve the bottom of the scene into the card surface instead of
+                // a hard rectangular crop — the backdrop fades out rather than getting
+                // chopped off. (Profile banners keep their own full-bleed treatment.)
+                if role != .profileBanner {
                     LinearGradient(
-                        colors: [Color.clear, Color.black.opacity(effectiveScrimOpacity)],
-                        startPoint: .top,
+                        colors: [Color.clear, Color.unbound.surface],
+                        startPoint: UnitPoint(x: 0.5, y: 0.58),
                         endPoint: .bottom
                     )
                 }
@@ -233,19 +241,18 @@ struct ShopBackdropArtworkPreview: View {
                 .saturation(1)
                 .contrast(1)
         case .homePoster, .thumbnail:
+            // Top-anchored fill — show the SAME top slice of the poster the home
+            // hero shows, so the shop card matches what equips on the home screen.
             Image(uiImage: ui)
                 .resizable()
                 .scaledToFill()
-                .frame(width: size.width, height: size.height)
+                .frame(width: size.width, height: size.height, alignment: .top)
                 .clipped()
                 .saturation(isMuted ? 0.35 : 1.08)
                 .contrast(1.05)
         }
     }
 
-    private var effectiveScrimOpacity: Double {
-        role == .profileBanner ? 0 : scrimOpacity
-    }
 }
 
 struct ArcCurrencyAmount: View {
