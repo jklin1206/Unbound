@@ -1,20 +1,19 @@
 import Foundation
 
-/// The four tabs of the unified rank-detail screen. The container renders one
+/// The three tabs of the unified rank-detail screen. The container renders one
 /// pane per case; each pane consumes the matching derived data on
 /// `RankDetailViewModel`. Order here is the on-screen left-to-right order.
+/// History folded into Stats (one rich data tab: PRs + graph + attempts).
 enum RankDetailTab: String, CaseIterable, Hashable {
     case overview
     case rank
     case stats
-    case history
 
     var title: String {
         switch self {
         case .overview: return "Overview"
         case .rank:     return "Rank"
         case .stats:    return "Stats"
-        case .history:  return "History"
         }
     }
 }

@@ -1,44 +1,112 @@
 import SwiftUI
 
-/// Stats tab of the unified rank detail: the user's numbers - bests/PRs, total
-/// AP, last logged. Only movement-relevant stats appear (no empty distance /
-/// calories on a pull-up).
+/// Stats tab of the unified rank detail — the rich data pane (History folded in).
+/// Top to bottom:
+///   1. PROGRESSION — a trend line graph over time (1RM / load / reps / hold) with
+///      a 30D / 90D / ALL range selector. Only when attempt history exists.
+///   2. PERSONAL RECORDS — the bests/PRs + derived numbers (attempts, first
+///      logged, accumulated, last logged) as a 2-column tile grid.
+///   3. PAST ATTEMPTS — the chronological attempt log, most recent first.
 ///
-/// Renders `vm.statItems` as a 2-column fill-only raised-surface tile grid.
-/// Each tile: small uppercase mono label + mono value readout + optional icon.
-/// Before the first log there are no stats, so the tab shows a structured
-/// first-time state instead — placeholder "—" tiles for the metrics relevant to
-/// `vm.logMode`, plus a calm prompt — so the tab always has shape.
+/// Before the first log there is no data, so the tab shows a structured first-time
+/// state instead — placeholder "—" tiles for the metrics relevant to `vm.logMode`,
+/// plus a calm prompt — so the tab always has shape.
 struct RankDetailStatsTab: View {
     let vm: RankDetailViewModel
+
+    @State private var selectedRange: ProgramRankRepGraphRange = .all
 
     private let columns = [
         GridItem(.flexible(), spacing: 10),
         GridItem(.flexible(), spacing: 10)
     ]
 
+    private var hasData: Bool { !vm.statItems.isEmpty || !vm.history.isEmpty }
+
     var body: some View {
         Group {
-            if vm.statItems.isEmpty {
-                firstTimeState
+            if hasData {
+                VStack(alignment: .leading, spacing: 22) {
+                    if !vm.history.isEmpty {
+                        progressionSection
+                    }
+                    recordsSection
+                    if !vm.history.isEmpty {
+                        attemptsSection
+                    }
+                }
             } else {
-                tileGrid
+                firstTimeState
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Tile grid (has data)
+    // MARK: - 1. Progression graph
 
-    private var tileGrid: some View {
-        LazyVGrid(columns: columns, spacing: 10) {
-            ForEach(Array(vm.statItems.enumerated()), id: \.element.id) { index, stat in
-                StatTileView(
-                    stat: stat,
-                    tint: vm.tint,
-                    isLead: index == 0,
-                    isPlaceholder: false
-                )
+    private var progressionSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionLabel("PROGRESSION")
+            ProgramRankProofHistoryLineGraph(
+                entries: vm.history,
+                currentValue: currentValue,
+                historyValue: historyValue(for:),
+                valueFormatter: formatValue(_:),
+                selectedRange: $selectedRange,
+                tint: vm.tint,
+                accessibilityUnit: logMode.accessibilityUnit
+            )
+        }
+    }
+
+    // MARK: - 2. Records + derived tiles
+
+    private var recordsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionLabel("PERSONAL RECORDS")
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(Array(gridStats.enumerated()), id: \.element.id) { index, stat in
+                    StatTileView(stat: stat, tint: vm.tint, isLead: index == 0, isPlaceholder: false)
+                }
+            }
+        }
+    }
+
+    /// PRs from the view model, plus two numbers derived here from the attempt
+    /// history (no extra persistence needed).
+    private var gridStats: [RankStatItem] {
+        vm.statItems + derivedStats
+    }
+
+    private var derivedStats: [RankStatItem] {
+        guard !vm.history.isEmpty else { return [] }
+        var items: [RankStatItem] = [
+            RankStatItem(id: "attempts", label: "Attempts", value: "\(vm.history.count)", systemImage: "number")
+        ]
+        if let first = vm.history.map(\.occurredAt).min() {
+            items.append(RankStatItem(
+                id: "first-logged",
+                label: "First Logged",
+                value: first.formatted(.dateTime.month(.abbreviated).day()),
+                systemImage: "calendar.badge.clock"
+            ))
+        }
+        return items
+    }
+
+    // MARK: - 3. Attempts list
+
+    private var attemptsSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            sectionLabel("PAST ATTEMPTS")
+                .padding(.bottom, 10)
+            VStack(spacing: 0) {
+                ForEach(sortedHistory) { entry in
+                    HistoryEntryRow(entry: entry, tint: vm.tint)
+                    if entry.id != sortedHistory.last?.id {
+                        Divider().overlay(Color.unbound.borderSubtle.opacity(0.5))
+                    }
+                }
             }
         }
     }
@@ -49,12 +117,7 @@ struct RankDetailStatsTab: View {
         VStack(alignment: .leading, spacing: 14) {
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(Array(placeholderStats.enumerated()), id: \.element.id) { _, stat in
-                    StatTileView(
-                        stat: stat,
-                        tint: vm.tint,
-                        isLead: false,
-                        isPlaceholder: true
-                    )
+                    StatTileView(stat: stat, tint: vm.tint, isLead: false, isPlaceholder: true)
                 }
             }
 
@@ -86,8 +149,8 @@ struct RankDetailStatsTab: View {
         }
     }
 
-    /// The placeholder tiles to scaffold, keyed off the metric this movement
-    /// logs. Always ends with an Accumulated tile so the ledger row is present.
+    /// The placeholder tiles to scaffold, keyed off the metric this movement logs.
+    /// Always ends with an Accumulated tile so the ledger row is present.
     private var placeholderStats: [RankStatItem] {
         var items: [RankStatItem]
         switch vm.logMode {
@@ -103,6 +166,48 @@ struct RankDetailStatsTab: View {
         }
         items.append(RankStatItem(id: "ph-ap", label: "Accumulated", value: "\u{2014}", systemImage: "bolt.fill"))
         return items
+    }
+
+    // MARK: - History helpers (graph + list)
+
+    private var logMode: ProgramRankExerciseLogMode {
+        guard let definition = vm.movementDefinition else { return .reps }
+        return ProgramRankExerciseLogMode.mode(for: definition)
+    }
+
+    private var sortedHistory: [ProgramRankExerciseHistoryEntry] {
+        vm.history.sorted { $0.occurredAt > $1.occurredAt }
+    }
+
+    private func historyValue(for entry: ProgramRankExerciseHistoryEntry) -> Double? {
+        switch logMode {
+        case .oneRepMax: return entry.oneRepMaxKg
+        case .reps:      return entry.reps.map(Double.init)
+        case .hold:      return entry.holdSeconds.map(Double.init)
+        }
+    }
+
+    private func formatValue(_ value: Double) -> String {
+        switch logMode {
+        case .oneRepMax:
+            let unit = WeightPlatePolicy.currentUnit
+            return "\(WeightPlatePolicy.formatDisplayValue(unit.displayValue(fromKilograms: value)))\(unit.shortLabel)"
+        case .reps:
+            return "\(Int(value.rounded())) reps"
+        case .hold:
+            return ProgramRankExerciseFormatter.seconds(Int(value.rounded()))
+        }
+    }
+
+    private var currentValue: Double {
+        vm.history.compactMap { historyValue(for: $0) }.max() ?? 0
+    }
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text)
+            .font(Font.unbound.captionS.weight(.heavy))
+            .tracking(0.8)
+            .foregroundStyle(Color.unbound.textTertiary)
     }
 }
 
@@ -155,5 +260,30 @@ private struct StatTileView: View {
     private var tileBackground: some View {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
             .fill(Color.unbound.surface)
+    }
+}
+
+// MARK: - History row
+
+private struct HistoryEntryRow: View {
+    let entry: ProgramRankExerciseHistoryEntry
+    let tint: Color
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(entry.summary)
+                    .font(Font.unbound.bodyS.weight(.semibold))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                Text(entry.dateText)
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
     }
 }

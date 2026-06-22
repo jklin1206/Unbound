@@ -2,12 +2,11 @@ import SwiftUI
 
 /// The unified, tabbed rank-detail screen. One screen for BOTH ranked exercises
 /// and skills: a custom top bar, a tier-tinted hero, a pinned underline tab bar,
-/// and four panes:
+/// and three panes:
 /// - Overview: reference (muscle map, equipment, technique guide).
-/// - Rank: the all-ranks climb + Log a Set + the inline rank-up reveal.
-/// - Stats: personal records (with a first-time placeholder state).
-/// - History: trend chart + chronological attempts.
-/// The four panes share one scroll; switching tabs resets it to the top.
+/// - Rank: the theatrical mystery-ladder climb + Log a Set + the inline reveal.
+/// - Stats: PRs + progression graph + derived stats + attempts history.
+/// The three panes share one scroll; switching tabs resets it to the top.
 struct RankDetailView: View {
     @State private var vm: RankDetailViewModel
     @State private var selectedTab: RankDetailTab = .overview
@@ -65,7 +64,7 @@ struct RankDetailView: View {
                                 Color.clear.frame(height: 36)
                             } header: {
                                 // Pinned so tab switching stays reachable while long
-                                // panes (Overview/History) scroll under it.
+                                // panes (Overview/Stats) scroll under it.
                                 UnderlineTabBar(
                                     tabs: RankDetailTab.allCases,
                                     title: \.title,
@@ -174,7 +173,6 @@ struct RankDetailView: View {
         case .overview: RankDetailOverviewTab(vm: vm)
         case .rank:     RankDetailRankTab(vm: vm, onLogged: onLogged)
         case .stats:    RankDetailStatsTab(vm: vm)
-        case .history:  RankDetailHistoryTab(vm: vm)
         }
     }
 }

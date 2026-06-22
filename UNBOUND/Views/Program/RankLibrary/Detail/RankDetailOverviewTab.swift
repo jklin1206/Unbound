@@ -49,7 +49,7 @@ struct RankDetailOverviewTab: View {
     private func equipmentSection(_ definition: MovementDefinition) -> some View {
         if !ExerciseLibrary.equipmentLabels(for: definition).isEmpty {
             section(title: "EQUIPMENT") {
-                ExerciseEquipmentAssetStrip(definition: definition, itemSize: 34, showsLabels: true)
+                ExerciseEquipmentAssetStrip(definition: definition, maxItems: 4, itemSize: 48, showsLabels: true)
             }
         }
     }

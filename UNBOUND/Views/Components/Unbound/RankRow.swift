@@ -8,49 +8,53 @@ struct RankRow: View {
 
     private var tint: Color { row.tier.rewardTextTint }
 
+    private var rankLabel: String {
+        row.isRankHidden ? "Unranked" : row.tier.displayName
+    }
+
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             artwork
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(row.title)
                     .font(Font.unbound.bodyLStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                MetaLine([
-                    row.source.displayName,
-                    row.isRankHidden ? nil : row.tier.displayName,
-                    row.metric
-                ])
+                Text(rankLabel)
+                    .font(Font.unbound.caption.weight(.semibold))
+                    .foregroundStyle(row.isRankHidden ? Color.unbound.textTertiary : tint)
+                    .lineLimit(1)
             }
 
             Spacer(minLength: 8)
 
             tierShield
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.unbound.textTertiary)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(Color.unbound.surface)
         )
         .opacity(row.isEarned ? 1 : 0.6)
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(row.title), \(row.source.displayName), \(row.isRankHidden ? "unranked" : row.tier.displayName), \(row.metric)")
+        .accessibilityLabel("\(row.title), \(rankLabel)")
         .accessibilityAddTraits(.isButton)
+    }
+
+    private var usesCharacterArt: Bool {
+        row.source == .exercise
+            || (row.visualAssetName?.hasPrefix("exercise_visual_") == true)
     }
 
     @ViewBuilder
     private var artwork: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
                 .fill(artworkBackground)
 
             if let assetName = row.visualAssetName {
@@ -59,23 +63,43 @@ struct RankRow: View {
                     .resizable()
                     .interpolation(.high)
                     .scaledToFit()
-                    .padding(4)
+                    .padding(3)
                     .opacity(row.isEarned ? 1 : 0.5)
             } else {
                 Image(systemName: row.source.systemImage)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(tint.opacity(row.isEarned ? 0.9 : 0.45))
             }
         }
-        .frame(width: 44, height: 44)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .frame(width: 56, height: 56)
+        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .strokeBorder(artworkBorder, lineWidth: 1)
+        )
     }
 
+    // Character art is dark-on-transparent, drawn for a light backdrop. Give it a
+    // crafted light "portrait" tile - a soft top-down gradient framed by the rank
+    // tint - so it reads as an intentional collectible, not a flat white sticker.
     private var artworkBackground: some ShapeStyle {
-        let usesExerciseArt = row.source == .exercise
-            || (row.visualAssetName?.hasPrefix("exercise_visual_") == true)
-        if usesExerciseArt { return AnyShapeStyle(Color.white) }
-        return AnyShapeStyle(tint.opacity(row.isEarned ? 0.14 : 0.07))
+        if usesCharacterArt {
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [Color(white: 0.95), Color(white: 0.82)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+        }
+        return AnyShapeStyle(tint.opacity(row.isEarned ? 0.16 : 0.08))
+    }
+
+    private var artworkBorder: Color {
+        if usesCharacterArt {
+            return row.isEarned ? tint.opacity(0.45) : Color.black.opacity(0.12)
+        }
+        return tint.opacity(row.isEarned ? 0.3 : 0.12)
     }
 
     @ViewBuilder
@@ -84,12 +108,12 @@ struct RankRow: View {
             Text("—")
                 .font(Font.unbound.titleS)
                 .foregroundStyle(Color.unbound.textTertiary)
-                .frame(width: 30, height: 30)
+                .frame(width: 34, height: 34)
         } else {
             Image(row.tier.assetName)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 30, height: 30)
+                .frame(width: 34, height: 34)
                 .opacity(row.isEarned ? 1 : 0.4)
                 .shadow(color: tint.opacity(row.isEarned ? 0.3 : 0), radius: 6)
         }

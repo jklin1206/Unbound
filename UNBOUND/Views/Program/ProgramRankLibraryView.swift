@@ -55,49 +55,33 @@ struct ProgramRankLibraryView: View {
         rows.map(\.tier).max() ?? .initiate
     }
 
-    private var totalAP: Int {
-        Int(rows.reduce(0) { $0 + $1.totalAP }.rounded())
-    }
-
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 14) {
-                rankLibraryHeader
-                rankSearchField
-                rankFilterRail
+        VStack(spacing: 0) {
+            topBar
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
+                    rankLibraryHeader
+                    rankSearchField
+                    rankFilterRail
 
-                if isLoading {
-                    loadingState
-                } else if groupedSections.isEmpty {
-                    emptyState
-                } else {
-                    ForEach(groupedSections) { section in
-                        rankSection(section)
+                    if isLoading {
+                        loadingState
+                    } else if groupedSections.isEmpty {
+                        emptyState
+                    } else {
+                        ForEach(groupedSections) { section in
+                            rankSection(section)
+                        }
                     }
-                }
 
-                Spacer().frame(height: 28)
+                    Spacer().frame(height: 36)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
         }
         .background(Color.unbound.bg.ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    UnboundHaptics.soft()
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                }
-                .accessibilityLabel("Close rank library")
-            }
-        }
-        .toolbarBackground(Color.unbound.bg, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(item: $selectedDetailRow) { row in
             RankDetailView(row: row) {
                 await loadRanks()
@@ -109,29 +93,50 @@ struct ProgramRankLibraryView: View {
         }
     }
 
+    /// Pinned, flush-to-top close control. A substantial circular button instead of
+    /// a bare nav-bar glyph - stays available while the list scrolls.
+    private var topBar: some View {
+        HStack {
+            Button {
+                UnboundHaptics.soft()
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .frame(width: 42, height: 42)
+                    .background(Circle().fill(Color.unbound.surface))
+                    .overlay(Circle().strokeBorder(Color.unbound.border, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close rank library")
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 4)
+        .padding(.bottom, 12)
+    }
+
     private var rankLibraryHeader: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("RANK LIBRARY")
-                    .font(Font.unbound.titleM)
+        HStack(alignment: .center, spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Rank Library")
+                    .font(Font.unbound.titleL)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
                 MetaLine([
-                    "\(earnedCount) earned",
-                    "\(rows.count) standards",
-                    "Top \(topTier.displayName)",
-                    "\(totalAP) XP"
+                    "\(earnedCount) of \(rows.count) ranked",
+                    "Top \(topTier.displayName)"
                 ], emphasized: true)
             }
             Spacer(minLength: 0)
             Image(topTier.assetName)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 44, height: 44)
-                .shadow(color: topTier.rewardTextTint.opacity(0.35), radius: 10)
+                .frame(width: 56, height: 56)
+                .shadow(color: topTier.rewardTextTint.opacity(0.35), radius: 14)
         }
-        .padding(.vertical, 2)
         .accessibilityIdentifier("program.rankLibrary.header")
     }
 
@@ -147,14 +152,14 @@ struct ProgramRankLibraryView: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
         }
-        .padding(.horizontal, 12)
-        .frame(height: 42)
+        .padding(.horizontal, 14)
+        .frame(height: 48)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color.unbound.surface)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
         )
     }
@@ -194,7 +199,7 @@ struct ProgramRankLibraryView: View {
     }
 
     private func rankSection(_ section: ProgramRankLibrarySection) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
                 Text(section.title.uppercased())
                     .font(Font.unbound.captionS.weight(.heavy))
@@ -207,7 +212,7 @@ struct ProgramRankLibraryView: View {
                     .monospacedDigit()
             }
 
-            VStack(spacing: 8) {
+            VStack(spacing: 11) {
                 ForEach(section.rows) { row in
                     Button {
                         UnboundHaptics.soft()
@@ -245,11 +250,19 @@ struct ProgramRankLibraryView: View {
 
         let skillTiers = UserSkillTierStore.shared.load(userId: userId)
         let skillService = SkillProgressService.shared
-        rows = Self.makeSkillRows(
+        let skillRows = Self.makeSkillRows(
             skillTiers: skillTiers,
             nodeStates: skillService.nodeStates,
             programFocusIds: skillService.programFocusIds
-        ) + Self.makeMovementRows(progressStates: progressStates, profile: userProfile)
+        )
+        // A movement that's also a skill node (push-up, pistol squat, muscle-up...)
+        // would otherwise appear twice. The skill node is the single rank source,
+        // so keep it and drop the exercise/skill-drill twin (matched by normalized
+        // name, which folds "Push-Up"/"Pushup" together).
+        let skillKeys = Set(skillRows.map { Self.searchKey($0.title) })
+        let movementRows = Self.makeMovementRows(progressStates: progressStates, profile: userProfile)
+            .filter { !skillKeys.contains(Self.searchKey($0.title)) }
+        rows = skillRows + movementRows
         isLoading = false
     }
 

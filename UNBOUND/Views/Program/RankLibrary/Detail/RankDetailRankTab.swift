@@ -100,54 +100,26 @@ struct RankDetailRankTab: View {
     // MARK: - 1. Compact header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 11) {
-                Image(vm.displayedTier.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 34, height: 34)
-                    .shadow(color: vm.tint.opacity(0.4), radius: 6)
+        HStack(spacing: 11) {
+            Image(vm.displayedTier.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 34, height: 34)
+                .shadow(color: vm.tint.opacity(0.4), radius: 6)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("CURRENT RANK")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.1)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text(vm.displayedTier.displayName.uppercased())
-                        .font(Font.unbound.titleS.weight(.black))
-                        .foregroundStyle(vm.tint)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                }
-
-                Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("CURRENT RANK")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.1)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Text(vm.displayedTier.displayName.uppercased())
+                    .font(Font.unbound.titleS.weight(.black))
+                    .foregroundStyle(vm.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
             }
 
-            if let gateText = vm.nextGateText {
-                HStack(alignment: .top, spacing: 9) {
-                    Image(systemName: "flag.checkered")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(vm.tint)
-                        .frame(width: 18)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("NEXT GATE")
-                            .font(Font.unbound.captionS.weight(.heavy))
-                            .tracking(1.0)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                        Text(gateText)
-                            .font(Font.unbound.bodyS)
-                            .foregroundStyle(Color.unbound.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.unbound.surface)
-                )
-            }
+            Spacer(minLength: 0)
         }
     }
 
@@ -416,11 +388,12 @@ struct RankDetailRankTab: View {
 
 // MARK: - Climb rung
 
-/// One rung of the vertical climb. A connecting spine runs down the left edge:
-/// the segment is filled in `tint` once the rung above it is cleared and the
-/// rung itself is reached, hollow otherwise. The current/next rung is
-/// emphasized with a larger shield, a tint glow, and a "NEXT" marker; cleared
-/// rungs get a subtle check; locked rungs are dimmed.
+/// One rung of the vertical climb — theatrical, not a checklist. Earned tiers are
+/// REVEALED: the real shield lights up with the tier name and a check. Everything
+/// you haven't reached is a sealed "???" token — you can see the climb stretch
+/// above you and how far it goes, but never the tier's name or what it takes to
+/// reach it. The next rank glows to beckon; the rest sit dark. The requirement is
+/// only ever revealed by unlocking it (the ignite reveal flips a token to a shield).
 private struct RankClimbRung: View {
     let rung: RankLadderRow
     let tint: Color
@@ -428,55 +401,47 @@ private struct RankClimbRung: View {
     let isLast: Bool
     let isIgnited: Bool
 
-    private var isEmphasized: Bool { rung.isCurrent || rung.isNext }
-    private var isLocked: Bool { !rung.isCleared && !isEmphasized }
+    private var revealed: Bool { rung.isCleared }
+    private var isNextTarget: Bool { rung.isCurrent || rung.isNext }
 
     private var rowTint: Color {
-        if rung.isCleared { return Color.unbound.success }
-        if isEmphasized { return tint }
+        if revealed { return Color.unbound.success }
+        if isNextTarget { return tint }
         return Color.unbound.textTertiary
     }
 
-    private var shieldSize: CGFloat { isEmphasized ? 38 : 28 }
+    private var shieldSize: CGFloat { isNextTarget ? 38 : (revealed ? 32 : 30) }
 
-    /// The upper spine segment (toward higher tiers, drawn above this rung) is
-    /// filled when this rung is cleared — i.e. you've climbed past it.
     private var upperFilled: Bool { rung.isCleared }
-    /// The lower spine segment (toward lower tiers) is filled when this rung is
-    /// reached at all (cleared or the current target the spine climbs into).
-    private var lowerFilled: Bool { rung.isCleared || isEmphasized }
+    private var lowerFilled: Bool { rung.isCleared || isNextTarget }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             spine
                 .frame(width: 38)
 
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(rung.tier.displayName.uppercased())
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(0.9)
-                        .foregroundStyle(rowTint)
-                    if isEmphasized { nextMarker }
-                    Spacer(minLength: 0)
-                    if rung.isCleared {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 10, weight: .heavy))
-                            .foregroundStyle(Color.unbound.success)
-                    }
+            HStack(spacing: 6) {
+                Text(revealed ? rung.tier.displayName.uppercased() : (isNextTarget ? "NEXT RANK" : "SEALED"))
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(revealed ? 0.9 : 1.4)
+                    .foregroundStyle(rowTint)
+                Spacer(minLength: 0)
+                if revealed {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundStyle(Color.unbound.success)
+                } else {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(isNextTarget ? tint.opacity(0.85) : Color.unbound.textTertiary.opacity(0.7))
                 }
-                Text(rung.criteriaText)
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(isLocked ? Color.unbound.textTertiary : Color.unbound.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.top, isEmphasized ? 7 : 2)
-            .padding(.bottom, 14)
+            .padding(.vertical, 12)
         }
         .padding(.horizontal, 8)
         .background(
             Group {
-                if isEmphasized {
+                if isNextTarget {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(tint.opacity(0.08))
                         .padding(.vertical, 2)
@@ -485,21 +450,19 @@ private struct RankClimbRung: View {
         )
     }
 
-    /// Vertical spine: a connecting line behind a tier shield. Cleared segments
+    /// Vertical spine: a connecting line behind the tier token. Cleared segments
     /// glow `tint`; future segments are hollow (`borderSubtle`).
     private var spine: some View {
         VStack(spacing: 0) {
-            // Upper connector (hidden for the very first/top rung).
             Rectangle()
                 .fill(upperFilled ? tint : Color.unbound.borderSubtle)
                 .frame(width: 2.5)
                 .frame(height: 12)
                 .opacity(isFirst ? 0 : 1)
 
-            shield
+            token
                 .scaleEffect(isIgnited ? 1.18 : 1.0)
 
-            // Lower connector (hidden for the very last/bottom rung).
             Rectangle()
                 .fill(lowerFilled ? tint : Color.unbound.borderSubtle)
                 .frame(width: 2.5)
@@ -508,28 +471,36 @@ private struct RankClimbRung: View {
         }
     }
 
-    private var shield: some View {
-        Image(rung.tier.assetName)
-            .resizable()
-            .scaledToFit()
+    /// Revealed → the real tier shield. Locked → a sealed "???" token that hides
+    /// the shield's identity entirely (no shape, no color leak).
+    @ViewBuilder
+    private var token: some View {
+        if revealed {
+            Image(rung.tier.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: shieldSize, height: shieldSize)
+                .shadow(
+                    color: isIgnited ? tint.opacity(0.85) : Color.unbound.success.opacity(0.35),
+                    radius: isIgnited ? 16 : 5
+                )
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(Color.unbound.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .strokeBorder(
+                                isNextTarget ? tint.opacity(0.5) : Color.unbound.borderSubtle,
+                                lineWidth: 1
+                            )
+                    )
+                Image(systemName: "questionmark")
+                    .font(.system(size: shieldSize * 0.42, weight: .heavy))
+                    .foregroundStyle(isNextTarget ? tint : Color.unbound.textTertiary.opacity(0.55))
+            }
             .frame(width: shieldSize, height: shieldSize)
-            .opacity(isLocked ? 0.35 : 1.0)
-            .shadow(
-                color: (isEmphasized || isIgnited) ? tint.opacity(isIgnited ? 0.85 : 0.45) : .clear,
-                radius: isIgnited ? 16 : (isEmphasized ? 8 : 0)
-            )
-    }
-
-    private var nextMarker: some View {
-        Text("NEXT")
-            .font(.system(size: 8, weight: .heavy, design: .monospaced))
-            .tracking(0.8)
-            .foregroundStyle(tint)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(tint.opacity(0.16))
-            )
+            .shadow(color: isNextTarget ? tint.opacity(0.35) : .clear, radius: isNextTarget ? 8 : 0)
+        }
     }
 }
