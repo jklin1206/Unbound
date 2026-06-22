@@ -341,6 +341,7 @@ extension MovementCatalog {
         if name.contains("ring") { equipment.insert(.rings) }
         if name.contains("bench") || name.contains("incline") || name.contains("decline") || name.contains("chest supported") { equipment.insert(.bench) }
         if name.contains("box") || name.contains("step up") { equipment.insert(.box) }
+        if name.contains("parallette") { equipment.insert(.parallettes) }
         if name.contains("band") { equipment.insert(.band) }
 
         if equipment.isEmpty || blockKind(for: exercise) == .bodyweight {

@@ -8,14 +8,14 @@ extension UnboundHomeView {
     }
 
     var homeControlSurface: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 10) {
             homeMissionStatusBand
             homeUtilityDockBand
                 .id("homeTiles")
             homeTrialKeyBand
         }
         .padding(.top, 4)
-        .padding(.bottom, 14)
+        .padding(.bottom, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -29,8 +29,8 @@ extension UnboundHomeView {
     // row beneath it opens the full 8-gate list. The vow is a separate, slim
     // strip — a weekly self-report habit, not a place you enter.
     var homeTrialKeyBand: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HomeBandHeader(title: "Trials")
+        VStack(alignment: .leading, spacing: 10) {
+            HomeBandHeader(title: "Rank Trials & Vows")
 
             rankGateBlock
 
@@ -116,7 +116,8 @@ extension UnboundHomeView {
 
     var homeUtilityDockBand: some View {
         homeCommandStrip
-        .padding(.vertical, 10)
+        .padding(.top, 5)
+        .padding(.bottom, 7)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .top) {
             UnboundNativeDivider(opacity: 0.54)
@@ -433,15 +434,19 @@ private struct HomeBandHeader: View {
     let title: String
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 9) {
+            Capsule()
+                .fill(Color.unbound.accent.opacity(0.82))
+                .frame(width: 3, height: 12)
+
             Text(title.uppercased())
-                .font(.system(size: 9, weight: .black, design: .monospaced))
-                .tracking(1.6)
-                .foregroundStyle(Color.unbound.textTertiary)
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textSecondary)
                 .lineLimit(1)
 
             Rectangle()
-                .fill(Color.unbound.borderSubtle.opacity(0.58))
+                .fill(Color.unbound.borderSubtle.opacity(0.64))
                 .frame(height: 0.5)
         }
     }
@@ -456,13 +461,13 @@ private struct HomeCommandStripButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .center, spacing: 8) {
+            VStack(alignment: .center, spacing: 5) {
                 HomeCommandArtwork(kind: artwork, tint: tint)
-                    .frame(width: 48, height: 48)
+                    .frame(width: 40, height: 40)
 
                 Text(title.uppercased())
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .tracking(0.7)
+                    .font(.system(size: 8, weight: .black, design: .monospaced))
+                    .tracking(0.5)
                     .foregroundStyle(Color.unbound.textTertiary)
                     .lineLimit(1)
                     .multilineTextAlignment(.center)
@@ -470,7 +475,7 @@ private struct HomeCommandStripButton: View {
                     .frame(height: 14, alignment: .top)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 78)
+            .frame(height: 58)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

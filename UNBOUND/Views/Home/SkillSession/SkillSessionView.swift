@@ -2,8 +2,8 @@ import SwiftUI
 
 // MARK: - SkillSessionView
 //
-// Full modal session logger for a skill. Surfaced from SkillDetailView's
-// "TRAIN" button. Pulls the authored SkillTrainingPlan and lays out a
+// Full modal session logger for a skill. Surfaced from RankDetailView's
+// Overview tab "TRAIN" button. Pulls the authored SkillTrainingPlan and lays out a
 // SINGLE workout list (the day's main work). Regressions and accessories
 // are collapsed by default and only revealed if the user wants them — so
 // the session feels like one cluster of work, not three sections.

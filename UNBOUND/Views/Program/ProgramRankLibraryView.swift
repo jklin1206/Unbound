@@ -5,6 +5,7 @@ import UIKit
 
 struct ProgramRankLibraryView: View {
     @EnvironmentObject private var services: ServiceContainer
+    @Environment(\.dismiss) private var dismiss
 
     @State private var rows: [ProgramRankLibraryRow] = []
     @State private var searchText = ""
@@ -19,20 +20,31 @@ struct ProgramRankLibraryView: View {
     }
 
     private var groupedSections: [ProgramRankLibrarySection] {
-        if selectedFilter != .all || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if selectedFilter != .all || !trimmedSearch.isEmpty {
             return filteredRows.isEmpty ? [] : [ProgramRankLibrarySection(title: "Results", rows: filteredRows)]
         }
 
-        let grouped = Dictionary(grouping: filteredRows, by: \.sectionTitle)
-        return grouped.map { title, rows in
-            ProgramRankLibrarySection(
-                title: title,
-                rows: rows.sorted(by: sortRowsWithinSection)
-            )
+        var sections: [ProgramRankLibrarySection] = []
+
+        // Trophy case: everything the user holds a rank on, best tier first.
+        let earned = filteredRows.filter(\.isEarned).sorted(by: sortRankRows)
+        if !earned.isEmpty {
+            sections.append(ProgramRankLibrarySection(title: "Your Ranks", rows: earned))
         }
-        .sorted {
-            ($0.rows.first?.sectionOrder ?? Int.max) < ($1.rows.first?.sectionOrder ?? Int.max)
-        }
+
+        // The rest of the catalog to chase, grouped by category.
+        let unearned = filteredRows.filter { !$0.isEarned }
+        let categorySections = Dictionary(grouping: unearned, by: \.sectionTitle)
+            .map { title, rows in
+                ProgramRankLibrarySection(title: title, rows: rows.sorted(by: sortRowsWithinSection))
+            }
+            .sorted {
+                ($0.rows.first?.sectionOrder ?? Int.max) < ($1.rows.first?.sectionOrder ?? Int.max)
+            }
+        sections.append(contentsOf: categorySections)
+
+        return sections
     }
 
     private var earnedCount: Int {
@@ -43,103 +55,89 @@ struct ProgramRankLibraryView: View {
         rows.map(\.tier).max() ?? .initiate
     }
 
-    private var totalAP: Int {
-        Int(rows.reduce(0) { $0 + $1.totalAP }.rounded())
-    }
-
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 14) {
-                rankLibraryHeader
-                rankSearchField
-                rankFilterRail
+        VStack(spacing: 0) {
+            topBar
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
+                    rankLibraryHeader
+                    rankSearchField
+                    rankFilterRail
 
-                if isLoading {
-                    loadingState
-                } else if groupedSections.isEmpty {
-                    emptyState
-                } else {
-                    ForEach(groupedSections) { section in
-                        rankSection(section)
+                    if isLoading {
+                        loadingState
+                    } else if groupedSections.isEmpty {
+                        emptyState
+                    } else {
+                        ForEach(groupedSections) { section in
+                            rankSection(section)
+                        }
                     }
-                }
 
-                Spacer().frame(height: 28)
+                    Spacer().frame(height: 36)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
         }
-        .task {
-            await loadRanks()
-        }
-        .fullScreenCover(item: $selectedDetailRow) { row in
-            ProgramRankLibraryDetailScreen(row: row) {
+        .background(Color.unbound.bg.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(item: $selectedDetailRow) { row in
+            RankDetailView(row: row) {
                 await loadRanks()
             }
         }
+        .task {
+            await loadRanks()
+            openRequestedDetailIfNeeded()
+        }
+    }
+
+    /// Pinned, flush-to-top close control. A substantial circular button instead of
+    /// a bare nav-bar glyph - stays available while the list scrolls.
+    private var topBar: some View {
+        HStack {
+            Button {
+                UnboundHaptics.soft()
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .frame(width: 42, height: 42)
+                    .background(Circle().fill(Color.unbound.surface))
+                    .overlay(Circle().strokeBorder(Color.unbound.border, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close rank library")
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 4)
+        .padding(.bottom, 12)
     }
 
     private var rankLibraryHeader: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 10) {
-                Text("RANK LIBRARY")
-                    .font(Font.unbound.titleS)
-                    .tracking(0.7)
+        HStack(alignment: .center, spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Rank Library")
+                    .font(Font.unbound.titleL)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
-                Spacer(minLength: 0)
-                Image(topTier.assetName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 40, height: 40)
-                    .shadow(color: topTier.rewardTextTint.opacity(0.35), radius: 10)
+                MetaLine([
+                    "\(earnedCount) of \(rows.count) ranked",
+                    "Top \(topTier.displayName)"
+                ], emphasized: true)
             }
-
-            HStack(spacing: 8) {
-                rankStatTile(label: "EARNED", value: "\(earnedCount)", tint: Color.unbound.accent)
-                rankStatTile(label: "STANDARDS", value: "\(rows.count)", tint: Color.unbound.coachCyan)
-                rankStatTile(label: "TOP", value: topTier.displayName.uppercased(), tint: topTier.rewardTextTint)
-                rankStatTile(label: "XP", value: "\(totalAP)", tint: Color.unbound.rankGold)
-            }
+            Spacer(minLength: 0)
+            Image(topTier.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 56, height: 56)
+                .shadow(color: topTier.rewardTextTint.opacity(0.35), radius: 14)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.unbound.surface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(topTier.rewardTextTint.opacity(0.24), lineWidth: 1)
-        )
         .accessibilityIdentifier("program.rankLibrary.header")
-    }
-
-    private func rankStatTile(label: String, value: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(label)
-                .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                .tracking(1.0)
-                .foregroundStyle(Color.unbound.textTertiary)
-            Text(value)
-                .font(Font.unbound.monoS.weight(.black))
-                .foregroundStyle(tint)
-                .lineLimit(1)
-                .minimumScaleFactor(0.58)
-                .monospacedDigit()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
-        .background(
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(Color.unbound.bg.opacity(0.68))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .strokeBorder(tint.opacity(0.18), lineWidth: 1)
-        )
     }
 
     private var rankSearchField: some View {
@@ -154,52 +152,24 @@ struct ProgramRankLibraryView: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
         }
-        .padding(.horizontal, 12)
-        .frame(height: 42)
+        .padding(.horizontal, 14)
+        .frame(height: 48)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color.unbound.surface)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
         )
     }
 
     private var rankFilterRail: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(ProgramRankLibraryFilter.allCases) { filter in
-                    rankFilterChip(filter)
-                }
-            }
-        }
-    }
-
-    private func rankFilterChip(_ filter: ProgramRankLibraryFilter) -> some View {
-        let isSelected = selectedFilter == filter
-        return Button {
-            UnboundHaptics.soft()
-            withAnimation(.easeInOut(duration: 0.16)) {
-                selectedFilter = filter
-            }
-        } label: {
-            Text(filter.displayName)
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.0)
-                .foregroundStyle(isSelected ? Color.unbound.textPrimary : Color.unbound.textTertiary)
-                .padding(.horizontal, 12)
-                .frame(height: 30)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? Color.unbound.accent.opacity(0.24) : Color.unbound.surface)
-                )
-                .overlay(
-                    Capsule()
-                        .strokeBorder(isSelected ? Color.unbound.accent.opacity(0.36) : Color.unbound.borderSubtle, lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
+        SegmentedFilterBar(
+            items: ProgramRankLibraryFilter.allCases,
+            title: { $0.displayName },
+            selection: $selectedFilter
+        )
     }
 
     private var loadingState: some View {
@@ -229,7 +199,7 @@ struct ProgramRankLibraryView: View {
     }
 
     private func rankSection(_ section: ProgramRankLibrarySection) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
                 Text(section.title.uppercased())
                     .font(Font.unbound.captionS.weight(.heavy))
@@ -242,13 +212,13 @@ struct ProgramRankLibraryView: View {
                     .monospacedDigit()
             }
 
-            VStack(spacing: 8) {
+            VStack(spacing: 11) {
                 ForEach(section.rows) { row in
                     Button {
                         UnboundHaptics.soft()
                         selectedDetailRow = row
                     } label: {
-                        ProgramRankLibraryRowView(row: row, showsDisclosure: true)
+                        RankRow(row: row)
                     }
                     .buttonStyle(.plain)
                 }
@@ -280,13 +250,46 @@ struct ProgramRankLibraryView: View {
 
         let skillTiers = UserSkillTierStore.shared.load(userId: userId)
         let skillService = SkillProgressService.shared
-        rows = Self.makeSkillRows(
+        let skillRows = Self.makeSkillRows(
             skillTiers: skillTiers,
             nodeStates: skillService.nodeStates,
             programFocusIds: skillService.programFocusIds
-        ) + Self.makeMovementRows(progressStates: progressStates, profile: userProfile)
+        )
+        // A movement that's also a skill node (push-up, pistol squat, muscle-up...)
+        // would otherwise appear twice. The skill node is the single rank source,
+        // so keep it and drop the exercise/skill-drill twin (matched by normalized
+        // name, which folds "Push-Up"/"Pushup" together).
+        let skillKeys = Set(skillRows.map { Self.searchKey($0.title) })
+        let movementRows = Self.makeMovementRows(progressStates: progressStates, profile: userProfile)
+            .filter { !skillKeys.contains(Self.searchKey($0.title)) }
+        rows = skillRows + movementRows
         isLoading = false
     }
+
+    /// Screenshot harness: push a specific detail straight from a launch arg
+    /// (`--unbound-open-rank-detail <sourceId|rowId>`). DEBUG-only.
+    private func openRequestedDetailIfNeeded() {
+        #if DEBUG
+        guard selectedDetailRow == nil,
+              let id = Self.launchArgValue(for: "--unbound-open-rank-detail"),
+              let match = rows.first(where: { $0.sourceId == id || $0.id == id })
+        else { return }
+        selectedDetailRow = match
+        #endif
+    }
+
+    #if DEBUG
+    private static func launchArgValue(for flag: String) -> String? {
+        let args = ProcessInfo.processInfo.arguments
+        if let index = args.firstIndex(of: flag), index + 1 < args.count {
+            return args[index + 1]
+        }
+        if let combined = args.first(where: { $0.hasPrefix(flag + "=") }) {
+            return String(combined.dropFirst(flag.count + 1))
+        }
+        return nil
+    }
+    #endif
 
     private func matchesSearchAndFilter(_ row: ProgramRankLibraryRow) -> Bool {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)

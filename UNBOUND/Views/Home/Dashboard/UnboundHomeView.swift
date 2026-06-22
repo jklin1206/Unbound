@@ -146,7 +146,8 @@ struct UnboundHomeView: View {
             // can be captured without blind taps.
             let args = ProcessInfo.processInfo.arguments
             if args.contains("--unbound-open-shop") { showingShop = true }
-            else if args.contains("--unbound-open-ranks") { showRankLibrary = true }
+            else if args.contains("--unbound-open-ranks")
+                    || args.contains(where: { $0.hasPrefix("--unbound-open-rank-detail") }) { showRankLibrary = true }
             else if args.contains("--unbound-open-backdrops") { showingBackdropPicker = true }
             else if args.contains("--unbound-open-weight") { showingBodyWeightHistory = true }
             else if args.contains("--unbound-open-rank-info") { showRankInfo = true }
@@ -330,20 +331,11 @@ struct UnboundHomeView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $showRankLibrary) {
+        .fullScreenCover(isPresented: $showRankLibrary) {
             NavigationStack {
                 ProgramRankLibraryView()
                     .environmentObject(services)
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button(L10n.string("common.done", defaultValue: "Done")) {
-                                showRankLibrary = false
-                            }
-                        }
-                    }
             }
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showRankInfo) {
             // Rank-trial gate details live HERE now (moved off the profile's

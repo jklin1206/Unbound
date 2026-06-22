@@ -408,7 +408,7 @@ extension MovementCatalog {
             case .dumbbells:
                 return [.dumbbell]
             case .parallettes:
-                return [.bodyweight]
+                return [.parallettes]
             case .kettlebell:
                 return [.kettlebell]
             case .sled:

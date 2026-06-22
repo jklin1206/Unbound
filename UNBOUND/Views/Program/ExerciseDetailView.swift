@@ -24,6 +24,7 @@ struct ExerciseDetailView: View {
                     ExerciseDetailSections(
                         muscleGroups: movementDefinition?.muscleGroups ?? exercise.muscleGroups,
                         bodyRegions: movementDefinition?.bodyRegions ?? [],
+                        equipmentDefinition: movementDefinition,
                         sets: exercise.sets,
                         reps: exercise.reps,
                         restSeconds: exercise.restSeconds,
