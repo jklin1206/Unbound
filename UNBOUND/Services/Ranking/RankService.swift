@@ -74,13 +74,37 @@ final class RankService: RankServiceProtocol {
         // handle per-exercise filtering internally via criterion exerciseName matching.
         let allEntries = allLogs.flatMap { $0.exerciseEntries }
 
+        let (advances, newState) = tierAdvances(
+            fullHistory: allEntries,
+            bodyweightKg: bodyweightKg,
+            priorState: priorState
+        )
+
+        if !advances.isEmpty {
+            tierStore.save(newState, userId: userId)
+        }
+
+        return advances
+    }
+
+    /// Pure tier-advance computation: recompute every skill from the full logged
+    /// history and return the crossings + the updated state. Never demotes (only
+    /// advances on `newTier > priorTier`), so it is idempotent and safe to re-run.
+    /// Split out from `evaluateTierCrossings` so the advance logic can be tested
+    /// without seeding the database (the IO — history fetch + persist — stays in
+    /// the async wrapper).
+    func tierAdvances(
+        fullHistory: [ExerciseLogEntry],
+        bodyweightKg: Double,
+        priorState: UserSkillTierState
+    ) -> (advances: [SkillTierAdvance], newState: UserSkillTierState) {
         var newState = priorState
         var advances: [SkillTierAdvance] = []
 
         for node in SkillGraph.shared.nodes {
             guard !node.tierCriteria.isEmpty else { continue }
 
-            let newTier = computeTier(skill: node, history: allEntries, bodyweightKg: bodyweightKg)
+            let newTier = computeTier(skill: node, history: fullHistory, bodyweightKg: bodyweightKg)
             let priorTier = priorState.tier(for: node.id)
 
             if newTier > priorTier {
@@ -93,11 +117,7 @@ final class RankService: RankServiceProtocol {
             }
         }
 
-        if !advances.isEmpty {
-            tierStore.save(newState, userId: userId)
-        }
-
-        return advances
+        return (advances, newState)
     }
 
     // MARK: - State + Aggregate Tier
