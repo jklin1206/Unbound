@@ -255,13 +255,26 @@ struct ProgramRankLibraryView: View {
             nodeStates: skillService.nodeStates,
             programFocusIds: skillService.programFocusIds
         )
-        // A movement that's also a skill node (push-up, pistol squat, muscle-up...)
-        // would otherwise appear twice. The skill node is the single rank source,
-        // so keep it and drop the exercise/skill-drill twin (matched by normalized
-        // name, which folds "Push-Up"/"Pushup" together).
-        let skillKeys = Set(skillRows.map { Self.searchKey($0.title) })
+        // The same movement is modelled by up to three subsystems (skill tree,
+        // skill drill, exercise library), so it can surface as three rows. The
+        // skill node is the single rank source, so fold every twin into it: the
+        // "Hollow Body Hold" drill and the "Hollow Hold" exercise both collapse
+        // into the "Hollow Body" skill row, while the genuinely different
+        // "Hollow Rock" stays. See `movementFoldsIntoShownSkill`.
+        let shownSkillIds = Set(skillRows.map(\.sourceId))
+        let shownSkillNames = Set(skillRows.map { Self.searchKey($0.title) })
+        let shownSkillAssets = Set(skillRows.compactMap(\.visualAssetName))
         let movementRows = Self.makeMovementRows(progressStates: progressStates, profile: userProfile)
-            .filter { !skillKeys.contains(Self.searchKey($0.title)) }
+            .filter { row in
+                !Self.movementFoldsIntoShownSkill(
+                    title: row.title,
+                    sourceId: row.sourceId,
+                    visualAssetName: row.visualAssetName,
+                    shownSkillIds: shownSkillIds,
+                    shownSkillNames: shownSkillNames,
+                    shownSkillAssets: shownSkillAssets
+                )
+            }
         rows = skillRows + movementRows
         isLoading = false
     }
@@ -481,6 +494,42 @@ struct ProgramRankLibraryView: View {
 
         rows.append(contentsOf: extraRows)
         return rows
+    }
+
+    /// True when a movement row is just another label for a skill that is
+    /// already shown as its own row, so it should be folded away (the skill is
+    /// the single rank source). Three signals, in precision order:
+    ///   1. Exact normalized-name twin — folds "Push-Up"/"Pushup" and any
+    ///      exercise/drill named identically to a skill.
+    ///   2. The movement is a skill drill/target owned by a shown skill
+    ///      (`skillId`) — folds the "Hollow Body Hold" drill into "Hollow Body".
+    ///   3. The movement renders the exact same picture as a shown skill AND is
+    ///      linked to it — folds the "Hollow Hold" exercise (same art, different
+    ///      name) while leaving "Hollow Rock" (different art) standing.
+    /// Mere skill *association* is deliberately not enough on its own: Hollow
+    /// Rock, Hanging Knee Raise, etc. all associate with the same skill but are
+    /// distinct movements, so signal 3 also requires the identical asset.
+    static func movementFoldsIntoShownSkill(
+        title: String,
+        sourceId: String,
+        visualAssetName: String?,
+        shownSkillIds: Set<String>,
+        shownSkillNames: Set<String>,
+        shownSkillAssets: Set<String>
+    ) -> Bool {
+        if shownSkillNames.contains(searchKey(title)) { return true }
+
+        guard let definition = MovementCatalog.definition(for: sourceId) else { return false }
+
+        if let skillId = definition.skillId, shownSkillIds.contains(skillId) { return true }
+
+        if let asset = visualAssetName,
+           shownSkillAssets.contains(asset),
+           definition.skillAssociations.contains(where: shownSkillIds.contains) {
+            return true
+        }
+
+        return false
     }
 
     private static func skillVisualAssetName(for node: SkillNode) -> String? {
