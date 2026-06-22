@@ -98,13 +98,15 @@ struct ShopItemCard: View {
     private var preview: some View {
         switch item.reward {
         case .homeBackground(let background):
+            // Show the real backdrop art, not a generic house glyph over a dark
+            // scrim — the category tabs already say what surface this is, so the
+            // preview's job is to accurately render the scene you're buying.
             ShopBackdropArtworkPreview(
                 assetName: background.assetName,
                 accent: background.accent,
                 role: .homePoster,
-                symbolName: "house.fill",
-                symbolSize: 24,
-                scrimOpacity: 0.50
+                symbolName: nil,
+                scrimOpacity: 0.16
             )
         case .skillTreeSkin(let skin):
             ShopSkillTreeMapPreview(skin: skin, compact: true)
@@ -127,8 +129,7 @@ struct ShopItemCard: View {
                 assetName: background.assetName,
                 accent: background.accent,
                 role: .profileBanner,
-                symbolName: "person.crop.rectangle.stack.fill",
-                symbolSize: 23,
+                symbolName: nil,
                 scrimOpacity: 0.52
             )
         case .profileTitle(let titleID):
