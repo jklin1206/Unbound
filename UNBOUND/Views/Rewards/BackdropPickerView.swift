@@ -4,7 +4,10 @@ private extension ShopBackdropSurface {
     var previewAspectRatio: CGFloat {
         switch self {
         case .home:
-            return ShopBackdropArtworkPreview.homePosterAspectRatio
+            // Match the shop + the actual home render: only the top hero band of
+            // a home backdrop is visible in-app, so preview that band (top-anchored)
+            // rather than the full 9:16 poster.
+            return ShopBackdropArtworkPreview.homeVisibleAspectRatio
         case .profile:
             return ShopBackdropArtworkPreview.profileBannerAspectRatio
         }
