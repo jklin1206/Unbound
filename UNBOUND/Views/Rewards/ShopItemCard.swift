@@ -203,10 +203,13 @@ struct ShopBackdropArtworkPreview: View {
                         .opacity(0.24)
                 }
 
-                if effectiveScrimOpacity > 0 {
+                // Dissolve the bottom of the scene into the card surface instead of
+                // a hard rectangular crop — the backdrop fades out rather than getting
+                // chopped off. (Profile banners keep their own full-bleed treatment.)
+                if role != .profileBanner {
                     LinearGradient(
-                        colors: [Color.clear, Color.black.opacity(effectiveScrimOpacity)],
-                        startPoint: .top,
+                        colors: [Color.clear, Color.unbound.surface],
+                        startPoint: UnitPoint(x: 0.5, y: 0.58),
                         endPoint: .bottom
                     )
                 }
@@ -244,9 +247,6 @@ struct ShopBackdropArtworkPreview: View {
         }
     }
 
-    private var effectiveScrimOpacity: Double {
-        role == .profileBanner ? 0 : scrimOpacity
-    }
 }
 
 struct ArcCurrencyAmount: View {
