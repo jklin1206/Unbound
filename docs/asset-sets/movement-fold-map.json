@@ -259,7 +259,7 @@
       {
         "id" : "skill-drill.hollow-body-hold",
         "name" : "Hollow Body Hold",
-        "rankStandard" : "skill-drill.hollow-body-hold",
+        "rankStandard" : "exercise.hollow-hold",
         "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "cl.hollow-body-30"
