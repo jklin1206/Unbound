@@ -96,3 +96,22 @@ One-time local migration (`movement_progress` and any per-id skill records are l
 - Unit: rename-consistency test; one-standard-per-movement invariant; migration merge test (sum/union/idempotent); `SkillStandardConsistencyTests`, `CrossSurfaceRankAdvanceTests`, `LiveSkillRankAdvanceTests`, `ProgramRankLibraryFoldTests` stay green (Fold test is retired/replaced in P4).
 - On-sim: reproduce one movement logged three ways -> one name, one advancing rank, one merged `movement_progress` row (inspect sandbox JSON before/after).
 - Device-arch build green per phase; README freshness; commit per phase.
+
+## Outcome (shipped)
+
+All five phases shipped, each committed with tests green.
+
+- **P1** - three true-twin renames applied (Hollow Body Hold, Freestanding Handstand, Weighted Pistol Squat) across node title + exercise/drill displayName + calibration/warmup/travel labels.
+  `CanonicalNameConsistencyTests` locks one name per twin.
+  Verified on-sim: all three render their canonical name in the rank detail.
+- **P2** - `exerciseSkillTwins` became the authoritative 29-pair join (all metric-compatible).
+  `CanonicalTwinMapTests` locks soundness + completeness (the map equals the set of exercises that fold, so it cannot drift).
+- **P3** - chose the canonical-XP key = the library exercise (the small, safe option), because the only real persisted fragmentation was the hollow body hold (the one movement with two rankable true-twins).
+  `skillDrillCanonicalStandard` routes the hollow drill into `exercise.hollow-hold`; the AP calculator's one-hop resolution makes new + old logs land there; `MovementProgressConsolidationMigration` merges any pre-existing split row on upgrade (local-only, idempotent, self-healing).
+  A catalog-validation rule guards the routing.
+- **P4** - retired `movementFoldsIntoShownSkill`; the rank library now folds via `MovementCatalog.owningSkillId` (the explicit join) instead of the name/art heuristic.
+  Behavior preserved (the completeness test proves the map captures every twin the heuristic folded).
+- **P5** - device-arch build green; rank library + all three renamed details verified on the iPhone 17 simulator (installed-hash-checked build).
+
+Note: the deeper "one id across both stores" option (Option B) was deliberately not taken - the two stores (tier vs XP) are different concepts, and Option B migrates ~29 movements' persisted XP for no user-visible benefit.
+The remaining `skill.*` wrapper records are an auto-derived catalog projection (not persisted user data); collapsing them is a possible future code-only cleanup.
