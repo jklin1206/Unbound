@@ -219,12 +219,12 @@ enum SkillSubChapterMap {
         "hs.straddle-press":       "Freestanding",
         "hs.press-to-handstand":   "Freestanding",
 
-        // hspu — Handstand Push-Up cluster collapsed into Push tree (cal.handstand-pushup).
-        // No remaining nodes ship in `.handstandPushup`; cluster kept in the enum for legacy compat.
+        // Handstand Push-Up work lives in the Push tree (cal.handstand-pushup);
+        // there is no separate HSPU cluster.
 
-        // oah — One-Arm Handstand. The OAH 5s entry is mythic (S-tier
-        // keystone of the cluster); the Full One-Arm Handstand mythic
-        // sits above it. Neither bears a chapter label.
+        // oah — One-Arm Handstand now lives in the Handstand cluster as its
+        // deepest one-arm branch. The OAH 5s entry and the Full One-Arm
+        // Handstand are both mythic, so neither bears a chapter label.
         // (oah.one-arm-handstand-5s + oah.full-one-arm-handstand are both mythic.)
 
         // ──────────────────────────────────────────────────────────────

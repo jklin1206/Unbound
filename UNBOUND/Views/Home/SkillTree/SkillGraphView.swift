@@ -12,8 +12,7 @@ import SwiftUI
 //   • Planche
 //
 // Tap behaviour:
-//   • 1:1 display tree → opens ClusterStaircaseView for its cluster
-//   • Locked display tree → opens LockedClusterInfoSheet
+//   • Each display tree → opens ClusterStaircaseView for its cluster
 //
 // The "SKILLS TO CHASE" keystone hero row from the previous grid layout
 // is gone — keystone preview is now inline on each card.
@@ -25,8 +24,6 @@ struct SkillGraphView: View {
     var onNodeTap: (SkillNode) -> Void
 
     @State private var focusedCluster: SkillCluster?
-    @State private var lockedInfoTree: SkillDisplayTree?
-    @State private var umbrellaTree: SkillDisplayTree?
 
     @Bindable private var skillProgress = SkillProgressService.shared
 
@@ -45,34 +42,6 @@ struct SkillGraphView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
             .presentationBackground(Color.unbound.bg)
-        }
-        .sheet(item: $umbrellaTree) { tree in
-            HandbalanceSubclusterPicker(
-                tree: tree,
-                graph: graph,
-                nodeStates: nodeStates,
-                onPick: { cluster in
-                    umbrellaTree = nil
-                    // Let the dismiss animation finish before presenting
-                    // the next sheet, otherwise SwiftUI will swallow it.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                        focusedCluster = cluster
-                    }
-                }
-            )
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.visible)
-            .presentationBackground(Color.unbound.bg)
-        }
-        .sheet(item: $lockedInfoTree) { tree in
-            if let firstCluster = tree.clusters.first,
-               let required = firstCluster.requiresClusterKeystone {
-                LockedClusterInfoSheet(
-                    cluster: firstCluster,
-                    requiredCluster: required,
-                    graph: graph
-                )
-            }
         }
     }
 
@@ -118,14 +87,6 @@ struct SkillGraphView: View {
 
     private func handleTap(_ tree: SkillDisplayTree) {
         UnboundHaptics.medium()
-        if tree.isLocked(in: graph, states: nodeStates) {
-            lockedInfoTree = tree
-            return
-        }
-        if tree.isUmbrella {
-            umbrellaTree = tree
-            return
-        }
         if let cluster = tree.clusters.first {
             focusedCluster = cluster
         }

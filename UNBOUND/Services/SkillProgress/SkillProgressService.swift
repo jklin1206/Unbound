@@ -199,8 +199,7 @@ final class SkillProgressService {
     /// tier-aware unlock standards to be met.
     func isNodeTrainable(nodeId: String) -> Bool {
         guard let node = SkillGraph.shared.node(id: nodeId) else { return false }
-        guard let p = progress else { return node.prereqs.isEmpty }
-        guard SkillGraph.shared.isClusterUnlocked(node.cluster, nodeStates: p.nodeStates) else { return false }
+        guard progress != nil else { return node.prereqs.isEmpty }
         return prereqsMet(for: node)
     }
 

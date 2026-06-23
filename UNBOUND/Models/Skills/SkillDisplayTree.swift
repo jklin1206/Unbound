@@ -83,9 +83,6 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .planche:     return "figure.highintensity.intervaltraining"
         }
     }
-
-    /// True when this display tree groups multiple clusters.
-    var isUmbrella: Bool { clusters.count > 1 }
 }
 
 // MARK: - Cluster → Display tree lookup
@@ -169,20 +166,5 @@ extension SkillDisplayTree {
             }
         }
         return terminalKeystone
-    }
-
-    /// Entire display tree is locked when EVERY cluster in it is gated and
-    /// the gate has not been met. For umbrellas, we treat the tree as
-    /// unlocked if at least the first cluster (stage 1) is reachable.
-    func isLocked(in graph: SkillGraph, states: [String: NodeState]) -> Bool {
-        guard let first = clusters.first else { return false }
-        return !graph.isClusterUnlocked(first, nodeStates: states)
-    }
-
-    /// For locked state — name the required cluster (used for the "REQUIRES"
-    /// caption on dimmed cards).
-    func requiredClusterName(for cluster: SkillCluster? = nil) -> String? {
-        let target = cluster ?? clusters.first
-        return target?.requiresClusterKeystone?.displayName
     }
 }

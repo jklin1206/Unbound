@@ -308,13 +308,12 @@ extension ClusterStaircaseView {
 
     // MARK: - Availability (open vs gated)
 
-    /// A node is "available" — trainable now, drawn open — when it is unproven,
-    /// its cluster gate is open, and at least one prerequisite group is
-    /// satisfied. Entry nodes (no prereqs) are always available in an unlocked
-    /// cluster. Anything that is NOT available keeps the padlock glyph.
+    /// A node is "available" — trainable now, drawn open — when it is unproven
+    /// and at least one prerequisite group is satisfied. Entry nodes (no
+    /// prereqs) are always available. Anything that is NOT available keeps the
+    /// padlock glyph.
     func isAvailable(_ node: SkillNode) -> Bool {
         guard (nodeStates[node.id] ?? .locked) == .locked else { return false }
-        guard graph.isClusterUnlocked(cluster, nodeStates: nodeStates) else { return false }
         return node.prereqsSatisfied(given: nodeStates)
     }
 

@@ -203,7 +203,7 @@ extension DailyWorkoutResolver {
             return [.verticalPull]
         case .calisthenicControl:
             return [.horizontalPush]
-        case .handstand, .handstandPushup, .oneArmHandstand:
+        case .handstand:
             return [.verticalPush]
         case .planche:
             return [.horizontalPush, .verticalPush]

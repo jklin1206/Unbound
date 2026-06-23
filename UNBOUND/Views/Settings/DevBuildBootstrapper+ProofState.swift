@@ -774,8 +774,6 @@ extension DevBuildBootstrapper {
         case .legDominance: return .legs
         case .coreLever: return .core
         case .handstand: return .skills
-        case .handstandPushup: return .push
-        case .oneArmHandstand: return .skills
         case .planche: return .skills
         case .conditioning: return .conditioning
         }
