@@ -9,6 +9,8 @@ import SwiftUI
 struct RankDetailOverviewTab: View {
     let vm: RankDetailViewModel
 
+    @State private var selectedGuideSegment: SkillGuideTab = .form
+
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             if let definition = vm.movementDefinition {
@@ -16,8 +18,7 @@ struct RankDetailOverviewTab: View {
                 equipmentSection(definition)
             }
 
-            guideSection
-            mistakesSection
+            skillGuideSection
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -55,19 +56,56 @@ struct RankDetailOverviewTab: View {
         }
     }
 
-    // MARK: - 3. Guide / technique
+    // MARK: - 3. Skill Guide (segmented: Form / Assist / Tips / Fixes)
+
+    /// The guide segments that have content for this movement. Form is always
+    /// present; Assist and Tips only when the curated guide supplies them;
+    /// Fixes whenever there are common mistakes.
+    private var availableSegments: [SkillGuideTab] {
+        var segments: [SkillGuideTab] = [.form]
+        if !vm.assistance.isEmpty { segments.append(.assist) }
+        if !vm.tips.isEmpty { segments.append(.tips) }
+        if !vm.commonMistakes.isEmpty { segments.append(.fixes) }
+        return segments
+    }
 
     @ViewBuilder
-    private var guideSection: some View {
+    private var skillGuideSection: some View {
+        let segments = availableSegments
+        let active = segments.contains(selectedGuideSegment) ? selectedGuideSegment : (segments.first ?? .form)
+        section(title: "SKILL GUIDE", subtitle: segments.count > 1 ? "One layer at a time" : nil) {
+            VStack(alignment: .leading, spacing: 16) {
+                if segments.count > 1 {
+                    SegmentedFilterBar(
+                        items: segments,
+                        title: { $0.label },
+                        selection: $selectedGuideSegment
+                    )
+                }
+                Group {
+                    switch active {
+                    case .form:   formContent
+                    case .assist: assistContent
+                    case .tips:   tipsContent
+                    case .fixes:  mistakesContent
+                    }
+                }
+                .animation(.easeOut(duration: 0.18), value: active)
+            }
+        }
+    }
+
+    // MARK: - Segment content
+
+    @ViewBuilder
+    private var formContent: some View {
         if let definition = vm.movementDefinition {
             if let skillForm = skillFormGuide(for: definition) {
-                section(title: "SKILL FORM") {
-                    FormPhaseSlideshow(phases: skillForm.phases, skillTitle: skillForm.title)
-                }
+                FormPhaseSlideshow(phases: skillForm.phases, skillTitle: skillForm.title)
             } else if !vm.formCues.isEmpty {
                 // Authored form cues (exercise-specific or the linked skill node's),
                 // preferred over the generic per-slot guide for covered lifts.
-                formCuesSection(vm.formCues)
+                cueList(vm.formCues)
             } else {
                 SkillGuideLayerView(
                     layer: .rankExercise(definition: definition),
@@ -82,54 +120,91 @@ struct RankDetailOverviewTab: View {
                       formCues: node.formCues
                   ),
                   !phases.isEmpty {
-            section(title: "SKILL FORM") {
-                FormPhaseSlideshow(phases: phases, skillTitle: node.title)
-            }
+            FormPhaseSlideshow(phases: phases, skillTitle: node.title)
         } else if !vm.formCues.isEmpty {
-            formCuesSection(vm.formCues)
+            cueList(vm.formCues)
+        } else {
+            EmptyView()
         }
     }
 
-    private func formCuesSection(_ cues: [String]) -> some View {
-        section(title: "FORM CUES") {
-            VStack(alignment: .leading, spacing: 9) {
-                ForEach(Array(cues.enumerated()), id: \.offset) { _, cue in
-                    HStack(alignment: .top, spacing: 9) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(vm.tint)
-                            .frame(width: 18)
-                        Text(cue)
-                            .font(Font.unbound.bodyS)
-                            .foregroundStyle(Color.unbound.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 0)
-                    }
+    private func cueList(_ cues: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            ForEach(Array(cues.enumerated()), id: \.offset) { _, cue in
+                HStack(alignment: .top, spacing: 9) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(vm.tint)
+                        .frame(width: 18)
+                    Text(cue)
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
                 }
             }
         }
     }
 
-    // MARK: - Common mistakes
-
-    @ViewBuilder
-    private var mistakesSection: some View {
-        if !vm.commonMistakes.isEmpty {
-            section(title: "COMMON MISTAKES") {
-                VStack(alignment: .leading, spacing: 9) {
-                    ForEach(Array(vm.commonMistakes.enumerated()), id: \.offset) { _, mistake in
-                        HStack(alignment: .top, spacing: 9) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(Color.unbound.alert)
-                                .frame(width: 18)
-                            Text(mistake)
-                                .font(Font.unbound.bodyS)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Spacer(minLength: 0)
-                        }
+    private var assistContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(Array(vm.assistance.enumerated()), id: \.offset) { _, option in
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: option.icon)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(vm.tint)
+                        .frame(width: 28, height: 28)
+                        .background(Circle().fill(vm.tint.opacity(0.14)))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(option.name)
+                            .font(Font.unbound.bodyS.weight(.heavy))
+                            .foregroundStyle(Color.unbound.textPrimary)
+                        Text(option.detail)
+                            .font(Font.unbound.bodyS)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+    }
+
+    private var tipsContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(Array(vm.tips.enumerated()), id: \.offset) { _, tip in
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Image(systemName: tip.icon)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(vm.tint)
+                            .frame(width: 20)
+                        Text(tip.title)
+                            .font(Font.unbound.bodyS.weight(.heavy))
+                            .foregroundStyle(Color.unbound.textPrimary)
+                    }
+                    Text(tip.detail)
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private var mistakesContent: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            ForEach(Array(vm.commonMistakes.enumerated()), id: \.offset) { _, mistake in
+                HStack(alignment: .top, spacing: 9) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.unbound.alert)
+                        .frame(width: 18)
+                    Text(mistake)
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
                 }
             }
         }

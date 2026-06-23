@@ -49,6 +49,8 @@ final class RankDetailViewModel {
     var statItems: [RankStatItem] = []
     var formCues: [String] = []
     var commonMistakes: [String] = []
+    var assistance: [SkillGuideAssistance] = []
+    var tips: [SkillGuideTip] = []
 
     // MARK: Logging
 
@@ -120,6 +122,9 @@ final class RankDetailViewModel {
         let rowCoaching = Self.resolveCoaching(definition: resolvedDefinition, node: resolvedNode)
         self.formCues = rowCoaching.cues
         self.commonMistakes = rowCoaching.mistakes
+        let rowExtras = Self.resolveGuideExtras(definition: resolvedDefinition, node: resolvedNode)
+        self.assistance = rowExtras.assistance
+        self.tips = rowExtras.tips
         self.ladderRows = Self.ladderRows(
             // Skill entries climb the SKILL ladder (skillNode); exercise entries the
             // STRENGTH ladder (movement). Pass node: nil for exercises so a happened-
@@ -159,6 +164,9 @@ final class RankDetailViewModel {
         let nodeCoaching = Self.resolveCoaching(definition: resolvedDefinition, node: node)
         self.formCues = nodeCoaching.cues
         self.commonMistakes = nodeCoaching.mistakes
+        let nodeExtras = Self.resolveGuideExtras(definition: resolvedDefinition, node: node)
+        self.assistance = nodeExtras.assistance
+        self.tips = nodeExtras.tips
         self.ladderRows = Self.ladderRows(
             node: node,
             definition: resolvedDefinition,
@@ -487,6 +495,19 @@ final class RankDetailViewModel {
             return (pattern.cues, pattern.mistakes)
         }
         return ([], [])
+    }
+
+    /// Curated "assist" (regressions / how to scale) and "tips" (technique
+    /// notes) for the guide's Assist + Tips segments. Comes only from the
+    /// hand-authored `SkillGuideLibrary`, keyed by the skill node id (skills)
+    /// or the movement's explicit `skillId` (exercises). Nil for unlinked lifts.
+    private static func resolveGuideExtras(
+        definition: MovementDefinition?,
+        node: SkillNode?
+    ) -> (assistance: [SkillGuideAssistance], tips: [SkillGuideTip]) {
+        let guideId = node?.id ?? definition?.skillId
+        guard let guideId, let guide = SkillGuideLibrary.guide(for: guideId) else { return ([], []) }
+        return (guide.assistance, guide.tips)
     }
 
     // MARK: - Ladder
