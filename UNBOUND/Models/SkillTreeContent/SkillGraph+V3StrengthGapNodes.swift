@@ -8,7 +8,7 @@ extension SkillGraph {
 
         .simple(
             id: "cl.hollow-body-30",
-            title: "Hollow Body",
+            title: "Hollow Body Hold",
             cluster: .coreLever, tier: 2, type: .hold,
             target: .hold(exercise: "hollow body hold", seconds: 30),
             prereqs: [PrerequisiteGroup("cal.plank-30")],

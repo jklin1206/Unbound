@@ -123,7 +123,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "ld.weighted-pistol",
-            title: "Weighted Pistol",
+            title: "Weighted Pistol Squat",
             cluster: .legDominance, tier: 5, type: .strength,
             target: .reps(exercise: "weighted pistol", count: 3, load: "0.5x bw"),
             prereqs: [PrerequisiteGroup("ld.pistol-squat")],

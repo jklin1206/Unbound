@@ -1,0 +1,701 @@
+[
+  {
+    "criterion" : "3 archer pushup",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.archer-pushup",
+        "name" : "Archer Push-Up",
+        "rankStandard" : "exercise.archer-pushup",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cal.archer-pushup",
+    "skillNodeTitle" : "Archer Push-Up"
+  },
+  {
+    "criterion" : "10 decline pushup",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.decline-pushup",
+        "name" : "Decline Push-Up",
+        "rankStandard" : "exercise.decline-pushup",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cal.decline-pushup",
+    "skillNodeTitle" : "Decline Push-Up"
+  },
+  {
+    "criterion" : "10 diamond pushup",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.diamond-pushup",
+        "name" : "Diamond Push-Up",
+        "rankStandard" : "exercise.diamond-pushup",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cal.diamond-pushup",
+    "skillNodeTitle" : "Diamond Push-Up"
+  },
+  {
+    "criterion" : "10 incline pushup",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.incline-pushup",
+        "name" : "Incline Push-Up",
+        "rankStandard" : "exercise.incline-pushup",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cal.incline-pushup",
+    "skillNodeTitle" : "Incline Push-Up"
+  },
+  {
+    "criterion" : "l-sit 10s",
+    "divergentNames" : true,
+    "folded" : [
+      {
+        "id" : "exercise.l-sit",
+        "name" : "L-Sit",
+        "rankStandard" : "exercise.l-sit",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      },
+      {
+        "id" : "skill-drill.tuck-l-sit",
+        "name" : "Tuck L-Sit",
+        "rankStandard" : "skill-drill.tuck-l-sit",
+        "role" : "skillDrill",
+        "skillId" : "cal.l-sit-10"
+      },
+      {
+        "id" : "skill-drill.single-leg-l-sit",
+        "name" : "Single-Leg L-Sit",
+        "rankStandard" : "skill-drill.single-leg-l-sit",
+        "role" : "skillDrill",
+        "skillId" : "cal.l-sit-10"
+      },
+      {
+        "id" : "skill-drill.foot-supported-l-sit",
+        "name" : "Foot-Supported L-Sit",
+        "rankStandard" : "skill-drill.foot-supported-l-sit",
+        "role" : "skillDrill",
+        "skillId" : "cal.l-sit-10"
+      }
+    ],
+    "skillNodeId" : "cal.l-sit-10",
+    "skillNodeTitle" : "L-Sit"
+  },
+  {
+    "criterion" : "10 pike pushup",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.pike-pushup",
+        "name" : "Pike Push-Up",
+        "rankStandard" : "exercise.pike-pushup",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cal.pike-pushup",
+    "skillNodeTitle" : "Pike Push-Up"
+  },
+  {
+    "criterion" : "plank 30s",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.plank",
+        "name" : "Plank",
+        "rankStandard" : "exercise.plank",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cal.plank-30",
+    "skillNodeTitle" : "Plank"
+  },
+  {
+    "criterion" : "5 pseudo-planche pushup",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.pseudo-planche-pushup",
+        "name" : "Pseudo-Planche Push-Up",
+        "rankStandard" : "exercise.pseudo-planche-pushup",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cal.pseudo-planche-pushup",
+    "skillNodeTitle" : "Pseudo-Planche Push-Up"
+  },
+  {
+    "criterion" : "10 pushup",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.pushup",
+        "name" : "Push-Up",
+        "rankStandard" : "exercise.pushup",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cal.pushup",
+    "skillNodeTitle" : "Push-Up"
+  },
+  {
+    "criterion" : "15 decline sit-up",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.decline-situp",
+        "name" : "Decline Sit-Up",
+        "rankStandard" : "exercise.decline-situp",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cl.decline-situp",
+    "skillNodeTitle" : "Decline Sit-Up"
+  },
+  {
+    "criterion" : "5 dragon flag",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.dragon-flag",
+        "name" : "Dragon Flag",
+        "rankStandard" : "exercise.dragon-flag",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cl.dragon-flag",
+    "skillNodeTitle" : "Dragon Flag"
+  },
+  {
+    "criterion" : "10 hanging knee raise",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.hanging-knee-raise",
+        "name" : "Hanging Knee Raise",
+        "rankStandard" : "exercise.hanging-knee-raise",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cl.hanging-knee-raise",
+    "skillNodeTitle" : "Hanging Knee Raise"
+  },
+  {
+    "criterion" : "10 hanging leg raise",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.hanging-leg-raise",
+        "name" : "Hanging Leg Raise",
+        "rankStandard" : "exercise.hanging-leg-raise",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cl.hanging-leg-raise",
+    "skillNodeTitle" : "Hanging Leg Raise"
+  },
+  {
+    "criterion" : "hollow body hold 30s",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.hollow-hold",
+        "name" : "Hollow Body Hold",
+        "rankStandard" : "exercise.hollow-hold",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      },
+      {
+        "id" : "skill-drill.hollow-body-hold",
+        "name" : "Hollow Body Hold",
+        "rankStandard" : "skill-drill.hollow-body-hold",
+        "role" : "skillDrill",
+        "skillId" : "cl.hollow-body-30"
+      }
+    ],
+    "skillNodeId" : "cl.hollow-body-30",
+    "skillNodeTitle" : "Hollow Body Hold"
+  },
+  {
+    "criterion" : "straddle back lever 5s",
+    "divergentNames" : true,
+    "folded" : [
+      {
+        "id" : "skill-drill.advanced-tuck-back-lever",
+        "name" : "Advanced Tuck Back Lever",
+        "rankStandard" : "skill-drill.advanced-tuck-back-lever",
+        "role" : "skillDrill",
+        "skillId" : "cl.straddle-back-lever"
+      },
+      {
+        "id" : "skill-drill.one-leg-back-lever",
+        "name" : "One-Leg Back Lever",
+        "rankStandard" : "skill-drill.one-leg-back-lever",
+        "role" : "skillDrill",
+        "skillId" : "cl.straddle-back-lever"
+      }
+    ],
+    "skillNodeId" : "cl.straddle-back-lever",
+    "skillNodeTitle" : "Straddle Back Lever"
+  },
+  {
+    "criterion" : "straddle front lever 5s",
+    "divergentNames" : true,
+    "folded" : [
+      {
+        "id" : "skill-drill.one-leg-front-lever",
+        "name" : "One-Leg Front Lever",
+        "rankStandard" : "skill-drill.one-leg-front-lever",
+        "role" : "skillDrill",
+        "skillId" : "cl.straddle-front-lever"
+      }
+    ],
+    "skillNodeId" : "cl.straddle-front-lever",
+    "skillNodeTitle" : "Straddle Front Lever"
+  },
+  {
+    "criterion" : "tuck front lever 10s",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.tuck-front-lever",
+        "name" : "Tuck Front Lever",
+        "rankStandard" : "exercise.tuck-front-lever",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cl.tuck-front-lever",
+    "skillNodeTitle" : "Tuck Front Lever"
+  },
+  {
+    "criterion" : "crow pose 15s",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "skill-drill.crow-pose",
+        "name" : "Crow Pose",
+        "rankStandard" : "skill-drill.crow-pose",
+        "role" : "skillDrill",
+        "skillId" : "hs.crow-pose"
+      }
+    ],
+    "skillNodeId" : "hs.crow-pose",
+    "skillNodeTitle" : "Crow Pose"
+  },
+  {
+    "criterion" : "freestanding handstand 30s",
+    "divergentNames" : true,
+    "folded" : [
+      {
+        "id" : "skill-drill.freestanding-handstand",
+        "name" : "Freestanding Handstand",
+        "rankStandard" : "skill-drill.freestanding-handstand",
+        "role" : "skillDrill",
+        "skillId" : "hs.freestanding-hs-30"
+      },
+      {
+        "id" : "skill-drill.kick-up-practice",
+        "name" : "Kick-Up Practice",
+        "rankStandard" : "skill-drill.kick-up-practice",
+        "role" : "skillDrill",
+        "skillId" : "hs.freestanding-hs-30"
+      }
+    ],
+    "skillNodeId" : "hs.freestanding-hs-30",
+    "skillNodeTitle" : "Freestanding Handstand"
+  },
+  {
+    "criterion" : "headstand 30s",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "skill-drill.headstand",
+        "name" : "Headstand",
+        "rankStandard" : "skill-drill.headstand",
+        "role" : "skillDrill",
+        "skillId" : "hs.headstand"
+      }
+    ],
+    "skillNodeId" : "hs.headstand",
+    "skillNodeTitle" : "Headstand"
+  },
+  {
+    "criterion" : "wall handstand 30s",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "skill-drill.wall-handstand",
+        "name" : "Wall Handstand",
+        "rankStandard" : "skill-drill.wall-handstand",
+        "role" : "skillDrill",
+        "skillId" : "hs.wall-handstand-30"
+      }
+    ],
+    "skillNodeId" : "hs.wall-handstand-30",
+    "skillNodeTitle" : "Wall Handstand"
+  },
+  {
+    "criterion" : "wall plank 30s",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "skill-drill.wall-plank",
+        "name" : "Wall Plank",
+        "rankStandard" : "skill-drill.wall-plank",
+        "role" : "skillDrill",
+        "skillId" : "hs.wall-plank"
+      }
+    ],
+    "skillNodeId" : "hs.wall-plank",
+    "skillNodeTitle" : "Wall Plank"
+  },
+  {
+    "criterion" : "wall-supported one-arm handstand 5s",
+    "divergentNames" : true,
+    "folded" : [
+      {
+        "id" : "skill-drill.wall-shoulder-tap",
+        "name" : "Wall Shoulder Tap",
+        "rankStandard" : "skill-drill.wall-shoulder-tap",
+        "role" : "skillDrill",
+        "skillId" : "hs.wall-supported-oah"
+      },
+      {
+        "id" : "skill-drill.close-hand-straddle-handstand",
+        "name" : "Close-Hand Straddle Handstand",
+        "rankStandard" : "skill-drill.close-hand-straddle-handstand",
+        "role" : "skillDrill",
+        "skillId" : "hs.wall-supported-oah"
+      },
+      {
+        "id" : "skill-drill.one-arm-handstand-weight-shift",
+        "name" : "One-Arm Handstand Weight Shift",
+        "rankStandard" : "skill-drill.one-arm-handstand-weight-shift",
+        "role" : "skillDrill",
+        "skillId" : "hs.wall-supported-oah"
+      }
+    ],
+    "skillNodeId" : "hs.wall-supported-oah",
+    "skillNodeTitle" : "Wall Supported One-Arm Handstand"
+  },
+  {
+    "criterion" : "10 bulgarian split squat",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.bulgarian-split-squat",
+        "name" : "Bulgarian Split Squat",
+        "rankStandard" : "exercise.bulgarian-split-squat",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "ld.bulgarian-split-squat",
+    "skillNodeTitle" : "Bulgarian Split Squat"
+  },
+  {
+    "criterion" : "15 glute bridge",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.glute-bridge",
+        "name" : "Glute Bridge",
+        "rankStandard" : "exercise.glute-bridge",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "ld.glute-bridge",
+    "skillNodeTitle" : "Glute Bridge"
+  },
+  {
+    "criterion" : "12 goblet squat @ 0.25x bw",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.goblet-squat",
+        "name" : "Goblet Squat",
+        "rankStandard" : "exercise.goblet-squat",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "ld.goblet-20",
+    "skillNodeTitle" : "Goblet Squat"
+  },
+  {
+    "criterion" : "8 bodyweight leg extension",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.bodyweight-leg-extension",
+        "name" : "Bodyweight Leg Extension",
+        "rankStandard" : "exercise.bodyweight-leg-extension",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "ld.leg-extensions",
+    "skillNodeTitle" : "Bodyweight Leg Extension"
+  },
+  {
+    "criterion" : "3 nordic curl",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.nordic-curl",
+        "name" : "Nordic Curl",
+        "rankStandard" : "exercise.nordic-curl",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "ld.nordic-curl",
+    "skillNodeTitle" : "Nordic Curl"
+  },
+  {
+    "criterion" : "5 pistol squat",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.pistol-squat",
+        "name" : "Pistol Squat",
+        "rankStandard" : "exercise.pistol-squat",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "ld.pistol-squat",
+    "skillNodeTitle" : "Pistol Squat"
+  },
+  {
+    "criterion" : "3 shrimp squat",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.shrimp-squat",
+        "name" : "Shrimp Squat",
+        "rankStandard" : "exercise.shrimp-squat",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "ld.shrimp-squat",
+    "skillNodeTitle" : "Shrimp Squat"
+  },
+  {
+    "criterion" : "10 split squat",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.split-squat",
+        "name" : "Split Squat",
+        "rankStandard" : "exercise.split-squat",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "ld.split-squat",
+    "skillNodeTitle" : "Split Squat"
+  },
+  {
+    "criterion" : "15 step up",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.step-up",
+        "name" : "Step Up",
+        "rankStandard" : "exercise.step-up",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "ld.step-up",
+    "skillNodeTitle" : "Step Up"
+  },
+  {
+    "criterion" : "3 weighted pistol @ 0.5x bw",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.weighted-pistol",
+        "name" : "Weighted Pistol Squat",
+        "rankStandard" : "exercise.weighted-pistol",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "ld.weighted-pistol",
+    "skillNodeTitle" : "Weighted Pistol Squat"
+  },
+  {
+    "criterion" : "one-arm handstand 5s",
+    "divergentNames" : true,
+    "folded" : [
+      {
+        "id" : "skill-drill.two-finger-tent",
+        "name" : "Two-Finger Tent",
+        "rankStandard" : "skill-drill.two-finger-tent",
+        "role" : "skillDrill",
+        "skillId" : "oah.one-arm-handstand-5s"
+      },
+      {
+        "id" : "skill-drill.one-finger-tent",
+        "name" : "One-Finger Tent",
+        "rankStandard" : "skill-drill.one-finger-tent",
+        "role" : "skillDrill",
+        "skillId" : "oah.one-arm-handstand-5s"
+      },
+      {
+        "id" : "skill-drill.off-hand-float",
+        "name" : "Off-Hand Float",
+        "rankStandard" : "skill-drill.off-hand-float",
+        "role" : "skillDrill",
+        "skillId" : "oah.one-arm-handstand-5s"
+      }
+    ],
+    "skillNodeId" : "oah.one-arm-handstand-5s",
+    "skillNodeTitle" : "One-Arm Handstand"
+  },
+  {
+    "criterion" : "full planche 5s",
+    "divergentNames" : true,
+    "folded" : [
+      {
+        "id" : "skill-drill.band-assisted-full-planche",
+        "name" : "Band-Assisted Full Planche",
+        "rankStandard" : "skill-drill.band-assisted-full-planche",
+        "role" : "skillDrill",
+        "skillId" : "pl.full-planche"
+      }
+    ],
+    "skillNodeId" : "pl.full-planche",
+    "skillNodeTitle" : "Full Planche"
+  },
+  {
+    "criterion" : "straddle planche 5s",
+    "divergentNames" : true,
+    "folded" : [
+      {
+        "id" : "skill-drill.advanced-tuck-planche",
+        "name" : "Advanced Tuck Planche",
+        "rankStandard" : "skill-drill.advanced-tuck-planche",
+        "role" : "skillDrill",
+        "skillId" : "pl.straddle-planche"
+      }
+    ],
+    "skillNodeId" : "pl.straddle-planche",
+    "skillNodeTitle" : "Straddle Planche"
+  },
+  {
+    "criterion" : "tuck planche 5s",
+    "divergentNames" : true,
+    "folded" : [
+      {
+        "id" : "skill-drill.planche-lean",
+        "name" : "Planche Lean",
+        "rankStandard" : "skill-drill.planche-lean",
+        "role" : "skillDrill",
+        "skillId" : "pl.tuck-planche"
+      },
+      {
+        "id" : "skill-drill.frog-stand",
+        "name" : "Frog Stand",
+        "rankStandard" : "skill-drill.frog-stand",
+        "role" : "skillDrill",
+        "skillId" : "pl.tuck-planche"
+      },
+      {
+        "id" : "skill-drill.band-assisted-tuck-planche",
+        "name" : "Band-Assisted Tuck Planche",
+        "rankStandard" : "skill-drill.band-assisted-tuck-planche",
+        "role" : "skillDrill",
+        "skillId" : "pl.tuck-planche"
+      }
+    ],
+    "skillNodeId" : "pl.tuck-planche",
+    "skillNodeTitle" : "Tuck Planche"
+  },
+  {
+    "criterion" : "5 chin-up",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.chin-up",
+        "name" : "Chin-Up",
+        "rankStandard" : "exercise.chin-up",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "pp.chin-up",
+    "skillNodeTitle" : "Chin-Up"
+  },
+  {
+    "criterion" : "1 muscle-up",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.muscle-up",
+        "name" : "Muscle-Up",
+        "rankStandard" : "exercise.muscle-up",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "pp.muscle-up",
+    "skillNodeTitle" : "Muscle-Up"
+  },
+  {
+    "criterion" : "5 pullup",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.pullup",
+        "name" : "Pull-Up",
+        "rankStandard" : "exercise.pullup",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "pp.pullup",
+    "skillNodeTitle" : "Pull-Up"
+  },
+  {
+    "criterion" : "0.5x bw weighted pullup",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.weighted-pullup",
+        "name" : "Weighted Pull-Up",
+        "rankStandard" : "exercise.weighted-pullup",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "pp.weighted-pullup",
+    "skillNodeTitle" : "Weighted Pull-Up"
+  }
+]

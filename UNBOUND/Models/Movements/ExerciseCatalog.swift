@@ -267,7 +267,7 @@ enum ExerciseCatalog {
         .core: [
             .init(name: "plank", displayName: "Plank", muscleGroups: [.core], defaultSubstitute: nil, progressionFamily: "core-lever", progressionTier: 0),
             .init(name: "high plank", displayName: "High Plank", muscleGroups: [.core, .chest, .shoulders, .arms], defaultSubstitute: "plank"),
-            .init(name: "hollow hold", displayName: "Hollow Hold", muscleGroups: [.core], defaultSubstitute: "plank", progressionFamily: "core-lever", progressionTier: 1),
+            .init(name: "hollow hold", displayName: "Hollow Body Hold", muscleGroups: [.core], defaultSubstitute: "plank", progressionFamily: "core-lever", progressionTier: 1),
             .init(name: "l-sit (tucked)", displayName: "L-Sit (Tucked)", muscleGroups: [.core, .shoulders, .arms], defaultSubstitute: "hollow hold", progressionFamily: "core-lever", progressionTier: 2),
             .init(name: "l-sit", displayName: "L-Sit", muscleGroups: [.core, .shoulders, .arms], defaultSubstitute: "l-sit (tucked)", progressionFamily: "core-lever", progressionTier: 3),
             .init(name: "tuck front lever", displayName: "Tuck Front Lever", muscleGroups: [.core, .lats, .back], defaultSubstitute: "l-sit", progressionFamily: "core-lever", progressionTier: 4),

@@ -60,9 +60,9 @@ enum MovementProofMatcher {
         // Same owning skill: the logged movement and the criterion's movement
         // are both the SAME skill's own movement (its drill/target or curated
         // exercise twin), so logging any of them is evidence for that skill.
-        // This lets the library "Hollow Hold", the "Hollow Body Hold" drill,
-        // and the skill block all advance the one Hollow Body rank, while
-        // "Hollow Rock" (a distinct movement) does not.
+        // This lets the library exercise, the drill, and the skill block (all
+        // now named "Hollow Body Hold") advance the one Hollow Body Hold rank,
+        // while "Hollow Rock" (a distinct movement) does not.
         if let owningSkill = MovementCatalog.owningSkillId(forMovementId: loggedMovementId ?? logged.movementId),
            owningSkill == MovementCatalog.owningSkillId(forMovementId: required.movementId) {
             return true

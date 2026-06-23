@@ -61,7 +61,7 @@ final class TravelPlanService {
         .init(
             title: "PUSH",
             duration: "~30 MIN",
-            exercises: ["Push-ups", "Pike Push-ups", "Chair Dips", "Plank Shoulder Taps", "Hollow Hold"],
+            exercises: ["Push-ups", "Pike Push-ups", "Chair Dips", "Plank Shoulder Taps", "Hollow Body Hold"],
             isRest: false
         ),
         .init(

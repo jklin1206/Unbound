@@ -45,8 +45,9 @@ extension MovementCatalog {
     /// `MovementProofMatcher` so logging the library exercise advances the SAME
     /// skill rank as the drill or the skill block (the "one rank, fed from any
     /// surface" unification). Only the movement that IS the skill belongs here,
-    /// never a merely-associated one: "Hollow Hold" is the hollow-body hold, but
-    /// "Hollow Rock" is a different (dynamic) movement and is excluded.
+    /// never a merely-associated one: the Hollow Body Hold exercise IS the
+    /// hollow-body hold, but "Hollow Rock" is a different (dynamic) movement and
+    /// is excluded.
     /// Pilot scope is hollow only — expand family-by-family with a per-pair
     /// metric-compatibility audit (rep-vs-hold criteria must line up).
     static let exerciseSkillTwins: [String: String] = [

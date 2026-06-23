@@ -21,7 +21,7 @@ extension DeterministicProgramGenerator {
         case .pull:
             base = [
                 warmupExercise("Shoulder Opener", groups: [.shoulders, .back], reps: "45s"),
-                warmupExercise("Hollow Hold", groups: [.core], reps: "20s")
+                warmupExercise("Hollow Body Hold", groups: [.core], reps: "20s")
             ]
         case .legs, .lower:
             base = [
@@ -31,7 +31,7 @@ extension DeterministicProgramGenerator {
         case .upper:
             base = [
                 warmupExercise("Shoulder Opener", groups: [.shoulders, .chest, .back], reps: "45s"),
-                warmupExercise("Hollow Hold", groups: [.core], reps: "20s")
+                warmupExercise("Hollow Body Hold", groups: [.core], reps: "20s")
             ]
         case .fullBody, .weakPoint:
             base = [
@@ -41,7 +41,7 @@ extension DeterministicProgramGenerator {
         case .skill:
             base = [
                 warmupExercise("Wrist Prep", groups: [.forearms], reps: "45s"),
-                warmupExercise("Hollow Hold", groups: [.core], reps: "20s")
+                warmupExercise("Hollow Body Hold", groups: [.core], reps: "20s")
             ]
         case .rest:
             base = []
@@ -68,7 +68,7 @@ extension DeterministicProgramGenerator {
         case .pull, .upper:
             return [
                 warmupExercise("Prone Shoulder Raise", groups: [.back, .shoulders], reps: "8"),
-                warmupExercise("Hollow Hold", groups: [.core], reps: "20s")
+                warmupExercise("Hollow Body Hold", groups: [.core], reps: "20s")
             ]
         case .fullBody, .weakPoint:
             return [
@@ -78,7 +78,7 @@ extension DeterministicProgramGenerator {
         case .skill:
             return [
                 warmupExercise("Wrist Prep", groups: [.forearms], reps: "45s"),
-                warmupExercise("Hollow Hold", groups: [.core], reps: "20s")
+                warmupExercise("Hollow Body Hold", groups: [.core], reps: "20s")
             ]
         case .rest:
             return []

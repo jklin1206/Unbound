@@ -413,7 +413,7 @@ extension SkillGraph {
         ),
         .simple(
             id: "hs.freestanding-hs-30",
-            title: "Handstand",
+            title: "Freestanding Handstand",
             cluster: .handstand, tier: 3, type: .hold,
             target: .hold(exercise: "freestanding handstand", seconds: 30),
             prereqs: [PrerequisiteGroup("hs.wall-handstand-30")],

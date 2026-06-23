@@ -262,7 +262,7 @@ final class CalibrationViewModel {
             ("glute bridge", "Glute Bridge", [.glutes, .legs, .core]),
             ("reverse crunch", "Reverse Crunch", [.core]),
             ("plank", "Plank", [.core]),
-            ("hollow hold", "Hollow Hold", [.core])
+            ("hollow hold", "Hollow Body Hold", [.core])
         ]
 
         if isFloorOnly {
