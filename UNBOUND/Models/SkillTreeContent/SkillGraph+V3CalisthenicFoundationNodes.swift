@@ -440,7 +440,7 @@ extension SkillGraph {
         .simple(
             id: "oah.one-arm-handstand-5s",
             title: "One-Arm Handstand",
-            cluster: .oneArmHandstand, tier: 6, type: .hold,
+            cluster: .handstand, tier: 6, type: .hold,
             target: .hold(exercise: "one-arm handstand", seconds: 5),
             prereqs: [PrerequisiteGroup("hs.wall-supported-oah")],
             isKeystone: true,
@@ -465,7 +465,7 @@ extension SkillGraph {
         .simple(
             id: "oah.full-one-arm-handstand",
             title: "Full One-Arm Handstand",
-            cluster: .oneArmHandstand, tier: 7, type: .hold,
+            cluster: .handstand, tier: 7, type: .hold,
             target: .hold(exercise: "full one arm handstand", seconds: 5),
             prereqs: [PrerequisiteGroup("oah.one-arm-handstand-5s")],
             isMythic: true,
