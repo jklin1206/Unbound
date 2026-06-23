@@ -255,25 +255,20 @@ struct ProgramRankLibraryView: View {
             nodeStates: skillService.nodeStates,
             programFocusIds: skillService.programFocusIds
         )
-        // The same movement is modelled by up to three subsystems (skill tree,
-        // skill drill, exercise library), so it can surface as three rows. The
-        // skill node is the single rank source, so fold every twin into it: the
-        // "Hollow Body Hold" drill and the "Hollow Hold" exercise both collapse
-        // into the "Hollow Body" skill row, while the genuinely different
-        // "Hollow Rock" stays. See `movementFoldsIntoShownSkill`.
+        // The same physical movement is modelled by up to three subsystems
+        // (skill tree, skill drill, exercise library). The skill node is the
+        // single rank source, so any movement that resolves to a shown skill via
+        // the authoritative owning-skill join (its `skillId` or an
+        // `exerciseSkillTwins` entry) folds into that skill row: the Hollow Body
+        // Hold exercise + drill and every regression drill collapse, while a
+        // genuinely different movement (Hollow Rock) keeps its own row. The
+        // explicit join replaces the old name/art heuristic; `CanonicalTwinMapTests`
+        // proves it captures every twin the heuristic would have folded.
         let shownSkillIds = Set(skillRows.map(\.sourceId))
-        let shownSkillNames = Set(skillRows.map { Self.searchKey($0.title) })
-        let shownSkillAssets = Set(skillRows.compactMap(\.visualAssetName))
         let movementRows = Self.makeMovementRows(progressStates: progressStates, profile: userProfile)
             .filter { row in
-                !Self.movementFoldsIntoShownSkill(
-                    title: row.title,
-                    sourceId: row.sourceId,
-                    visualAssetName: row.visualAssetName,
-                    shownSkillIds: shownSkillIds,
-                    shownSkillNames: shownSkillNames,
-                    shownSkillAssets: shownSkillAssets
-                )
+                guard let owningSkill = MovementCatalog.owningSkillId(forMovementId: row.sourceId) else { return true }
+                return !shownSkillIds.contains(owningSkill)
             }
         rows = skillRows + movementRows
         isLoading = false
@@ -494,42 +489,6 @@ struct ProgramRankLibraryView: View {
 
         rows.append(contentsOf: extraRows)
         return rows
-    }
-
-    /// True when a movement row is just another label for a skill that is
-    /// already shown as its own row, so it should be folded away (the skill is
-    /// the single rank source). Three signals, in precision order:
-    ///   1. Exact normalized-name twin — folds "Push-Up"/"Pushup" and any
-    ///      exercise/drill named identically to a skill.
-    ///   2. The movement is a skill drill/target owned by a shown skill
-    ///      (`skillId`) — folds the "Hollow Body Hold" drill into "Hollow Body".
-    ///   3. The movement renders the exact same picture as a shown skill AND is
-    ///      linked to it — folds the "Hollow Hold" exercise (same art, different
-    ///      name) while leaving "Hollow Rock" (different art) standing.
-    /// Mere skill *association* is deliberately not enough on its own: Hollow
-    /// Rock, Hanging Knee Raise, etc. all associate with the same skill but are
-    /// distinct movements, so signal 3 also requires the identical asset.
-    static func movementFoldsIntoShownSkill(
-        title: String,
-        sourceId: String,
-        visualAssetName: String?,
-        shownSkillIds: Set<String>,
-        shownSkillNames: Set<String>,
-        shownSkillAssets: Set<String>
-    ) -> Bool {
-        if shownSkillNames.contains(searchKey(title)) { return true }
-
-        guard let definition = MovementCatalog.definition(for: sourceId) else { return false }
-
-        if let skillId = definition.skillId, shownSkillIds.contains(skillId) { return true }
-
-        if let asset = visualAssetName,
-           shownSkillAssets.contains(asset),
-           definition.skillAssociations.contains(where: shownSkillIds.contains) {
-            return true
-        }
-
-        return false
     }
 
     private static func skillVisualAssetName(for node: SkillNode) -> String? {

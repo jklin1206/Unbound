@@ -4,9 +4,10 @@ import XCTest
 /// Dumps the COMPLETE twin map: for every skill node, every movement record
 /// (library exercise + skill drill) that the rank library folds into it, with
 /// all three name strings side by side. This is the ground-truth source for the
-/// canonical-name reconciliation table (the "same movement, three names" cleanup)
-/// - it runs the real `ProgramRankLibraryView.movementFoldsIntoShownSkill`
-/// signals, not a hand-guessed list.
+/// canonical-name reconciliation + twin-map audit (the "same movement, three
+/// names" cleanup) - it replicates the historical name/skillId/art fold signals
+/// (now superseded in production by the `exerciseSkillTwins` join), not a
+/// hand-guessed list.
 ///
 ///   xcodebuild test ... -only-testing:UNBOUNDTests/MovementFoldMapDumpTests
 final class MovementFoldMapDumpTests: XCTestCase {
@@ -45,8 +46,8 @@ final class MovementFoldMapDumpTests: XCTestCase {
             )
         }
 
-        // Replicates movementFoldsIntoShownSkill's three signals, but resolves the
-        // TARGET node (not just a bool) so we can group + compare names.
+        // Replicates the historical fold's three signals (name / skillId /
+        // same-art+assoc), resolving the TARGET node so we can group + compare names.
         func foldTarget(for def: MovementDefinition) -> NodeInfo? {
             let titleKey = Self.searchKey(def.displayName)
             if let n = nodes.first(where: { Self.searchKey($0.title) == titleKey }) { return n }
