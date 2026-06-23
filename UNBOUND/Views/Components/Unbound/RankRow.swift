@@ -39,7 +39,6 @@ struct RankRow: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(Color.unbound.surface)
         )
-        .opacity(row.isEarned ? 1 : 0.6)
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(row.title), \(rankLabel)")
@@ -64,11 +63,10 @@ struct RankRow: View {
                     .interpolation(.high)
                     .scaledToFit()
                     .padding(3)
-                    .opacity(row.isEarned ? 1 : 0.5)
             } else {
                 Image(systemName: row.source.systemImage)
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(tint.opacity(row.isEarned ? 0.9 : 0.45))
+                    .foregroundStyle(tint.opacity(0.9))
             }
         }
         .frame(width: 56, height: 56)
@@ -92,14 +90,14 @@ struct RankRow: View {
                 )
             )
         }
-        return AnyShapeStyle(tint.opacity(row.isEarned ? 0.16 : 0.08))
+        return AnyShapeStyle(tint.opacity(0.16))
     }
 
     private var artworkBorder: Color {
         if usesCharacterArt {
-            return row.isEarned ? tint.opacity(0.45) : Color.black.opacity(0.12)
+            return tint.opacity(0.45)
         }
-        return tint.opacity(row.isEarned ? 0.3 : 0.12)
+        return tint.opacity(0.3)
     }
 
     @ViewBuilder
@@ -114,8 +112,7 @@ struct RankRow: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 34, height: 34)
-                .opacity(row.isEarned ? 1 : 0.4)
-                .shadow(color: tint.opacity(row.isEarned ? 0.3 : 0), radius: 6)
+                .shadow(color: tint.opacity(0.3), radius: 6)
         }
     }
 }
