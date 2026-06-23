@@ -388,12 +388,13 @@ struct RankDetailRankTab: View {
 
 // MARK: - Climb rung
 
-/// One rung of the vertical climb — theatrical, not a checklist. Earned tiers are
-/// REVEALED: the real shield lights up with the tier name and a check. Everything
-/// you haven't reached is a sealed "???" token — you can see the climb stretch
-/// above you and how far it goes, but never the tier's name or what it takes to
-/// reach it. The next rank glows to beckon; the rest sit dark. The requirement is
-/// only ever revealed by unlocking it (the ignite reveal flips a token to a shield).
+/// One rung of the vertical climb — the full map of where this movement goes,
+/// shown openly. Every tier's real shield and name are always visible; nothing
+/// is sealed. Status is carried by emphasis, not secrecy: cleared rungs light
+/// green with a check and a filled spine, the next rung glows in the tier tint
+/// and spells out what it takes, and rungs still ahead sit calm but fully
+/// legible. The theatrical reveal lives in the post-log rank-up moment (the
+/// ignite + banner), not in hiding the ladder.
 private struct RankClimbRung: View {
     let rung: RankLadderRow
     let tint: Color
@@ -401,16 +402,16 @@ private struct RankClimbRung: View {
     let isLast: Bool
     let isIgnited: Bool
 
-    private var revealed: Bool { rung.isCleared }
+    private var isCleared: Bool { rung.isCleared }
     private var isNextTarget: Bool { rung.isCurrent || rung.isNext }
 
-    private var rowTint: Color {
-        if revealed { return Color.unbound.success }
+    private var nameColor: Color {
+        if isCleared { return Color.unbound.success }
         if isNextTarget { return tint }
-        return Color.unbound.textTertiary
+        return Color.unbound.textSecondary
     }
 
-    private var shieldSize: CGFloat { isNextTarget ? 38 : (revealed ? 32 : 30) }
+    private var shieldSize: CGFloat { isNextTarget ? 38 : (isCleared ? 32 : 30) }
 
     private var upperFilled: Bool { rung.isCleared }
     private var lowerFilled: Bool { rung.isCleared || isNextTarget }
@@ -420,23 +421,26 @@ private struct RankClimbRung: View {
             spine
                 .frame(width: 38)
 
-            HStack(spacing: 6) {
-                Text(revealed ? rung.tier.displayName.uppercased() : (isNextTarget ? "NEXT RANK" : "SEALED"))
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(revealed ? 0.9 : 1.4)
-                    .foregroundStyle(rowTint)
-                Spacer(minLength: 0)
-                if revealed {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .heavy))
-                        .foregroundStyle(Color.unbound.success)
-                } else {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(isNextTarget ? tint.opacity(0.85) : Color.unbound.textTertiary.opacity(0.7))
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(rung.tier.displayName.uppercased())
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(0.9)
+                        .foregroundStyle(nameColor)
+                    Spacer(minLength: 0)
+                    trailingIndicator
+                }
+                // Now that nothing is sealed, the next rung tells you exactly
+                // what it takes — the actionable target, no longer a mystery.
+                if isNextTarget, !rung.criteriaText.isEmpty {
+                    Text(rung.criteriaText)
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(.vertical, 12)
+            .padding(.vertical, 11)
         }
         .padding(.horizontal, 8)
         .background(
@@ -450,7 +454,21 @@ private struct RankClimbRung: View {
         )
     }
 
-    /// Vertical spine: a connecting line behind the tier token. Cleared segments
+    @ViewBuilder
+    private var trailingIndicator: some View {
+        if isCleared {
+            Image(systemName: "checkmark")
+                .font(.system(size: 10, weight: .heavy))
+                .foregroundStyle(Color.unbound.success)
+        } else if isNextTarget {
+            Text("NEXT")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.2)
+                .foregroundStyle(tint)
+        }
+    }
+
+    /// Vertical spine: a connecting line behind the tier shield. Cleared segments
     /// glow `tint`; future segments are hollow (`borderSubtle`).
     private var spine: some View {
         VStack(spacing: 0) {
@@ -460,7 +478,7 @@ private struct RankClimbRung: View {
                 .frame(height: 12)
                 .opacity(isFirst ? 0 : 1)
 
-            token
+            shield
                 .scaleEffect(isIgnited ? 1.18 : 1.0)
 
             Rectangle()
@@ -471,36 +489,23 @@ private struct RankClimbRung: View {
         }
     }
 
-    /// Revealed → the real tier shield. Locked → a sealed "???" token that hides
-    /// the shield's identity entirely (no shape, no color leak).
-    @ViewBuilder
-    private var token: some View {
-        if revealed {
-            Image(rung.tier.assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: shieldSize, height: shieldSize)
-                .shadow(
-                    color: isIgnited ? tint.opacity(0.85) : Color.unbound.success.opacity(0.35),
-                    radius: isIgnited ? 16 : 5
-                )
-        } else {
-            ZStack {
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(Color.unbound.surface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .strokeBorder(
-                                isNextTarget ? tint.opacity(0.5) : Color.unbound.borderSubtle,
-                                lineWidth: 1
-                            )
-                    )
-                Image(systemName: "questionmark")
-                    .font(.system(size: shieldSize * 0.42, weight: .heavy))
-                    .foregroundStyle(isNextTarget ? tint : Color.unbound.textTertiary.opacity(0.55))
-            }
+    /// The real tier shield, always shown. Cleared rungs carry a success glow,
+    /// the next rung the tier tint; rungs still ahead render the shield plainly.
+    private var shield: some View {
+        Image(rung.tier.assetName)
+            .resizable()
+            .scaledToFit()
             .frame(width: shieldSize, height: shieldSize)
-            .shadow(color: isNextTarget ? tint.opacity(0.35) : .clear, radius: isNextTarget ? 8 : 0)
-        }
+            .shadow(
+                color: shieldGlow,
+                radius: isIgnited ? 16 : (isNextTarget ? 8 : (isCleared ? 5 : 0))
+            )
+    }
+
+    private var shieldGlow: Color {
+        if isIgnited { return tint.opacity(0.85) }
+        if isNextTarget { return tint.opacity(0.4) }
+        if isCleared { return Color.unbound.success.opacity(0.35) }
+        return .clear
     }
 }

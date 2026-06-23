@@ -4,7 +4,7 @@ import SwiftUI
 /// and skills: a custom top bar, a tier-tinted hero, a pinned underline tab bar,
 /// and three panes:
 /// - Overview: reference (muscle map, equipment, technique guide).
-/// - Rank: the theatrical mystery-ladder climb + Log a Set + the inline reveal.
+/// - Rank: the open all-tiers climb + Log a Set + the inline rank-up reveal.
 /// - Stats: PRs + progression graph + derived stats + attempts history.
 /// The three panes share one scroll; switching tabs resets it to the top.
 struct RankDetailView: View {
