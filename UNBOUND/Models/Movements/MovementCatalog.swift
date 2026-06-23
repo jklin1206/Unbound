@@ -49,17 +49,43 @@ enum MovementCatalog {
 
     static let aliasIndex: [String: MovementDefinition] = {
         var index: [String: MovementDefinition] = [:]
+        // A loggable library exercise OWNS its name: a lower-precedence role must
+        // not hijack name resolution from a canonical exercise that claims the
+        // same normalized name. This matters once a true twin shares one name -
+        // the "Hollow Body Hold" exercise must win over the "Hollow Body Hold"
+        // skill drill (which is the easier-difficulty plan step). Resolving the
+        // drill by its id still works; only ambiguous name lookups are steered.
+        func claim(_ rawKey: String, _ definition: MovementDefinition) {
+            let key = normalized(rawKey)
+            if let existing = index[key],
+               aliasRolePrecedence(existing.role) > aliasRolePrecedence(definition.role) {
+                return
+            }
+            index[key] = definition
+        }
         for definition in definitions {
-            index[normalized(definition.displayName)] = definition
+            claim(definition.displayName, definition)
             if let canonical = definition.canonicalExerciseName {
-                index[normalized(canonical)] = definition
+                claim(canonical, definition)
             }
             for alias in definition.aliases {
-                index[normalized(alias)] = definition
+                claim(alias, definition)
             }
         }
         return index
     }()
+
+    /// Name-resolution precedence when two definitions claim the same normalized
+    /// name. Higher wins; equal precedence keeps the last-seen (original order).
+    private static func aliasRolePrecedence(_ role: MovementRole) -> Int {
+        switch role {
+        case .canonicalExercise: return 4
+        case .cardioModality, .carrySled, .mobilityDuration: return 3
+        case .skillDrill: return 2
+        case .skillTarget: return 1
+        default: return 0
+        }
+    }
 
     /// Brand-variant exercise ids that were folded into a generic machine movement
     /// (Plate Loaded / Hammer Strength / Converging). Kept so historical logs that
