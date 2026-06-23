@@ -144,6 +144,34 @@ struct MovementProgressState: Codable, Identifiable, Hashable, Sendable {
         updatedAt = Date()
     }
 
+    /// Fold a retired standard's row into this one (P3 consolidation): the same
+    /// physical movement that used to bank into a separate rank standard. Sums
+    /// the ledger, keeps the best of every metric, and unions the dedupe sets so
+    /// no source log is ever re-applied.
+    mutating func merge(from other: MovementProgressState) {
+        totalAP += other.totalAP
+        provenTier = max(provenTier, other.provenTier)
+
+        bestEstimatedOneRepMaxKg = maxOptional(bestEstimatedOneRepMaxKg, other.bestEstimatedOneRepMaxKg)
+        bestLoadKg = maxOptional(bestLoadKg, other.bestLoadKg)
+        bestReps = maxOptional(bestReps, other.bestReps)
+        bestHoldSeconds = maxOptional(bestHoldSeconds, other.bestHoldSeconds)
+        bestDurationSeconds = maxOptional(bestDurationSeconds, other.bestDurationSeconds)
+        bestDistanceMeters = maxOptional(bestDistanceMeters, other.bestDistanceMeters)
+        bestCalories = maxOptional(bestCalories, other.bestCalories)
+
+        // Keep the most recent activity and its reward amount.
+        if let otherLast = other.lastLoggedAt,
+           lastLoggedAt.map({ otherLast > $0 }) ?? true {
+            lastGainedAP = other.lastGainedAP
+            lastLoggedAt = otherLast
+        }
+
+        contributingMovementIds = Set(contributingMovementIds).union(other.contributingMovementIds).sorted()
+        processedSourceLogIds = Set(processedSourceLogIds).union(other.processedSourceLogIds).sorted()
+        updatedAt = Date()
+    }
+
     mutating func refreshProvenTier(bodyweightKg: Double?, sex: BiologicalSex?) {
         provenTier = MovementProgressTierResolver.provenTier(
             for: self,

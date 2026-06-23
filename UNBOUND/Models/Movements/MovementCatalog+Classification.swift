@@ -92,6 +92,22 @@ extension MovementCatalog {
         "exercise.bodyweight-leg-extension": "ld.leg-extensions"
     ]
 
+    /// Skill drills that ARE the same physical movement as a rankable library
+    /// exercise route their XP into that ONE canonical standard, so a single
+    /// movement never banks into two `movement_progress` rows (P3 of the
+    /// movement unification). Only true-twin drills (the drill == the skill's
+    /// criterion movement) that ALSO have an exercise twin belong here -
+    /// regressions like Tuck L-Sit keep their own standard.
+    ///
+    /// Today this is just the hollow body hold (the only movement with two
+    /// rankable true-twins). The skill-drill factory reads this to set the
+    /// drill's `rankStandardMovementId`, and
+    /// `MovementProgressConsolidationMigration` merges any pre-existing split
+    /// rows on upgrade. `CanonicalTwinMapTests` locks the routing.
+    static let skillDrillCanonicalStandard: [String: String] = [
+        "skill-drill.hollow-body-hold": "exercise.hollow-hold"
+    ]
+
     /// The skill a movement *is* (its own rank source), or nil if it is not a
     /// skill movement. Drills and skill targets carry a precise `skillId`;
     /// exercise twins resolve through `exerciseSkillTwins`. Deliberately

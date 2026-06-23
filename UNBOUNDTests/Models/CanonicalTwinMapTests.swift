@@ -82,4 +82,31 @@ final class CanonicalTwinMapTests: XCTestCase {
                            "\(ex) maps to a different skill than it folds into")
         }
     }
+
+    /// P3: a true-twin drill banks XP into its canonical exercise standard, and
+    /// that standard is rankable, direct, and metric-compatible. Also locks the
+    /// one-hop forward resolution the AP calculator relies on so old drill logs
+    /// route to the canonical standard.
+    func testSkillDrillCanonicalStandardRoutes() throws {
+        for (drillId, canonicalId) in MovementCatalog.skillDrillCanonicalStandard {
+            let drill = try XCTUnwrap(MovementCatalog.definition(for: drillId), "missing drill \(drillId)")
+            XCTAssertEqual(drill.rankStandardMovementId, canonicalId, "\(drillId) should bank into \(canonicalId)")
+
+            let standard = try XCTUnwrap(MovementCatalog.definition(for: canonicalId), "missing standard \(canonicalId)")
+            XCTAssertTrue(standard.rankable, "\(canonicalId) must be a rankable standard")
+            XCTAssertEqual(standard.rankStandardMovementId, standard.id, "\(canonicalId) must be a direct standard")
+            XCTAssertEqual(
+                Self.holdTemplates.contains(drill.rankTemplate),
+                Self.holdTemplates.contains(standard.rankTemplate),
+                "\(drillId) and \(canonicalId) must share a metric family"
+            )
+
+            // The calculator resolves a logged standard one hop via this path;
+            // it must land on the canonical standard for old + new logs alike.
+            XCTAssertEqual(
+                MovementCatalog.rankStandardDefinition(for: drillId)?.id, canonicalId,
+                "logging \(drillId) must resolve to \(canonicalId)"
+            )
+        }
+    }
 }

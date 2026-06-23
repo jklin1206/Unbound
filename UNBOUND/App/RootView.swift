@@ -145,6 +145,10 @@ struct RootView: View {
                             history: history,
                             bodyweightKg: bodyweightKg
                         )
+                        // One-time consolidation of split movement_progress rows
+                        // for movements whose rank standards were unified (P3).
+                        // Idempotent + local-only.
+                        await MovementProgressConsolidationMigration.migrateIfNeeded(userId: userId)
                     }
                 } else {
                     services.analytics.reset()
