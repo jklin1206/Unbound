@@ -19,9 +19,8 @@ struct RankDetailRankTab: View {
 
     // Presentation-only state.
     @State private var errorMessage: String?
-    @State private var isQuickLogPresented = false
 
-    // Rank-up reveal (exercise/ruler case): emblem pulse + a brief banner.
+    // Rank-up reveal: emblem pulse + a brief banner.
     @State private var didRankUp = false
     @State private var rankUpBanner: String?
     @State private var bannerToken = UUID()
@@ -39,25 +38,6 @@ struct RankDetailRankTab: View {
             logSetSection
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .sheet(isPresented: $isQuickLogPresented, onDismiss: {
-            // The quick log may have ranked this skill up — reload the VM so the
-            // showcase emblem refreshes, then bubble up so the library reloads.
-            Task {
-                await vm.load(services: services)
-                await onLogged?()
-            }
-        }) {
-            if let node = vm.skillNode {
-                let cfg = skillQuickLogConfig(for: node)
-                QuickLogSheet(
-                    skillId: node.id,
-                    skillTitle: node.title,
-                    defaultReps: cfg.defaultReps,
-                    isHoldBased: cfg.isHold,
-                    holdTargetSeconds: cfg.holdSeconds
-                )
-            }
-        }
         .alert("Couldn't save rank attempt", isPresented: Binding(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
@@ -141,8 +121,13 @@ struct RankDetailRankTab: View {
                 }
             }
         } else if vm.skillNode != nil {
+            // Skills log on the SAME inline ruler as exercises — reps or a timed
+            // hold per the skill's criterion. No sheet, no extra fields.
             logSection(title: "LOG A SET") {
-                skillLogButton
+                VStack(alignment: .leading, spacing: 14) {
+                    skillMetricRail
+                    rulerSubmitButton
+                }
             }
         }
     }
@@ -153,20 +138,35 @@ struct RankDetailRankTab: View {
         case .oneRepMax:
             oneRepMaxRail(definition)
         case .reps:
-            ProgramRankMetricRuler(
-                title: "Reps",
-                valueText: "\(vm.selectedReps)",
-                range: 1...80,
-                value: Binding(get: { vm.selectedReps }, set: { vm.selectedReps = $0 }),
-                unitLabel: "REPS",
-                format: { "\($0)" },
-                tickLabel: { "\($0)" },
-                majorEvery: 10,
-                tickSpacing: 15
-            )
+            repsRail
         case .hold:
             secondsRail
         }
+    }
+
+    /// Skills only ever rank on reps or a timed hold — the same two rails the
+    /// exercise ruler uses, minus the 1RM weight case.
+    @ViewBuilder
+    private var skillMetricRail: some View {
+        if vm.logMode == .hold {
+            secondsRail
+        } else {
+            repsRail
+        }
+    }
+
+    private var repsRail: some View {
+        ProgramRankMetricRuler(
+            title: "Reps",
+            valueText: "\(vm.selectedReps)",
+            range: 1...80,
+            value: Binding(get: { vm.selectedReps }, set: { vm.selectedReps = $0 }),
+            unitLabel: "REPS",
+            format: { "\($0)" },
+            tickLabel: { "\($0)" },
+            majorEvery: 10,
+            tickSpacing: 15
+        )
     }
 
     private func oneRepMaxRail(_ definition: MovementDefinition) -> some View {
@@ -229,26 +229,16 @@ struct RankDetailRankTab: View {
         .accessibilityIdentifier("rankDetail.rank.logResult")
     }
 
-    private var skillLogButton: some View {
-        Button {
-            UnboundHaptics.medium()
-            isQuickLogPresented = true
-        } label: {
-            actionLabel(
-                icon: "plus.circle.fill",
-                title: "Log a Set",
-                borderTint: vm.tint.opacity(0.72)
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("rankDetail.rank.logSet")
-    }
-
-    // MARK: - Submit + inline reveal (exercise/ruler case)
+    // MARK: - Submit + inline reveal
 
     private func submit() async {
         do {
-            if let reveal = try await vm.submitLog(services: services) {
+            // Exercises rank on the strength ladder; skills on their own
+            // criterion. Both feed the same inline ruler + reveal.
+            let reveal = vm.loggingIsRulerBased
+                ? try await vm.submitLog(services: services)
+                : try await vm.submitSkillLog(services: services)
+            if let reveal {
                 await onLogged?()
                 if reveal.isRankUp {
                     UnboundHaptics.success()
@@ -263,7 +253,7 @@ struct RankDetailRankTab: View {
         }
     }
 
-    /// Pulse the showcase emblem (now showing the new tier after `submitLog`'s
+    /// Pulse the showcase emblem (now showing the new tier after the log's
     /// reload) and show a banner that auto-dismisses after ~2s.
     /// Reduce Motion: state still updates (functional), but no spring/ease animation.
     private func igniteRankUp(to tier: SkillTier) {
@@ -290,33 +280,6 @@ struct RankDetailRankTab: View {
             } else {
                 withAnimation(.easeInOut(duration: 0.3)) { clear() }
             }
-        }
-    }
-
-    /// Maps a skill node's target to the quick-log's metric + sensible defaults.
-    /// Hold/carry skills log a timed hold; everything else logs reps.
-    private func skillQuickLogConfig(for node: SkillNode) -> (isHold: Bool, defaultReps: Int, holdSeconds: Int) {
-        switch node.target {
-        case .hold(_, let seconds):
-            return (true, 0, max(5, seconds))
-        case .carry(_, let seconds, _):
-            return (true, 0, max(5, seconds))
-        case .reps(_, let count, _):
-            return (false, max(1, count), 30)
-        case .steps(_, let count):
-            return (false, max(1, count), 30)
-        case .weightMultiplier:
-            return (false, 5, 30)
-        case .composite(let reqs):
-            for requirement in reqs {
-                if case .hold(_, let seconds) = requirement { return (true, 0, max(5, seconds)) }
-                if case .carry(_, let seconds, _) = requirement { return (true, 0, max(5, seconds)) }
-            }
-            for requirement in reqs {
-                if case .reps(_, let count, _) = requirement { return (false, max(1, count), 30) }
-                if case .steps(_, let count) = requirement { return (false, max(1, count), 30) }
-            }
-            return (false, 5, 30)
         }
     }
 

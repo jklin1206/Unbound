@@ -67,11 +67,33 @@ final class RankDetailViewModel {
     /// reload after a successful attempt doesn't stomp the user's selection.
     private var hasSeededRuler = false
 
-    /// The metric the ruler captures, derived from the movement's rank template.
-    /// `.oneRepMax` when there's no movement (defensive default — the ruler only
-    /// shows for `loggingIsRulerBased`, where a definition always exists).
+    /// The metric the ruler captures. Exercises derive it from the movement's
+    /// rank template; skills derive it from their node target (reps vs timed
+    /// hold) so they log on the SAME inline ruler — never a 1RM weight ruler.
+    /// `.oneRepMax` is the defensive default for an exercise with no movement.
     var logMode: ProgramRankExerciseLogMode {
-        movementDefinition.map(ProgramRankExerciseLogMode.mode(for:)) ?? .oneRepMax
+        if isSkillEntry, let node = skillNode {
+            return Self.skillLogMode(for: node)
+        }
+        return movementDefinition.map(ProgramRankExerciseLogMode.mode(for:)) ?? .oneRepMax
+    }
+
+    /// Maps a skill node's target to the ruler metric. Hold/carry skills log a
+    /// timed hold; everything else logs reps (the criterion the skill ranks on).
+    static func skillLogMode(for node: SkillNode) -> ProgramRankExerciseLogMode {
+        switch node.target {
+        case .hold, .carry:
+            return .hold
+        case .reps, .steps, .weightMultiplier:
+            return .reps
+        case .composite(let reqs):
+            let hasHold = reqs.contains { requirement in
+                if case .hold = requirement { return true }
+                if case .carry = requirement { return true }
+                return false
+            }
+            return hasHold ? .hold : .reps
+        }
     }
 
     var weightUnit: TrainingWeightUnit {
@@ -221,9 +243,32 @@ final class RankDetailViewModel {
         if loggingIsRulerBased, !hasSeededRuler {
             seedRuler(from: progress)
             hasSeededRuler = true
+        } else if isSkillEntry, !hasSeededRuler, let node = skillNode {
+            seedSkillRuler(for: node)
+            hasSeededRuler = true
         }
 
         isLoading = false
+    }
+
+    /// Seed the inline ruler for a skill from its node target, so the reps /
+    /// hold ruler opens at the criterion value instead of a bare default.
+    private func seedSkillRuler(for node: SkillNode) {
+        switch node.target {
+        case .reps(_, let count, _), .steps(_, let count):
+            selectedReps = max(1, count)
+        case .hold(_, let seconds), .carry(_, let seconds, _):
+            selectedSeconds = max(5, seconds)
+        case .weightMultiplier:
+            selectedReps = max(1, selectedReps)
+        case .composite(let reqs):
+            for requirement in reqs {
+                if case .reps(_, let count, _) = requirement { selectedReps = max(1, count) }
+                if case .steps(_, let count) = requirement { selectedReps = max(1, count) }
+                if case .hold(_, let seconds) = requirement { selectedSeconds = max(5, seconds) }
+                if case .carry(_, let seconds, _) = requirement { selectedSeconds = max(5, seconds) }
+            }
+        }
     }
 
     // MARK: - Ruler logging (exercise case)
@@ -313,6 +358,66 @@ final class RankDetailViewModel {
         let reveal = makeRankReveal(from: result, definition: definition, priorTier: priorTier)
         await load(services: services)
         return reveal
+    }
+
+    private static let skillQuickLogXP: Int = 10
+
+    /// Logs the current ruler selection as a single skill set and returns the
+    /// reveal to animate. Skills rank by their OWN criterion through the shared
+    /// completion service (the single source) — the same inline ruler as an
+    /// exercise, never a strength ladder and never a separate session.
+    @MainActor
+    func submitSkillLog(services: ServiceContainer) async throws -> ProgramRankAttemptReveal? {
+        guard !isSubmitting, let node = skillNode, canSubmitRuler else { return nil }
+        guard let userId = services.auth.currentUserId else { return nil }
+
+        isSubmitting = true
+        defer { isSubmitting = false }
+
+        let isHold = (logMode == .hold)
+        let now = Date()
+        let priorTier = displayedTier
+
+        // Just the metric — an honest, clean single set.
+        let set = LoggedSet(
+            reps: isHold ? 0 : selectedReps,
+            holdSeconds: isHold ? selectedSeconds : nil,
+            weightKg: nil,
+            rpe: nil,
+            qualityFlags: [.clean],
+            notes: nil
+        )
+        let performanceLog = TrainingSessionAdapters.performanceLogForSkillSession(
+            id: "rank-skill-log-\(UUID().uuidString)",
+            userId: userId,
+            skillId: node.id,
+            skillTitle: node.title,
+            startedAt: now,
+            completedAt: now,
+            durationSeconds: 0,
+            exercises: [LoggedExercise(name: node.title, sets: [set])]
+        )
+
+        _ = try await TrainingCompletionService.shared.complete(
+            performanceLog,
+            services: services,
+            skillXPAwarded: Self.skillQuickLogXP
+        )
+
+        // Per-set badge unlocks (parity with the prior quick-log path).
+        let triggerKey = isHold ? "\(node.id).hold" : node.id
+        let triggerReps = isHold ? selectedSeconds : selectedReps
+        _ = await services.badges.evaluate(
+            trigger: .setCompleted(exerciseKey: triggerKey, reps: triggerReps)
+        )
+
+        // load() re-derives `displayedTier` from the skill's persisted tier.
+        await load(services: services)
+        return ProgramRankAttemptReveal(
+            attemptSummary: logSummary,
+            tier: displayedTier,
+            previousTier: priorTier
+        )
     }
 
     private func makePerformanceLog(
