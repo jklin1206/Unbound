@@ -240,6 +240,13 @@ struct MovementDefinition: Identifiable, Codable, Hashable, Sendable {
         self.progressionTier = progressionTier
         self.contraindicationTags = contraindicationTags
     }
+
+    /// The skill node this movement coaches, if any. Generated skill-target
+    /// movements record the link in `skillAssociations` rather than `skillId`,
+    /// so prefer the explicit id and fall back to the first association.
+    var primarySkillId: String? {
+        skillId ?? skillAssociations.first
+    }
 }
 
 struct ResolvedMovement: Codable, Hashable, Sendable {

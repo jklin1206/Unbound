@@ -48,6 +48,7 @@ final class RankDetailViewModel {
     var ladderRows: [RankLadderRow] = []
     var statItems: [RankStatItem] = []
     var formCues: [String] = []
+    var commonMistakes: [String] = []
 
     // MARK: Logging
 
@@ -116,7 +117,9 @@ final class RankDetailViewModel {
         self.title = isSkill ? row.title : (resolvedDefinition?.displayName ?? row.title)
         self.visualAssetName = row.visualAssetName
         self.displayedTier = row.tier
-        self.formCues = resolvedNode?.formCues ?? []
+        let rowCoaching = Self.resolveCoaching(definition: resolvedDefinition, node: resolvedNode)
+        self.formCues = rowCoaching.cues
+        self.commonMistakes = rowCoaching.mistakes
         self.ladderRows = Self.ladderRows(
             // Skill entries climb the SKILL ladder (skillNode); exercise entries the
             // STRENGTH ladder (movement). Pass node: nil for exercises so a happened-
@@ -153,7 +156,9 @@ final class RankDetailViewModel {
         self.title = node.title
         self.visualAssetName = SkillTraditionalVisualResolver.assetName(for: node)
         self.displayedTier = earnedTier
-        self.formCues = node.formCues
+        let nodeCoaching = Self.resolveCoaching(definition: resolvedDefinition, node: node)
+        self.formCues = nodeCoaching.cues
+        self.commonMistakes = nodeCoaching.mistakes
         self.ladderRows = Self.ladderRows(
             node: node,
             definition: resolvedDefinition,
@@ -461,6 +466,27 @@ final class RankDetailViewModel {
     private static func definition(forSkillNode node: SkillNode) -> MovementDefinition? {
         MovementCatalog.definition(for: node.id)
             ?? MovementCatalog.resolvedTrainingMovement(name: node.title)?.standard
+    }
+
+    /// Form cues + common mistakes for the Overview tab. Precedence:
+    ///   1. Exercise-specific authored coaching (e.g. "bench press"), so a
+    ///      barbell lift shows its own cues rather than a borrowed skill link's.
+    ///   2. The skill node's own authored cues (skills keep their content).
+    ///   3. A movement-pattern fallback for unlinked gym lifts.
+    private static func resolveCoaching(
+        definition: MovementDefinition?,
+        node: SkillNode?
+    ) -> (cues: [String], mistakes: [String]) {
+        if let definition, let specific = MovementCoaching.specificEntry(for: definition) {
+            return (specific.cues, specific.mistakes)
+        }
+        if let node {
+            return (node.formCues, node.commonMistakes)
+        }
+        if let definition, let pattern = MovementCoaching.patternEntry(for: definition) {
+            return (pattern.cues, pattern.mistakes)
+        }
+        return ([], [])
     }
 
     // MARK: - Ladder

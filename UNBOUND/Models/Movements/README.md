@@ -14,6 +14,7 @@ Movement/exercise identity layer: the canonical `MovementCatalog` of `MovementDe
 | `MovementCatalog.swift` | `enum MovementCatalog` — assembles the canonical `definitions: [MovementDefinition]` list from skill-tree definitions + every `ExerciseCatalog` exercise. |
 | `MovementCatalog+Classification.swift` | Classification tables, e.g. `variantRankStandardNames` mapping exercise variants ("wide grip lat pulldown") to their rank-standard movement ("lat pulldown"). |
 | `MovementCatalog+Definitions.swift` | Additional `MovementDefinition` tables, e.g. `cardioDefinitions` generated from `CardioType` with aliases and attribute weights. |
+| `MovementCoaching.swift` | `enum MovementCoaching` — curated form cues + common mistakes for non-skill gym lifts (specific by canonical name, with a `MovementSlot` pattern fallback). `resolved(for:)` is the shared entry the rank detail uses; skill-linked movements borrow their skill node's cues instead. |
 | `MovementCatalogTypes.swift` | The catalog's enum vocabulary: `MovementRole`, `MovementLoggerMode`, `MovementVariationTag`, `MovementRankTemplate`, `MovementEquipment`. |
 | `MovementCatalogValidation.swift` | `MovementCatalogValidation.issues()` — integrity checks over the catalog (duplicate ids, dangling skill ids, unknown exercise names). |
 | `MovementProgress.swift` | `MovementProgressState` — per-user per-rank-standard-movement progress ledger (stored field keeps the legacy AP name) + `RewardLedgerQuantizer` whole-point splitting. |

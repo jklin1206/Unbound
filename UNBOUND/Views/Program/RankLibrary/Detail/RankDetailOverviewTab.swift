@@ -17,6 +17,7 @@ struct RankDetailOverviewTab: View {
             }
 
             guideSection
+            mistakesSection
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -63,6 +64,10 @@ struct RankDetailOverviewTab: View {
                 section(title: "SKILL FORM") {
                     FormPhaseSlideshow(phases: skillForm.phases, skillTitle: skillForm.title)
                 }
+            } else if !vm.formCues.isEmpty {
+                // Authored form cues (exercise-specific or the linked skill node's),
+                // preferred over the generic per-slot guide for covered lifts.
+                formCuesSection(vm.formCues)
             } else {
                 SkillGuideLayerView(
                     layer: .rankExercise(definition: definition),
@@ -81,15 +86,44 @@ struct RankDetailOverviewTab: View {
                 FormPhaseSlideshow(phases: phases, skillTitle: node.title)
             }
         } else if !vm.formCues.isEmpty {
-            section(title: "FORM CUES") {
+            formCuesSection(vm.formCues)
+        }
+    }
+
+    private func formCuesSection(_ cues: [String]) -> some View {
+        section(title: "FORM CUES") {
+            VStack(alignment: .leading, spacing: 9) {
+                ForEach(Array(cues.enumerated()), id: \.offset) { _, cue in
+                    HStack(alignment: .top, spacing: 9) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(vm.tint)
+                            .frame(width: 18)
+                        Text(cue)
+                            .font(Font.unbound.bodyS)
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Common mistakes
+
+    @ViewBuilder
+    private var mistakesSection: some View {
+        if !vm.commonMistakes.isEmpty {
+            section(title: "COMMON MISTAKES") {
                 VStack(alignment: .leading, spacing: 9) {
-                    ForEach(Array(vm.formCues.enumerated()), id: \.offset) { _, cue in
+                    ForEach(Array(vm.commonMistakes.enumerated()), id: \.offset) { _, mistake in
                         HStack(alignment: .top, spacing: 9) {
-                            Image(systemName: "checkmark.circle.fill")
+                            Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(vm.tint)
+                                .foregroundStyle(Color.unbound.alert)
                                 .frame(width: 18)
-                            Text(cue)
+                            Text(mistake)
                                 .font(Font.unbound.bodyS)
                                 .foregroundStyle(Color.unbound.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -102,6 +136,9 @@ struct RankDetailOverviewTab: View {
     }
 
     private func skillFormGuide(for definition: MovementDefinition) -> (title: String, phases: [FormPhase])? {
+        // Use the explicit skillId only — NOT primarySkillId. A gym lift's mere
+        // skill *association* (e.g. bench press → a push skill) must not pull a
+        // mismatched skill slideshow over its own authored form cues.
         guard let skillId = definition.skillId else { return nil }
         let node = SkillGraph.shared.node(id: skillId)
         let phases = FormPhaseLibrary.phases(
