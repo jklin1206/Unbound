@@ -40,18 +40,56 @@ extension MovementCatalog {
         variantOfMovementId(for: exercise) ?? "exercise.\(slug(exercise.name))"
     }
 
-    /// Curated "this exercise IS this skill's own movement" twins — beyond the
-    /// precise `skillId` that drill/target definitions already carry. Used by
-    /// `MovementProofMatcher` so logging the library exercise advances the SAME
-    /// skill rank as the drill or the skill block (the "one rank, fed from any
-    /// surface" unification). Only the movement that IS the skill belongs here,
-    /// never a merely-associated one: the Hollow Body Hold exercise IS the
-    /// hollow-body hold, but "Hollow Rock" is a different (dynamic) movement and
-    /// is excluded.
-    /// Pilot scope is hollow only — expand family-by-family with a per-pair
-    /// metric-compatibility audit (rep-vs-hold criteria must line up).
+    /// The authoritative "this library exercise IS this skill's own movement"
+    /// join - beyond the precise `skillId` that drill/target definitions already
+    /// carry. Used by `MovementProofMatcher`/`owningSkillId` so logging the
+    /// library exercise advances the SAME rank as the drill or the skill block
+    /// (the "one rank, fed from any surface" unification), and (P4) so the rank
+    /// library can fold by this explicit map instead of fragile name-matching.
+    ///
+    /// Only the movement that IS the skill belongs here, never a merely-
+    /// associated one or a regression: the Hollow Body Hold exercise IS the
+    /// hollow-body hold, but "Hollow Rock" (dynamic) and "Tuck L-Sit" (an easier
+    /// regression) are excluded - they keep their own identity.
+    ///
+    /// Every pair is metric-compatible (a hold skill twins only a hold exercise,
+    /// a rep/loaded skill only a rep/loaded exercise), audited via
+    /// `MovementFoldMapDumpTests`. `CanonicalTwinMapTests` locks soundness +
+    /// completeness so the map can never silently drift as the catalog grows.
     static let exerciseSkillTwins: [String: String] = [
-        "exercise.hollow-hold": "cl.hollow-body-30"
+        // Calisthenics push / holds
+        "exercise.pushup": "cal.pushup",
+        "exercise.incline-pushup": "cal.incline-pushup",
+        "exercise.decline-pushup": "cal.decline-pushup",
+        "exercise.diamond-pushup": "cal.diamond-pushup",
+        "exercise.archer-pushup": "cal.archer-pushup",
+        "exercise.pike-pushup": "cal.pike-pushup",
+        "exercise.pseudo-planche-pushup": "cal.pseudo-planche-pushup",
+        "exercise.plank": "cal.plank-30",
+        "exercise.l-sit": "cal.l-sit-10",
+        // Core levers
+        "exercise.hollow-hold": "cl.hollow-body-30",
+        "exercise.dragon-flag": "cl.dragon-flag",
+        "exercise.decline-situp": "cl.decline-situp",
+        "exercise.hanging-knee-raise": "cl.hanging-knee-raise",
+        "exercise.hanging-leg-raise": "cl.hanging-leg-raise",
+        "exercise.tuck-front-lever": "cl.tuck-front-lever",
+        // Pull power
+        "exercise.pullup": "pp.pullup",
+        "exercise.chin-up": "pp.chin-up",
+        "exercise.weighted-pullup": "pp.weighted-pullup",
+        "exercise.muscle-up": "pp.muscle-up",
+        // Leg dominance
+        "exercise.pistol-squat": "ld.pistol-squat",
+        "exercise.weighted-pistol": "ld.weighted-pistol",
+        "exercise.shrimp-squat": "ld.shrimp-squat",
+        "exercise.split-squat": "ld.split-squat",
+        "exercise.bulgarian-split-squat": "ld.bulgarian-split-squat",
+        "exercise.step-up": "ld.step-up",
+        "exercise.glute-bridge": "ld.glute-bridge",
+        "exercise.goblet-squat": "ld.goblet-20",
+        "exercise.nordic-curl": "ld.nordic-curl",
+        "exercise.bodyweight-leg-extension": "ld.leg-extensions"
     ]
 
     /// The skill a movement *is* (its own rank source), or nil if it is not a

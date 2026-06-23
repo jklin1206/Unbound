@@ -7,12 +7,14 @@
         "id" : "exercise.archer-pushup",
         "name" : "Archer Push-Up",
         "rankStandard" : "exercise.archer-pushup",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "cal.archer-pushup",
-    "skillNodeTitle" : "Archer Push-Up"
+    "skillNodeTitle" : "Archer Push-Up",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "10 decline pushup",
@@ -22,12 +24,14 @@
         "id" : "exercise.decline-pushup",
         "name" : "Decline Push-Up",
         "rankStandard" : "exercise.decline-pushup",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "cal.decline-pushup",
-    "skillNodeTitle" : "Decline Push-Up"
+    "skillNodeTitle" : "Decline Push-Up",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "10 diamond pushup",
@@ -37,12 +41,14 @@
         "id" : "exercise.diamond-pushup",
         "name" : "Diamond Push-Up",
         "rankStandard" : "exercise.diamond-pushup",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "cal.diamond-pushup",
-    "skillNodeTitle" : "Diamond Push-Up"
+    "skillNodeTitle" : "Diamond Push-Up",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "10 incline pushup",
@@ -52,12 +58,14 @@
         "id" : "exercise.incline-pushup",
         "name" : "Incline Push-Up",
         "rankStandard" : "exercise.incline-pushup",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "cal.incline-pushup",
-    "skillNodeTitle" : "Incline Push-Up"
+    "skillNodeTitle" : "Incline Push-Up",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "l-sit 10s",
@@ -67,6 +75,7 @@
         "id" : "exercise.l-sit",
         "name" : "L-Sit",
         "rankStandard" : "exercise.l-sit",
+        "rankTemplate" : "holdControl",
         "role" : "canonicalExercise",
         "skillId" : ""
       },
@@ -74,6 +83,7 @@
         "id" : "skill-drill.tuck-l-sit",
         "name" : "Tuck L-Sit",
         "rankStandard" : "skill-drill.tuck-l-sit",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "cal.l-sit-10"
       },
@@ -81,6 +91,7 @@
         "id" : "skill-drill.single-leg-l-sit",
         "name" : "Single-Leg L-Sit",
         "rankStandard" : "skill-drill.single-leg-l-sit",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "cal.l-sit-10"
       },
@@ -88,12 +99,14 @@
         "id" : "skill-drill.foot-supported-l-sit",
         "name" : "Foot-Supported L-Sit",
         "rankStandard" : "skill-drill.foot-supported-l-sit",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "cal.l-sit-10"
       }
     ],
     "skillNodeId" : "cal.l-sit-10",
-    "skillNodeTitle" : "L-Sit"
+    "skillNodeTitle" : "L-Sit",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "10 pike pushup",
@@ -103,12 +116,14 @@
         "id" : "exercise.pike-pushup",
         "name" : "Pike Push-Up",
         "rankStandard" : "exercise.pike-pushup",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "cal.pike-pushup",
-    "skillNodeTitle" : "Pike Push-Up"
+    "skillNodeTitle" : "Pike Push-Up",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "plank 30s",
@@ -118,12 +133,14 @@
         "id" : "exercise.plank",
         "name" : "Plank",
         "rankStandard" : "exercise.plank",
+        "rankTemplate" : "holdControl",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "cal.plank-30",
-    "skillNodeTitle" : "Plank"
+    "skillNodeTitle" : "Plank",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "5 pseudo-planche pushup",
@@ -133,12 +150,14 @@
         "id" : "exercise.pseudo-planche-pushup",
         "name" : "Pseudo-Planche Push-Up",
         "rankStandard" : "exercise.pseudo-planche-pushup",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "cal.pseudo-planche-pushup",
-    "skillNodeTitle" : "Pseudo-Planche Push-Up"
+    "skillNodeTitle" : "Pseudo-Planche Push-Up",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "10 pushup",
@@ -148,12 +167,14 @@
         "id" : "exercise.pushup",
         "name" : "Push-Up",
         "rankStandard" : "exercise.pushup",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "cal.pushup",
-    "skillNodeTitle" : "Push-Up"
+    "skillNodeTitle" : "Push-Up",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "15 decline sit-up",
@@ -163,12 +184,14 @@
         "id" : "exercise.decline-situp",
         "name" : "Decline Sit-Up",
         "rankStandard" : "exercise.decline-situp",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "cl.decline-situp",
-    "skillNodeTitle" : "Decline Sit-Up"
+    "skillNodeTitle" : "Decline Sit-Up",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "5 dragon flag",
@@ -178,12 +201,14 @@
         "id" : "exercise.dragon-flag",
         "name" : "Dragon Flag",
         "rankStandard" : "exercise.dragon-flag",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "cl.dragon-flag",
-    "skillNodeTitle" : "Dragon Flag"
+    "skillNodeTitle" : "Dragon Flag",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "10 hanging knee raise",
@@ -193,12 +218,14 @@
         "id" : "exercise.hanging-knee-raise",
         "name" : "Hanging Knee Raise",
         "rankStandard" : "exercise.hanging-knee-raise",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "cl.hanging-knee-raise",
-    "skillNodeTitle" : "Hanging Knee Raise"
+    "skillNodeTitle" : "Hanging Knee Raise",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "10 hanging leg raise",
@@ -208,12 +235,14 @@
         "id" : "exercise.hanging-leg-raise",
         "name" : "Hanging Leg Raise",
         "rankStandard" : "exercise.hanging-leg-raise",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "cl.hanging-leg-raise",
-    "skillNodeTitle" : "Hanging Leg Raise"
+    "skillNodeTitle" : "Hanging Leg Raise",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "hollow body hold 30s",
@@ -223,6 +252,7 @@
         "id" : "exercise.hollow-hold",
         "name" : "Hollow Body Hold",
         "rankStandard" : "exercise.hollow-hold",
+        "rankTemplate" : "holdControl",
         "role" : "canonicalExercise",
         "skillId" : ""
       },
@@ -230,12 +260,14 @@
         "id" : "skill-drill.hollow-body-hold",
         "name" : "Hollow Body Hold",
         "rankStandard" : "skill-drill.hollow-body-hold",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "cl.hollow-body-30"
       }
     ],
     "skillNodeId" : "cl.hollow-body-30",
-    "skillNodeTitle" : "Hollow Body Hold"
+    "skillNodeTitle" : "Hollow Body Hold",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "straddle back lever 5s",
@@ -245,6 +277,7 @@
         "id" : "skill-drill.advanced-tuck-back-lever",
         "name" : "Advanced Tuck Back Lever",
         "rankStandard" : "skill-drill.advanced-tuck-back-lever",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "cl.straddle-back-lever"
       },
@@ -252,12 +285,14 @@
         "id" : "skill-drill.one-leg-back-lever",
         "name" : "One-Leg Back Lever",
         "rankStandard" : "skill-drill.one-leg-back-lever",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "cl.straddle-back-lever"
       }
     ],
     "skillNodeId" : "cl.straddle-back-lever",
-    "skillNodeTitle" : "Straddle Back Lever"
+    "skillNodeTitle" : "Straddle Back Lever",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "straddle front lever 5s",
@@ -267,12 +302,14 @@
         "id" : "skill-drill.one-leg-front-lever",
         "name" : "One-Leg Front Lever",
         "rankStandard" : "skill-drill.one-leg-front-lever",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "cl.straddle-front-lever"
       }
     ],
     "skillNodeId" : "cl.straddle-front-lever",
-    "skillNodeTitle" : "Straddle Front Lever"
+    "skillNodeTitle" : "Straddle Front Lever",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "tuck front lever 10s",
@@ -282,12 +319,14 @@
         "id" : "exercise.tuck-front-lever",
         "name" : "Tuck Front Lever",
         "rankStandard" : "exercise.tuck-front-lever",
+        "rankTemplate" : "holdControl",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "cl.tuck-front-lever",
-    "skillNodeTitle" : "Tuck Front Lever"
+    "skillNodeTitle" : "Tuck Front Lever",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "crow pose 15s",
@@ -297,12 +336,14 @@
         "id" : "skill-drill.crow-pose",
         "name" : "Crow Pose",
         "rankStandard" : "skill-drill.crow-pose",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "hs.crow-pose"
       }
     ],
     "skillNodeId" : "hs.crow-pose",
-    "skillNodeTitle" : "Crow Pose"
+    "skillNodeTitle" : "Crow Pose",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "freestanding handstand 30s",
@@ -312,6 +353,7 @@
         "id" : "skill-drill.freestanding-handstand",
         "name" : "Freestanding Handstand",
         "rankStandard" : "skill-drill.freestanding-handstand",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "hs.freestanding-hs-30"
       },
@@ -319,12 +361,14 @@
         "id" : "skill-drill.kick-up-practice",
         "name" : "Kick-Up Practice",
         "rankStandard" : "skill-drill.kick-up-practice",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "hs.freestanding-hs-30"
       }
     ],
     "skillNodeId" : "hs.freestanding-hs-30",
-    "skillNodeTitle" : "Freestanding Handstand"
+    "skillNodeTitle" : "Freestanding Handstand",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "headstand 30s",
@@ -334,12 +378,14 @@
         "id" : "skill-drill.headstand",
         "name" : "Headstand",
         "rankStandard" : "skill-drill.headstand",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "hs.headstand"
       }
     ],
     "skillNodeId" : "hs.headstand",
-    "skillNodeTitle" : "Headstand"
+    "skillNodeTitle" : "Headstand",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "wall handstand 30s",
@@ -349,12 +395,14 @@
         "id" : "skill-drill.wall-handstand",
         "name" : "Wall Handstand",
         "rankStandard" : "skill-drill.wall-handstand",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "hs.wall-handstand-30"
       }
     ],
     "skillNodeId" : "hs.wall-handstand-30",
-    "skillNodeTitle" : "Wall Handstand"
+    "skillNodeTitle" : "Wall Handstand",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "wall plank 30s",
@@ -364,12 +412,14 @@
         "id" : "skill-drill.wall-plank",
         "name" : "Wall Plank",
         "rankStandard" : "skill-drill.wall-plank",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "hs.wall-plank"
       }
     ],
     "skillNodeId" : "hs.wall-plank",
-    "skillNodeTitle" : "Wall Plank"
+    "skillNodeTitle" : "Wall Plank",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "wall-supported one-arm handstand 5s",
@@ -379,6 +429,7 @@
         "id" : "skill-drill.wall-shoulder-tap",
         "name" : "Wall Shoulder Tap",
         "rankStandard" : "skill-drill.wall-shoulder-tap",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "hs.wall-supported-oah"
       },
@@ -386,6 +437,7 @@
         "id" : "skill-drill.close-hand-straddle-handstand",
         "name" : "Close-Hand Straddle Handstand",
         "rankStandard" : "skill-drill.close-hand-straddle-handstand",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "hs.wall-supported-oah"
       },
@@ -393,12 +445,14 @@
         "id" : "skill-drill.one-arm-handstand-weight-shift",
         "name" : "One-Arm Handstand Weight Shift",
         "rankStandard" : "skill-drill.one-arm-handstand-weight-shift",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "hs.wall-supported-oah"
       }
     ],
     "skillNodeId" : "hs.wall-supported-oah",
-    "skillNodeTitle" : "Wall Supported One-Arm Handstand"
+    "skillNodeTitle" : "Wall Supported One-Arm Handstand",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "10 bulgarian split squat",
@@ -408,12 +462,14 @@
         "id" : "exercise.bulgarian-split-squat",
         "name" : "Bulgarian Split Squat",
         "rankStandard" : "exercise.bulgarian-split-squat",
+        "rankTemplate" : "barbellStrength",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "ld.bulgarian-split-squat",
-    "skillNodeTitle" : "Bulgarian Split Squat"
+    "skillNodeTitle" : "Bulgarian Split Squat",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "15 glute bridge",
@@ -423,12 +479,14 @@
         "id" : "exercise.glute-bridge",
         "name" : "Glute Bridge",
         "rankStandard" : "exercise.glute-bridge",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "ld.glute-bridge",
-    "skillNodeTitle" : "Glute Bridge"
+    "skillNodeTitle" : "Glute Bridge",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "12 goblet squat @ 0.25x bw",
@@ -438,12 +496,14 @@
         "id" : "exercise.goblet-squat",
         "name" : "Goblet Squat",
         "rankStandard" : "exercise.goblet-squat",
+        "rankTemplate" : "barbellStrength",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "ld.goblet-20",
-    "skillNodeTitle" : "Goblet Squat"
+    "skillNodeTitle" : "Goblet Squat",
+    "targetKind" : "reps+load"
   },
   {
     "criterion" : "8 bodyweight leg extension",
@@ -453,12 +513,14 @@
         "id" : "exercise.bodyweight-leg-extension",
         "name" : "Bodyweight Leg Extension",
         "rankStandard" : "exercise.bodyweight-leg-extension",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "ld.leg-extensions",
-    "skillNodeTitle" : "Bodyweight Leg Extension"
+    "skillNodeTitle" : "Bodyweight Leg Extension",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "3 nordic curl",
@@ -468,12 +530,14 @@
         "id" : "exercise.nordic-curl",
         "name" : "Nordic Curl",
         "rankStandard" : "exercise.nordic-curl",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "ld.nordic-curl",
-    "skillNodeTitle" : "Nordic Curl"
+    "skillNodeTitle" : "Nordic Curl",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "5 pistol squat",
@@ -483,12 +547,14 @@
         "id" : "exercise.pistol-squat",
         "name" : "Pistol Squat",
         "rankStandard" : "exercise.pistol-squat",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "ld.pistol-squat",
-    "skillNodeTitle" : "Pistol Squat"
+    "skillNodeTitle" : "Pistol Squat",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "3 shrimp squat",
@@ -498,12 +564,14 @@
         "id" : "exercise.shrimp-squat",
         "name" : "Shrimp Squat",
         "rankStandard" : "exercise.shrimp-squat",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "ld.shrimp-squat",
-    "skillNodeTitle" : "Shrimp Squat"
+    "skillNodeTitle" : "Shrimp Squat",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "10 split squat",
@@ -513,12 +581,14 @@
         "id" : "exercise.split-squat",
         "name" : "Split Squat",
         "rankStandard" : "exercise.split-squat",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "ld.split-squat",
-    "skillNodeTitle" : "Split Squat"
+    "skillNodeTitle" : "Split Squat",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "15 step up",
@@ -528,12 +598,14 @@
         "id" : "exercise.step-up",
         "name" : "Step Up",
         "rankStandard" : "exercise.step-up",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "ld.step-up",
-    "skillNodeTitle" : "Step Up"
+    "skillNodeTitle" : "Step Up",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "3 weighted pistol @ 0.5x bw",
@@ -543,12 +615,14 @@
         "id" : "exercise.weighted-pistol",
         "name" : "Weighted Pistol Squat",
         "rankStandard" : "exercise.weighted-pistol",
+        "rankTemplate" : "weightedBodyweight",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "ld.weighted-pistol",
-    "skillNodeTitle" : "Weighted Pistol Squat"
+    "skillNodeTitle" : "Weighted Pistol Squat",
+    "targetKind" : "reps+load"
   },
   {
     "criterion" : "one-arm handstand 5s",
@@ -558,6 +632,7 @@
         "id" : "skill-drill.two-finger-tent",
         "name" : "Two-Finger Tent",
         "rankStandard" : "skill-drill.two-finger-tent",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "oah.one-arm-handstand-5s"
       },
@@ -565,6 +640,7 @@
         "id" : "skill-drill.one-finger-tent",
         "name" : "One-Finger Tent",
         "rankStandard" : "skill-drill.one-finger-tent",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "oah.one-arm-handstand-5s"
       },
@@ -572,12 +648,14 @@
         "id" : "skill-drill.off-hand-float",
         "name" : "Off-Hand Float",
         "rankStandard" : "skill-drill.off-hand-float",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "oah.one-arm-handstand-5s"
       }
     ],
     "skillNodeId" : "oah.one-arm-handstand-5s",
-    "skillNodeTitle" : "One-Arm Handstand"
+    "skillNodeTitle" : "One-Arm Handstand",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "full planche 5s",
@@ -587,12 +665,14 @@
         "id" : "skill-drill.band-assisted-full-planche",
         "name" : "Band-Assisted Full Planche",
         "rankStandard" : "skill-drill.band-assisted-full-planche",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "pl.full-planche"
       }
     ],
     "skillNodeId" : "pl.full-planche",
-    "skillNodeTitle" : "Full Planche"
+    "skillNodeTitle" : "Full Planche",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "straddle planche 5s",
@@ -602,12 +682,14 @@
         "id" : "skill-drill.advanced-tuck-planche",
         "name" : "Advanced Tuck Planche",
         "rankStandard" : "skill-drill.advanced-tuck-planche",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "pl.straddle-planche"
       }
     ],
     "skillNodeId" : "pl.straddle-planche",
-    "skillNodeTitle" : "Straddle Planche"
+    "skillNodeTitle" : "Straddle Planche",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "tuck planche 5s",
@@ -617,6 +699,7 @@
         "id" : "skill-drill.planche-lean",
         "name" : "Planche Lean",
         "rankStandard" : "skill-drill.planche-lean",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "pl.tuck-planche"
       },
@@ -624,6 +707,7 @@
         "id" : "skill-drill.frog-stand",
         "name" : "Frog Stand",
         "rankStandard" : "skill-drill.frog-stand",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "pl.tuck-planche"
       },
@@ -631,12 +715,14 @@
         "id" : "skill-drill.band-assisted-tuck-planche",
         "name" : "Band-Assisted Tuck Planche",
         "rankStandard" : "skill-drill.band-assisted-tuck-planche",
+        "rankTemplate" : "holdControl",
         "role" : "skillDrill",
         "skillId" : "pl.tuck-planche"
       }
     ],
     "skillNodeId" : "pl.tuck-planche",
-    "skillNodeTitle" : "Tuck Planche"
+    "skillNodeTitle" : "Tuck Planche",
+    "targetKind" : "hold"
   },
   {
     "criterion" : "5 chin-up",
@@ -646,12 +732,14 @@
         "id" : "exercise.chin-up",
         "name" : "Chin-Up",
         "rankStandard" : "exercise.chin-up",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "pp.chin-up",
-    "skillNodeTitle" : "Chin-Up"
+    "skillNodeTitle" : "Chin-Up",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "1 muscle-up",
@@ -661,12 +749,14 @@
         "id" : "exercise.muscle-up",
         "name" : "Muscle-Up",
         "rankStandard" : "exercise.muscle-up",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "pp.muscle-up",
-    "skillNodeTitle" : "Muscle-Up"
+    "skillNodeTitle" : "Muscle-Up",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "5 pullup",
@@ -676,12 +766,14 @@
         "id" : "exercise.pullup",
         "name" : "Pull-Up",
         "rankStandard" : "exercise.pullup",
+        "rankTemplate" : "bodyweightReps",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "pp.pullup",
-    "skillNodeTitle" : "Pull-Up"
+    "skillNodeTitle" : "Pull-Up",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "0.5x bw weighted pullup",
@@ -691,11 +783,13 @@
         "id" : "exercise.weighted-pullup",
         "name" : "Weighted Pull-Up",
         "rankStandard" : "exercise.weighted-pullup",
+        "rankTemplate" : "weightedBodyweight",
         "role" : "canonicalExercise",
         "skillId" : ""
       }
     ],
     "skillNodeId" : "pp.weighted-pullup",
-    "skillNodeTitle" : "Weighted Pull-Up"
+    "skillNodeTitle" : "Weighted Pull-Up",
+    "targetKind" : "weight"
   }
 ]

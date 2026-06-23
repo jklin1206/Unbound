@@ -16,6 +16,18 @@ final class MovementFoldMapDumpTests: XCTestCase {
         let title: String
         let asset: String?
         let criterionExercise: String
+        let targetKind: String
+    }
+
+    private static func targetKind(_ requirement: NodeRequirement) -> String {
+        switch requirement {
+        case .weightMultiplier: return "weight"
+        case .reps(_, _, let load): return load == nil ? "reps" : "reps+load"
+        case .hold: return "hold"
+        case .steps: return "steps"
+        case .carry: return "carry"
+        case .composite: return "composite"
+        }
     }
 
     private static func searchKey(_ s: String) -> String {
@@ -28,7 +40,8 @@ final class MovementFoldMapDumpTests: XCTestCase {
                 id: node.id,
                 title: node.title,
                 asset: SkillTraditionalVisualResolver.assetName(for: node),
-                criterionExercise: node.target.displayName
+                criterionExercise: node.target.displayName,
+                targetKind: Self.targetKind(node.target)
             )
         }
 
@@ -54,6 +67,7 @@ final class MovementFoldMapDumpTests: XCTestCase {
                 "name": def.displayName,
                 "role": "\(def.role)",
                 "rankStandard": def.rankStandardMovementId,
+                "rankTemplate": "\(def.rankTemplate)",
                 "skillId": def.skillId ?? ""
             ])
         }
@@ -68,6 +82,7 @@ final class MovementFoldMapDumpTests: XCTestCase {
                 "skillNodeId": node.id,
                 "skillNodeTitle": node.title,
                 "criterion": node.criterionExercise,
+                "targetKind": node.targetKind,
                 "divergentNames": Set(allNames).count > 1,
                 "folded": folded.sorted { ($0["role"] ?? "") < ($1["role"] ?? "") }
             ])
