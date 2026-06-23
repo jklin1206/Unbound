@@ -1,60 +1,61 @@
 import SwiftUI
 
-/// Rank tab of the unified rank detail — the centerpiece. Top to bottom:
-/// a compact current-tier + next-gate header, the all-ranks CLIMB visual (a
-/// vertical ladder with a connecting progress spine), and the "Log a Set"
-/// action (ruler for exercises, session sheet for pure skills).
+/// Rank tab of the unified rank detail — a clean showcase of WHERE YOU ARE NOW.
+/// The current-rank emblem is the centerpiece; below it sits a single "log a
+/// set" action. No ladder, no requirements: you log a set to earn a rank, and
+/// the rank-up reveals afterward — the climb and what-it-takes are deliberately
+/// not shown here.
 ///
-/// A successful log animates inline: the newly-reached rung ignites, the spine
-/// fills up to it, and a brief "RANK UP" banner appears at the top — no
-/// full-screen overlay. The ladder data itself refreshes via `vm.submitLog`,
-/// which re-loads the view model; this tab owns the emphasis + banner state.
+/// Exercises log inline via the ruler (the strength standard). Skills log one
+/// set via the quick-log sheet — the single-source skill-ranking path — never a
+/// session sheet and never bolted onto a strength ladder. A successful exercise
+/// log pulses the emblem and shows a brief RANK UP banner; a skill log plays its
+/// own reward sequence inside the sheet.
 struct RankDetailRankTab: View {
     let vm: RankDetailViewModel
     var onLogged: (() async -> Void)?
     @EnvironmentObject private var services: ServiceContainer
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    // Presentation-only state for the inline reveal + logging flow.
+    // Presentation-only state.
     @State private var errorMessage: String?
-    @State private var isSessionPresented = false
+    @State private var isQuickLogPresented = false
 
-    /// The tier of the rung to ignite after a rank-up, cleared once the banner
-    /// auto-dismisses. Drives the scale/glow emphasis on that single rung.
-    @State private var ignitedTier: SkillTier?
-    /// "RANK UP — <Tier>" banner copy; non-nil while the banner shows.
+    // Rank-up reveal (exercise/ruler case): emblem pulse + a brief banner.
+    @State private var didRankUp = false
     @State private var rankUpBanner: String?
-    /// Identity for the auto-dismiss task so a rapid second rank-up restarts it.
     @State private var bannerToken = UUID()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 22) {
             if let banner = rankUpBanner {
                 rankUpBannerView(banner)
                     // Reduce Motion: banner still appears/disappears but without the slide.
                     .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
             }
 
-            header
-
-            ladderClimb
+            rankShowcase
 
             logSetSection
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .sheet(isPresented: $isSessionPresented, onDismiss: {
-            // The session may have ranked this skill up — reload the VM so the
-            // climb + current-rank header refresh from the skill's new tier, then
-            // bubble up so the library list refreshes too.
+        .sheet(isPresented: $isQuickLogPresented, onDismiss: {
+            // The quick log may have ranked this skill up — reload the VM so the
+            // showcase emblem refreshes, then bubble up so the library reloads.
             Task {
                 await vm.load(services: services)
                 await onLogged?()
             }
         }) {
             if let node = vm.skillNode {
-                SkillSessionView(skillId: node.id, skillTitle: node.title)
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.visible)
+                let cfg = skillQuickLogConfig(for: node)
+                QuickLogSheet(
+                    skillId: node.id,
+                    skillTitle: node.title,
+                    defaultReps: cfg.defaultReps,
+                    isHoldBased: cfg.isHold,
+                    holdTargetSeconds: cfg.holdSeconds
+                )
             }
         }
         .alert("Couldn't save rank attempt", isPresented: Binding(
@@ -97,91 +98,38 @@ struct RankDetailRankTab: View {
         .shadow(color: vm.tint.opacity(0.3), radius: 12, y: 4)
     }
 
-    // MARK: - 1. Compact header
+    // MARK: - 1. Rank showcase (the centerpiece)
 
-    private var header: some View {
-        HStack(spacing: 11) {
+    private var rankShowcase: some View {
+        let hidden = vm.row?.isRankHidden ?? false
+        return VStack(spacing: 14) {
+            Text("CURRENT RANK")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+
             Image(vm.displayedTier.assetName)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 34, height: 34)
-                .shadow(color: vm.tint.opacity(0.4), radius: 6)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text("CURRENT RANK")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.1)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text(vm.displayedTier.displayName.uppercased())
-                    .font(Font.unbound.titleS.weight(.black))
-                    .foregroundStyle(vm.tint)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-            }
-
-            Spacer(minLength: 0)
-        }
-    }
-
-    // MARK: - 2. The all-ranks CLIMB
-
-    @ViewBuilder
-    private var ladderClimb: some View {
-        if vm.ladderRows.isEmpty {
-            ladderEmptyState
-        } else {
-            VStack(alignment: .leading, spacing: 9) {
-                Text("THE CLIMB")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.3)
-                    .foregroundStyle(Color.unbound.textTertiary)
-
-                // Highest tier first (Unbound → Initiate), so the climb reads
-                // top-down with the peak at the top.
-                let rungs = Array(vm.ladderRows.reversed())
-                VStack(spacing: 0) {
-                    ForEach(Array(rungs.enumerated()), id: \.element.id) { index, rung in
-                        RankClimbRung(
-                            rung: rung,
-                            tint: vm.tint,
-                            isFirst: index == 0,
-                            isLast: index == rungs.count - 1,
-                            isIgnited: ignitedTier == rung.tier
-                        )
-                    }
-                }
-                .padding(.vertical, 6)
-                .padding(.horizontal, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.unbound.bg.opacity(0.34))
+                .frame(width: 124, height: 124)
+                .opacity(hidden ? 0.4 : 1)
+                .scaleEffect(didRankUp ? 1.06 : 1.0)
+                .shadow(
+                    color: hidden ? .clear : vm.tint.opacity(didRankUp ? 0.9 : 0.5),
+                    radius: didRankUp ? 28 : 18
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                )
-            }
-        }
-    }
 
-    private var ladderEmptyState: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "list.bullet.rectangle")
-                .font(.system(size: 28, weight: .regular))
-                .foregroundStyle(Color.unbound.textTertiary)
-            Text("No rank data")
-                .font(Font.unbound.titleS)
-                .foregroundStyle(Color.unbound.textPrimary)
-            Text("Standards aren't available for this movement yet.")
-                .font(Font.unbound.bodyS)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .multilineTextAlignment(.center)
+            Text(hidden ? "Unranked" : vm.displayedTier.displayName.uppercased())
+                .font(Font.unbound.titleL.weight(.black))
+                .foregroundStyle(hidden ? Color.unbound.textTertiary : vm.tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
-        .padding(28)
+        .padding(.vertical, 8)
     }
 
-    // MARK: - 3. Log a Set
+    // MARK: - 2. Log a Set
 
     @ViewBuilder
     private var logSetSection: some View {
@@ -193,8 +141,8 @@ struct RankDetailRankTab: View {
                 }
             }
         } else if vm.skillNode != nil {
-            logSection(title: "TRAIN THIS SKILL") {
-                skillSessionButton
+            logSection(title: "LOG A SET") {
+                skillLogButton
             }
         }
     }
@@ -270,8 +218,8 @@ struct RankDetailRankTab: View {
             Task { await submit() }
         } label: {
             actionLabel(
-                icon: vm.isSubmitting ? "hourglass" : "sparkles",
-                title: vm.isSubmitting ? "Saving Attempt" : "Reveal Rank",
+                icon: vm.isSubmitting ? "hourglass" : "plus.circle.fill",
+                title: vm.isSubmitting ? "Saving Set" : "Log a Set",
                 borderTint: isEnabled ? vm.tint.opacity(0.72) : Color.unbound.border
             )
             .opacity(isEnabled ? 1 : 0.58)
@@ -281,22 +229,22 @@ struct RankDetailRankTab: View {
         .accessibilityIdentifier("rankDetail.rank.logResult")
     }
 
-    private var skillSessionButton: some View {
+    private var skillLogButton: some View {
         Button {
             UnboundHaptics.medium()
-            isSessionPresented = true
+            isQuickLogPresented = true
         } label: {
             actionLabel(
-                icon: "dumbbell.fill",
-                title: "Start Session",
+                icon: "plus.circle.fill",
+                title: "Log a Set",
                 borderTint: vm.tint.opacity(0.72)
             )
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("rankDetail.rank.startSession")
+        .accessibilityIdentifier("rankDetail.rank.logSet")
     }
 
-    // MARK: - Submit + inline reveal
+    // MARK: - Submit + inline reveal (exercise/ruler case)
 
     private func submit() async {
         do {
@@ -315,34 +263,60 @@ struct RankDetailRankTab: View {
         }
     }
 
-    /// Drive the inline rank-up reveal: ignite the reached rung, fill the
-    /// spine up to it (the rung's own `isCleared` is now true after reload), and
-    /// show a banner that auto-dismisses after ~2s.
+    /// Pulse the showcase emblem (now showing the new tier after `submitLog`'s
+    /// reload) and show a banner that auto-dismisses after ~2s.
     /// Reduce Motion: state still updates (functional), but no spring/ease animation.
     private func igniteRankUp(to tier: SkillTier) {
         let token = UUID()
         bannerToken = token
-        if reduceMotion {
-            ignitedTier = tier
+        let apply = {
+            didRankUp = true
             rankUpBanner = "RANK UP — \(tier.displayName)"
+        }
+        if reduceMotion {
+            apply()
         } else {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-                ignitedTier = tier
-                rankUpBanner = "RANK UP — \(tier.displayName)"
-            }
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { apply() }
         }
         Task {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             guard bannerToken == token else { return }
-            if reduceMotion {
+            let clear = {
+                didRankUp = false
                 rankUpBanner = nil
-                ignitedTier = nil
-            } else {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    rankUpBanner = nil
-                    ignitedTier = nil
-                }
             }
+            if reduceMotion {
+                clear()
+            } else {
+                withAnimation(.easeInOut(duration: 0.3)) { clear() }
+            }
+        }
+    }
+
+    /// Maps a skill node's target to the quick-log's metric + sensible defaults.
+    /// Hold/carry skills log a timed hold; everything else logs reps.
+    private func skillQuickLogConfig(for node: SkillNode) -> (isHold: Bool, defaultReps: Int, holdSeconds: Int) {
+        switch node.target {
+        case .hold(_, let seconds):
+            return (true, 0, max(5, seconds))
+        case .carry(_, let seconds, _):
+            return (true, 0, max(5, seconds))
+        case .reps(_, let count, _):
+            return (false, max(1, count), 30)
+        case .steps(_, let count):
+            return (false, max(1, count), 30)
+        case .weightMultiplier:
+            return (false, 5, 30)
+        case .composite(let reqs):
+            for requirement in reqs {
+                if case .hold(_, let seconds) = requirement { return (true, 0, max(5, seconds)) }
+                if case .carry(_, let seconds, _) = requirement { return (true, 0, max(5, seconds)) }
+            }
+            for requirement in reqs {
+                if case .reps(_, let count, _) = requirement { return (false, max(1, count), 30) }
+                if case .steps(_, let count) = requirement { return (false, max(1, count), 30) }
+            }
+            return (false, 5, 30)
         }
     }
 
@@ -383,129 +357,5 @@ struct RankDetailRankTab: View {
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: Color.black.opacity(0.45), radius: 14, y: 8)
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-    }
-}
-
-// MARK: - Climb rung
-
-/// One rung of the vertical climb — the full map of where this movement goes,
-/// shown openly. Every tier's real shield and name are always visible; nothing
-/// is sealed. Status is carried by emphasis, not secrecy: cleared rungs light
-/// green with a check and a filled spine, the next rung glows in the tier tint
-/// and spells out what it takes, and rungs still ahead sit calm but fully
-/// legible. The theatrical reveal lives in the post-log rank-up moment (the
-/// ignite + banner), not in hiding the ladder.
-private struct RankClimbRung: View {
-    let rung: RankLadderRow
-    let tint: Color
-    let isFirst: Bool
-    let isLast: Bool
-    let isIgnited: Bool
-
-    private var isCleared: Bool { rung.isCleared }
-    private var isNextTarget: Bool { rung.isCurrent || rung.isNext }
-
-    private var nameColor: Color {
-        if isCleared { return Color.unbound.success }
-        if isNextTarget { return tint }
-        return Color.unbound.textSecondary
-    }
-
-    private var shieldSize: CGFloat { isNextTarget ? 38 : (isCleared ? 32 : 30) }
-
-    private var upperFilled: Bool { rung.isCleared }
-    private var lowerFilled: Bool { rung.isCleared || isNextTarget }
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            spine
-                .frame(width: 38)
-
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(rung.tier.displayName.uppercased())
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(0.9)
-                        .foregroundStyle(nameColor)
-                    Spacer(minLength: 0)
-                    trailingIndicator
-                }
-                // Now that nothing is sealed, the next rung tells you exactly
-                // what it takes — the actionable target, no longer a mystery.
-                if isNextTarget, !rung.criteriaText.isEmpty {
-                    Text(rung.criteriaText)
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .padding(.vertical, 11)
-        }
-        .padding(.horizontal, 8)
-        .background(
-            Group {
-                if isNextTarget {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(tint.opacity(0.08))
-                        .padding(.vertical, 2)
-                }
-            }
-        )
-    }
-
-    @ViewBuilder
-    private var trailingIndicator: some View {
-        if isCleared {
-            Image(systemName: "checkmark")
-                .font(.system(size: 10, weight: .heavy))
-                .foregroundStyle(Color.unbound.success)
-        } else if isNextTarget {
-            Text("NEXT")
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.2)
-                .foregroundStyle(tint)
-        }
-    }
-
-    /// Vertical spine: a connecting line behind the tier shield. Cleared segments
-    /// glow `tint`; future segments are hollow (`borderSubtle`).
-    private var spine: some View {
-        VStack(spacing: 0) {
-            Rectangle()
-                .fill(upperFilled ? tint : Color.unbound.borderSubtle)
-                .frame(width: 2.5)
-                .frame(height: 12)
-                .opacity(isFirst ? 0 : 1)
-
-            shield
-                .scaleEffect(isIgnited ? 1.18 : 1.0)
-
-            Rectangle()
-                .fill(lowerFilled ? tint : Color.unbound.borderSubtle)
-                .frame(width: 2.5)
-                .frame(maxHeight: .infinity)
-                .opacity(isLast ? 0 : 1)
-        }
-    }
-
-    /// The real tier shield, always shown. Cleared rungs carry a success glow,
-    /// the next rung the tier tint; rungs still ahead render the shield plainly.
-    private var shield: some View {
-        Image(rung.tier.assetName)
-            .resizable()
-            .scaledToFit()
-            .frame(width: shieldSize, height: shieldSize)
-            .shadow(
-                color: shieldGlow,
-                radius: isIgnited ? 16 : (isNextTarget ? 8 : (isCleared ? 5 : 0))
-            )
-    }
-
-    private var shieldGlow: Color {
-        if isIgnited { return tint.opacity(0.85) }
-        if isNextTarget { return tint.opacity(0.4) }
-        if isCleared { return Color.unbound.success.opacity(0.35) }
-        return .clear
     }
 }
