@@ -204,7 +204,7 @@ struct ProgramRankLibraryView: View {
                 Text(section.title.uppercased())
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(1.5)
-                    .foregroundStyle(Color.unbound.textTertiary)
+                    .foregroundStyle(Color.unbound.accent)
                 Spacer(minLength: 0)
                 Text("\(section.rows.count)")
                     .font(Font.unbound.monoS.weight(.bold))
