@@ -29,7 +29,7 @@ import UIKit
 // Preserved
 //   • Header, summary card, cosmetic picker, detail sheet handoff
 //   • Active pulse, auto-scroll to active on appear
-//   • Keystone sizing + crown + "N BEATS AWAY" chip
+//   • Keystone sizing + crown
 //   • MYTHIC section below the tree when keystone achieved
 
 struct ClusterStaircaseView: View {

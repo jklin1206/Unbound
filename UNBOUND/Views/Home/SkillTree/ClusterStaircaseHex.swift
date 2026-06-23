@@ -34,22 +34,26 @@ extension ClusterStaircaseView {
         size: CGFloat,
         faded: Bool
     ) -> some View {
-        ZStack {
+        let available = isAvailable(node)
+        return ZStack {
             Hexagon()
                 .fill(Color.unbound.surface)
                 .frame(width: size, height: size)
             Hexagon()
-                .fill(fillColor(state: state, faded: faded))
+                .fill(available ? availableFill() : fillColor(state: state, faded: faded))
                 .frame(width: size, height: size)
             Hexagon()
                 .strokeBorder(
-                    borderColor(node: node, state: state, faded: faded),
-                    lineWidth: strokeWidth(state: state)
+                    available ? availableBorder() : borderColor(node: node, state: state, faded: faded),
+                    lineWidth: available ? 1.5 : strokeWidth(state: state)
                 )
                 .frame(width: size, height: size)
-            glyph(for: node, state: state, fontSize: 24)
+            glyph(for: node, state: state, available: available, fontSize: 24)
         }
-        .shadow(color: glowColor(state: state, faded: faded), radius: state == .locked ? 0 : 10)
+        .shadow(
+            color: available ? availableGlow() : glowColor(state: state, faded: faded),
+            radius: (state == .locked && !available) ? 0 : 10
+        )
         .contentShape(Rectangle())
         .onTapGesture {
             UnboundHaptics.medium()
@@ -59,12 +63,13 @@ extension ClusterStaircaseView {
 
     func activeHex(node: SkillNode, state: NodeState, size: CGFloat) -> some View {
         let skin = skinService.currentSkin
+        let available = isAvailable(node)
         return ZStack {
             Hexagon()
                 .fill(Color.unbound.surface)
                 .frame(width: size, height: size)
             Hexagon()
-                .fill(skin.nodeFill(state: state, faded: false))
+                .fill(available ? availableFill() : skin.nodeFill(state: state, faded: false))
                 .frame(width: size, height: size)
             Hexagon()
                 .strokeBorder(skin.primaryColor, lineWidth: 2)
@@ -72,7 +77,7 @@ extension ClusterStaircaseView {
             Hexagon()
                 .strokeBorder(skin.impactColor.opacity(0.7), lineWidth: 1)
                 .frame(width: size + 16, height: size + 16)
-            glyph(for: node, state: state, fontSize: 36)
+            glyph(for: node, state: state, available: available, fontSize: 36)
         }
         .scaleEffect(activePulse)
         .shadow(color: skin.primaryColor.opacity(0.55), radius: 20)
@@ -85,32 +90,34 @@ extension ClusterStaircaseView {
 
     func keystoneHex(node: SkillNode, state: NodeState, size: CGFloat) -> some View {
         let skin = skinService.currentSkin
+        // "Ready" = already proven, or available to claim now (prereqs met).
+        let ready = state != .locked || isAvailable(node)
         return ZStack {
             Hexagon()
                 .fill(Color.unbound.surface)
                 .frame(width: size, height: size)
             Hexagon()
-                .fill(keystoneFill(state: state))
+                .fill(ready && state == .locked ? availableFill() : keystoneFill(state: state))
                 .frame(width: size, height: size)
             Hexagon()
                 .strokeBorder(skin.primaryColor, lineWidth: 2)
                 .frame(width: size, height: size)
             Hexagon()
                 .strokeBorder(
-                    state == .locked
-                        ? skin.primaryColor.opacity(0.4)
-                        : skin.impactColor.opacity(0.85),
+                    ready
+                        ? skin.impactColor.opacity(0.85)
+                        : skin.primaryColor.opacity(0.4),
                     lineWidth: 1
                 )
                 .frame(width: size + 18, height: size + 18)
-            Image(systemName: state == .locked ? "crown" : "crown.fill")
+            Image(systemName: ready ? "crown.fill" : "crown")
                 .font(.system(size: 44, weight: .semibold))
                 .foregroundStyle(skin.primaryColor)
         }
         .shadow(
-            color: state == .locked
-                ? skin.primaryColor.opacity(0.3)
-                : skin.impactColor.opacity(0.55),
+            color: ready
+                ? skin.impactColor.opacity(0.55)
+                : skin.primaryColor.opacity(0.3),
             radius: 16
         )
         .contentShape(Rectangle())
@@ -121,10 +128,13 @@ extension ClusterStaircaseView {
     }
 
     func defaultBelow(node: SkillNode, state: NodeState) -> some View {
-        Text(node.title)
+        let available = isAvailable(node)
+        return Text(node.title)
             .font(Font.unbound.captionS.weight(.semibold))
             .foregroundStyle(
-                state == .locked ? Color.unbound.textTertiary : Color.unbound.textPrimary
+                (state == .locked && !available)
+                    ? Color.unbound.textTertiary
+                    : Color.unbound.textPrimary
             )
             .multilineTextAlignment(.center)
             .lineLimit(2)
@@ -149,28 +159,16 @@ extension ClusterStaircaseView {
     }
 
     func keystoneBelow(node: SkillNode) -> some View {
-        let beatsAway = sections.next.count + 1
-        return VStack(spacing: 8) {
-            Text(node.title)
-                .font(Font.unbound.bodyMStrong)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
-                .background(Color.unbound.bg)
-                .frame(width: 160)
-
-            Text("\(beatsAway) \(beatsAway == 1 ? "BEAT" : "BEATS") AWAY")
-                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                .tracking(2.0)
-                .foregroundStyle(skinService.currentSkin.primaryColor)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 1)
-                .background(Color.unbound.bg)
-        }
-        .frame(width: 160)
+        Text(node.title)
+            .font(Font.unbound.bodyMStrong)
+            .foregroundStyle(Color.unbound.textPrimary)
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(Color.unbound.bg)
+            .frame(width: 160)
     }
 
     func keystoneFill(state: NodeState) -> Color {
@@ -245,13 +243,14 @@ extension ClusterStaircaseView {
 
     func mythicHex(node: SkillNode, size: CGFloat) -> some View {
         let state = nodeStates[node.id] ?? .locked
+        let available = isAvailable(node)
         return VStack(spacing: 6) {
             ZStack {
                 Hexagon()
                     .fill(Color.unbound.surface)
                     .frame(width: size, height: size)
                 Hexagon()
-                    .fill(fillColor(state: state, faded: false))
+                    .fill(available ? availableFill() : fillColor(state: state, faded: false))
                     .frame(width: size, height: size)
                 Hexagon()
                     .strokeBorder(skinService.currentSkin.impactColor, lineWidth: 1.5)
@@ -259,15 +258,15 @@ extension ClusterStaircaseView {
                 Hexagon()
                     .strokeBorder(skinService.currentSkin.impactColor, lineWidth: 1.5)
                     .frame(width: size + 14, height: size + 14)
-                    .opacity(state == .locked ? 0.45 : 0.9)
-                glyph(for: node, state: state, fontSize: 24)
+                    .opacity((state == .locked && !available) ? 0.45 : 0.9)
+                glyph(for: node, state: state, available: available, fontSize: 24)
             }
-            .shadow(color: skinService.currentSkin.impactColor.opacity(0.5), radius: state == .locked ? 0 : 10)
+            .shadow(color: skinService.currentSkin.impactColor.opacity(0.5), radius: (state == .locked && !available) ? 0 : 10)
 
             Text(node.title)
                 .font(Font.unbound.captionS.weight(.semibold))
                 .foregroundStyle(
-                    state == .locked ? Color.unbound.textTertiary : Color.unbound.textPrimary
+                    (state == .locked && !available) ? Color.unbound.textTertiary : Color.unbound.textPrimary
                 )
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
@@ -307,9 +306,35 @@ extension ClusterStaircaseView {
         skinService.currentSkin.nodeGlow(state: state, faded: faded)
     }
 
+    // MARK: - Availability (open vs gated)
+
+    /// A node is "available" — trainable now, drawn open — when it is unproven,
+    /// its cluster gate is open, and at least one prerequisite group is
+    /// satisfied. Entry nodes (no prereqs) are always available in an unlocked
+    /// cluster. Anything that is NOT available keeps the padlock glyph.
+    func isAvailable(_ node: SkillNode) -> Bool {
+        guard (nodeStates[node.id] ?? .locked) == .locked else { return false }
+        guard graph.isClusterUnlocked(cluster, nodeStates: nodeStates) else { return false }
+        return node.prereqsSatisfied(given: nodeStates)
+    }
+
+    /// Skin-tinted styling for an available (open, unproven) node — roughly half
+    /// the saturation of a proven node, so the rungs read distinctly on true
+    /// black: gated (flat, padlock) < available (lit, icon) < proven (glowing).
+    func availableFill() -> Color { skinService.currentSkin.primaryColor.opacity(0.12) }
+    func availableBorder() -> Color { skinService.currentSkin.primaryColor.opacity(0.55) }
+    func availableGlow() -> Color { skinService.currentSkin.primaryColor.opacity(0.22) }
+
     @ViewBuilder
-    func glyph(for node: SkillNode, state: NodeState, fontSize: CGFloat) -> some View {
+    func glyph(for node: SkillNode, state: NodeState, available: Bool, fontSize: CGFloat) -> some View {
         switch state {
+        case .locked where available:
+            // Trainable now: show the skill icon (slightly ghosted), never a
+            // padlock. The padlock is reserved for genuinely gated nodes.
+            skillIcon(for: node, size: fontSize * 2.4,
+                      fallback: node.isKeystone ? "crown" : "figure.strengthtraining.traditional",
+                      tint: skinService.currentSkin.decalColor)
+                .opacity(0.78)
         case .locked:
             Image(systemName: node.isKeystone ? "crown" : "lock.fill")
                 .font(.system(size: fontSize - 3, weight: .semibold))
