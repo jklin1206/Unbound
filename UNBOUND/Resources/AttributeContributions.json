@@ -179,10 +179,6 @@
       "control": 0.25,
       "endurance": 0.45
     },
-    "converging chest press": {
-      "power": 0.8066,
-      "control": 0.1934
-    },
     "cossack squat": {
       "control": 0.3,
       "power": 0.2,
@@ -310,19 +306,7 @@
     "hammer curl": {
       "power": 1.0
     },
-    "hammer strength chest press": {
-      "power": 0.8066,
-      "control": 0.1934
-    },
     "hammer strength high row": {
-      "power": 0.8066,
-      "control": 0.1934
-    },
-    "hammer strength low row": {
-      "power": 0.8066,
-      "control": 0.1934
-    },
-    "hammer strength row": {
       "power": 0.8066,
       "control": 0.1934
     },
@@ -566,18 +550,6 @@
     "plank": {
       "control": 0.896,
       "endurance": 0.104
-    },
-    "plate loaded chest press": {
-      "power": 0.8066,
-      "control": 0.1934
-    },
-    "plate loaded row": {
-      "power": 0.8066,
-      "control": 0.1934
-    },
-    "plate loaded shoulder press": {
-      "control": 0.7257,
-      "power": 0.2743
     },
     "preacher curl": {
       "control": 1.0
