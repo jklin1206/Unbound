@@ -414,7 +414,7 @@ enum FormPhaseLibrary {
             return rolloutPlankPhases(skillId: skillId)
         case "cl.knee-raise", "cl.leg-raise", "cl.hanging-knee-raise", "cl.hanging-leg-raise", "cl.toes-to-bar":
             return raisePhases(skillId: skillId)
-        case "cal.l-sit-10", "cl.semi-straddle-l-sit", "cl.straddle-l-sit", "cl.v-sit", "cl.vertical-l-sit":
+        case "cal.l-sit-10", "cl.semi-straddle-l-sit", "cl.straddle-l-sit", "cl.v-sit":
             return lSitFamilyPhases(skillId: skillId)
         case "cl.tuck-front-lever", "cl.straddle-front-lever", "cl.full-front-lever":
             return frontLeverPhases(skillId: skillId)

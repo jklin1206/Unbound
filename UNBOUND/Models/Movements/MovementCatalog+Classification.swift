@@ -748,6 +748,12 @@ extension MovementCatalog {
             aliases += ["bodyweight leg extensions", "reverse nordic", "reverse-nordic", "reverse nordic curl", "kneeling leg extension"]
         case "plank":
             aliases += ["plank hold", "plank max hold"]
+        case "machine chest press":
+            aliases += ["plate loaded chest press", "hammer strength chest press", "converging chest press"]
+        case "machine row":
+            aliases += ["plate loaded row", "hammer strength row", "hammer strength low row"]
+        case "seated machine press":
+            aliases += ["plate loaded shoulder press"]
         default:
             break
         }

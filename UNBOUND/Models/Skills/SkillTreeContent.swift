@@ -192,7 +192,6 @@ enum SkillSubChapterMap {
         "cl.decline-situp":        "Raised Work",
         "cl.semi-straddle-l-sit":  "Raised Work",
         "cl.v-sit":                "Raised Work",
-        "cl.vertical-l-sit":       "Raised Work",
         "cl.straddle-l-sit":       "Raised Work",
 
         "cl.dragon-flag":          "Flag Path",

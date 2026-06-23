@@ -61,8 +61,21 @@ enum MovementCatalog {
         return index
     }()
 
+    /// Brand-variant exercise ids that were folded into a generic machine movement
+    /// (Plate Loaded / Hammer Strength / Converging). Kept so historical logs that
+    /// stored the old id still resolve to the generic for volume, rank, and display.
+    static let foldedVariantIdAliases: [String: String] = [
+        "exercise.plate-loaded-chest-press": "exercise.machine-chest-press",
+        "exercise.hammer-strength-chest-press": "exercise.machine-chest-press",
+        "exercise.converging-chest-press": "exercise.machine-chest-press",
+        "exercise.plate-loaded-shoulder-press": "exercise.seated-machine-press",
+        "exercise.plate-loaded-row": "exercise.machine-row",
+        "exercise.hammer-strength-row": "exercise.machine-row",
+        "exercise.hammer-strength-low-row": "exercise.machine-row"
+    ]
+
     static func definition(for id: String) -> MovementDefinition? {
-        definitionsById[id]
+        definitionsById[id] ?? foldedVariantIdAliases[id].flatMap { definitionsById[$0] }
     }
 
     static func resolvedTrainingMovement(

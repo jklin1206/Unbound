@@ -93,7 +93,6 @@ enum CoreSkillAnchors {
 
         "cl.semi-straddle-l-sit": .init(exerciseName: "semi straddle l-sit", metric: .seconds, spec: .full([3, 6, 12, 20, 30])),
         "cl.straddle-l-sit":      .init(exerciseName: "straddle l-sit",      metric: .seconds, spec: .full([5, 10, 15, 25, 40])),
-        "cl.vertical-l-sit":      .init(exerciseName: "vertical l-sit",      metric: .seconds, spec: .full([2, 4, 7, 12, 20])),  // advanced compression
         "cl.v-sit":               .init(exerciseName: "v-sit",              metric: .seconds, spec: .full([2, 4, 7, 12, 20])),  // v-sit can't/2-3/5/10/20
 
         // ── Apex feats — start high (floor from difficulty), short ladder floor…peak ──

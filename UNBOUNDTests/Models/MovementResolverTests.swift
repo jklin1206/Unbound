@@ -364,7 +364,7 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertEqual(MovementCatalog.legacyExercises.count, ExerciseCatalog.allExercises.count)
         XCTAssertGreaterThanOrEqual(MovementCatalog.skillTargets.count, SkillGraph.shared.nodes.count)
         XCTAssertGreaterThan(MovementCatalog.rankStandards.count, 100)
-        XCTAssertGreaterThan(MovementCatalog.loggableVariants.count, 20)
+        XCTAssertGreaterThan(MovementCatalog.loggableVariants.count, 15)
         XCTAssertGreaterThan(MovementCatalog.loggableMovements.count, MovementCatalog.rankStandards.count)
         XCTAssertEqual(MovementCatalog.cardioMovements.count, CardioType.allCases.count)
         XCTAssertFalse(MovementCatalog.carryMovements.isEmpty)
@@ -678,17 +678,17 @@ final class MovementResolverTests: XCTestCase {
             style: .bodyweight,
             userEquipment: [.bodyweight]
         )
-        XCTAssertTrue(bodyweightOnly.contains { $0.displayName == "Pushup" })
+        XCTAssertTrue(bodyweightOnly.contains { $0.displayName == "Push-Up" })
         XCTAssertTrue(bodyweightOnly.contains { $0.displayName == "Bodyweight Squat" })
         XCTAssertFalse(bodyweightOnly.contains { $0.displayName == "Lat Pulldown (Bar)" })
-        XCTAssertFalse(bodyweightOnly.contains { $0.displayName == "Pull-Up (Bodyweight)" })
+        XCTAssertFalse(bodyweightOnly.contains { $0.displayName == "Pull-Up" })
         XCTAssertFalse(bodyweightOnly.contains { $0.displayName == "Ab Wheel" })
 
         let bodyweightWithBar = MovementCatalog.programDefinitions(
             style: .bodyweight,
             userEquipment: [.bodyweight, .pullupBar]
         )
-        XCTAssertTrue(bodyweightWithBar.contains { $0.displayName == "Pull-Up (Bodyweight)" })
+        XCTAssertTrue(bodyweightWithBar.contains { $0.displayName == "Pull-Up" })
         XCTAssertFalse(bodyweightWithBar.contains { $0.displayName == "Dip (Tricep)" })
         XCTAssertFalse(bodyweightWithBar.contains { $0.displayName == "Straight Bar Dip" })
 

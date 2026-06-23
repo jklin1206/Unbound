@@ -93,7 +93,7 @@ enum SkillTrainingPlanLibrary {
             return rolloutPlan(skillId: skillId)
         case "cl.knee-raise", "cl.leg-raise", "cl.hanging-knee-raise", "cl.hanging-leg-raise", "cl.toes-to-bar":
             return coreRaisePlan(skillId: skillId)
-        case "cl.semi-straddle-l-sit", "cl.straddle-l-sit", "cl.v-sit", "cl.vertical-l-sit":
+        case "cl.semi-straddle-l-sit", "cl.straddle-l-sit", "cl.v-sit":
             return lSitFamilyPlan(skillId: skillId)
         case "cl.tuck-front-lever", "cl.straddle-front-lever", "cl.full-front-lever":
             return frontLeverPlan(skillId: skillId)
@@ -171,7 +171,6 @@ enum SkillTrainingPlanLibrary {
         case "cl.semi-straddle-l-sit": return "Semi-Straddle L-Sit"
         case "cl.straddle-l-sit": return "Straddle L-Sit"
         case "cl.v-sit": return "V-Sit"
-        case "cl.vertical-l-sit": return "Vertical L-Sit"
         case "cl.tuck-front-lever": return "Tuck Front Lever"
         case "cl.straddle-front-lever": return "Straddle Front Lever"
         case "cl.full-front-lever": return "Full Front Lever"

@@ -97,7 +97,7 @@ extension FormPhaseLibrary {
 
     static func lSitFamilyPhases(skillId: String) -> [FormPhase] {
         let prefix = skillId.replacingOccurrences(of: ".", with: "_")
-        let target = skillId == "cl.v-sit" || skillId == "cl.vertical-l-sit" ? "above horizontal" : "near horizontal"
+        let target = skillId == "cl.v-sit" ? "above horizontal" : "near horizontal"
         return [
             phase("phase1", "Support", "Press the floor, bars, or parallettes down until the shoulders move away from the ears. Elbows stay locked before the legs lift.", "arrow.down.to.line", assetName: assetName(prefix, "phase1")),
             phase("phase2", "Tuck", "Lift the hips and bring knees toward the chest. This teaches support strength and compression without forcing hamstrings to decide the skill.", "figure.core.training", assetName: assetName(prefix, "phase2")),
