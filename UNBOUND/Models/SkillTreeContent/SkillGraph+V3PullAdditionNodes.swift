@@ -233,7 +233,7 @@ extension SkillGraph {
             title: "Strict Muscle-Up",
             cluster: .pullingPower, tier: 8, type: .skill,
             target: .reps(exercise: "strict muscle-up", count: 1),
-            prereqs: [PrerequisiteGroup("pp.ring-muscle-up")],
+            prereqs: [PrerequisiteGroup("pp.muscle-up")],
             isMythic: true,
             equipment: [.pullupBar],
             primary: [.lats, .chest, .arms], secondary: [.core, .shoulders],

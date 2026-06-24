@@ -139,11 +139,16 @@ enum SkillUnlockStandards {
             return .veteran
         }
 
+        // Basic next-steps open at exposure, not clean ownership. The gate scales
+        // with the child's difficulty; skipping a tier costs one extra notch.
+        let base: SkillTier = child.tier <= 2 ? .initiate
+            : child.tier == 3 ? .novice
+            : child.tier == 4 ? .apprentice
+            : .forged
         if let parent, child.tier > parent.tier + 1 {
-            return .veteran
+            return SkillTier(rawValue: min(base.rawValue + 1, SkillTier.forged.rawValue)) ?? base
         }
-
-        return .forged
+        return base
     }
 
     private static func overrideTier(parentId: String, childId: String) -> SkillTier? {
@@ -187,7 +192,6 @@ enum SkillUnlockStandards {
         // and strict work need repeatable ownership first.
         "pp.muscle-up->pp.10-muscle-ups": .forged,
         "pp.muscle-up->pp.ring-muscle-up": .veteran,
-        "pp.ring-muscle-up->pp.strict-muscle-up": .master,
 
         // One-arm pulling should not open from a lucky first rep.
         "pp.archer-pullup->pp.one-arm-pullup-negative": .veteran,

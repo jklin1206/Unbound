@@ -211,6 +211,7 @@ extension SkillGraph {
             cluster: .handstand, tier: 7, type: .skill,
             target: .reps(exercise: "press to handstand", count: 1),
             prereqs: [PrerequisiteGroup("hs.straddle-press")],
+            isMythic: true,
             primary: [.shoulders, .core], secondary: [.arms],
             subtitle: "Legs glued. Straight up.",
             description: "One clean pike press to handstand — legs together, arms straight, press from floor pike to vertical handstand without momentum. Gymnastic standard.",
