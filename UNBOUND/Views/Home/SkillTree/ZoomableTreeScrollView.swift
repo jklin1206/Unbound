@@ -66,15 +66,23 @@ struct ZoomableTreeScrollView<Content: View>: UIViewRepresentable {
         let isInteracting = scrollView.isZooming || scrollView.isDragging || scrollView.isDecelerating
         if !isInteracting {
             context.coordinator.hostingController?.rootView = content()
-            if context.coordinator.hostingController?.view.bounds.size != contentSize {
-                context.coordinator.hostingController?.view.frame = CGRect(origin: .zero, size: contentSize)
-            }
         }
+
+        // Apply the content SIZE only when the layout itself changes. UIScrollView
+        // manages contentSize while zooming (it becomes size × zoomScale); re-setting
+        // it to the unzoomed size on every refresh — a skin change, a state update,
+        // the looping active-pulse animation — clobbered that, leaving the tree
+        // scrollable into empty space after any zoom (the "no locked borders" bug).
+        if contentSize != context.coordinator.lastLayoutSize {
+            context.coordinator.lastLayoutSize = contentSize
+            context.coordinator.hostingController?.view.frame = CGRect(origin: .zero, size: contentSize)
+            scrollView.contentSize = contentSize
+        }
+
         context.coordinator.minZoom = minZoom
         context.coordinator.maxZoom = maxZoom
         scrollView.minimumZoomScale = minZoom
         scrollView.maximumZoomScale = maxZoom
-        scrollView.contentSize = contentSize
 
         if !context.coordinator.didApplyInitialZoom {
             let zoom = min(max(initialZoom, minZoom), maxZoom)
@@ -145,6 +153,7 @@ struct ZoomableTreeScrollView<Content: View>: UIViewRepresentable {
         var didApplyInitialOffset = false
         var lastFocusApplied: CGPoint?
         var isFocusing = false
+        var lastLayoutSize: CGSize = .zero
 
         init(minZoom: CGFloat, maxZoom: CGFloat) {
             self.minZoom = minZoom
