@@ -50,6 +50,9 @@ extension ClusterStaircaseView {
                     .frame(width: layout.contentWidth, height: layout.treeHeight)
                     .allowsHitTesting(false)
 
+                // Unlock reveal: the rail from the parent lights up into the node.
+                unlockChainOverlay(layout: layout)
+
                 // Interactive hex nodes — kept OUTSIDE any drawingGroup so
                 // tap gestures still fire.
                 ForEach(Array(layout.positions.keys), id: \.self) { id in
@@ -59,6 +62,9 @@ extension ClusterStaircaseView {
                         let role = layout.roles[id] ?? .tangent
                         let size = sizeFor(role: role)
                         let isReveal = (id == unlockRevealNodeId)
+                        // The parent the unlock flows from — glows while the chain lights.
+                        let isRevealParent = (unlockRevealNodeId != nil)
+                            && (id == layout.primaryParent[unlockRevealNodeId ?? ""])
 
                         hexCore(node: node, role: role, size: size)
                             .overlay {
@@ -75,8 +81,10 @@ extension ClusterStaircaseView {
                             }
                             .scaleEffect(isReveal ? revealHexScale : 1)
                             .shadow(
-                                color: skinService.currentSkin.impactColor.opacity(isReveal ? revealGlow * 0.85 : 0),
-                                radius: isReveal ? 28 : 0
+                                color: skinService.currentSkin.impactColor.opacity(
+                                    isReveal ? revealGlow * 0.85 : (isRevealParent ? revealChainProgress * 0.6 : 0)
+                                ),
+                                radius: (isReveal || isRevealParent) ? 22 : 0
                             )
                             .position(x: pos.x, y: pos.y)
                             .modifier(ActiveAnchorModifier(isActive: role == .active))
@@ -107,10 +115,21 @@ extension ClusterStaircaseView {
               let pos = layout.positions[nodeId] else { return }
         revealStarted = true
 
-        // Freeze (screenshot aid): jump straight to the unlocked held state.
+        // The unlock flows FROM the prerequisite (the node's in-cluster primary
+        // parent) down the chain into the new node, so frame both: center on a
+        // point biased toward the new node, keeping the parent visible above.
+        let parentPos = layout.primaryParent[nodeId].flatMap { layout.positions[$0] }
+        let focus: CGPoint = {
+            guard let parentPos else { return pos }
+            return CGPoint(x: (parentPos.x + pos.x) / 2,
+                           y: parentPos.y + (pos.y - parentPos.y) * 0.62)
+        }()
+
+        // Freeze (screenshot aid): jump straight to the lit + unlocked state.
         if revealFreeze {
-            revealFocus = pos
+            revealFocus = focus
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                revealChainProgress = 1
                 revealHexScale = 1.22
                 revealOutline = 1
                 revealGlow = 0.7
@@ -119,24 +138,40 @@ extension ClusterStaircaseView {
             return
         }
 
-        // Begin the camera fly-to. The ignite is NOT on a timer — it fires from
-        // `onFocusArrived` once travel completes (see igniteReveal), so the hex
-        // never grows/draws mid-flight. A fallback fires it in case the arrival
+        // Bring the parent + node into frame. The ignite is NOT on a timer — it
+        // fires from `onFocusArrived` once travel completes (see igniteReveal),
+        // so nothing lights up mid-flight. A fallback fires it if the arrival
         // callback is missed.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            withAnimation { revealFocus = pos }
+            withAnimation { revealFocus = focus }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.6) {
             igniteReveal()
         }
     }
 
-    /// The in-place unlock: grow the hex to its held size (no overshoot/shrink),
-    /// trace the outline around it, glow, raise the caption. Holds until the user
-    /// taps Continue. Idempotent — only the first call has any effect.
+    /// On camera arrival: light the chain down from the parent (if any), then
+    /// forge the node. Idempotent — only the first call has any effect.
     func igniteReveal() {
-        guard revealStarted, !revealIgnited, unlockRevealNodeId != nil else { return }
+        guard revealStarted, !revealIgnited, let nodeId = unlockRevealNodeId else { return }
         revealIgnited = true
+
+        let hasParent = (treeLayout?.primaryParent[nodeId] != nil) && !reduceMotion
+        if hasParent {
+            // Energy travels down the rail from the parent into this node.
+            UnboundHaptics.soft()
+            withAnimation(.easeInOut(duration: 0.6)) { revealChainProgress = 1 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { igniteNode() }
+        } else {
+            revealChainProgress = 1
+            igniteNode()
+        }
+    }
+
+    /// The node itself unlocks: grow once to its held size (no overshoot/shrink)
+    /// while the outline traces around it, then hold large with a calm breathing
+    /// glow until the user taps Continue. No auto-dismiss.
+    private func igniteNode() {
         UnboundHaptics.success()
         withAnimation(.easeOut(duration: 0.55)) { revealHexScale = 1.22 }
         withAnimation(.easeInOut(duration: 0.9)) { revealOutline = 1 }
@@ -148,6 +183,32 @@ extension ClusterStaircaseView {
                     revealGlow = 0.6
                 }
             }
+        }
+    }
+
+    /// The rail from the unlock node's parent into it, drawn over the static
+    /// rails image and trimmed 0→1 so the unlock visibly travels down the chain.
+    @ViewBuilder
+    func unlockChainOverlay(layout: ComputedTreeLayout) -> some View {
+        if revealChainProgress > 0,
+           let nodeId = unlockRevealNodeId,
+           let parentId = layout.primaryParent[nodeId],
+           let parentPos = layout.positions[parentId],
+           let nodePos = layout.positions[nodeId] {
+            ChainPath(
+                from: parentPos,
+                to: nodePos,
+                fromSize: sizeFor(role: layout.roles[parentId] ?? .tangent),
+                toSize: sizeFor(role: layout.roles[nodeId] ?? .tangent)
+            )
+            .trim(from: 0, to: revealChainProgress)
+            .stroke(
+                skinService.currentSkin.impactColor,
+                style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
+            )
+            .shadow(color: skinService.currentSkin.impactColor.opacity(0.85), radius: 7)
+            .frame(width: layout.contentWidth, height: layout.treeHeight, alignment: .topLeading)
+            .allowsHitTesting(false)
         }
     }
 
@@ -454,5 +515,26 @@ extension ClusterStaircaseView {
         func body(content: Content) -> some View {
             if isActive { content.id("active") } else { content }
         }
+    }
+}
+
+/// The orthogonal rail from a parent node down into its child, in tree content
+/// coordinates. Trimmed 0→1 to animate the unlock travelling down the chain.
+private struct ChainPath: Shape {
+    let from: CGPoint   // parent center
+    let to: CGPoint     // child center
+    let fromSize: CGFloat
+    let toSize: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let start = CGPoint(x: from.x, y: from.y + fromSize / 2)  // parent bottom
+        let end = CGPoint(x: to.x, y: to.y - toSize / 2)          // child top
+        let midY = (start.y + end.y) / 2
+        p.move(to: start)
+        p.addLine(to: CGPoint(x: start.x, y: midY))
+        p.addLine(to: CGPoint(x: end.x, y: midY))
+        p.addLine(to: end)
+        return p
     }
 }

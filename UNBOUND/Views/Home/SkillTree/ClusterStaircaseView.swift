@@ -63,6 +63,7 @@ struct ClusterStaircaseView: View {
     @State var revealStarted: Bool = false
     @State var revealIgnited: Bool = false   // once-guard so ignite runs a single time
     @State var revealFocus: CGPoint? = nil
+    @State var revealChainProgress: CGFloat = 0   // 0→1 rail lighting from the parent node
     @State var revealHexScale: CGFloat = 1.0
     @State var revealGlow: Double = 0
     @State var revealOutline: CGFloat = 0   // 0→1 stroke traced around the hex
