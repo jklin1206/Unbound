@@ -364,9 +364,13 @@ enum SkillTreeSkin: String, Codable, Sendable, CaseIterable, Identifiable {
         }
     }
 
+    /// Faint per-tier background stripe. Keyed to the ACTIVE SKIN (not the
+    /// rank's reward tint) so the whole tree reads as one consistent skin —
+    /// the rank tint made the high-tier bands at the bottom go gold/orange on
+    /// every skin, which looked like a stray golden wash.
     func bandTint(for rank: RankTier) -> Color {
         let ramp = 0.012 + Double(rank.rawValue) * 0.011
-        return rank.rewardTint.opacity(ramp)
+        return primaryColor.opacity(ramp)
     }
 
     func nodeFill(state: NodeState, faded: Bool) -> Color {

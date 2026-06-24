@@ -87,24 +87,35 @@ struct ZoomableTreeScrollView<Content: View>: UIViewRepresentable {
         // Animated camera fly-to (unlock reveal). A symmetric contentInset of
         // half the viewport lets even edge/corner nodes reach dead center
         // (without it the offset clamps at the content edge and the node lands
-        // in a corner). Zoom + offset animate together to the node.
-        if let fp = focusPoint, fp != context.coordinator.lastFocusApplied {
-            context.coordinator.lastFocusApplied = fp
-            context.coordinator.isFocusing = true
-            let z = min(max(focusZoom, minZoom), maxZoom)
-            let arrived = onFocusArrived
-            DispatchQueue.main.async {
-                let vw = scrollView.bounds.width
-                let vh = scrollView.bounds.height
-                scrollView.contentInset = UIEdgeInsets(top: vh / 2, left: vw / 2, bottom: vh / 2, right: vw / 2)
-                let target = CGPoint(x: fp.x * z - vw / 2, y: fp.y * z - vh / 2)
-                UIView.animate(withDuration: 0.75, delay: 0, options: [.curveEaseInOut]) {
-                    scrollView.zoomScale = z
-                    scrollView.contentOffset = target
-                } completion: { _ in
-                    arrived?()
+        // in a corner). User scrolling is DISABLED while focused — it's a
+        // watch-the-unlock moment, and otherwise that big inset would let the
+        // tree pan endlessly past its edges.
+        if let fp = focusPoint {
+            if fp != context.coordinator.lastFocusApplied {
+                context.coordinator.lastFocusApplied = fp
+                context.coordinator.isFocusing = true
+                scrollView.isScrollEnabled = false
+                let z = min(max(focusZoom, minZoom), maxZoom)
+                let arrived = onFocusArrived
+                DispatchQueue.main.async {
+                    let vw = scrollView.bounds.width
+                    let vh = scrollView.bounds.height
+                    scrollView.contentInset = UIEdgeInsets(top: vh / 2, left: vw / 2, bottom: vh / 2, right: vw / 2)
+                    let target = CGPoint(x: fp.x * z - vw / 2, y: fp.y * z - vh / 2)
+                    UIView.animate(withDuration: 0.75, delay: 0, options: [.curveEaseInOut]) {
+                        scrollView.zoomScale = z
+                        scrollView.contentOffset = target
+                    } completion: { _ in
+                        arrived?()
+                    }
                 }
             }
+        } else {
+            // Normal browsing: guarantee no leftover focus inset (which would
+            // remove the scroll boundaries) and keep scrolling enabled. Idempotent.
+            context.coordinator.isFocusing = false
+            if scrollView.contentInset != .zero { scrollView.contentInset = .zero }
+            if !scrollView.isScrollEnabled { scrollView.isScrollEnabled = true }
         }
 
         // Apply initial content offset once, after zoom is set, so the
