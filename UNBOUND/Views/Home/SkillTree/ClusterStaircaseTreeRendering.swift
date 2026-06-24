@@ -175,39 +175,73 @@ extension ClusterStaircaseView {
         }
     }
 
-    /// On camera arrival: light the chain down from the parent (if any), then
-    /// forge the node. Idempotent — only the first call has any effect.
+    /// On camera arrival: power the rail up one segment at a time from the
+    /// parent, then wrap + forge the node. Idempotent — only the first call
+    /// has any effect.
     func igniteReveal() {
-        guard revealStarted, !revealIgnited, let nodeId = unlockRevealNodeId else { return }
+        guard revealStarted, !revealIgnited,
+              let nodeId = unlockRevealNodeId,
+              let layout = treeLayout,
+              let nodePos = layout.positions[nodeId] else { return }
         revealIgnited = true
 
-        let hasParent = (treeLayout?.primaryParent[nodeId] != nil) && !reduceMotion
-        if hasParent {
-            // Energy snakes down the rail from the parent into this node at a
-            // steady, even pace (linear, so it doesn't rush the middle); the
-            // node forges as the highlight arrives at it.
-            UnboundHaptics.soft()
-            withAnimation(.linear(duration: 1.6)) { revealChainProgress = 1 }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { igniteNode() }
-        } else {
+        guard !reduceMotion,
+              let parentId = layout.primaryParent[nodeId],
+              let parentPos = layout.positions[parentId] else {
+            // No chain — go straight to the wrap + forge.
             revealChainProgress = 1
-            igniteNode()
+            wrapAndForgeNode()
+            return
+        }
+
+        // Segment boundaries of the orthogonal rail (down → across → down) as
+        // fractions of its total length, so the trim can light each leg in turn.
+        let start = CGPoint(x: parentPos.x,
+                            y: parentPos.y + sizeFor(role: layout.roles[parentId] ?? .tangent) / 2)
+        let end = CGPoint(x: nodePos.x,
+                          y: nodePos.y - sizeFor(role: layout.roles[nodeId] ?? .tangent) / 2)
+        let midY = (start.y + end.y) / 2
+        let l1 = abs(midY - start.y), l2 = abs(end.x - start.x), l3 = abs(end.y - midY)
+        let total = max(1, l1 + l2 + l3)
+        lightChainSegments(f1: CGFloat(l1 / total), f2: CGFloat((l1 + l2) / total))
+    }
+
+    /// Light the rail leg by leg — first drop, the crossbar, the final drop into
+    /// the node — with a short hold + tick between each so it reads as building
+    /// up segment by segment rather than one continuous sweep.
+    private func lightChainSegments(f1: CGFloat, f2: CGFloat) {
+        UnboundHaptics.soft()
+        withAnimation(.easeInOut(duration: 0.42)) { revealChainProgress = f1 }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.58) {
+            UnboundHaptics.soft()
+            withAnimation(.easeInOut(duration: 0.30)) { revealChainProgress = f2 }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.96) {
+            UnboundHaptics.soft()
+            withAnimation(.easeInOut(duration: 0.42)) { revealChainProgress = 1 }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.48) {
+            wrapAndForgeNode()
         }
     }
 
-    /// The node itself unlocks: grow once to its held size (no overshoot/shrink)
-    /// while the outline traces around it, then hold large with a calm breathing
-    /// glow until the user taps Continue. No auto-dismiss.
-    private func igniteNode() {
-        UnboundHaptics.success()
-        withAnimation(.easeOut(duration: 0.55)) { revealHexScale = 1.22 }
-        withAnimation(.easeInOut(duration: 0.9)) { revealOutline = 1 }
-        withAnimation(.easeOut(duration: 0.6)) { revealGlow = 1 }
-        withAnimation(.easeOut(duration: 0.4)) { revealCaption = true }
-        if !reduceMotion {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
-                    revealGlow = 0.6
+    /// The highlight arrives and WRAPS around the node's hex (outline trace from
+    /// the top, where the chain lands), then the node forges: grows once to its
+    /// held size + glows, holding until the user taps Continue.
+    private func wrapAndForgeNode() {
+        UnboundHaptics.medium()
+        withAnimation(.easeInOut(duration: 0.7)) { revealOutline = 1 }   // wrap around the hex
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            UnboundHaptics.success()
+            withAnimation(.easeOut(duration: 0.55)) { revealHexScale = 1.22 }
+            withAnimation(.easeOut(duration: 0.6)) { revealGlow = 1 }
+            withAnimation(.easeOut(duration: 0.4)) { revealCaption = true }
+            if !reduceMotion {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                    withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                        revealGlow = 0.6
+                    }
                 }
             }
         }
