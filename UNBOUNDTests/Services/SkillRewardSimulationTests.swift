@@ -95,21 +95,22 @@ final class SkillRewardSimulationTests: XCTestCase {
                        "a 30s handstand logged in the reps column must still rank (fallback)")
     }
 
-    // MARK: - 5. Feat: a FIRST rep jumps straight to the floor (Veteran)
+    // MARK: - 5. Former feats scale on their OWN movement (1 rep = Initiate)
 
-    func testFeatFirstRepJumpsToFloor() {
-        // One handstand push-up: cal.handstand-pushup is a Veteran-floor feat, so
-        // tiers Initiate…Veteran all share the 1-rep entry criterion → a single
-        // rep clears all of them at once and lands the rank at Veteran.
-        let r = evaluate([entry("handstand pushup", node: "cal.handstand-pushup",
-                                [set(reps: 1)])])
-        let cleared = clearedTiers(r, "cal.handstand-pushup")
+    func testFeatScalesFromInitiateOnItsOwnReps() {
+        // cal.handstand-pushup now ranks purely on its own reps: 1 HSPU = Initiate
+        // (the entry), more reps climb the same ladder. No first-rep jump to a floor.
+        let one = evaluate([entry("handstand pushup", node: "cal.handstand-pushup",
+                                  [set(reps: 1)])])
+        let clearedOne = clearedTiers(one, "cal.handstand-pushup")
+        XCTAssertTrue(clearedOne.contains(.initiate), "the first HSPU earns Initiate")
+        XCTAssertFalse(clearedOne.contains(.veteran), "one rep no longer jumps to a floor")
 
-        XCTAssertTrue(cleared.contains(.veteran), "the first HSPU must reach the Veteran floor")
-        XCTAssertEqual(r.multiRankEvent?.toTier, .veteran,
-                       "a first-rep feat advances straight to its floor rank")
-        XCTAssertGreaterThan(r.multiRankEvent?.ranksAdvanced ?? 0, 1,
-                             "the feat jump advances multiple rungs in one shot")
+        // A strong set climbs the same scaled ladder well past Veteran.
+        let many = evaluate([entry("handstand pushup", node: "cal.handstand-pushup",
+                                   [set(reps: 14)])])
+        XCTAssertTrue(clearedTiers(many, "cal.handstand-pushup").contains(.veteran),
+                      "14 HSPU climbs past Veteran on the scaled ladder")
     }
 
     // MARK: - 5b. A hold earns a personal best (seconds)

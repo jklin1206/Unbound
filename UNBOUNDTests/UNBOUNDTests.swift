@@ -720,9 +720,8 @@ final class UNBOUNDSmokeTest: XCTestCase {
                     if graph.node(id: requirement.sourceSkillId) == nil {
                         failures.append("\(node.id): unresolved unlock source \(requirement.sourceSkillId)")
                     }
-                    if requirement.requiredTier < .forged {
-                        failures.append("\(node.id): \(requirement.sourceSkillId) unlocks before ownership at \(requirement.requiredTier.displayName)")
-                    }
+                    // Note: basic next-steps now open at exposure (Initiate/Novice/
+                    // Apprentice) by design; only the source + group shape are required.
                 }
             }
         }
@@ -738,9 +737,12 @@ final class UNBOUNDSmokeTest: XCTestCase {
 
         let strictMuscleUp = try! XCTUnwrap(graph.node(id: "pp.strict-muscle-up"))
         let strictRequirements = SkillUnlockStandards.groups(for: strictMuscleUp, in: graph).flatMap(\.requirements)
+        // Strict muscle-up routes through the BAR muscle-up (not rings), still at
+        // repeatable-ownership level.
         XCTAssertTrue(strictRequirements.contains {
-            $0.sourceSkillId == "pp.ring-muscle-up" && $0.requiredTier >= .master
+            $0.sourceSkillId == "pp.muscle-up" && $0.requiredTier >= .master
         })
+        XCTAssertFalse(strictRequirements.contains { $0.sourceSkillId == "pp.ring-muscle-up" })
 
         let oneArmHandstand = try! XCTUnwrap(graph.node(id: "oah.full-one-arm-handstand"))
         let oahRequirements = SkillUnlockStandards.groups(for: oneArmHandstand, in: graph).flatMap(\.requirements)
@@ -753,12 +755,13 @@ final class UNBOUNDSmokeTest: XCTestCase {
         let graph = SkillGraph.shared
 
         let wallPlankUnlocks = SkillUnlockStandards.outgoingUnlocks(from: "hs.wall-plank", in: graph)
+        // Wall handstand (tier 2) now opens at exposure on the wall plank.
         XCTAssertTrue(wallPlankUnlocks.contains {
-            $0.child.id == "hs.wall-handstand-30" && $0.requirement.requiredTier == .forged
+            $0.child.id == "hs.wall-handstand-30" && $0.requirement.requiredTier == .initiate
         })
 
-        let ringMuscleUpUnlocks = SkillUnlockStandards.outgoingUnlocks(from: "pp.ring-muscle-up", in: graph)
-        XCTAssertTrue(ringMuscleUpUnlocks.contains {
+        let muscleUpUnlocks = SkillUnlockStandards.outgoingUnlocks(from: "pp.muscle-up", in: graph)
+        XCTAssertTrue(muscleUpUnlocks.contains {
             $0.child.id == "pp.strict-muscle-up" && $0.requirement.requiredTier >= .master
         })
     }
