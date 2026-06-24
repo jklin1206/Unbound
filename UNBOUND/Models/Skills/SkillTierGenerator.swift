@@ -27,9 +27,11 @@ struct SkillAnchor: Hashable, Sendable {
     enum Spec: Hashable, Sendable {
         /// 5 ascending real standards [Beginner, Novice, Intermediate, Advanced, Elite].
         case full([Double])
-        /// Feat: the move's first rep earns `floor`; `ladder` is the rep values for
-        /// tiers floor…peak (count == 9 - floor.rawValue). Below floor = locked.
-        case feat(floor: SkillTier, ladder: [Double])
+        /// Apex feat scaled on its OWN movement: Initiate = 1 rep/second of the real
+        /// skill, scaled geometrically to `ceiling` (the elite human max) at Unbound.
+        /// No regressions in the ladder — the route to the first rep lives in the
+        /// unlock gate + training plan, never in the rank criteria.
+        case scaled(to: Double)
     }
 
     let exerciseName: String
@@ -56,8 +58,8 @@ enum SkillTierGenerator {
         switch anchor.spec {
         case .full(let levels):
             values = climbing(interpolate(levels: levels), metric: anchor.metric)
-        case .feat(let floor, let ladder):
-            values = featValues(floor: floor, ladder: ladder, metric: anchor.metric)
+        case .scaled(let ceiling):
+            values = scaledValues(to: ceiling, metric: anchor.metric)
         }
         var out: [SkillTier: TierCriterion] = [:]
         for (i, tier) in SkillTier.allCases.enumerated() {
@@ -79,22 +81,18 @@ enum SkillTierGenerator {
         }
     }
 
-    /// Feat: tiers 0…floor all equal the first ladder value (so the first rep jumps
-    /// you to `floor`); tiers above floor climb strictly. Nothing earnable below floor.
-    private static func featValues(floor: SkillTier, ladder: [Double], metric: SkillAnchor.Metric) -> [Double] {
-        let f = floor.rawValue
-        precondition(ladder.count == 9 - f, "feat ladder must cover floor…peak (\(9 - f) values)")
+    /// Apex feat: 1 → ceiling, geometric across the 9 tiers, rounded + strictly
+    /// increasing. Initiate is always 1 (rep/second) of the real movement; Unbound
+    /// is the ceiling (the elite max). Same scaling the standards preview uses.
+    private static func scaledValues(to ceiling: Double, metric: SkillAnchor.Metric) -> [Double] {
         let step = metric == .bodyweightRatio ? 0.05 : 1.0
-        var vals = [Double](repeating: 0, count: 9)
-        let first = rounded(ladder[0], metric)
-        for i in 0...f { vals[i] = first }            // 0…floor all the entry value
-        var previous = first
-        for i in (f + 1)..<9 {
-            let v = max(rounded(ladder[i - f], metric), previous + step)
-            vals[i] = v
+        var previous = -Double.greatestFiniteMagnitude
+        return (0..<9).map { i in
+            let raw = pow(ceiling, Double(i) / 8.0)
+            let v = max(rounded(raw, metric), previous + step)
             previous = v
+            return v
         }
-        return vals
     }
 
     private static func rounded(_ v: Double, _ metric: SkillAnchor.Metric) -> Double {

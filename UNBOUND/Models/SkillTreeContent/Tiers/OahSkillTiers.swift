@@ -31,9 +31,9 @@ private let _oahCountCheck: Int = {
 enum OneArmHandstandSkillAnchors {
     static let table: [String: SkillAnchor] = [
         // A 3–5 s one-arm handstand is world-class — vessel entry.
-        "oah.one-arm-handstand-5s":   .init(exerciseName: "one-arm handstand",      metric: .seconds, spec: .feat(floor: .vessel,  ladder: [3, 5, 8])), // floor 6 → 3 vals
+        "oah.one-arm-handstand-5s":   .init(exerciseName: "one-arm handstand",      metric: .seconds, spec: .scaled(to: 30)), // floor 6 → 3 vals
         // Full one-arm handstand — apex of the discipline — unbound entry.
-        "oah.full-one-arm-handstand": .init(exerciseName: "full one arm handstand", metric: .seconds, spec: .feat(floor: .ascendant, ladder: [3, 8])),    // floor 7 → 2 vals
+        "oah.full-one-arm-handstand": .init(exerciseName: "full one arm handstand", metric: .seconds, spec: .scaled(to: 28)),    // floor 7 → 2 vals
     ]
 }
 

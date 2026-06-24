@@ -71,13 +71,13 @@ enum PushSkillAnchors {
         "cal.pike-pushup":          .init(exerciseName: "pike pushup",          metric: .reps, spec: .full([5, 10, 18, 30, 42])),  // coaching standard
         "cal.elevated-pike-pushup": .init(exerciseName: "elevated pike pushup", metric: .reps, spec: .full([3, 8, 15, 24, 34])),   // between pike & HSPU
         "cal.floating-pike-pushup": .init(exerciseName: "floating pike pushup", metric: .reps, spec: .full([1, 5, 11, 18, 26])),   // harder than elevated pike
-        "cal.handstand-pushup":     .init(exerciseName: "handstand pushup",     metric: .reps, spec: .feat(floor: .veteran, ladder: [1, 8, 18, 32, 46])),  // a first HSPU is already advanced — floor Veteran, then real rep climb to 46 (5 vals = 9−4)
+        "cal.handstand-pushup":     .init(exerciseName: "handstand pushup",     metric: .reps, spec: .scaled(to: 20)),  // a first HSPU is already advanced — floor Veteran, then real rep climb to 46 (5 vals = 9−4)
 
         // Planche-lean press chain.
         "cal.tuck-planche-pushup": .init(exerciseName: "tuck planche pushup", metric: .reps, spec: .full([1, 3, 6, 10, 15])),  // dynamic tuck planche press, build reps
 
         // One-arm push-up — a first OAPU is already advanced → floor Veteran, then real rep climb to 43.
-        "cal.one-arm-pushup": .init(exerciseName: "one-arm pushup", metric: .reps, spec: .feat(floor: .veteran, ladder: [1, 8, 18, 30, 43])),  // 5 vals = 9−4
+        "cal.one-arm-pushup": .init(exerciseName: "one-arm pushup", metric: .reps, spec: .scaled(to: 25)),  // 5 vals = 9−4
 
         // Holds.
         "cal.plank-30":  .init(exerciseName: "plank", metric: .seconds, spec: .full([20, 45, 60, 120, 180])),  // front plank coaching/clinical standard
@@ -86,12 +86,12 @@ enum PushSkillAnchors {
         // ── Hard feats — first rep is already elite; floor from difficulty, short ladder ──
 
         // World-class apex presses — owning ONE rep is elite; floor .vessel (3 vals).
-        "cal.bent-arm-press":      .init(exerciseName: "bent arm press",   metric: .reps, spec: .feat(floor: .vessel, ladder: [1, 2, 4])),  // bent-arm planche press
-        "cal.ninety-degree-pushup": .init(exerciseName: "90 degree pushup", metric: .reps, spec: .feat(floor: .vessel, ladder: [1, 2, 4])), // 90-degree pushup apex
+        "cal.bent-arm-press":      .init(exerciseName: "bent arm press",   metric: .reps, spec: .scaled(to: 12)),  // bent-arm planche press
+        "cal.ninety-degree-pushup": .init(exerciseName: "90 degree pushup", metric: .reps, spec: .scaled(to: 13)), // 90-degree pushup apex
 
         // Mythic clap variants.
-        "cal.clapping-handstand-pushup": .init(exerciseName: "clapping handstand pushup", metric: .reps, spec: .feat(floor: .vessel,  ladder: [1, 2, 4])),  // clapping HSPU (3 vals)
-        "cal.triple-clap-pushup":        .init(exerciseName: "triple clap pushup",        metric: .reps, spec: .feat(floor: .ascendant, ladder: [1, 2])),       // triple-clap pushup (2 vals)
+        "cal.clapping-handstand-pushup": .init(exerciseName: "clapping handstand pushup", metric: .reps, spec: .scaled(to: 10)),  // clapping HSPU (3 vals)
+        "cal.triple-clap-pushup":        .init(exerciseName: "triple clap pushup",        metric: .reps, spec: .scaled(to: 9)),       // triple-clap pushup (2 vals)
     ]
 }
 
