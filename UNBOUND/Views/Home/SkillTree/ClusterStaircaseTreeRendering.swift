@@ -187,10 +187,11 @@ extension ClusterStaircaseView {
 
         let hasParent = !reduceMotion && layout.primaryParent[nodeId] != nil
         if hasParent {
-            // One small, smooth flow down the rail (not segmented), then the wrap.
+            // One continuous line-draw (SwiftUI .trim) down the rail, paced slow
+            // enough to clearly watch it trace, then the wrap. Not segmented.
             UnboundHaptics.soft()
-            withAnimation(.easeInOut(duration: 0.6)) { revealChainProgress = 1 }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { wrapAndForgeNode() }
+            withAnimation(.easeInOut(duration: 1.4)) { revealChainProgress = 1 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) { wrapAndForgeNode() }
         } else {
             revealChainProgress = 1
             wrapAndForgeNode()
