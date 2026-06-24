@@ -256,7 +256,7 @@ final class DailyWorkoutResolverTests: XCTestCase {
             )
         })
         XCTAssertTrue(resolved.mainExercises.allSatisfy { $0.substitution != nil })
-        XCTAssertTrue(resolved.mainExercises.contains { $0.name.localizedCaseInsensitiveContains("pushup") })
+        XCTAssertTrue(resolved.mainExercises.contains { $0.name.localizedCaseInsensitiveContains("push-up") })
         XCTAssertTrue(resolved.mainExercises.contains { $0.name.localizedCaseInsensitiveContains("band") })
         XCTAssertEqual(
             Set(resolved.mainExercises.map { MovementCatalog.normalized($0.name) }).count,
