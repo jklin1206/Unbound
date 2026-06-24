@@ -73,13 +73,36 @@ final class RankDetailViewModel {
     /// `.oneRepMax` is the defensive default for an exercise with no movement.
     var logMode: ProgramRankExerciseLogMode {
         if isSkillEntry, let node = skillNode {
+            // Weighted skills (added-load criterion, e.g. weighted pull-up) log
+            // on the SAME weight ruler as a weighted exercise — the load is what
+            // sets the rank. Everything else logs reps or a timed hold.
+            if skillIsWeightBased { return .oneRepMax }
             return Self.skillLogMode(for: node)
         }
         return movementDefinition.map(ProgramRankExerciseLogMode.mode(for:)) ?? .oneRepMax
     }
 
+    /// A skill that ranks by ADDED LOAD (weighted pull-up, weighted dip, …). Needs
+    /// a resolved movement twin so the weight ruler has a template to configure.
+    var skillIsWeightBased: Bool {
+        guard isSkillEntry, let node = skillNode, movementDefinition != nil else { return false }
+        return Self.targetIsWeightBased(node.target)
+    }
+
+    private static func targetIsWeightBased(_ requirement: NodeRequirement) -> Bool {
+        switch requirement {
+        case .weightMultiplier:
+            return true
+        case .composite(let reqs):
+            return reqs.contains { targetIsWeightBased($0) }
+        default:
+            return false
+        }
+    }
+
     /// Maps a skill node's target to the ruler metric. Hold/carry skills log a
     /// timed hold; everything else logs reps (the criterion the skill ranks on).
+    /// Weighted skills are handled earlier in `logMode` (the weight ruler).
     static func skillLogMode(for node: SkillNode) -> ProgramRankExerciseLogMode {
         switch node.target {
         case .hold, .carry:
@@ -252,8 +275,13 @@ final class RankDetailViewModel {
     }
 
     /// Seed the inline ruler for a skill from its node target, so the reps /
-    /// hold ruler opens at the criterion value instead of a bare default.
+    /// hold / weight ruler opens at a sensible value instead of a bare default.
     private func seedSkillRuler(for node: SkillNode) {
+        // Weighted skills open the weight ruler at a modest added load.
+        if skillIsWeightBased {
+            selectedWeightDisplay = weightUnit == .pounds ? 25 : 10
+            return
+        }
         switch node.target {
         case .reps(_, let count, _), .steps(_, let count):
             selectedReps = max(1, count)
@@ -375,14 +403,16 @@ final class RankDetailViewModel {
         defer { isSubmitting = false }
 
         let isHold = (logMode == .hold)
+        let isWeighted = (logMode == .oneRepMax)
         let now = Date()
         let priorTier = displayedTier
 
-        // Just the metric — an honest, clean single set.
+        // Just the metric — an honest, clean single set. Weighted skills record
+        // a single rep at the added load (the value the rank is read from).
         let set = LoggedSet(
-            reps: isHold ? 0 : selectedReps,
+            reps: isHold ? 0 : (isWeighted ? 1 : selectedReps),
             holdSeconds: isHold ? selectedSeconds : nil,
-            weightKg: nil,
+            weightKg: isWeighted ? selectedWeightKg : nil,
             rpe: nil,
             qualityFlags: [.clean],
             notes: nil

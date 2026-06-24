@@ -1,16 +1,16 @@
 import SwiftUI
 
 /// Rank tab of the unified rank detail — a clean showcase of WHERE YOU ARE NOW.
-/// The current-rank emblem is the centerpiece; below it sits a single "log a
-/// set" action. No ladder, no requirements: you log a set to earn a rank, and
-/// the rank-up reveals afterward — the climb and what-it-takes are deliberately
-/// not shown here.
+/// The current-rank emblem is the centerpiece; below it sits a single "GET YOUR
+/// RANK" action. No ladder, no requirements: you demonstrate a feat to earn a
+/// rank, and the rank-up reveals afterward — the climb and what-it-takes are
+/// deliberately not shown here.
 ///
-/// Exercises log inline via the ruler (the strength standard). Skills log one
-/// set via the quick-log sheet — the single-source skill-ranking path — never a
-/// session sheet and never bolted onto a strength ladder. A successful exercise
-/// log pulses the emblem and shows a brief RANK UP banner; a skill log plays its
-/// own reward sequence inside the sheet.
+/// Everything ranks on the SAME inline ruler: exercises by reps / hold / 1RM
+/// (strength standard); skills by reps, a timed hold, or — for weighted skills —
+/// the added-load weight ruler, all through the single-source skill-ranking path
+/// (never a session sheet, never bolted onto a strength ladder). A successful
+/// log pulses the emblem and shows a brief RANK UP banner.
 struct RankDetailRankTab: View {
     let vm: RankDetailViewModel
     var onLogged: (() async -> Void)?
@@ -114,16 +114,16 @@ struct RankDetailRankTab: View {
     @ViewBuilder
     private var logSetSection: some View {
         if vm.loggingIsRulerBased, let definition = vm.movementDefinition {
-            logSection(title: "LOG A SET") {
+            logSection(title: "GET YOUR RANK") {
                 VStack(alignment: .leading, spacing: 14) {
                     metricRail(definition)
                     rulerSubmitButton
                 }
             }
         } else if vm.skillNode != nil {
-            // Skills log on the SAME inline ruler as exercises — reps or a timed
-            // hold per the skill's criterion. No sheet, no extra fields.
-            logSection(title: "LOG A SET") {
+            // Skills rank on the SAME inline ruler as exercises — reps, a timed
+            // hold, or an added-load weight. No sheet, no extra fields.
+            logSection(title: "GET YOUR RANK") {
                 VStack(alignment: .leading, spacing: 14) {
                     skillMetricRail
                     rulerSubmitButton
@@ -144,13 +144,18 @@ struct RankDetailRankTab: View {
         }
     }
 
-    /// Skills only ever rank on reps or a timed hold — the same two rails the
-    /// exercise ruler uses, minus the 1RM weight case.
+    /// Skills rank on the same rails as exercises: reps, a timed hold, or — for
+    /// weighted skills (weighted pull-up, …) — the added-load weight ruler.
     @ViewBuilder
     private var skillMetricRail: some View {
-        if vm.logMode == .hold {
+        switch vm.logMode {
+        case .oneRepMax:
+            if let definition = vm.movementDefinition {
+                oneRepMaxRail(definition)
+            }
+        case .hold:
             secondsRail
-        } else {
+        case .reps:
             repsRail
         }
     }
@@ -218,8 +223,8 @@ struct RankDetailRankTab: View {
             Task { await submit() }
         } label: {
             actionLabel(
-                icon: vm.isSubmitting ? "hourglass" : "plus.circle.fill",
-                title: vm.isSubmitting ? "Saving Set" : "Log a Set",
+                icon: vm.isSubmitting ? "hourglass" : "rosette",
+                title: vm.isSubmitting ? "Saving" : "Get Your Rank",
                 borderTint: isEnabled ? vm.tint.opacity(0.72) : Color.unbound.border
             )
             .opacity(isEnabled ? 1 : 0.58)
