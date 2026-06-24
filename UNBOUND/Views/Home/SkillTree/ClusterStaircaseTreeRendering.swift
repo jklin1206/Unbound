@@ -175,53 +175,24 @@ extension ClusterStaircaseView {
         }
     }
 
-    /// On camera arrival: power the rail up one segment at a time from the
-    /// parent, then wrap + forge the node. Idempotent — only the first call
+    /// On camera arrival: a quick, smooth highlight flows down the rail from the
+    /// parent, then wraps + forges the node. Idempotent — only the first call
     /// has any effect.
     func igniteReveal() {
         guard revealStarted, !revealIgnited,
               let nodeId = unlockRevealNodeId,
               let layout = treeLayout,
-              let nodePos = layout.positions[nodeId] else { return }
+              layout.positions[nodeId] != nil else { return }
         revealIgnited = true
 
-        guard !reduceMotion,
-              let parentId = layout.primaryParent[nodeId],
-              let parentPos = layout.positions[parentId] else {
-            // No chain — go straight to the wrap + forge.
+        let hasParent = !reduceMotion && layout.primaryParent[nodeId] != nil
+        if hasParent {
+            // One small, smooth flow down the rail (not segmented), then the wrap.
+            UnboundHaptics.soft()
+            withAnimation(.easeInOut(duration: 0.6)) { revealChainProgress = 1 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.55) { wrapAndForgeNode() }
+        } else {
             revealChainProgress = 1
-            wrapAndForgeNode()
-            return
-        }
-
-        // Segment boundaries of the orthogonal rail (down → across → down) as
-        // fractions of its total length, so the trim can light each leg in turn.
-        let start = CGPoint(x: parentPos.x,
-                            y: parentPos.y + sizeFor(role: layout.roles[parentId] ?? .tangent) / 2)
-        let end = CGPoint(x: nodePos.x,
-                          y: nodePos.y - sizeFor(role: layout.roles[nodeId] ?? .tangent) / 2)
-        let midY = (start.y + end.y) / 2
-        let l1 = abs(midY - start.y), l2 = abs(end.x - start.x), l3 = abs(end.y - midY)
-        let total = max(1, l1 + l2 + l3)
-        lightChainSegments(f1: CGFloat(l1 / total), f2: CGFloat((l1 + l2) / total))
-    }
-
-    /// Light the rail leg by leg — first drop, the crossbar, the final drop into
-    /// the node — with a short hold + tick between each so it reads as building
-    /// up segment by segment rather than one continuous sweep.
-    private func lightChainSegments(f1: CGFloat, f2: CGFloat) {
-        UnboundHaptics.soft()
-        withAnimation(.easeInOut(duration: 0.42)) { revealChainProgress = f1 }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.58) {
-            UnboundHaptics.soft()
-            withAnimation(.easeInOut(duration: 0.30)) { revealChainProgress = f2 }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.96) {
-            UnboundHaptics.soft()
-            withAnimation(.easeInOut(duration: 0.42)) { revealChainProgress = 1 }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.48) {
             wrapAndForgeNode()
         }
     }
