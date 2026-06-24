@@ -105,6 +105,11 @@ final class SkillProgressService {
     /// Re-evaluate node states after a workout log is saved.
     /// Scans the full SkillGraph against the user's recent logs.
     func recompute(after log: WorkoutLog, userBodyweightKg: Double?) async {
+        // Self-load so this works when called straight from the completion hub
+        // (the user may not have opened the tree this session). Without a loaded
+        // `progress`, every transition below would be dropped.
+        if progress == nil { await load(userId: log.userId) }
+
         let graph = SkillGraph.shared
         var mutated = false
         var unlocked: NodeUnlockedEvent? = nil

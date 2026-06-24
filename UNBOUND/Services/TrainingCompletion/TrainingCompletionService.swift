@@ -178,6 +178,15 @@ final class TrainingCompletionService {
                 )
             }
 
+            // Detect skill-tree node unlocks from this session and stash the
+            // event on SkillProgressService.pendingUnlock. The in-tree unlock
+            // reveal (mounted on HomeTabView) presents it once the workout +
+            // reward covers dismiss and the home tab is revealed.
+            await SkillProgressService.shared.recompute(
+                after: workoutLog,
+                userBodyweightKg: result.bodyweightKg
+            )
+
             // Squad cluster: a real finished workout advances squad-mission and
             // friend-challenge progress. The legacy WorkoutLogService.saveLog
             // path that used to do this is now deleted, so this is the canonical

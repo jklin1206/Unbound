@@ -8,7 +8,10 @@ extension ClusterStaircaseView {
             minZoom: minZoom,
             maxZoom: maxZoom,
             initialZoom: layout.activeZoom,
-            initialOffset: layout.initialOffset
+            initialOffset: layout.initialOffset,
+            focusPoint: revealFocus,
+            focusZoom: 1.08,
+            onFocusArrived: { igniteReveal() }
         ) {
             ZStack(alignment: .topLeading) {
                 cosmeticTreeBackground(width: layout.contentWidth, height: layout.treeHeight)
@@ -55,8 +58,26 @@ extension ClusterStaircaseView {
                     {
                         let role = layout.roles[id] ?? .tangent
                         let size = sizeFor(role: role)
+                        let isReveal = (id == unlockRevealNodeId)
 
                         hexCore(node: node, role: role, size: size)
+                            .overlay {
+                                if isReveal {
+                                    Hexagon()
+                                        .trim(from: 0, to: revealOutline)
+                                        .stroke(
+                                            skinService.currentSkin.impactColor,
+                                            style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round)
+                                        )
+                                        .frame(width: size, height: size)
+                                        .shadow(color: skinService.currentSkin.impactColor.opacity(0.9), radius: 6)
+                                }
+                            }
+                            .scaleEffect(isReveal ? revealHexScale : 1)
+                            .shadow(
+                                color: skinService.currentSkin.impactColor.opacity(isReveal ? revealGlow * 0.85 : 0),
+                                radius: isReveal ? 28 : 0
+                            )
                             .position(x: pos.x, y: pos.y)
                             .modifier(ActiveAnchorModifier(isActive: role == .active))
 
@@ -64,7 +85,6 @@ extension ClusterStaircaseView {
                             .position(x: pos.x, y: pos.y + size / 2 + belowOffset(for: role))
                     }
                 }
-
             }
             .frame(width: layout.contentWidth, height: layout.treeHeight, alignment: .topLeading)
         }
@@ -74,6 +94,99 @@ extension ClusterStaircaseView {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(skinService.currentSkin.primaryColor.opacity(0.32), lineWidth: 1)
         )
+    }
+
+    // MARK: - Unlock reveal (post-workout: fly to the node + ignite in place)
+
+    /// Drives the camera fly-to + ignition when the tree is opened focused on a
+    /// freshly-unlocked node. No-op during normal browsing.
+    func startUnlockRevealIfNeeded() {
+        guard !revealStarted,
+              let nodeId = unlockRevealNodeId,
+              let layout = treeLayout,
+              let pos = layout.positions[nodeId] else { return }
+        revealStarted = true
+
+        // Freeze (screenshot aid): jump straight to the unlocked held state.
+        if revealFreeze {
+            revealFocus = pos
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                revealHexScale = 1.22
+                revealOutline = 1
+                revealGlow = 0.7
+                revealCaption = true
+            }
+            return
+        }
+
+        // Begin the camera fly-to. The ignite is NOT on a timer — it fires from
+        // `onFocusArrived` once travel completes (see igniteReveal), so the hex
+        // never grows/draws mid-flight. A fallback fires it in case the arrival
+        // callback is missed.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            withAnimation { revealFocus = pos }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
+            igniteReveal()
+        }
+    }
+
+    /// The in-place unlock: grow the hex to its held size (no overshoot/shrink),
+    /// trace the outline around it, glow, raise the caption. Holds until the user
+    /// taps Continue. Idempotent — only the first call has any effect.
+    func igniteReveal() {
+        guard revealStarted, !revealIgnited, unlockRevealNodeId != nil else { return }
+        revealIgnited = true
+        UnboundHaptics.success()
+        withAnimation(.easeOut(duration: 0.55)) { revealHexScale = 1.22 }
+        withAnimation(.easeInOut(duration: 0.9)) { revealOutline = 1 }
+        withAnimation(.easeOut(duration: 0.6)) { revealGlow = 1 }
+        withAnimation(.easeOut(duration: 0.4)) { revealCaption = true }
+        if !reduceMotion {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                    revealGlow = 0.6
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    var unlockRevealCaption: some View {
+        if revealCaption,
+           let nodeId = unlockRevealNodeId,
+           let node = graph.node(id: nodeId) {
+            let headline = node.isMythic ? "MYTHIC ACHIEVED"
+                : node.isKeystone ? "KEYSTONE UNLOCKED" : "NODE UNLOCKED"
+            VStack(spacing: 10) {
+                Text(headline)
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(3.0)
+                    .foregroundStyle(skinService.currentSkin.impactColor)
+                Text(node.title)
+                    .font(Font.unbound.titleM)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 24)
+                UnboundButton(title: "Continue", icon: "arrow.right") {
+                    onUnlockRevealFinished?()
+                }
+                .padding(.horizontal, 40)
+                .padding(.top, 4)
+            }
+            .padding(.top, 28)
+            .padding(.bottom, 36)
+            .frame(maxWidth: .infinity)
+            .background(
+                LinearGradient(
+                    colors: [Color.unbound.bg.opacity(0), Color.unbound.bg.opacity(0.82), Color.unbound.bg],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            )
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
     }
 
     func cosmeticTreeBackground(width: CGFloat, height: CGFloat) -> some View {

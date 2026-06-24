@@ -77,6 +77,7 @@ struct HomeTabView: View {
             .allowsHitTesting(restTimer.isVisible)
         }
         .rankUpCinematicOverlay()
+        .skillUnlockTreeReveal()
         .skinUnlockToast()
         .badgeUnlockToast()
         .onReceive(restClock) { now in

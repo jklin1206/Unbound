@@ -390,7 +390,6 @@ struct UnboundHomeView: View {
             }
             .environmentObject(services)
         }
-        .nodeUnlockOverlay()
         .weightBumpToast()
         .tierUnlockToast()
         .attributeRankUpToast()

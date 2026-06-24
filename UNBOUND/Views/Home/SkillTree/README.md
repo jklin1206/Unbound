@@ -17,7 +17,6 @@ The Skill Map tab: `UnboundSkillTreeTabView` hosts `SkillGraphView` (landing scr
 | `ClusterStaircaseRailsCG.swift` | CGContext rail versions for `UIGraphicsImageRenderer` — works around lazy Canvas rendering vanishing rails on zoom-out. |
 | `ZoomableTreeScrollView.swift` | `UIViewRepresentable` pinch-zoom/pan scroll container for the tree content. |
 | `ClusterDetailView.swift` | Drill-in mini-graph for a single cluster with barycentric tier layout; keystone/Mythic amplified treatment. |
-| `NodeUnlockShareCard.swift` | 1080×1920 IG/TikTok share card for a node unlock, rendered via ImageRenderer. |
 | `SkillTraditionalVisualResolver.swift` | Maps a `SkillNode` to its exercise-visual asset name via generated-icon lookup + slug candidates. |
 | `SkillGraphConcept.swift` | Throwaway Chunk 1.5 concept preview for the Skill Graph v2 redesign (Option B cluster-first drill-in). |
 
