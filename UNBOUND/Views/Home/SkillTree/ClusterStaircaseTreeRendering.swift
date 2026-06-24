@@ -3,12 +3,22 @@ import UIKit
 
 extension ClusterStaircaseView {
     func mainTree(layout: ComputedTreeLayout) -> some View {
-        ZoomableTreeScrollView(
+        // During an unlock reveal, OPEN already framed on the parent→node chain
+        // (slightly zoomed out) instead of on the tree's active node — otherwise
+        // it pans across the whole tree and parks on unrelated nodes mid-flight.
+        // The focusPoint fly then does a small punch-in onto the chain.
+        let revealOpenFocus = unlockFocusPoint(layout: layout)
+        let openZoom: CGFloat = revealOpenFocus != nil ? 0.95 : layout.activeZoom
+        let openOffset: CGPoint? = revealOpenFocus
+            .map { revealInitialOffset(focus: $0, zoom: openZoom, layout: layout) }
+            ?? layout.initialOffset
+
+        return ZoomableTreeScrollView(
             contentSize: CGSize(width: layout.contentWidth, height: layout.treeHeight),
             minZoom: minZoom,
             maxZoom: maxZoom,
-            initialZoom: layout.activeZoom,
-            initialOffset: layout.initialOffset,
+            initialZoom: openZoom,
+            initialOffset: openOffset,
             focusPoint: revealFocus,
             focusZoom: 1.08,
             onFocusArrived: { igniteReveal() }
@@ -106,6 +116,29 @@ extension ClusterStaircaseView {
 
     // MARK: - Unlock reveal (post-workout: fly to the node + ignite in place)
 
+    /// The point the reveal camera frames: biased toward the new node, with its
+    /// in-cluster primary parent kept visible above (the chain the unlock travels
+    /// down). Falls back to the node itself for root/entry nodes with no parent.
+    func unlockFocusPoint(layout: ComputedTreeLayout) -> CGPoint? {
+        guard let nodeId = unlockRevealNodeId, let pos = layout.positions[nodeId] else { return nil }
+        guard let parentPos = layout.primaryParent[nodeId].flatMap({ layout.positions[$0] }) else { return pos }
+        return CGPoint(x: (parentPos.x + pos.x) / 2,
+                       y: parentPos.y + (pos.y - parentPos.y) * 0.62)
+    }
+
+    /// Content offset that centers `focus` in the viewport at `zoom`, clamped to
+    /// the content. Mirrors the active-node offset math in `buildLayout`.
+    func revealInitialOffset(focus: CGPoint, zoom: CGFloat, layout: ComputedTreeLayout) -> CGPoint {
+        let vw = ScreenMetrics.bounds.width
+        let vh = layout.viewportHeight
+        let maxOffX = max(0, layout.contentWidth * zoom - vw)
+        let maxOffY = max(0, layout.treeHeight * zoom - vh)
+        return CGPoint(
+            x: min(max(0, focus.x * zoom - vw / 2), maxOffX),
+            y: min(max(0, focus.y * zoom - vh / 2), maxOffY)
+        )
+    }
+
     /// Drives the camera fly-to + ignition when the tree is opened focused on a
     /// freshly-unlocked node. No-op during normal browsing.
     func startUnlockRevealIfNeeded() {
@@ -115,15 +148,7 @@ extension ClusterStaircaseView {
               let pos = layout.positions[nodeId] else { return }
         revealStarted = true
 
-        // The unlock flows FROM the prerequisite (the node's in-cluster primary
-        // parent) down the chain into the new node, so frame both: center on a
-        // point biased toward the new node, keeping the parent visible above.
-        let parentPos = layout.primaryParent[nodeId].flatMap { layout.positions[$0] }
-        let focus: CGPoint = {
-            guard let parentPos else { return pos }
-            return CGPoint(x: (parentPos.x + pos.x) / 2,
-                           y: parentPos.y + (pos.y - parentPos.y) * 0.62)
-        }()
+        let focus = unlockFocusPoint(layout: layout) ?? pos
 
         // Freeze (screenshot aid): jump straight to the lit + unlocked state.
         if revealFreeze {
