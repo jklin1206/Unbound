@@ -183,11 +183,12 @@ extension ClusterStaircaseView {
 
         let hasParent = (treeLayout?.primaryParent[nodeId] != nil) && !reduceMotion
         if hasParent {
-            // Energy flows slowly + smoothly down the rail from the parent into
-            // this node; the node forges as the flow arrives at it.
+            // Energy snakes down the rail from the parent into this node at a
+            // steady, even pace (linear, so it doesn't rush the middle); the
+            // node forges as the highlight arrives at it.
             UnboundHaptics.soft()
-            withAnimation(.easeInOut(duration: 1.6)) { revealChainProgress = 1 }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.35) { igniteNode() }
+            withAnimation(.linear(duration: 1.6)) { revealChainProgress = 1 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { igniteNode() }
         } else {
             revealChainProgress = 1
             igniteNode()
@@ -213,11 +214,13 @@ extension ClusterStaircaseView {
     }
 
     /// The rail from the unlock node's parent into it, drawn over the static
-    /// rails image and trimmed 0→1 so the unlock visibly travels down the chain.
+    /// rails image and trimmed 0→1 so the highlight visibly snakes down the
+    /// chain. Gated on the node/parent EXISTENCE (not on progress) so the view
+    /// is present before the trim animates — otherwise it's inserted mid-flight
+    /// at the final value and the line just pops in fully drawn.
     @ViewBuilder
     func unlockChainOverlay(layout: ComputedTreeLayout) -> some View {
-        if revealChainProgress > 0,
-           let nodeId = unlockRevealNodeId,
+        if let nodeId = unlockRevealNodeId,
            let parentId = layout.primaryParent[nodeId],
            let parentPos = layout.positions[parentId],
            let nodePos = layout.positions[nodeId] {
@@ -230,9 +233,9 @@ extension ClusterStaircaseView {
             .trim(from: 0, to: revealChainProgress)
             .stroke(
                 skinService.currentSkin.impactColor,
-                style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
+                style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round)
             )
-            .shadow(color: skinService.currentSkin.impactColor.opacity(0.85), radius: 7)
+            .shadow(color: skinService.currentSkin.impactColor.opacity(0.9), radius: 8)
             .frame(width: layout.contentWidth, height: layout.treeHeight, alignment: .topLeading)
             .allowsHitTesting(false)
         }
