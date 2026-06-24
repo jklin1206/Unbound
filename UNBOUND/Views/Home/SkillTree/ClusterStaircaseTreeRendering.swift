@@ -183,10 +183,11 @@ extension ClusterStaircaseView {
 
         let hasParent = (treeLayout?.primaryParent[nodeId] != nil) && !reduceMotion
         if hasParent {
-            // Energy travels down the rail from the parent into this node.
+            // Energy flows slowly + smoothly down the rail from the parent into
+            // this node; the node forges as the flow arrives at it.
             UnboundHaptics.soft()
-            withAnimation(.easeInOut(duration: 0.6)) { revealChainProgress = 1 }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { igniteNode() }
+            withAnimation(.easeInOut(duration: 1.6)) { revealChainProgress = 1 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.35) { igniteNode() }
         } else {
             revealChainProgress = 1
             igniteNode()
