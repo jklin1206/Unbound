@@ -99,7 +99,10 @@ struct RulerPicker: View {
         ZStack {
             ForEach(minV...maxV, id: \.self) { i in
                 let x = centerX + CGFloat(i - minV) * tickSpacing - offsetFromValue
-                let isMajor = (i - minV) % majorEvery == 0
+                // Major ticks land on absolute multiples of `majorEvery` (10, 20, 30…)
+                // rather than offsets from the lower bound, so a range that starts at
+                // 1 (reps, hold seconds) still labels round values instead of 1, 11, 21.
+                let isMajor = i % majorEvery == 0
                 let isCurrent = i == value
                 let distance = abs(CGFloat(i - value)) * tickSpacing
                 let fade = max(0.12, 1.0 - (distance / (centerX * 1.1)))

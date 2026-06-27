@@ -14,7 +14,7 @@ import SwiftUI
 struct RankDetailStatsTab: View {
     let vm: RankDetailViewModel
 
-    @State private var selectedRange: ProgramRankRepGraphRange = .all
+    @State private var selectedRange: ProgramRankRepGraphRange = .ninetyDays
 
     private let columns = [
         GridItem(.flexible(), spacing: 10),
@@ -31,9 +31,6 @@ struct RankDetailStatsTab: View {
                         progressionSection
                     }
                     recordsSection
-                    if !vm.history.isEmpty {
-                        attemptsSection
-                    }
                 }
             } else {
                 firstTimeState
@@ -49,7 +46,6 @@ struct RankDetailStatsTab: View {
             sectionLabel("PROGRESSION")
             ProgramRankProofHistoryLineGraph(
                 entries: vm.history,
-                currentValue: currentValue,
                 historyValue: historyValue(for:),
                 valueFormatter: formatValue(_:),
                 selectedRange: $selectedRange,
@@ -92,23 +88,6 @@ struct RankDetailStatsTab: View {
             ))
         }
         return items
-    }
-
-    // MARK: - 3. Attempts list
-
-    private var attemptsSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            sectionLabel("PAST ATTEMPTS")
-                .padding(.bottom, 10)
-            VStack(spacing: 0) {
-                ForEach(sortedHistory) { entry in
-                    HistoryEntryRow(entry: entry, tint: vm.tint)
-                    if entry.id != sortedHistory.last?.id {
-                        Divider().overlay(Color.unbound.borderSubtle.opacity(0.5))
-                    }
-                }
-            }
-        }
     }
 
     // MARK: - First-time state (no data yet)
@@ -170,14 +149,9 @@ struct RankDetailStatsTab: View {
 
     // MARK: - History helpers (graph + list)
 
-    private var logMode: ProgramRankExerciseLogMode {
-        guard let definition = vm.movementDefinition else { return .reps }
-        return ProgramRankExerciseLogMode.mode(for: definition)
-    }
-
-    private var sortedHistory: [ProgramRankExerciseHistoryEntry] {
-        vm.history.sorted { $0.occurredAt > $1.occurredAt }
-    }
+    /// The metric this entry ranks on. Use the view model's skill-aware mode so a
+    /// hold SKILL graphs/labels seconds — not the reps of its movement twin.
+    private var logMode: ProgramRankExerciseLogMode { vm.logMode }
 
     private func historyValue(for entry: ProgramRankExerciseHistoryEntry) -> Double? {
         switch logMode {
@@ -197,10 +171,6 @@ struct RankDetailStatsTab: View {
         case .hold:
             return ProgramRankExerciseFormatter.seconds(Int(value.rounded()))
         }
-    }
-
-    private var currentValue: Double {
-        vm.history.compactMap { historyValue(for: $0) }.max() ?? 0
     }
 
     private func sectionLabel(_ text: String) -> some View {
@@ -263,27 +233,3 @@ private struct StatTileView: View {
     }
 }
 
-// MARK: - History row
-
-private struct HistoryEntryRow: View {
-    let entry: ProgramRankExerciseHistoryEntry
-    let tint: Color
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(entry.summary)
-                    .font(Font.unbound.bodyS.weight(.semibold))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                Text(entry.dateText)
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 10)
-        .contentShape(Rectangle())
-    }
-}

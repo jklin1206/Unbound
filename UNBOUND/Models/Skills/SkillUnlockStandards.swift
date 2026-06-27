@@ -188,45 +188,197 @@ enum SkillUnlockStandards {
     }
 
     private static let explicitEdgeTiers: [String: SkillTier] = [
-        // Pull crossover: a normal muscle-up unlocks volume earlier, but ring
-        // and strict work need repeatable ownership first.
-        "pp.muscle-up->pp.10-muscle-ups": .forged,
+        // Heavy three-strand redesign: every real feat gates on lineage + a
+        // strength floor (+ a foundation hold). Each strand pinned to its tier so
+        // the unlock display matches docs/rank-prereqs-redesign.html. See that doc.
+        // ld.shrimp-squat
+        "ld.pistol-squat->ld.shrimp-squat": .apprentice,
+        "ld.deep-squat->ld.shrimp-squat": .apprentice,
+        // ld.nordic-curl
+        "ld.advancing-nordic-curl->ld.nordic-curl": .veteran,
+        "ld.single-leg-glute-bridge->ld.nordic-curl": .forged,
+        // cl.tuck-back-lever
+        "cl.skin-the-cat->cl.tuck-back-lever": .apprentice,
+        "pp.pullup->cl.tuck-back-lever": .apprentice,
+        "cl.german-hang->cl.tuck-back-lever": .apprentice,
+        // cl.straddle-back-lever
+        "cl.tuck-back-lever->cl.straddle-back-lever": .forged,
+        "pp.pullup->cl.straddle-back-lever": .forged,
+        "cl.german-hang->cl.straddle-back-lever": .veteran,
+        // cl.full-back-lever
+        "cl.straddle-back-lever->cl.full-back-lever": .veteran,
+        "pp.weighted-pullup->cl.full-back-lever": .veteran,
+        "cl.german-hang->cl.full-back-lever": .master,
+        "cl.skin-the-cat->cl.full-back-lever": .master,
+        // cl.tuck-front-lever
+        "pp.strict-pullup->cl.tuck-front-lever": .forged,
+        "pp.decline-row->cl.tuck-front-lever": .apprentice,
+        "cl.hollow-body-30->cl.tuck-front-lever": .apprentice,
+        // cl.straddle-front-lever
+        "cl.tuck-front-lever->cl.straddle-front-lever": .forged,
+        "pp.strict-pullup->cl.straddle-front-lever": .veteran,
+        "pp.decline-row->cl.straddle-front-lever": .forged,
+        // cl.full-front-lever
+        "cl.straddle-front-lever->cl.full-front-lever": .veteran,
+        "pp.weighted-pullup->cl.full-front-lever": .veteran,
+        "pp.decline-row->cl.full-front-lever": .veteran,
+        "cl.hollow-body-30->cl.full-front-lever": .master,
+        // pp.tuck-front-lever-pullup
+        "cl.tuck-front-lever->pp.tuck-front-lever-pullup": .forged,
+        "pp.one-arm-row->pp.tuck-front-lever-pullup": .forged,
+        "pp.strict-pullup->pp.tuck-front-lever-pullup": .veteran,
+        // pp.muscle-up
+        "pp.explosive-pullup->pp.muscle-up": .forged,
+        "cal.5-dips->pp.muscle-up": .forged,
+        "pp.pullup->pp.muscle-up": .veteran,
+        // pp.ring-muscle-up
         "pp.muscle-up->pp.ring-muscle-up": .veteran,
-
-        // One-arm pulling should not open from a lucky first rep.
-        "pp.archer-pullup->pp.one-arm-pullup-negative": .veteran,
-        "pp.weighted-pullup->pp.one-arm-pullup": .master,
-        "pp.one-arm-pullup->pp.5-oap-side": .veteran,
-
-        // Handstand line: wall work opens freestanding practice at ownership,
-        // but one-arm work waits until the full handstand path is repeatable.
-        "hs.wall-handstand-30->hs.freestanding-hs-10": .forged,
-        "hs.freestanding-hs-30->hs.wall-supported-oah": .master,
+        "cal.ring-dip->pp.ring-muscle-up": .forged,
+        // pp.strict-muscle-up
+        "pp.muscle-up->pp.strict-muscle-up": .master,
+        "pp.weighted-pullup->pp.strict-muscle-up": .forged,
+        "cal.5-dips->pp.strict-muscle-up": .veteran,
+        // pp.explosive-pullup
+        "pp.strict-pullup->pp.explosive-pullup": .apprentice,
+        "pp.pullup->pp.explosive-pullup": .forged,
+        // pp.archer-pullup
+        "pp.weighted-pullup->pp.archer-pullup": .veteran,
+        "pp.pullup->pp.archer-pullup": .master,
+        // pp.clapping-pullup
+        "pp.explosive-pullup->pp.clapping-pullup": .master,
+        "pp.pullup->pp.clapping-pullup": .veteran,
+        // pp.oap-negative
+        "pp.archer-pullup->pp.oap-negative": .master,
+        "pp.weighted-pullup->pp.oap-negative": .master,
+        // pp.one-arm-pullup
+        "pp.oap-negative->pp.one-arm-pullup": .master,
+        "pp.weighted-pullup->pp.one-arm-pullup": .vessel,
+        "pp.archer-pullup->pp.one-arm-pullup": .veteran,
+        // pp.heighted-chin-up
+        "pp.weighted-chin-up->pp.heighted-chin-up": .master,
+        "pp.chin-up->pp.heighted-chin-up": .veteran,
+        // pp.one-arm-chin-up
+        "pp.heighted-chin-up->pp.one-arm-chin-up": .master,
+        "pp.weighted-chin-up->pp.one-arm-chin-up": .veteran,
+        "pp.chin-up->pp.one-arm-chin-up": .master,
+        // pp.weighted-pullup
+        "pp.strict-pullup->pp.weighted-pullup": .forged,
+        "pp.pullup->pp.weighted-pullup": .forged,
+        // cl.three-sixty-pulls
+        "cl.skin-the-cat->cl.three-sixty-pulls": .master,
+        "cl.german-hang->cl.three-sixty-pulls": .veteran,
+        // cal.pseudo-planche-pushup
+        "cal.decline-pushup->cal.pseudo-planche-pushup": .apprentice,
+        "cal.pushup->cal.pseudo-planche-pushup": .forged,
+        // cal.archer-pushup
+        "cal.decline-pushup->cal.archer-pushup": .apprentice,
+        "cal.pushup->cal.archer-pushup": .forged,
+        // cal.clapping-pushup
+        "cal.explosive-pushup->cal.clapping-pushup": .apprentice,
+        "cal.pushup->cal.clapping-pushup": .apprentice,
+        // cal.one-arm-pushup
+        "cal.archer-pushup->cal.one-arm-pushup": .apprentice,
+        "cal.decline-pushup->cal.one-arm-pushup": .forged,
+        "cal.diamond-pushup->cal.one-arm-pushup": .forged,
+        // cal.pike-pushup
+        "cal.diamond-pushup->cal.pike-pushup": .apprentice,
+        "hs.wall-handstand-30->cal.pike-pushup": .novice,
+        // cal.elevated-pike-pushup
+        "cal.pike-pushup->cal.elevated-pike-pushup": .forged,
+        "hs.wall-handstand-30->cal.elevated-pike-pushup": .apprentice,
+        // cal.floating-pike-pushup
+        "cal.elevated-pike-pushup->cal.floating-pike-pushup": .forged,
+        "hs.wall-handstand-30->cal.floating-pike-pushup": .forged,
+        // cal.handstand-pushup
+        "cal.elevated-pike-pushup->cal.handstand-pushup": .master,
+        "hs.wall-handstand-30->cal.handstand-pushup": .forged,
+        "cal.pike-pushup->cal.handstand-pushup": .veteran,
+        // cal.bent-arm-press
+        "cal.floating-pike-pushup->cal.bent-arm-press": .master,
+        "hs.wall-handstand-30->cal.bent-arm-press": .forged,
+        // cal.ninety-degree-pushup
+        "cal.handstand-pushup->cal.ninety-degree-pushup": .master,
+        "cal.pseudo-planche-pushup->cal.ninety-degree-pushup": .master,
+        "hs.wall-handstand-30->cal.ninety-degree-pushup": .veteran,
+        // cal.clapping-handstand-pushup
+        "cal.ninety-degree-pushup->cal.clapping-handstand-pushup": .forged,
+        "cal.handstand-pushup->cal.clapping-handstand-pushup": .veteran,
+        // cal.triple-clap-pushup
+        "cal.clapping-pushup->cal.triple-clap-pushup": .forged,
+        "cal.explosive-pushup->cal.triple-clap-pushup": .forged,
+        // hs.flying-crow
+        "hs.crow-pose->hs.flying-crow": .novice,
+        "hs.crane-pose->hs.flying-crow": .apprentice,
+        // pl.bent-arm-planche
+        "hs.elbow-lever->pl.bent-arm-planche": .apprentice,
+        "cal.pseudo-planche-pushup->pl.bent-arm-planche": .forged,
+        "hs.crane-pose->pl.bent-arm-planche": .forged,
+        // hs.one-arm-elbow-lever
+        "hs.elbow-lever->hs.one-arm-elbow-lever": .veteran,
+        "hs.crane-pose->hs.one-arm-elbow-lever": .veteran,
+        // pl.straddle-planche
+        "pl.tuck-planche->pl.straddle-planche": .master,
+        "cal.pseudo-planche-pushup->pl.straddle-planche": .veteran,
+        "cal.l-sit-10->pl.straddle-planche": .master,
+        // pl.half-lay-planche
+        "pl.straddle-planche->pl.half-lay-planche": .master,
+        "cal.pseudo-planche-pushup->pl.half-lay-planche": .master,
+        // pl.full-planche
+        "pl.half-lay-planche->pl.full-planche": .forged,
+        "cal.tuck-planche-pushup->pl.full-planche": .veteran,
+        "cal.pseudo-planche-pushup->pl.full-planche": .master,
+        "hs.crane-pose->pl.full-planche": .master,
+        // hs.tuck-press
+        "hs.tuck-handstand->hs.tuck-press": .veteran,
+        "hs.freestanding-hs-30->hs.tuck-press": .apprentice,
+        "cl.hollow-body-30->hs.tuck-press": .forged,
+        // hs.straddle-press
+        "hs.tuck-press->hs.straddle-press": .master,
+        "hs.freestanding-hs-30->hs.straddle-press": .master,
+        "cal.pike-pushup->hs.straddle-press": .veteran,
+        // hs.press-to-handstand
+        "hs.straddle-press->hs.press-to-handstand": .master,
+        "hs.freestanding-hs-30->hs.press-to-handstand": .vessel,
+        "cl.straddle-l-sit->hs.press-to-handstand": .master,
+        // hs.wall-supported-oah
+        "hs.freestanding-hs-30->hs.wall-supported-oah": .vessel,
+        "hs.wall-handstand-30->hs.wall-supported-oah": .veteran,
+        // oah.one-arm-handstand-5s
         "hs.wall-supported-oah->oah.one-arm-handstand-5s": .veteran,
+        "hs.freestanding-hs-30->oah.one-arm-handstand-5s": .master,
+        // oah.full-one-arm-handstand
         "oah.one-arm-handstand-5s->oah.full-one-arm-handstand": .master,
-
-        // Planche: the next lever opens at ownership; elite dynamic branches
-        // require repeatable control.
+        "hs.wall-supported-oah->oah.full-one-arm-handstand": .master,
+        // cl.dragon-flag
+        "cl.dragon-flag-hip-raise->cl.dragon-flag": .forged,
+        "cl.hollow-body-30->cl.dragon-flag": .forged,
+        // cl.v-sit
+        "cal.l-sit-10->cl.v-sit": .forged,
+        "cl.hollow-body-30->cl.v-sit": .veteran,
+        // cl.straddle-l-sit
+        "cl.semi-straddle-l-sit->cl.straddle-l-sit": .master,
+        "cal.l-sit-10->cl.straddle-l-sit": .master,
+        // cl.toes-to-bar
+        "cl.hanging-leg-raise->cl.toes-to-bar": .novice,
+        "pp.dead-hang->cl.toes-to-bar": .apprentice,
+        // pp.l-sit-chin-up
+        "pp.strict-chin-up->pp.l-sit-chin-up": .apprentice,
+        "cal.l-sit-10->pp.l-sit-chin-up": .forged,
+        // cal.tuck-planche-pushup
         "pl.tuck-planche->cal.tuck-planche-pushup": .forged,
-        "pl.straddle-planche->pl.full-planche": .veteran,
+        "cal.pseudo-planche-pushup->cal.tuck-planche-pushup": .veteran,
+        // pl.tuck-planche
+        "hs.crane-pose->pl.tuck-planche": .forged,
+        "cal.pseudo-planche-pushup->pl.tuck-planche": .forged,
+        "cal.l-sit-10->pl.tuck-planche": .master,
+        // preserved (unrelated to the redesign)
+        "pp.muscle-up->pp.10-muscle-ups": .forged,
+        "pp.one-arm-pullup->pp.5-oap-side": .veteran,
+        "hs.wall-handstand-30->hs.freestanding-hs-10": .forged,
         "pl.full-planche->pl.full-planche-pushup": .veteran,
         "pl.full-planche->pl.one-arm-planche": .master,
-        "pl.straddle-planche->pl.bent-arm-planche": .veteran,
-        "pl.half-lay-planche->pl.full-planche": .forged,
-
-        // Lever families: straight-arm static ownership before harder lever
-        // length, repeatable ownership before dynamic or mythic work.
-        "cl.tuck-front-lever->cl.straddle-front-lever": .forged,
-        "cl.straddle-front-lever->cl.full-front-lever": .veteran,
-        "cl.tuck-front-lever->pp.tuck-front-lever-pullup": .veteran,
-        "cl.tuck-back-lever->cl.straddle-back-lever": .forged,
-        "cl.straddle-back-lever->cl.full-back-lever": .veteran,
-        "cl.skin-the-cat->cl.three-sixty-pulls": .master,
-
-        // Legs: loaded/explosive variants wait until the base pattern is owned.
         "ld.bulgarian-split-squat->ld.pistol-squat": .forged,
         "ld.pistol-squat->ld.weighted-pistol": .veteran,
-        "ld.advancing-nordic-curl->ld.nordic-curl": .veteran,
     ]
 
     private static func note(for tier: SkillTier, child: SkillNode) -> String {

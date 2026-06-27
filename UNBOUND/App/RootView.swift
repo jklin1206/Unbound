@@ -42,6 +42,8 @@ struct RootView: View {
             HomeTrialsDemoHarness()
         } else if ProcessInfo.processInfo.arguments.contains("-treeUnlockDemo") {
             TreeUnlockRevealDemoHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("-rankDetailDemo") {
+            RankDetailDemoHarness()
         } else {
             mainContent
         }

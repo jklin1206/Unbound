@@ -217,7 +217,7 @@ extension SkillGraph {
             title: "360-Degree Pulls",
             cluster: .pullingPower, tier: 6, type: .skill,
             target: .reps(exercise: "360 ring pull", count: 1),
-            prereqs: [PrerequisiteGroup("cl.skin-the-cat")],
+            prereqs: [PrerequisiteGroup(["cl.skin-the-cat", "cl.german-hang"])],
             equipment: [.gymnasticRings, .pullupBar],
             primary: [.lats, .arms, .core], secondary: [.back, .shoulders],
             subtitle: "A full ring arc through front and back lever lanes.",

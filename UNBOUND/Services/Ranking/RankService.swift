@@ -84,7 +84,55 @@ final class RankService: RankServiceProtocol {
             tierStore.save(newState, userId: userId)
         }
 
+        // Barbell compounds feed the SAME overall-rank aggregate as skills, but the
+        // aggregate reads LiftTierService — which had no production writer (removed in
+        // rank-cleanup-v1), so every compound stayed Initiate. Persist their tiers here
+        // from the same full history, so lifts actually count toward the overall rank.
+        persistBarbellLiftTiers(
+            history: allEntries,
+            bodyweightKg: bodyweightKg,
+            sex: profile?.biologicalSex,
+            userId: userId
+        )
+
         return advances
+    }
+
+    /// Pure: the highest tier each tracked barbell compound reaches across `history`.
+    /// Split out from `persistBarbellLiftTiers` so the bucketing + rank logic is
+    /// testable without UserDefaults IO (mirrors `tierAdvances` vs `evaluateTierCrossings`).
+    func bestBarbellLiftTiers(
+        history: [ExerciseLogEntry],
+        bodyweightKg: Double,
+        sex: BiologicalSex?
+    ) -> [String: RankTier] {
+        guard bodyweightKg > 0 else { return [:] }
+        var bestByLift: [String: RankTier] = [:]
+        for entry in history where !entry.skipped {
+            let key = rankExerciseKey(for: entry)
+            guard let canonical = StrengthStandards.canonicalKey(for: key),
+                  Self.aggregateLiftKeys.contains(canonical),
+                  let tier = computeLiftRank(entry: entry, bodyweightKg: bodyweightKg, sex: sex)
+            else { continue }
+            bestByLift[canonical] = max(bestByLift[canonical] ?? .initiate, tier)
+        }
+        return bestByLift
+    }
+
+    /// Persist each barbell compound's best tier (monotonically — never demotes) to
+    /// LiftTierService, the store the overall-rank aggregate reads. Mirrors how skill
+    /// tiers persist to UserSkillTierStore.
+    private func persistBarbellLiftTiers(
+        history: [ExerciseLogEntry],
+        bodyweightKg: Double,
+        sex: BiologicalSex?,
+        userId: String
+    ) {
+        let store = LiftTierService.shared
+        for (lift, tier) in bestBarbellLiftTiers(history: history, bodyweightKg: bodyweightKg, sex: sex)
+        where tier > store.tier(lift: lift, userId: userId) {
+            store.save(tier: tier, lift: lift, userId: userId)
+        }
     }
 
     /// Pure tier-advance computation: recompute every skill from the full logged

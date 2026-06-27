@@ -174,7 +174,6 @@ final class RankDetailViewModel {
 
     init(node: SkillNode, graph: SkillGraph, nodeStates: [String: NodeState]) {
         let resolvedDefinition = Self.definition(forSkillNode: node)
-        let earnedTier = node.placementRank
 
         self.row = nil
         self.graph = graph
@@ -188,7 +187,10 @@ final class RankDetailViewModel {
         self.loggingIsRulerBased = false
         self.title = node.title
         self.visualAssetName = SkillTraditionalVisualResolver.assetName(for: node)
-        self.displayedTier = earnedTier
+        // Start neutral; the user's real EARNED tier is resolved in `load()` from
+        // their persisted skill tier. The node's `placementRank` is its tree
+        // difficulty, NOT the user's current rank — never show it as such.
+        self.displayedTier = .initiate
         let nodeCoaching = Self.resolveCoaching(definition: resolvedDefinition, node: node)
         self.formCues = nodeCoaching.cues
         self.commonMistakes = nodeCoaching.mistakes
@@ -233,7 +235,15 @@ final class RankDetailViewModel {
         let logs = (try? await logLoad) ?? []
         userProfile = try? await profileLoad
 
-        if let standardId = movementDefinition?.rankStandardMovementId {
+        if isSkillEntry, let node = skillNode {
+            // Skills read their OWN logged attempts (keyed by the block's skillId),
+            // never a reps-templated movement twin — so a hold skill surfaces its
+            // holds instead of "0 reps", and its PRs come from real skill data.
+            history = ProgramRankExerciseHistoryEntry.entries(from: logs, skillId: node.id)
+            if let standardId = movementDefinition?.rankStandardMovementId {
+                progress = progressStates.first { $0.rankStandardMovementId == standardId }
+            }
+        } else if let standardId = movementDefinition?.rankStandardMovementId {
             progress = progressStates.first { $0.rankStandardMovementId == standardId }
             history = ProgramRankExerciseHistoryEntry.entries(
                 from: logs,
@@ -241,7 +251,9 @@ final class RankDetailViewModel {
             )
         }
 
-        statItems = Self.statItems(for: progress)
+        statItems = isSkillEntry
+            ? Self.skillStatItems(history: history, logMode: logMode)
+            : Self.statItems(for: progress)
 
         // Re-derive the displayed tier from the freshly loaded state so a
         // just-logged rank-up updates the showcase emblem. The init-time value is
@@ -297,6 +309,45 @@ final class RankDetailViewModel {
                 if case .carry(_, let seconds, _) = requirement { selectedSeconds = max(5, seconds) }
             }
         }
+    }
+
+    // MARK: - Per-attempt grade
+
+    /// The rank THIS attempt's effort earns, graded in isolation — independent of
+    /// the sticky best. Drives the per-attempt reveal so logging the same movement
+    /// over and over surfaces a different rank each time. Reads the SAME ladders
+    /// the persisted tier is derived from (node tierCriteria for skills, the
+    /// movement strength ladder for exercises), so the grade never drifts.
+    func gradeForCurrentAttempt() -> SkillTier {
+        // Bodyweight skill (reps / timed hold): grade against the node's own
+        // generated tierCriteria — the single source SkillStandards reads.
+        if isSkillEntry, !skillIsWeightBased, let node = skillNode {
+            let peakReps = (logMode == .reps) ? selectedReps : 0
+            let peakSeconds = (logMode == .hold) ? selectedSeconds : 0
+            return SkillStandards.nodeProgress(
+                skillId: node.id,
+                peakReps: peakReps,
+                peakSeconds: peakSeconds
+            )?.current ?? .initiate
+        }
+        // Exercise or weighted skill: grade against the movement's strength ladder
+        // by resolving a transient single-attempt state (the resolver the sticky
+        // tier also uses), so the grade matches what the log would credit.
+        guard let definition = movementDefinition else { return .initiate }
+        let attempt = MovementProgressState(
+            userId: "",
+            rankStandardMovementId: definition.rankStandardMovementId,
+            displayName: definition.displayName,
+            rankTemplate: definition.rankTemplate,
+            bestEstimatedOneRepMaxKg: logMode == .oneRepMax ? selectedWeightKg : nil,
+            bestReps: logMode == .reps ? selectedReps : nil,
+            bestHoldSeconds: logMode == .hold ? selectedSeconds : nil
+        )
+        return MovementProgressTierResolver.derivedTier(
+            for: attempt,
+            bodyweightKg: userProfile?.weightKg,
+            sex: userProfile?.biologicalSex
+        ) ?? .initiate
     }
 
     // MARK: - Ruler logging (exercise case)
@@ -380,12 +431,17 @@ final class RankDetailViewModel {
 
         let now = Date()
         let priorTier = displayedTier
+        let attemptGrade = gradeForCurrentAttempt()
+        let attemptSummary = logSummary
         let performanceLog = makePerformanceLog(definition: definition, userId: userId, completedAt: now)
 
-        let result = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
-        let reveal = makeRankReveal(from: result, definition: definition, priorTier: priorTier)
+        _ = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
         await load(services: services)
-        return reveal
+        return ProgramRankAttemptReveal(
+            attemptSummary: attemptSummary,
+            tier: attemptGrade,
+            previousTier: priorTier
+        )
     }
 
     private static let skillQuickLogXP: Int = 10
@@ -406,6 +462,8 @@ final class RankDetailViewModel {
         let isWeighted = (logMode == .oneRepMax)
         let now = Date()
         let priorTier = displayedTier
+        let attemptGrade = gradeForCurrentAttempt()
+        let attemptSummary = logSummary
 
         // Just the metric — an honest, clean single set. Weighted skills record
         // a single rep at the added load (the value the rank is read from).
@@ -444,8 +502,8 @@ final class RankDetailViewModel {
         // load() re-derives `displayedTier` from the skill's persisted tier.
         await load(services: services)
         return ProgramRankAttemptReveal(
-            attemptSummary: logSummary,
-            tier: displayedTier,
+            attemptSummary: attemptSummary,
+            tier: attemptGrade,
             previousTier: priorTier
         )
     }
@@ -498,24 +556,6 @@ final class RankDetailViewModel {
         )
     }
 
-    private func makeRankReveal(
-        from result: TrainingCompletionResult,
-        definition: MovementDefinition,
-        priorTier: SkillTier
-    ) -> ProgramRankAttemptReveal {
-        let standardId = definition.rankStandardMovementId
-        let updatedProgress = result.movementProgressStates.first { $0.rankStandardMovementId == standardId }
-        let previousTier = resolvedTier(for: result.movementProgressPriorStates[standardId]) ?? priorTier
-        let achievedTier = resolvedTier(for: updatedProgress)
-            ?? resolvedTier(for: result.movementProgressPriorStates[standardId])
-            ?? priorTier
-        return ProgramRankAttemptReveal(
-            attemptSummary: logSummary,
-            tier: achievedTier,
-            previousTier: previousTier
-        )
-    }
-
     private func resolvedTier(for state: MovementProgressState?) -> SkillTier? {
         guard let state else { return nil }
         return MovementProgressTierResolver.provenTier(
@@ -534,6 +574,9 @@ final class RankDetailViewModel {
     ) -> MovementDefinition? {
         MovementCatalog.definition(for: sourceId)
             ?? MovementCatalog.resolvedTrainingMovement(name: title)?.standard
+            // Skill rows fall back to the canonical "skill.<id>" movement so the
+            // Overview's Target Map + Equipment populate (see definition(forSkillNode:)).
+            ?? (source == .skill ? MovementCatalog.definition(for: "skill.\(sourceId)") : nil)
     }
 
     private static func resolveNode(
@@ -550,8 +593,15 @@ final class RankDetailViewModel {
     }
 
     private static func definition(forSkillNode node: SkillNode) -> MovementDefinition? {
+        // The canonical "skill.<id>" movement carries the node's muscle map +
+        // equipment, but the bare-id lookup always misses (skill defs are keyed
+        // "skill.<id>"). Without this fallback a skill that didn't alias-match a
+        // catalog exercise resolved no definition, so the Overview's Target Map
+        // and Equipment sections silently vanished. Kept LAST so weighted skills
+        // still resolve their loaded exercise twin first (the weight ruler needs it).
         MovementCatalog.definition(for: node.id)
             ?? MovementCatalog.resolvedTrainingMovement(name: node.title)?.standard
+            ?? MovementCatalog.definition(for: "skill.\(node.id)")
     }
 
     /// Form cues + common mistakes for the Overview tab. Precedence:
@@ -589,6 +639,39 @@ final class RankDetailViewModel {
     }
 
     // MARK: - Stats
+
+    /// PRs for a SKILL, derived from its own logged attempts. A skill ranks on
+    /// its own criterion (reps / a timed hold), so its records come straight from
+    /// the attempt history — not from a reps-templated movement twin that would
+    /// report "0 reps" for a hold.
+    private static func skillStatItems(
+        history: [ProgramRankExerciseHistoryEntry],
+        logMode: ProgramRankExerciseLogMode
+    ) -> [RankStatItem] {
+        guard !history.isEmpty else { return [] }
+        switch logMode {
+        case .hold:
+            guard let best = history.compactMap(\.holdSeconds).filter({ $0 > 0 }).max() else { return [] }
+            return [RankStatItem(
+                id: "best-hold",
+                label: "Best Hold",
+                value: ProgramRankExerciseFormatter.seconds(best),
+                systemImage: "timer"
+            )]
+        case .reps:
+            guard let best = history.compactMap(\.reps).filter({ $0 > 0 }).max() else { return [] }
+            return [RankStatItem(id: "best-reps", label: "Best Reps", value: "\(best)", systemImage: "repeat")]
+        case .oneRepMax:
+            guard let best = history.compactMap(\.oneRepMaxKg).max() else { return [] }
+            let unit = WeightPlatePolicy.currentUnit
+            return [RankStatItem(
+                id: "best-1rm",
+                label: "Best 1RM",
+                value: "\(WeightPlatePolicy.formatLoggedWeight(best, unit: unit))\(unit.shortLabel)",
+                systemImage: "trophy.fill"
+            )]
+        }
+    }
 
     private static func statItems(for progress: MovementProgressState?) -> [RankStatItem] {
         guard let progress else { return [] }

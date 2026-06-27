@@ -15,24 +15,16 @@ struct RankDetailRankTab: View {
     let vm: RankDetailViewModel
     var onLogged: (() async -> Void)?
     @EnvironmentObject private var services: ServiceContainer
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     // Presentation-only state.
     @State private var errorMessage: String?
 
-    // Rank-up reveal: emblem pulse + a brief banner.
-    @State private var didRankUp = false
-    @State private var rankUpBanner: String?
-    @State private var bannerToken = UUID()
+    // Each attempt reveals the rank THAT effort earned — a repeatable, blind,
+    // graded test. The reveal is full-screen and dismissible, so you go again.
+    @State private var attemptReveal: ProgramRankAttemptReveal?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            if let banner = rankUpBanner {
-                rankUpBannerView(banner)
-                    // Reduce Motion: banner still appears/disappears but without the slide.
-                    .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
-            }
-
             rankShowcase
 
             logSetSection
@@ -47,35 +39,11 @@ struct RankDetailRankTab: View {
         } message: {
             Text(errorMessage ?? "Your selections are still here.")
         }
-    }
-
-    // MARK: - Rank-up banner
-
-    private func rankUpBannerView(_ text: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: "arrow.up.circle.fill")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(vm.tint)
-            Text(text)
-                .font(Font.unbound.bodyLStrong)
-                .tracking(0.4)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Spacer(minLength: 0)
+        .fullScreenCover(item: $attemptReveal) { reveal in
+            ProgramRankAttemptRevealOverlay(reveal: reveal) {
+                attemptReveal = nil
+            }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(vm.tint.opacity(0.16))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(vm.tint.opacity(0.55), lineWidth: 1)
-        )
-        .shadow(color: vm.tint.opacity(0.3), radius: 12, y: 4)
     }
 
     // MARK: - 1. Rank showcase (the centerpiece)
@@ -93,10 +61,9 @@ struct RankDetailRankTab: View {
                 .scaledToFit()
                 .frame(width: 124, height: 124)
                 .opacity(hidden ? 0.4 : 1)
-                .scaleEffect(didRankUp ? 1.06 : 1.0)
                 .shadow(
-                    color: hidden ? .clear : vm.tint.opacity(didRankUp ? 0.9 : 0.5),
-                    radius: didRankUp ? 28 : 18
+                    color: hidden ? .clear : vm.tint.opacity(0.5),
+                    radius: 18
                 )
 
             Text(hidden ? "Unranked" : vm.displayedTier.displayName.uppercased())
@@ -197,20 +164,23 @@ struct RankDetailRankTab: View {
     }
 
     private var secondsRail: some View {
-        let step = 5
-        let maxTick = 1_200 / step
-        let tick = Binding<Int>(
-            get: { min(max(Int((Double(vm.selectedSeconds) / Double(step)).rounded()), 1), maxTick) },
-            set: { vm.selectedSeconds = max(1, min($0, maxTick)) * step }
+        // 1-second granularity from 1s. Hold tiers are generated as arbitrary
+        // integers starting at 1s (1, 2, 3, 4, 6, 9…), so a coarse 5s step starting
+        // at 5 made the early/odd thresholds literally unreachable — and now that
+        // every attempt is graded on the exact value, the ruler must hit them.
+        let maxSeconds = 300
+        let value = Binding<Int>(
+            get: { min(max(vm.selectedSeconds, 1), maxSeconds) },
+            set: { vm.selectedSeconds = min(max($0, 1), maxSeconds) }
         )
         return ProgramRankMetricRuler(
             title: "Hold Time",
             valueText: ProgramRankExerciseFormatter.seconds(vm.selectedSeconds),
-            range: 1...maxTick,
-            value: tick,
-            format: { ProgramRankExerciseFormatter.seconds($0 * step) },
-            tickLabel: { ProgramRankExerciseFormatter.seconds($0 * step) },
-            majorEvery: 6,
+            range: 1...maxSeconds,
+            value: value,
+            format: { ProgramRankExerciseFormatter.seconds($0) },
+            tickLabel: { ProgramRankExerciseFormatter.seconds($0) },
+            majorEvery: 10,
             tickSpacing: 12
         )
     }
@@ -234,12 +204,13 @@ struct RankDetailRankTab: View {
         .accessibilityIdentifier("rankDetail.rank.logResult")
     }
 
-    // MARK: - Submit + inline reveal
+    // MARK: - Submit + per-attempt reveal
 
     private func submit() async {
         do {
-            // Exercises rank on the strength ladder; skills on their own
-            // criterion. Both feed the same inline ruler + reveal.
+            // Every attempt grades the effort just entered (independent of your
+            // sticky best) and reveals the rank it earned — so you can log over
+            // and over and see a different rank each time.
             let reveal = vm.loggingIsRulerBased
                 ? try await vm.submitLog(services: services)
                 : try await vm.submitSkillLog(services: services)
@@ -247,44 +218,14 @@ struct RankDetailRankTab: View {
                 await onLogged?()
                 if reveal.isRankUp {
                     UnboundHaptics.success()
-                    igniteRankUp(to: reveal.tier)
                 } else {
                     UnboundHaptics.soft()
                 }
+                attemptReveal = reveal
             }
         } catch {
             HapticManager.notification(.error)
             errorMessage = error.localizedDescription
-        }
-    }
-
-    /// Pulse the showcase emblem (now showing the new tier after the log's
-    /// reload) and show a banner that auto-dismisses after ~2s.
-    /// Reduce Motion: state still updates (functional), but no spring/ease animation.
-    private func igniteRankUp(to tier: SkillTier) {
-        let token = UUID()
-        bannerToken = token
-        let apply = {
-            didRankUp = true
-            rankUpBanner = "RANK UP — \(tier.displayName)"
-        }
-        if reduceMotion {
-            apply()
-        } else {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { apply() }
-        }
-        Task {
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            guard bannerToken == token else { return }
-            let clear = {
-                didRankUp = false
-                rankUpBanner = nil
-            }
-            if reduceMotion {
-                clear()
-            } else {
-                withAnimation(.easeInOut(duration: 0.3)) { clear() }
-            }
         }
     }
 

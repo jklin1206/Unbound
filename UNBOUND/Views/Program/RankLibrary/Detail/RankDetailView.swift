@@ -9,7 +9,7 @@ import SwiftUI
 /// The three panes share one scroll; switching tabs resets it to the top.
 struct RankDetailView: View {
     @State private var vm: RankDetailViewModel
-    @State private var selectedTab: RankDetailTab = .overview
+    @State private var selectedTab: RankDetailTab
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var services: ServiceContainer
@@ -22,8 +22,13 @@ struct RankDetailView: View {
 
     // MARK: - Inits (mirror the view model)
 
-    init(row: ProgramRankLibraryRow, onLogged: (() async -> Void)? = nil) {
+    init(
+        row: ProgramRankLibraryRow,
+        initialTab: RankDetailTab = .overview,
+        onLogged: (() async -> Void)? = nil
+    ) {
         _vm = State(initialValue: RankDetailViewModel(row: row))
+        _selectedTab = State(initialValue: initialTab)
         self.onLogged = onLogged
     }
 
@@ -31,9 +36,11 @@ struct RankDetailView: View {
         node: SkillNode,
         graph: SkillGraph,
         nodeStates: [String: NodeState],
+        initialTab: RankDetailTab = .overview,
         onLogged: (() async -> Void)? = nil
     ) {
         _vm = State(initialValue: RankDetailViewModel(node: node, graph: graph, nodeStates: nodeStates))
+        _selectedTab = State(initialValue: initialTab)
         self.onLogged = onLogged
     }
 
@@ -176,3 +183,69 @@ struct RankDetailView: View {
         }
     }
 }
+
+#if DEBUG
+/// DEBUG harness for the repeatable graded-attempt flow. Opens the rank detail
+/// straight on the Rank tab so the showcase + blind ruler + attempt reveal can be
+/// screenshotted in isolation. `RANK_DETAIL_DEMO_NODE` picks the node (default
+/// pp.pullup); `RANK_DEMO_REVEAL=newbest|attempt` overlays a sample reveal so both
+/// eyebrow states are checkable without a live login.
+struct RankDetailDemoHarness: View {
+    @State private var ready = false
+
+    private var nodeId: String {
+        ProcessInfo.processInfo.environment["RANK_DETAIL_DEMO_NODE"] ?? "pp.pullup"
+    }
+
+    private var initialTab: RankDetailTab {
+        switch ProcessInfo.processInfo.environment["RANK_DEMO_TAB"] {
+        case "overview": return .overview
+        case "stats": return .stats
+        default: return .rank
+        }
+    }
+
+    private var sampleReveal: ProgramRankAttemptReveal? {
+        switch ProcessInfo.processInfo.environment["RANK_DEMO_REVEAL"] {
+        case "newbest":
+            return ProgramRankAttemptReveal(attemptSummary: "12 reps", tier: .veteran, previousTier: .forged)
+        case "attempt":
+            return ProgramRankAttemptReveal(attemptSummary: "6 reps", tier: .forged, previousTier: .veteran)
+        default:
+            return nil
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            Color.unbound.bg.ignoresSafeArea()
+
+            if ready, let node = SkillGraph.shared.node(id: nodeId) {
+                RankDetailView(
+                    node: node,
+                    graph: SkillGraph.shared,
+                    nodeStates: SkillProgressService.shared.nodeStates,
+                    initialTab: initialTab
+                )
+            } else if ready {
+                Text("Unknown node: \(nodeId)")
+                    .foregroundStyle(Color.unbound.textPrimary)
+            } else {
+                ProgressView().tint(.white)
+            }
+
+            if let sampleReveal {
+                ProgramRankAttemptRevealOverlay(reveal: sampleReveal) {}
+            }
+        }
+        // Bootstrap a signed-in dev account first so a real "Get Your Rank" tap
+        // actually grades + persists (pair with --unbound-dev-fresh-login for a
+        // clean climb). Gating on `ready` guarantees the user exists before the
+        // detail's load runs.
+        .task {
+            await DevBuildBootstrapper.ensureReady()
+            ready = true
+        }
+    }
+}
+#endif

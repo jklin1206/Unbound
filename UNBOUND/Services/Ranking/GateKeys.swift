@@ -11,6 +11,10 @@ enum GateKeyMetric: Equatable, Sendable {
     /// Reach `rank` in any `count` of the 6 attributes — build-expressive (you pick
     /// which axes). Replaces the old per-exercise keystone keys.
     case attributesAtRank(count: Int, rank: RankTier)
+    /// Have `count` proven movements (any skills or barbell compounds) at `rank` —
+    /// a light "show me a trained base" check. Required rank stays achievable
+    /// (one tier below the gate target, capped at Master), never an insane bar.
+    case movementsAtRank(count: Int, rank: RankTier)
     /// Structural meta-gate: N prior gates cleared (the final gate only).
     case gatesAnswered(Int)
 }
@@ -27,21 +31,32 @@ protocol GateKeyHistory {
     var gateKeySetRecords: [GateKeySetRecord] { get }
     var gateKeyAttributeProfile: AttributeProfile? { get }
     var gateKeyTrialProgress: OverallRankTrialProgress { get }
+    /// Proven tiers of the user's movements (skills + barbell compounds), the pool
+    /// the `movementsAtRank` key counts. Defaults to empty (see extension) for
+    /// conformers that don't track it.
+    var gateKeyMovementTiers: [RankTier] { get }
+}
+
+extension GateKeyHistory {
+    var gateKeyMovementTiers: [RankTier] { [] }
 }
 
 struct WorkoutLogGateKeyHistory: GateKeyHistory, Sendable {
     let gateKeySetRecords: [GateKeySetRecord]
     let gateKeyAttributeProfile: AttributeProfile?
     let gateKeyTrialProgress: OverallRankTrialProgress
+    let gateKeyMovementTiers: [RankTier]
 
     init(
         workoutLogs: [WorkoutLog],
         attributeProfile: AttributeProfile?,
-        trialProgress: OverallRankTrialProgress
+        trialProgress: OverallRankTrialProgress,
+        movementTiers: [RankTier] = []
     ) {
         self.gateKeySetRecords = Self.setRecords(from: workoutLogs)
         self.gateKeyAttributeProfile = attributeProfile
         self.gateKeyTrialProgress = trialProgress
+        self.gateKeyMovementTiers = movementTiers
     }
 
     private static func setRecords(from logs: [WorkoutLog]) -> [GateKeySetRecord] {
@@ -95,14 +110,25 @@ enum GateKeys {
     static func keys(for format: RankTrialFormat) -> [GateKeyDefinition] {
         switch format {
         case .firstLight:   return []                       // level only
-        case .theCount:     return [attrs(1, .novice)]
-        case .theForging:   return [attrs(1, .apprentice)]
-        case .deckOfProof:  return [attrs(2, .forged)]
-        case .theAscent:    return [attrs(2, .veteran)]
-        case .sevenSeals:   return [attrs(3, .veteran)]
-        case .theThreshold: return [attrs(3, .master)]
-        case .theLastGate:  return [gatesCleared(7), attrs(3, .master)]
+        case .theCount:     return [attrs(1, .novice),     movements(2, .novice)]
+        case .theForging:   return [attrs(1, .apprentice), movements(2, .apprentice)]
+        case .deckOfProof:  return [attrs(2, .forged),     movements(3, .forged)]
+        case .theAscent:    return [attrs(2, .veteran),    movements(3, .veteran)]
+        case .sevenSeals:   return [attrs(3, .veteran),    movements(3, .veteran)]
+        case .theThreshold: return [attrs(3, .master),     movements(4, .master)]
+        case .theLastGate:  return [gatesCleared(7), attrs(3, .master), movements(4, .master)]
         }
+    }
+
+    /// "Any K proven movements at rank R" — skills or barbell compounds; a light
+    /// "show me a trained base" check, fed by `gateKeyMovementTiers`.
+    private static func movements(_ count: Int, _ rank: RankTier) -> GateKeyDefinition {
+        GateKeyDefinition(
+            id: "key-movements-\(count)-\(rank.token)",
+            label: "Any \(count) movement\(count == 1 ? "" : "s") at \(rank.displayName)",
+            movementIds: [],
+            metric: .movementsAtRank(count: count, rank: rank)
+        )
     }
 
     /// "Any K of your 6 attributes at rank R" — pick the axes that fit your build.
@@ -143,6 +169,8 @@ extension GateKeyHistory {
             guard let profile = gateKeyAttributeProfile else { return false }
             let met = AttributeKey.allCases.filter { profile.value(for: $0).rankTitle >= rank }.count
             return met >= count
+        case .movementsAtRank(let count, let rank):
+            return gateKeyMovementTiers.filter { $0 >= rank }.count >= count
         case .gatesAnswered(let count):
             return passedGateCount >= count
         }

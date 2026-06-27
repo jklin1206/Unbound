@@ -200,12 +200,6 @@ enum SkillStandards {
         return progress(using: criteria, exerciseKey: exerciseKey, peakReps: peakReps, peakSeconds: peakSeconds)
     }
 
-    /// Micro-target text for the reward card, e.g. "5 reps to Veteran".
-    static func nextThresholdText(exerciseKey: String, peakReps: Int, peakSeconds: Int) -> String? {
-        guard let criteria = criteria(forKey: exerciseKey) else { return nil }
-        return thresholdText(using: criteria, exerciseKey: exerciseKey, peakReps: peakReps, peakSeconds: peakSeconds)
-    }
-
     // MARK: Node-id entry points (reward cards — works for ANY skill node)
 
     /// Progress toward the next rank for a specific skill node, from the peak

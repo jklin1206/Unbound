@@ -80,7 +80,7 @@ extension SkillGraph {
             title: "Shrimp Squat",
             cluster: .legDominance, tier: 4, type: .skill,
             target: .reps(exercise: "shrimp squat", count: 3),
-            prereqs: [PrerequisiteGroup("ld.pistol-squat")],
+            prereqs: [PrerequisiteGroup(["ld.pistol-squat", "ld.deep-squat"])],
             primary: [.legs, .glutes], secondary: [.core],
             subtitle: "Single-leg strength after pistol.",
             description: "Single-leg squat where you grab the rear ankle with the opposite hand and sit down until the rear knee touches the floor. The path runs through assisted, beginner, and intermediate shrimp before the strict rep. 3 clean reps per leg.",
