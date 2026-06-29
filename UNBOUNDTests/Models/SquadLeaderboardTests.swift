@@ -120,13 +120,31 @@ final class SquadLeaderboardTests: XCTestCase {
         XCTAssertNil(second.winnerTitleAssetName)
     }
 
-    func testPreviousSeasonUsesQuarterBeforeCurrent() {
+    func testCurrentSeasonUsesLaunchAnchor() {
+        let season = SquadSeason.current(now: date("2026-06-28"), calendar: utcCalendar)
+
+        XCTAssertEqual(season.title, "Season 1")
+        XCTAssertEqual(season.winnerTitleName, "Season 1 Winner")
+        XCTAssertEqual(season.start, date("2026-04-01"))
+        XCTAssertEqual(season.end, date("2026-07-01"))
+    }
+
+    func testPreviousSeasonClampsBeforeSeasonTwo() {
         let previous = SquadSeason.previous(endingBefore: date("2026-06-07"), calendar: utcCalendar)
 
-        XCTAssertEqual(previous.title, "S1 2026")
+        XCTAssertEqual(previous.title, "Season 1")
         XCTAssertEqual(previous.winnerTitleName, "Season 1 Winner")
-        XCTAssertEqual(previous.start, date("2026-01-01"))
-        XCTAssertEqual(previous.end, date("2026-04-01"))
+        XCTAssertEqual(previous.start, date("2026-04-01"))
+        XCTAssertEqual(previous.end, date("2026-07-01"))
+    }
+
+    func testPreviousSeasonUsesLaunchAnchoredSeasonBeforeCurrent() {
+        let previous = SquadSeason.previous(endingBefore: date("2026-07-15"), calendar: utcCalendar)
+
+        XCTAssertEqual(previous.title, "Season 1")
+        XCTAssertEqual(previous.winnerTitleName, "Season 1 Winner")
+        XCTAssertEqual(previous.start, date("2026-04-01"))
+        XCTAssertEqual(previous.end, date("2026-07-01"))
     }
 
     func testWinnerTitleAwardUsesTopLeaderboardRow() throws {

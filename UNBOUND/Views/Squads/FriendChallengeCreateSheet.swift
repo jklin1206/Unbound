@@ -71,7 +71,7 @@ struct FriendChallengeCreateSheet: View {
                 .padding(20)
             }
             .background(Color.unbound.bg.ignoresSafeArea())
-            .navigationTitle("Challenge a Crewmate")
+            .navigationTitle("Challenge Crew")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -96,17 +96,31 @@ struct FriendChallengeCreateSheet: View {
 
     private var opponentSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("OPPONENT", icon: "person.fill")
+            HStack(alignment: .firstTextBaseline) {
+                sectionHeader("CREWMATE", icon: "person.2.fill")
+                Spacer()
+                Text("\(eligibleOpponents.count)")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(Color.unbound.accent)
+                    .padding(.horizontal, 8)
+                    .frame(height: 22)
+                    .background(Capsule().fill(Color.unbound.accent.opacity(0.12)))
+            }
             if eligibleOpponents.isEmpty {
                 Text("No crewmates available")
                     .font(.system(size: 14))
                     .foregroundStyle(Color.unbound.textSecondary)
             } else {
-                VStack(spacing: 8) {
-                    ForEach(eligibleOpponents) { member in
-                        opponentRow(member)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 10) {
+                        ForEach(eligibleOpponents) { member in
+                            opponentRow(member)
+                                .frame(width: 172)
+                        }
                     }
+                    .padding(.vertical, 2)
                 }
+                .scrollClipDisabled()
             }
         }
     }
@@ -118,28 +132,45 @@ struct FriendChallengeCreateSheet: View {
                 selectedOpponent = isSelected ? nil : member
             }
         } label: {
-            HStack {
-                Text(member.displayName)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Spacer()
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Color.unbound.accent)
-                        .font(.system(size: 18))
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(isSelected ? Color.unbound.accent.opacity(0.18) : Color.unbound.surfaceElevated)
+                        Text(initials(for: member.displayName))
+                            .font(.system(size: 13, weight: .black, design: .monospaced))
+                            .foregroundStyle(isSelected ? Color.unbound.accent : Color.unbound.textSecondary)
+                    }
+                    .frame(width: 40, height: 40)
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(isSelected ? Color.unbound.accent : Color.unbound.textTertiary.opacity(0.55))
+                        .font(.system(size: 17, weight: .bold))
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(member.displayName)
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                    Text("Challenge target")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .tracking(0.8)
+                        .foregroundStyle(Color.unbound.textTertiary)
                 }
             }
             .padding(14)
+            .frame(height: 118, alignment: .topLeading)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(isSelected ? Color.unbound.accent.opacity(0.15) : Color.unbound.surface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(
-                                isSelected ? Color.unbound.accent : Color.clear,
-                                lineWidth: 1
-                            )
-                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(isSelected ? Color.unbound.accent.opacity(0.74) : Color.unbound.borderSubtle, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -275,6 +306,16 @@ struct FriendChallengeCreateSheet: View {
                 .tracking(2.0)
                 .foregroundStyle(Color.unbound.textTertiary)
         }
+    }
+
+    private func initials(for name: String) -> String {
+        let initials = name
+            .split(separator: " ")
+            .compactMap(\.first)
+            .prefix(2)
+            .map(String.init)
+            .joined()
+        return initials.isEmpty ? "U" : initials.uppercased()
     }
 
     private func createChallenge() async {

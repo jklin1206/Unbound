@@ -203,18 +203,14 @@ struct SquadBoardView: View {
     var inviteURL: URL?
 
     private var hasActivity: Bool { rows.contains { $0.boardScore > 0 } }
-    private var openSlots: Int { max(0, capacity - rows.count) }
-    private let maxVisibleOpenSlots = 3
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 boardHeader("SEASON LEADERBOARD", icon: "trophy.fill")
                 Spacer()
-                Text(season.title.uppercased())
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.warnOrange)
+                crewCapacityPill
+                boardMetaPill(season.title.uppercased(), tint: Color.unbound.warnOrange)
             }
 
             if rows.isEmpty {
@@ -231,10 +227,6 @@ struct SquadBoardView: View {
                         SquadBoardRowView(position: index + 1, row: row)
                     }
                 }
-            }
-
-            if openSlots > 0 {
-                openSlotsSection
             }
         }
         .padding(14)
@@ -277,70 +269,29 @@ struct SquadBoardView: View {
         )
     }
 
-    private var openSlotsSection: some View {
-        let visible = min(openSlots, maxVisibleOpenSlots)
-        let remainder = openSlots - visible
-        return VStack(spacing: 8) {
-            ForEach(0..<visible, id: \.self) { _ in
-                openSlotRow
-            }
-            if remainder > 0 {
-                Text("+\(remainder) more open \(remainder == 1 ? "slot" : "slots")")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.0)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 2)
-            }
-        }
-    }
-
     @ViewBuilder
-    private var openSlotRow: some View {
+    private var crewCapacityPill: some View {
         if let inviteURL {
-            ShareLink(item: inviteURL) { openSlotRowContent }
+            ShareLink(item: inviteURL) {
+                boardMetaPill("\(rows.count)/\(capacity) CREW", tint: Color.unbound.accent)
+            }
                 .buttonStyle(.plain)
         } else {
-            openSlotRowContent
+            boardMetaPill("\(rows.count)/\(capacity) CREW", tint: Color.unbound.accent)
         }
     }
 
-    private var openSlotRowContent: some View {
-        HStack(spacing: 11) {
-            Image(systemName: "person.badge.plus")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(Color.unbound.accent)
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(Color.unbound.accent.opacity(0.10)))
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text("OPEN SLOT")
-                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                    .tracking(1.0)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                Text("Invite a friend to the squad")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-
-            Spacer(minLength: 0)
-
-            if inviteURL != nil {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Color.unbound.accent)
-            }
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.32))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.unbound.border, style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
-        )
+    private func boardMetaPill(_ text: String, tint: Color) -> some View {
+        Text(text)
+            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+            .tracking(1.0)
+            .foregroundStyle(tint)
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
+            .padding(.horizontal, 8)
+            .frame(height: 24)
+            .background(Capsule().fill(tint.opacity(0.11)))
+            .overlay(Capsule().strokeBorder(tint.opacity(0.24), lineWidth: 1))
     }
 
     private func leaderCard(_ row: SquadBoardRow) -> some View {
