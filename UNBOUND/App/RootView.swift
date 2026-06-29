@@ -40,6 +40,12 @@ struct RootView: View {
             VowDemoHarness()
         } else if ProcessInfo.processInfo.arguments.contains("-homeTrialsDemo") {
             HomeTrialsDemoHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("-treeUnlockDemo") {
+            TreeUnlockRevealDemoHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("-rankDetailDemo") {
+            RankDetailDemoHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("-exerciseDetailDemo") {
+            ExerciseDetailDemoHarness()
         } else {
             mainContent
         }
@@ -145,6 +151,10 @@ struct RootView: View {
                             history: history,
                             bodyweightKg: bodyweightKg
                         )
+                        // One-time consolidation of split movement_progress rows
+                        // for movements whose rank standards were unified (P3).
+                        // Idempotent + local-only.
+                        await MovementProgressConsolidationMigration.migrateIfNeeded(userId: userId)
                     }
                 } else {
                     services.analytics.reset()

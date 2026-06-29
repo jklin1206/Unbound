@@ -285,7 +285,9 @@ enum TrainingSessionAdapters {
                             sets: exercise.sets.enumerated().map { index, set in
                                 PerformanceSet(
                                     setNumber: index + 1,
-                                    reps: set.reps,
+                                    // A hold set carries reps == 0 as a sentinel; persist nil so
+                                    // downstream stats read it as a hold, never "0 reps".
+                                    reps: set.reps > 0 ? set.reps : nil,
                                     weightKg: set.weightKg,
                                     holdSeconds: set.holdSeconds,
                                     rpe: set.rpe,

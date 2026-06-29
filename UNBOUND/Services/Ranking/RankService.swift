@@ -74,13 +74,85 @@ final class RankService: RankServiceProtocol {
         // handle per-exercise filtering internally via criterion exerciseName matching.
         let allEntries = allLogs.flatMap { $0.exerciseEntries }
 
+        let (advances, newState) = tierAdvances(
+            fullHistory: allEntries,
+            bodyweightKg: bodyweightKg,
+            priorState: priorState
+        )
+
+        if !advances.isEmpty {
+            tierStore.save(newState, userId: userId)
+        }
+
+        // Barbell compounds feed the SAME overall-rank aggregate as skills, but the
+        // aggregate reads LiftTierService — which had no production writer (removed in
+        // rank-cleanup-v1), so every compound stayed Initiate. Persist their tiers here
+        // from the same full history, so lifts actually count toward the overall rank.
+        persistBarbellLiftTiers(
+            history: allEntries,
+            bodyweightKg: bodyweightKg,
+            sex: profile?.biologicalSex,
+            userId: userId
+        )
+
+        return advances
+    }
+
+    /// Pure: the highest tier each tracked barbell compound reaches across `history`.
+    /// Split out from `persistBarbellLiftTiers` so the bucketing + rank logic is
+    /// testable without UserDefaults IO (mirrors `tierAdvances` vs `evaluateTierCrossings`).
+    func bestBarbellLiftTiers(
+        history: [ExerciseLogEntry],
+        bodyweightKg: Double,
+        sex: BiologicalSex?
+    ) -> [String: RankTier] {
+        guard bodyweightKg > 0 else { return [:] }
+        var bestByLift: [String: RankTier] = [:]
+        for entry in history where !entry.skipped {
+            let key = rankExerciseKey(for: entry)
+            guard let canonical = StrengthStandards.canonicalKey(for: key),
+                  Self.aggregateLiftKeys.contains(canonical),
+                  let tier = computeLiftRank(entry: entry, bodyweightKg: bodyweightKg, sex: sex)
+            else { continue }
+            bestByLift[canonical] = max(bestByLift[canonical] ?? .initiate, tier)
+        }
+        return bestByLift
+    }
+
+    /// Persist each barbell compound's best tier (monotonically — never demotes) to
+    /// LiftTierService, the store the overall-rank aggregate reads. Mirrors how skill
+    /// tiers persist to UserSkillTierStore.
+    private func persistBarbellLiftTiers(
+        history: [ExerciseLogEntry],
+        bodyweightKg: Double,
+        sex: BiologicalSex?,
+        userId: String
+    ) {
+        let store = LiftTierService.shared
+        for (lift, tier) in bestBarbellLiftTiers(history: history, bodyweightKg: bodyweightKg, sex: sex)
+        where tier > store.tier(lift: lift, userId: userId) {
+            store.save(tier: tier, lift: lift, userId: userId)
+        }
+    }
+
+    /// Pure tier-advance computation: recompute every skill from the full logged
+    /// history and return the crossings + the updated state. Never demotes (only
+    /// advances on `newTier > priorTier`), so it is idempotent and safe to re-run.
+    /// Split out from `evaluateTierCrossings` so the advance logic can be tested
+    /// without seeding the database (the IO — history fetch + persist — stays in
+    /// the async wrapper).
+    func tierAdvances(
+        fullHistory: [ExerciseLogEntry],
+        bodyweightKg: Double,
+        priorState: UserSkillTierState
+    ) -> (advances: [SkillTierAdvance], newState: UserSkillTierState) {
         var newState = priorState
         var advances: [SkillTierAdvance] = []
 
         for node in SkillGraph.shared.nodes {
             guard !node.tierCriteria.isEmpty else { continue }
 
-            let newTier = computeTier(skill: node, history: allEntries, bodyweightKg: bodyweightKg)
+            let newTier = computeTier(skill: node, history: fullHistory, bodyweightKg: bodyweightKg)
             let priorTier = priorState.tier(for: node.id)
 
             if newTier > priorTier {
@@ -93,11 +165,7 @@ final class RankService: RankServiceProtocol {
             }
         }
 
-        if !advances.isEmpty {
-            tierStore.save(newState, userId: userId)
-        }
-
-        return advances
+        return (advances, newState)
     }
 
     // MARK: - State + Aggregate Tier

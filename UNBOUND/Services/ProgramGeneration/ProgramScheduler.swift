@@ -110,8 +110,6 @@ final class ProgramScheduler {
         case .legDominance:       return .legs
         case .coreLever:          return .core   // covers core proper + lever family
         case .handstand:          return .skills
-        case .handstandPushup:    return .push   // pressing variant — overhead push
-        case .oneArmHandstand:    return .skills
         case .planche:            return .skills
         case .conditioning:       return .conditioning   // V3 — real conditioning slot
         }

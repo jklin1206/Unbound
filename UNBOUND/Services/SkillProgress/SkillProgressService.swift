@@ -43,6 +43,10 @@ final class SkillProgressService {
 
     var programFocusIds: Set<String> { activeGoalIds }
 
+    /// Mirror of `UserSkillProgress.targetSkillIds` for view binding — the user's
+    /// chosen TARGET skill per tree. Display-only; independent of Program Focuses.
+    private(set) var targetSkillIds: Set<String> = []
+
     /// Mirror of `UserSkillProgress.weeklySchedule` for view binding.
     /// Index 0 = Monday, 6 = Sunday. `nil` entries fall back to
     /// `ProgramScheduler.defaultWeeklySchedule`. Observed by the Program
@@ -84,6 +88,7 @@ final class SkillProgressService {
             nodeStates = existing.nodeStates
             bookmarkedNodeIds = existing.bookmarkedNodeIds
             activeGoalIds = existing.activeGoalIds
+            targetSkillIds = existing.targetSkillIds
             // Older payloads predate `weeklySchedule` — Codable's default makes
             // it `[]` rather than the 7-nil array, so normalize on hydrate.
             weeklySchedule = existing.weeklySchedule.count == 7
@@ -96,6 +101,7 @@ final class SkillProgressService {
             nodeStates = [:]
             bookmarkedNodeIds = []
             activeGoalIds = []
+            targetSkillIds = []
             weeklySchedule = Array(repeating: nil, count: 7)
             currentWeekPhase = .moderate
             try? await database.create(empty, collection: "skillProgress", documentId: userId)
@@ -105,6 +111,11 @@ final class SkillProgressService {
     /// Re-evaluate node states after a workout log is saved.
     /// Scans the full SkillGraph against the user's recent logs.
     func recompute(after log: WorkoutLog, userBodyweightKg: Double?) async {
+        // Self-load so this works when called straight from the completion hub
+        // (the user may not have opened the tree this session). Without a loaded
+        // `progress`, every transition below would be dropped.
+        if progress == nil { await load(userId: log.userId) }
+
         let graph = SkillGraph.shared
         var mutated = false
         var unlocked: NodeUnlockedEvent? = nil
@@ -199,8 +210,7 @@ final class SkillProgressService {
     /// tier-aware unlock standards to be met.
     func isNodeTrainable(nodeId: String) -> Bool {
         guard let node = SkillGraph.shared.node(id: nodeId) else { return false }
-        guard let p = progress else { return node.prereqs.isEmpty }
-        guard SkillGraph.shared.isClusterUnlocked(node.cluster, nodeStates: p.nodeStates) else { return false }
+        guard progress != nil else { return node.prereqs.isEmpty }
         return prereqsMet(for: node)
     }
 
@@ -282,6 +292,32 @@ final class SkillProgressService {
 
     func toggleProgramFocus(nodeId: String) async {
         await toggleActiveGoal(nodeId: nodeId)
+    }
+
+    // MARK: - Per-tree Target (display-only aspiration marker)
+
+    func isTarget(nodeId: String) -> Bool { targetSkillIds.contains(nodeId) }
+
+    /// Toggle a node as the user's TARGET. At most one target per cluster (tree):
+    /// setting a new target in a cluster clears the previous one. Independent of
+    /// Program Focuses — never touches the weekly schedule or the program.
+    func toggleTarget(nodeId: String) async {
+        guard var p = progress else { return }
+        if p.targetSkillIds.contains(nodeId) {
+            p.targetSkillIds.remove(nodeId)
+        } else {
+            if let cluster = SkillGraph.shared.node(id: nodeId)?.cluster {
+                let sameCluster = p.targetSkillIds.filter {
+                    SkillGraph.shared.node(id: $0)?.cluster == cluster
+                }
+                p.targetSkillIds.subtract(sameCluster)
+            }
+            p.targetSkillIds.insert(nodeId)
+        }
+        p.updatedAt = Date()
+        progress = p
+        targetSkillIds = p.targetSkillIds
+        try? await database.create(p, collection: "skillProgress", documentId: p.userId)
     }
 
     // MARK: - Weekly schedule (Program scheduler V3)

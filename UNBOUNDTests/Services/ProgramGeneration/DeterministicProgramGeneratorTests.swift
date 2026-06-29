@@ -365,10 +365,16 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
                 Set(rankKeys).count,
                 "\(workout.name) should not contain semantic duplicates: \(names)"
             )
-            XCTAssertFalse(
-                names.contains("Push-Up"),
-                "Regular program days should use the canonical loggable exercise name, not the skill-target alias: \(names)"
-            )
+            // Every main movement must resolve to a loggable exercise/drill, not
+            // the non-rankable skill-target wrapper. The wrapper and the canonical
+            // exercise now share the display name "Push-Up", so check what each
+            // name resolves to, not the literal string.
+            for name in names {
+                XCTAssertNotEqual(
+                    MovementResolver.resolve(name).role, .skillTarget,
+                    "\(workout.name): '\(name)' resolves to the non-rankable skill-target wrapper; use the loggable exercise: \(names)"
+                )
+            }
         }
 
         let pushSkill = try XCTUnwrap(MovementCatalog.definition(for: "skill.cal.pushup"))

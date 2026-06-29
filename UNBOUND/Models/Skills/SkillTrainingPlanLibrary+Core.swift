@@ -215,7 +215,7 @@ extension SkillTrainingPlanLibrary {
 
     static func lSitFamilyPlan(skillId: String) -> SkillTrainingPlan {
         let name = skillName(for: skillId)
-        let advanced = skillId == "cl.v-sit" || skillId == "cl.vertical-l-sit"
+        let advanced = skillId == "cl.v-sit"
         return SkillTrainingPlan(
             skillId: skillId,
             regressions: [

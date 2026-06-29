@@ -2,8 +2,9 @@ import XCTest
 @testable import UNBOUND
 
 // Generator: real strength data → a full 9-tier ladder. Grind moves spread across
-// all 9 (accelerating, no creep, elite-not-freak top); hard feats start high — the
-// first rep jumps to a floor rank, ranks below it are "not yet" (never padded).
+// all 9 (accelerating, no creep, elite-not-freak top); apex feats scale on their
+// OWN movement — Initiate = 1 rep/second, climbing geometrically to an elite
+// ceiling at Unbound (no regressions or borrowed exercises in the ladder).
 
 final class SkillTierGeneratorTests: XCTestCase {
 
@@ -46,28 +47,25 @@ final class SkillTierGeneratorTests: XCTestCase {
         }
     }
 
-    func testFeatStartsHighAndJumps() {
-        // one-arm pull-up: floor = Vessel — 1 rep is basically elite, so it jumps
-        // straight to Vessel; 3 / 5 climb to the peak. Below the floor nothing harder
-        // than 1 rep is asked — no double-down on other exercises.
+    func testScaledFeatStartsAtOneAndStrictlyIncreases() {
+        // one-arm pull-up: ranks on its OWN movement. Initiate = 1 rep, climbing
+        // with no repeats to an elite ceiling at Unbound. No regressions in the
+        // ladder — the route to the first rep lives in the unlock gate + program.
         let ladder = SkillTierGenerator.generate(PullSkillAnchors.table["pp.one-arm-pullup"]!)
         XCTAssertEqual(ladder.count, 9)
-        for tier in [SkillTier.initiate, .novice, .apprentice, .forged, .veteran, .master, .vessel] {
-            XCTAssertEqual(reps(ladder[tier]), 1, "\(tier) is the entry (1 rep → jump to Vessel)")
+        XCTAssertEqual(reps(ladder[.initiate]), 1, "Initiate = 1 rep of the real movement")
+        let values = SkillTier.allCases.map { reps(ladder[$0]) ?? -1 }
+        for i in 1..<values.count {
+            XCTAssertGreaterThan(values[i], values[i - 1], "tier \(i) must exceed tier \(i-1) — no repeats")
         }
-        XCTAssertEqual(reps(ladder[.ascendant]), 3)
-        XCTAssertEqual(reps(ladder[.unbound]), 5)   // peak = elite one-arm pull-up
+        XCTAssertEqual(reps(ladder[.unbound]), 12)   // elite one-arm pull-up ceiling
     }
 
-    func testFeatTopStrictlyIncreasesAboveFloor() {
-        // ring muscle-up: floor Veteran, ladder climbs above it.
+    func testScaledFeatHitsCeilingAtUnbound() {
+        // ring muscle-up scales 1 → 11 on its own reps.
         let ladder = SkillTierGenerator.generate(PullSkillAnchors.table["pp.ring-muscle-up"]!)
-        let above = [SkillTier.veteran, .master, .vessel, .ascendant, .unbound].map { reps(ladder[$0]) ?? -1 }
-        for i in 1..<above.count {
-            XCTAssertGreaterThan(above[i], above[i - 1])
-        }
-        XCTAssertEqual(reps(ladder[.veteran]), 1)   // first ring MU = Veteran
-        XCTAssertEqual(reps(ladder[.unbound]), 9)
+        XCTAssertEqual(reps(ladder[.initiate]), 1)
+        XCTAssertEqual(reps(ladder[.unbound]), 11)
     }
 
     func testEveryPullAnchorGeneratesNineCompleteTiers() {

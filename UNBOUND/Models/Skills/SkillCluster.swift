@@ -19,8 +19,6 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
     case pullingPower       = "pulling_power"
     case calisthenicControl = "calisthenic_control"
     case handstand          = "handstand"
-    case handstandPushup    = "handstand_pushup"
-    case oneArmHandstand    = "one_arm_handstand"
     case planche            = "planche"
     case coreLever          = "core_lever"
     case conditioning       = "conditioning"
@@ -34,8 +32,6 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
         case .pullingPower:       return "pp"
         case .calisthenicControl: return "cal"
         case .handstand:          return "hs"
-        case .handstandPushup:    return "hspu"
-        case .oneArmHandstand:    return "oah"
         case .planche:            return "pl"
         case .coreLever:          return "cl"
         case .conditioning:       return "co"
@@ -48,8 +44,6 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
         case .pullingPower:       return "Pull"
         case .calisthenicControl: return "Push"
         case .handstand:          return "Handstand"
-        case .handstandPushup:    return "Handstand Pushup"
-        case .oneArmHandstand:    return "One-Arm Handstand"
         case .planche:            return "Planche"
         case .coreLever:          return "Core"
         case .conditioning:       return "Endurance"
@@ -62,8 +56,6 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
         case .pullingPower:       return "Pull-up → muscle-up"
         case .calisthenicControl: return "Dip → HSPU · pressing strength"
         case .handstand:          return "Balance upside down"
-        case .handstandPushup:    return "Press your bodyweight overhead"
-        case .oneArmHandstand:    return "The final balance — one hand"
         case .planche:            return "Tuck → straddle → full planche"
         case .coreLever:          return "Hollow · L-sit · dragon flag"
         case .conditioning:       return "Carries · hangs · grip"
@@ -77,22 +69,9 @@ enum SkillCluster: String, Codable, CaseIterable, Sendable, Identifiable {
         case .pullingPower:       return "figure.climbing"
         case .calisthenicControl: return "figure.strengthtraining.functional"
         case .handstand:          return "figure.gymnastics"
-        case .handstandPushup:    return "figure.strengthtraining.functional"
-        case .oneArmHandstand:    return "figure.mind.and.body"
         case .planche:            return "figure.highintensity.intervaltraining"
         case .coreLever:          return "figure.core.training"
         case .conditioning:       return "flame.fill"
-        }
-    }
-
-    /// If set, this cluster stays locked until the listed cluster's keystone
-    /// node(s) are proven. One-arm handstand gates from the handstand cluster
-    /// directly because the app no longer ships handstand-pushup nodes.
-    var requiresClusterKeystone: SkillCluster? {
-        switch self {
-        case .handstandPushup: return .handstand
-        case .oneArmHandstand: return .handstand
-        default:               return nil
         }
     }
 }

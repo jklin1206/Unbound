@@ -37,7 +37,7 @@ struct FormPhaseSlideshow: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 500)
+            .frame(height: 560)
 
             pageDots
         }
@@ -84,7 +84,9 @@ struct FormPhaseSlideshow: View {
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(Color.unbound.textTertiary)
             }
-            .padding(.horizontal, 4)
+            // Keeps the step caption within the page margins even when the
+            // slideshow is rendered full-bleed (image edge-to-edge).
+            .padding(.horizontal, 20)
         }
         .frame(maxWidth: .infinity, alignment: .top)
     }
@@ -414,7 +416,7 @@ enum FormPhaseLibrary {
             return rolloutPlankPhases(skillId: skillId)
         case "cl.knee-raise", "cl.leg-raise", "cl.hanging-knee-raise", "cl.hanging-leg-raise", "cl.toes-to-bar":
             return raisePhases(skillId: skillId)
-        case "cal.l-sit-10", "cl.semi-straddle-l-sit", "cl.straddle-l-sit", "cl.v-sit", "cl.vertical-l-sit":
+        case "cal.l-sit-10", "cl.semi-straddle-l-sit", "cl.straddle-l-sit", "cl.v-sit":
             return lSitFamilyPhases(skillId: skillId)
         case "cl.tuck-front-lever", "cl.straddle-front-lever", "cl.full-front-lever":
             return frontLeverPhases(skillId: skillId)

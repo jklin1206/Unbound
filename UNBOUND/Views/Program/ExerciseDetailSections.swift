@@ -189,17 +189,26 @@ private struct TargetMuscleHeatmapView: View {
     let muscleGroups: [MuscleGroup]
     let bodyRegions: [BodyRegion]
 
-    private var targetRegions: [BodyRegion] {
-        TargetMuscleRegionResolver.regions(
-            muscleGroups: muscleGroups,
-            bodyRegions: bodyRegions
-        )
+    // Same ranked heat scale as the rank/skill detail Target Map: specific
+    // regions (quads, hamstrings, lats …) by importance tier, in distinct
+    // red→amber→cyan hues (most → least worked).
+    private var regions: [ProgramRankTargetRegionSet.RankedTargetRegion] {
+        ProgramRankTargetRegionSet.rankedRegions(muscleGroups: muscleGroups, bodyRegions: bodyRegions)
+    }
+
+    private var rankByRegion: [BodyRegion: Int] {
+        ProgramRankTargetRegionSet.rankByRegion(from: regions)
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            TargetMuscleBodyFigure(side: .front, targetRegions: targetRegions)
-            TargetMuscleBodyFigure(side: .back, targetRegions: targetRegions)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                TargetMuscleBodyFigure(side: .front, rankByRegion: rankByRegion)
+                TargetMuscleBodyFigure(side: .back, rankByRegion: rankByRegion)
+            }
+            if !regions.isEmpty {
+                ProgramRankTargetRegionStrip(regions: regions)
+            }
         }
         .padding(10)
         .background(
@@ -217,18 +226,16 @@ private struct TargetMuscleHeatmapView: View {
     }
 
     private var accessibilityValue: String {
-        guard !targetRegions.isEmpty else { return "No target regions" }
-        return targetRegions.map(\.displayName).joined(separator: ", ")
+        guard !regions.isEmpty else { return "No target regions" }
+        return regions.map(\.region.displayName).joined(separator: ", ")
     }
 }
 
 private struct TargetMuscleBodyFigure: View {
     let side: BodyMapSide
-    let targetRegions: [BodyRegion]
-
-    private var targetSet: Set<BodyRegion> {
-        Set(targetRegions)
-    }
+    /// region → importance rank (0 = primary mover … 2 = support). Heat-ramp
+    /// tint per region; regions absent from the map stay unfilled.
+    let rankByRegion: [BodyRegion: Int]
 
     var body: some View {
         GeometryReader { proxy in
@@ -249,18 +256,18 @@ private struct TargetMuscleBodyFigure: View {
                 }
 
                 ForEach(TargetMuscleSVGAsset.paths(for: side)) { spec in
-                    let isTargeted = targetSet.contains(spec.region)
-                    let tint = TargetMuscleRegionPalette.tint(for: spec.region)
+                    let rank = rankByRegion[spec.region]
+                    let isTargeted = rank != nil
 
                     spec.path(in: drawRect, viewBox: viewBox)
                         .fill(
-                            isTargeted ? tint.opacity(0.68) : Color.clear,
+                            rank.map(ProgramRankTargetRegionSet.fillColor(forRank:)) ?? Color.clear,
                             style: FillStyle(eoFill: spec.usesEvenOdd)
                         )
 
                     spec.path(in: drawRect, viewBox: viewBox)
                         .stroke(
-                            isTargeted ? tint.opacity(0.92) : Color.black.opacity(0.30),
+                            rank.map(ProgramRankTargetRegionSet.strokeColor(forRank:)) ?? Color.black.opacity(0.30),
                             style: StrokeStyle(
                                 lineWidth: isTargeted ? separatorWidth + 0.35 : separatorWidth,
                                 lineCap: .round,
@@ -268,7 +275,7 @@ private struct TargetMuscleBodyFigure: View {
                             )
                         )
                         .shadow(
-                            color: isTargeted ? tint.opacity(0.22) : .clear,
+                            color: rank.map { ProgramRankTargetRegionSet.color(forRank: $0).opacity(0.22) } ?? .clear,
                             radius: isTargeted ? 3 : 0
                         )
                 }
@@ -312,73 +319,6 @@ private struct TargetMuscleBodyFigure: View {
             height: height
         )
     }
-}
-
-private enum TargetMuscleRegionResolver {
-    static func regions(
-        muscleGroups: [MuscleGroup],
-        bodyRegions: [BodyRegion]
-    ) -> [BodyRegion] {
-        let seeded = bodyRegions.isEmpty ? fallbackRegions(from: muscleGroups) : bodyRegions
-        return ordered(normalized(seeded))
-    }
-
-    private static func normalized(_ regions: [BodyRegion]) -> Set<BodyRegion> {
-        regions.reduce(into: Set<BodyRegion>()) { result, region in
-            switch region {
-            case .chest:
-                result.insert(.upperChest)
-                result.insert(.midLowerChest)
-            case .shoulders:
-                result.insert(.frontSideDelts)
-            default:
-                result.insert(region)
-            }
-        }
-    }
-
-    private static func fallbackRegions(from muscleGroups: [MuscleGroup]) -> [BodyRegion] {
-        muscleGroups.flatMap { group -> [BodyRegion] in
-            switch group {
-            case .chest:
-                return [.upperChest, .midLowerChest]
-            case .back:
-                return [.lats, .rhomboids, .traps]
-            case .shoulders:
-                return [.frontSideDelts]
-            case .arms:
-                return [.biceps, .triceps, .forearms]
-            case .forearms:
-                return [.forearms]
-            case .legs:
-                return [.quads, .hamstrings, .glutes, .calves]
-            case .glutes:
-                return [.glutes]
-            case .core:
-                return [.abs, .obliques, .lowerBack]
-            case .traps:
-                return [.traps]
-            case .lats:
-                return [.lats]
-            case .calves:
-                return [.calves]
-            case .neck:
-                return []
-            }
-        }
-    }
-
-    private static func ordered(_ regions: Set<BodyRegion>) -> [BodyRegion] {
-        displayOrder.filter { regions.contains($0) }
-    }
-
-    private static let displayOrder: [BodyRegion] = [
-        .upperChest, .midLowerChest, .frontSideDelts,
-        .biceps, .triceps, .forearms,
-        .traps, .rearDelts, .rhomboids, .lats,
-        .abs, .obliques, .lowerBack,
-        .quads, .adductors, .abductors, .hamstrings, .glutes, .calves
-    ]
 }
 
 private enum TargetMuscleSVGAsset {
@@ -551,33 +491,6 @@ private enum TargetMuscleBodyImage {
             return image
         }
         return UIImage(named: side.targetMuscleBaseImageName)
-    }
-}
-
-private enum TargetMuscleRegionPalette {
-    static func tint(for region: BodyRegion) -> Color {
-        switch region {
-        case .upperChest, .midLowerChest:
-            return Color.unbound.alert
-        case .frontSideDelts, .rearDelts:
-            return Color.unbound.rankGreen
-        case .biceps, .triceps:
-            return Color.unbound.warnOrange
-        case .forearms:
-            return Color.unbound.rankAmber
-        case .traps, .rhomboids, .lats:
-            return Color.unbound.coachCyan
-        case .abs, .obliques, .lowerBack:
-            return Color.unbound.accent
-        case .quads, .adductors:
-            return Color.unbound.rankGold
-        case .abductors, .hamstrings, .glutes:
-            return Color.unbound.impact
-        case .calves:
-            return Color.unbound.success
-        case .chest, .shoulders:
-            return Color.unbound.accent
-        }
     }
 }
 

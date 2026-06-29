@@ -143,7 +143,7 @@ final class SkillStandardConsistencyTests: XCTestCase {
         )
         XCTAssertEqual(
             SkillGraph.shared.node(id: "ld.shrimp-squat")?.prereqs,
-            [PrerequisiteGroup("ld.pistol-squat")]
+            [PrerequisiteGroup(["ld.pistol-squat", "ld.deep-squat"])]
         )
     }
 

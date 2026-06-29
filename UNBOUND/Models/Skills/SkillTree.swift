@@ -321,24 +321,6 @@ struct SkillGraph: Codable, Sendable {
     var entryNodes: [SkillNode] {
         nodes.filter { $0.prereqs.isEmpty }
     }
-
-    // MARK: - Cluster unlock gating
-    //
-    // Some clusters (e.g. HSPU, One-Arm Handstand) are staged behind the
-    // keystone(s) of a prerequisite cluster. Returns true when the cluster
-    // has no prereq or all keystones of its prereq cluster are proven.
-    // If the required cluster has no keystones defined, the gate stays CLOSED
-    // — a cluster that requires a prereq with no achievable keystones remains
-    // locked until content is added. This preserves the intended progression
-    // chain even when a cluster's nodes are moved to another cluster.
-    func isClusterUnlocked(_ cluster: SkillCluster, nodeStates: [String: NodeState]) -> Bool {
-        guard let required = cluster.requiresClusterKeystone else { return true }
-        let keystones = self.nodes.filter { $0.cluster == required && $0.isKeystone }
-        guard !keystones.isEmpty else { return false }
-        return keystones.allSatisfy { ks in
-            (nodeStates[ks.id] ?? .locked) == .proven
-        }
-    }
 }
 
 // MARK: - SkillTree (legacy view-layer compatibility)
@@ -365,7 +347,7 @@ struct SkillTree: Codable, Sendable {
         let columnOrder: [SkillCluster] = [
             .pullingPower, .legDominance,
             .calisthenicControl,
-            .handstand, .handstandPushup, .oneArmHandstand,
+            .handstand,
             .planche,
             .coreLever
         ]

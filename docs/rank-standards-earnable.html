@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>UNBOUND - Earnable From The Bottom (preview)</title>
+<style>
+  :root{
+    --bg:#08080A;--panel:#101015;--panel2:#16161D;--line:#26262F;
+    --ink:#F3F2F0;--ink2:#A9A7B2;--ink3:#6E6C78;--gold:#FFC857;
+    --t0:#7C7A88;--t1:#6A70C4;--t2:#C79D46;--t3:#AF401A;--t4:#3E7449;--t5:#2C90BB;--t6:#7E51B5;--t7:#C24BC9;--t8:#FFC857;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Inter,system-ui,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+  .deck{height:100vh;width:100vw;position:relative}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;padding:7.4vh 4.2vw 6.2vh;opacity:0;transition:opacity .35s ease;overflow:auto}
+  .slide.active{display:flex;opacity:1}
+  .eyebrow{font-size:.78rem;letter-spacing:.26em;text-transform:uppercase;color:var(--ink3);font-weight:600;margin-bottom:.9rem}
+  .eyebrow .badge{color:#0a0a0c;background:var(--gold);border-radius:5px;padding:.12em .5em;letter-spacing:.08em;margin-left:.6rem}
+  h1{font-size:clamp(2.1rem,5vw,4.2rem);line-height:1.03;font-weight:800;letter-spacing:-.02em}
+  h2{font-size:clamp(1.4rem,2.9vw,2.35rem);line-height:1.06;font-weight:780;letter-spacing:-.015em;margin-bottom:.3rem}
+  h2 .cnt{color:var(--gold);font-weight:700;font-size:.5em;vertical-align:middle;margin-left:.5rem;letter-spacing:.04em}
+  p{color:var(--ink2);font-size:clamp(.95rem,1.35vw,1.2rem);line-height:1.55;max-width:66ch}
+  .accent{color:var(--gold)}.muted{color:var(--ink3)}
+  strong{color:var(--ink);font-weight:700}
+  code{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:.85em;background:#1c1c24;border:1px solid var(--line);padding:.08em .4em;border-radius:5px;color:#d9d7e2}
+
+  .title{justify-content:center}
+  .title h1{max-width:18ch}
+  .title .tag{margin-top:1.3rem;font-size:clamp(1rem,1.7vw,1.45rem);color:var(--ink2);max-width:48ch;line-height:1.45}
+  .title .meta{margin-top:auto;display:flex;gap:2rem;flex-wrap:wrap;color:var(--ink3);font-size:.85rem}
+  .title .meta b{color:var(--ink);font-weight:600}
+  .bigq{margin-top:1.7rem;padding:1rem 1.3rem;border-left:3px solid var(--gold);background:linear-gradient(90deg,rgba(255,200,87,.08),transparent);border-radius:0 10px 10px 0}
+  .bigq b{color:var(--gold)}
+
+  .ladder{display:grid;grid-template-columns:0.85fr repeat(9,1fr);gap:.55rem;margin-top:1.6rem}
+  .rk{border-radius:12px;padding:.85rem .6rem .95rem;background:var(--panel);border:1px solid var(--line);position:relative;overflow:hidden;min-height:132px;display:flex;flex-direction:column}
+  .rk::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:var(--c)}
+  .rk .ord{font-size:.66rem;color:var(--ink3);font-weight:700;letter-spacing:.08em}
+  .rk .nm{font-size:.95rem;font-weight:800;margin-top:.28rem;color:var(--c)}
+  .rk .loc{font-size:.68rem;color:var(--ink3);margin-top:.25rem;line-height:1.3}
+  .rk .dot{width:8px;height:8px;border-radius:50%;background:var(--c);margin-top:auto;box-shadow:0 0 12px var(--c)}
+  .rk.unranked{border-style:dashed;border-color:#3a3a44;background:#0c0c10}
+  .rk.unranked::before{display:none}
+  .rk.unranked .nm{color:var(--ink3)}
+  .rk.unranked .tagn{font-size:.62rem;color:#55535e;margin-top:.2rem;line-height:1.3}
+
+  .cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-top:1.5rem;align-content:start}
+  .c3{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.4rem 1.4rem 1.5rem;display:flex;flex-direction:column}
+  .c3 .tag{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--gold)}
+  .c3 h3{font-size:1.14rem;font-weight:780;margin:.45rem 0 .5rem}
+  .c3 p{font-size:.92rem;line-height:1.5}
+  .c3 .demo{margin-top:.9rem;font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:.72rem;color:var(--ink3);background:#0c0c11;border:1px solid var(--line);border-radius:9px;padding:.6rem .7rem;line-height:1.5}
+  .c3 .demo b{color:var(--gold)}
+
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.4rem}
+  .tocc{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1rem 1.15rem}
+  .tocc .n{font-size:1.02rem;font-weight:750;color:var(--ink)}
+  .tocc .d{font-size:.83rem;color:var(--ink3);margin-top:.22rem;line-height:1.4}
+  .tocc .c{float:right;color:var(--gold);font-weight:800}
+
+  .tablewrap{flex:0 1 auto;max-height:78vh;overflow:auto;margin-top:.85rem;border:1px solid var(--line);border-radius:13px}
+  table{border-collapse:collapse;width:100%;font-size:clamp(.72rem,1vw,.92rem)}
+  thead th{position:sticky;top:0;background:#0c0c11;z-index:3}
+  th,td{padding:.4rem .45rem;text-align:center;vertical-align:top;border-bottom:1px solid #1c1c23}
+  th{white-space:nowrap}
+  th.skill,td.skill{text-align:left;position:sticky;left:0;background:#0c0c11;z-index:2;font-weight:600;color:var(--ink);min-width:176px;max-width:176px;border-right:1px solid var(--line)}
+  thead th{font-size:.66rem;letter-spacing:.03em;text-transform:uppercase;font-weight:800;padding:.55rem .4rem}
+  thead th.skill{text-transform:none;letter-spacing:0}
+  thead th .ord{display:block;color:var(--ink3);font-size:.6rem;font-weight:600;margin-top:.1rem}
+  tbody tr:hover td{background:rgba(255,255,255,.025)}
+  tbody tr:hover td.skill{background:#15151c}
+  td .v{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
+  td .ex{display:block;font-size:.57rem;color:#7d7b87;line-height:1.12;margin-top:.18rem;white-space:normal;font-weight:600;letter-spacing:.01em}
+  td.tx{box-shadow:inset 2px 0 0 var(--gold)}
+  td.tx .ex{color:var(--gold)}
+  .unit{color:var(--ink3);font-weight:500;font-size:.84em}
+  .dag{color:var(--gold);font-weight:700;margin-left:.2em}
+  .note{font-size:.78rem;color:var(--ink3);margin-top:.5rem;line-height:1.5;max-width:none}
+  .note b{color:var(--ink2)}
+  .legend{font-size:.77rem;color:var(--ink3);margin-top:.5rem;display:flex;gap:1.3rem;flex-wrap:wrap;align-items:center}
+  .legend .k{display:inline-flex;align-items:center;gap:.4rem}
+  .sw{width:18px;height:12px;border-radius:3px;display:inline-block}
+  .sw.tx{background:#0c0c11;box-shadow:inset 2px 0 0 var(--gold);border:1px solid var(--line)}
+
+  .closing{display:grid;grid-template-columns:1.15fr 1fr;gap:2rem;margin-top:1.2rem;align-items:start}
+  .steps{display:flex;flex-direction:column;gap:.85rem}
+  .step{display:grid;grid-template-columns:auto 1fr;gap:.95rem;align-items:start}
+  .step .n{width:28px;height:28px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold);font-size:.85rem}
+  .step .b{font-size:clamp(.9rem,1.2vw,1.06rem);line-height:1.45;color:var(--ink2)}
+  .step .b b{color:var(--ink)}
+  .summary{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.4rem}
+  .summary .q{font-size:1rem;font-weight:750;margin-bottom:.4rem}
+  .summary .a{font-size:1.35rem;font-weight:820;color:var(--gold);line-height:1.18;margin-bottom:.7rem}
+
+  .nav{position:fixed;bottom:0;left:0;right:0;height:5vh;min-height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 1.2rem;background:linear-gradient(0deg,#08080A 40%,transparent);z-index:50}
+  .progress{position:fixed;bottom:0;left:0;height:3px;background:var(--gold);z-index:60;transition:width .35s ease;box-shadow:0 0 12px var(--gold)}
+  .nav .where{font-size:.76rem;color:var(--ink3);font-variant-numeric:tabular-nums}
+  .nav .where b{color:var(--ink)}
+  .dots{display:flex;gap:6px;align-items:center;flex-wrap:wrap;max-width:60vw;justify-content:center}
+  .dots button{width:7px;height:7px;border-radius:50%;border:none;background:#33333d;cursor:pointer;padding:0;transition:all .2s}
+  .dots button.on{background:var(--gold);transform:scale(1.35)}
+  .arrows{display:flex;gap:.5rem}
+  .arrows button{background:var(--panel2);border:1px solid var(--line);color:var(--ink2);width:34px;height:29px;border-radius:8px;cursor:pointer;font-size:1rem}
+  .arrows button:hover{background:#22222b;color:var(--ink)}
+  .hint{position:fixed;top:2.5vh;right:3vw;font-size:.72rem;color:var(--ink3);z-index:55}
+  .num{position:fixed;top:2.5vh;left:3vw;font-size:.72rem;color:var(--ink3);letter-spacing:.18em;font-weight:700;z-index:55}
+</style>
+</head>
+<body>
+<div class="num">UNBOUND // STANDARDS</div>
+<div class="hint">← → navigate · tables scroll</div>
+<div class="deck" id="deck"></div>
+<div class="progress" id="bar"></div>
+<div class="nav">
+  <div class="where">Slide <b id="cur">1</b> / <span id="tot">0</span></div>
+  <div class="dots" id="dots"></div>
+  <div class="arrows"><button id="prev">‹</button><button id="next">›</button></div>
+</div>
+<script>
+const RANKS=[
+ {n:"Initiate",o:"T0",c:"var(--t0)",loc:"The Quiet Room"},
+ {n:"Novice",o:"T1",c:"var(--t1)",loc:"The Outer Gate"},
+ {n:"Apprentice",o:"T2",c:"var(--t2)",loc:"The Lantern Hall"},
+ {n:"Forged",o:"T3",c:"var(--t3)",loc:"The Forge"},
+ {n:"Veteran",o:"T4",c:"var(--t4)",loc:"The Mossgrown Shrine"},
+ {n:"Master",o:"T5",c:"var(--t5)",loc:"The Summit"},
+ {n:"Vessel",o:"T6",c:"var(--t6)",loc:"The Sealed Chamber"},
+ {n:"Ascendant",o:"T7",c:"var(--t7)",loc:"The Ascension Hall"},
+ {n:"Unbound",o:"T8",c:"var(--t8)",loc:"The Sky Temple"},
+];
+const DATA={"clusters":{"Pull":[{"name":"Pullup","key":"pp.pullup","metric":"reps","vals":[1,4,6,10,13,18,23,28,32]},{"name":"Chin-Up","key":"pp.chin-up","metric":"reps","vals":[1,4,7,10,13,18,22,26,30]},{"name":"Wide Pullup","key":"pp.wide-pullup","metric":"reps","vals":[1,3,4,7,9,13,17,21,24]},{"name":"Muscle-Up","key":"pp.muscle-up","metric":"reps","vals":[1,2,3,5,7,9,11,14,17]},{"name":"Row","key":"pp.row","metric":"reps","vals":[1,4,7,13,19,26,33,41,48]},{"name":"Weighted Pullup","key":"pp.weighted-pullup","metric":"bodyweightRatio","vals":[0.1,0.2,0.25,0.4,0.5,0.65,0.75,0.9,1.0]},{"name":"Dead Hang","key":"pp.dead-hang","metric":"seconds","vals":[20,30,40,50,60,75,90,105,120]},{"name":"Archer Pullup","key":"pp.archer-pullup","metric":"reps","vals":[1,4,1,2,3,4,6,8,9],"tierEx":["Pullup","Pullup","Archer Pullup","Archer Pullup","Archer Pullup","Archer Pullup","Archer Pullup","Archer Pullup","Archer Pullup"],"leadMetric":"reps","floor":2},{"name":"Strict Muscle-Up","key":"pp.strict-muscle-up","metric":"reps","vals":[1,2,3,1,2,3,5,8,12],"tierEx":["Muscle-Up","Muscle-Up","Muscle-Up","Strict Muscle-Up","Strict Muscle-Up","Strict Muscle-Up","Strict Muscle-Up","Strict Muscle-Up","Strict Muscle-Up"],"leadMetric":"reps","floor":3},{"name":"Ring Muscle-Up","key":"pp.ring-muscle-up","metric":"reps","vals":[1,2,3,5,1,2,4,6,9],"tierEx":["Muscle-Up","Muscle-Up","Muscle-Up","Muscle-Up","Ring Muscle-Up","Ring Muscle-Up","Ring Muscle-Up","Ring Muscle-Up","Ring Muscle-Up"],"leadMetric":"reps","floor":4},{"name":"One-Arm Pullup","key":"pp.one-arm-pullup","metric":"reps","vals":[1,4,6,10,13,18,1,3,5],"tierEx":["Pullup","Pullup","Pullup","Pullup","Pullup","Pullup","One-Arm Pullup","One-Arm Pullup","One-Arm Pullup"],"leadMetric":"reps","floor":6},{"name":"Pullup","key":"pp.strict-pullup","metric":"reps","vals":[1,4,6,10,13,18,23,28,32]},{"name":"Explosive Pullup","key":"pp.explosive-pullup","metric":"reps","vals":[1,2,3,5,7,10,12,15,18]},{"name":"Chin-Up","key":"pp.strict-chin-up","metric":"reps","vals":[1,4,7,10,13,18,22,26,30]},{"name":"L-Sit Chin-Up","key":"pp.l-sit-chin-up","metric":"reps","vals":[1,2,3,5,7,10,13,17,20]},{"name":"Weighted Chin-Up","key":"pp.weighted-chin-up","metric":"bodyweightRatio","vals":[0.1,0.2,0.3,0.4,0.5,0.65,0.75,0.9,1.0]},{"name":"Incline Row","key":"pp.incline-row","metric":"reps","vals":[5,9,12,19,25,33,40,48,55]},{"name":"Decline Row","key":"pp.decline-row","metric":"reps","vals":[1,3,5,10,14,20,26,33,40]},{"name":"Tuck Row","key":"pp.tuck-row","metric":"reps","vals":[1,3,4,7,10,14,18,23,28]},{"name":"Straddle Row","key":"pp.straddle-row","metric":"reps","vals":[1,2,3,5,7,10,13,17,20]},{"name":"Clapping Pullup","key":"pp.clapping-pullup","metric":"reps","vals":[1,2,3,1,2,3,5,7,10],"tierEx":["Explosive Pullup","Explosive Pullup","Explosive Pullup","Clapping Pullup","Clapping Pullup","Clapping Pullup","Clapping Pullup","Clapping Pullup","Clapping Pullup"],"leadMetric":"reps","floor":3},{"name":"Heighted Chin-Up","key":"pp.heighted-chin-up","metric":"reps","vals":[1,4,7,1,2,3,5,8,12],"tierEx":["Chin-Up","Chin-Up","Chin-Up","Heighted Chin-Up","Heighted Chin-Up","Heighted Chin-Up","Heighted Chin-Up","Heighted Chin-Up","Heighted Chin-Up"],"leadMetric":"reps","floor":3},{"name":"One-Arm Pullup Negative","key":"pp.oap-negative","metric":"reps","vals":[1,4,1,3,4,5,6,9,12],"tierEx":["Pullup","Pullup","One-Arm Pullup Negative","One-Arm Pullup Negative","One-Arm Pullup Negative","One-Arm Pullup Negative","One-Arm Pullup Negative","One-Arm Pullup Negative","One-Arm Pullup Negative"],"leadMetric":"reps","floor":2},{"name":"One-Arm Row","key":"pp.one-arm-row","metric":"reps","vals":[1,3,4,6,8,11,14,17,20]},{"name":"Tuck Front Lever Pullup","key":"pp.tuck-front-lever-pullup","metric":"reps","vals":[1,3,4,7,1,3,5,7,10],"tierEx":["Tuck Row","Tuck Row","Tuck Row","Tuck Row","Tuck Front Lever Pullup","Tuck Front Lever Pullup","Tuck Front Lever Pullup","Tuck Front Lever Pullup","Tuck Front Lever Pullup"],"leadMetric":"reps","floor":4},{"name":"One-Arm Chin-Up","key":"pp.one-arm-chin-up","metric":"reps","vals":[1,4,7,10,13,18,1,3,5],"tierEx":["Chin-Up","Chin-Up","Chin-Up","Chin-Up","Chin-Up","Chin-Up","One-Arm Chin-Up","One-Arm Chin-Up","One-Arm Chin-Up"],"leadMetric":"reps","floor":6}],"Push":[{"name":"Incline Pushup","key":"cal.incline-pushup","metric":"reps","vals":[10,18,25,35,45,55,65,78,90]},{"name":"Pushup","key":"cal.pushup","metric":"reps","vals":[5,13,20,30,40,52,64,77,90]},{"name":"Decline Pushup","key":"cal.decline-pushup","metric":"reps","vals":[3,9,14,22,30,40,50,61,72]},{"name":"Diamond Pushup","key":"cal.diamond-pushup","metric":"reps","vals":[3,7,10,17,24,32,39,48,56]},{"name":"Sphinx Pushup","key":"cal.sphinx-pushup","metric":"reps","vals":[2,5,8,13,18,24,30,37,44]},{"name":"Archer Pushup","key":"cal.archer-pushup","metric":"reps","vals":[1,5,9,17,24,34,44,55,65]},{"name":"Pseudo-Planche Pushup","key":"cal.pseudo-planche-pushup","metric":"reps","vals":[3,5,6,8,10,13,16,19,22]},{"name":"Explosive Pushup","key":"cal.explosive-pushup","metric":"reps","vals":[2,5,8,12,16,21,26,32,38]},{"name":"Clapping Pushup","key":"cal.clapping-pushup","metric":"reps","vals":[1,3,5,8,11,15,18,22,26]},{"name":"Bench Dip","key":"cal.bench-dip","metric":"reps","vals":[5,9,12,22,32,44,56,70,83]},{"name":"Dip","key":"cal.5-dips","metric":"reps","vals":[1,6,10,15,20,26,31,38,44]},{"name":"Ring Dip","key":"cal.ring-dip","metric":"reps","vals":[1,4,7,11,15,20,25,31,36]},{"name":"Pike Pushup","key":"cal.pike-pushup","metric":"reps","vals":[5,8,10,14,18,24,30,36,42]},{"name":"Elevated Pike Pushup","key":"cal.elevated-pike-pushup","metric":"reps","vals":[3,6,8,12,15,20,24,29,34]},{"name":"Floating Pike Pushup","key":"cal.floating-pike-pushup","metric":"reps","vals":[1,3,5,8,11,15,18,22,26]},{"name":"Handstand Pushup","key":"cal.handstand-pushup","metric":"reps","vals":[5,8,10,14,1,8,18,32,46],"tierEx":["Pike Pushup","Pike Pushup","Pike Pushup","Pike Pushup","Handstand Pushup","Handstand Pushup","Handstand Pushup","Handstand Pushup","Handstand Pushup"],"leadMetric":"reps","floor":4},{"name":"Tuck Planche Pushup","key":"cal.tuck-planche-pushup","metric":"reps","vals":[1,2,3,5,6,8,10,13,15]},{"name":"One-Arm Pushup","key":"cal.one-arm-pushup","metric":"reps","vals":[1,5,9,17,1,8,18,30,43],"tierEx":["Archer Pushup","Archer Pushup","Archer Pushup","Archer Pushup","One-Arm Pushup","One-Arm Pushup","One-Arm Pushup","One-Arm Pushup","One-Arm Pushup"],"leadMetric":"reps","floor":4},{"name":"Plank","key":"cal.plank-30","metric":"seconds","vals":[20,33,45,53,60,90,120,150,180]},{"name":"L-Sit","key":"cal.l-sit-10","metric":"seconds","vals":[3,4,5,10,15,23,30,38,45]},{"name":"Bent Arm Press","key":"cal.bent-arm-press","metric":"reps","vals":[3,5,6,8,10,13,1,2,4],"tierEx":["Pseudo-Planche Pushup","Pseudo-Planche Pushup","Pseudo-Planche Pushup","Pseudo-Planche Pushup","Pseudo-Planche Pushup","Pseudo-Planche Pushup","Bent Arm Press","Bent Arm Press","Bent Arm Press"],"leadMetric":"reps","floor":6},{"name":"90 Degree Pushup","key":"cal.ninety-degree-pushup","metric":"reps","vals":[3,5,6,8,10,13,1,2,4],"tierEx":["Pseudo-Planche Pushup","Pseudo-Planche Pushup","Pseudo-Planche Pushup","Pseudo-Planche Pushup","Pseudo-Planche Pushup","Pseudo-Planche Pushup","90 Degree Pushup","90 Degree Pushup","90 Degree Pushup"],"leadMetric":"reps","floor":6},{"name":"Clapping Handstand Pushup","key":"cal.clapping-handstand-pushup","metric":"reps","vals":[5,8,10,14,18,24,1,2,4],"tierEx":["Pike Pushup","Pike Pushup","Pike Pushup","Pike Pushup","Pike Pushup","Pike Pushup","Clapping Handstand Pushup","Clapping Handstand Pushup","Clapping Handstand Pushup"],"leadMetric":"reps","floor":6},{"name":"Triple Clap Pushup","key":"cal.triple-clap-pushup","metric":"reps","vals":[1,3,5,8,11,15,18,1,2],"tierEx":["Clapping Pushup","Clapping Pushup","Clapping Pushup","Clapping Pushup","Clapping Pushup","Clapping Pushup","Clapping Pushup","Triple Clap Pushup","Triple Clap Pushup"],"leadMetric":"reps","floor":7}],"Core":[{"name":"Crunch","key":"cl.crunch","metric":"reps","vals":[1,11,21,38,54,75,95,119,142]},{"name":"Hanging Leg Raise","key":"cl.hanging-leg-raise","metric":"reps","vals":[1,3,4,6,8,10,12,16,20]},{"name":"Hanging Knee Raise","key":"cl.hanging-knee-raise","metric":"reps","vals":[1,3,5,8,10,14,18,24,30]},{"name":"Leg Raise","key":"cl.leg-raise","metric":"reps","vals":[1,4,7,20,33,50,67,87,107]},{"name":"Reverse Crunch","key":"cl.reverse-crunch","metric":"reps","vals":[5,8,10,15,20,28,35,45,55]},{"name":"Knee Raise","key":"cl.knee-raise","metric":"reps","vals":[5,8,10,14,18,24,30,38,45]},{"name":"Levitation Crunch","key":"cl.levitation-crunch","metric":"reps","vals":[3,5,6,9,12,16,20,25,30]},{"name":"Toes To Bar","key":"cl.toes-to-bar","metric":"reps","vals":[1,3,5,9,12,17,22,29,35]},{"name":"Decline Sit-Up","key":"cl.decline-situp","metric":"reps","vals":[5,10,15,25,35,48,60,75,90]},{"name":"Ab Wheel Kneeling","key":"cl.knee-ab-rollout","metric":"reps","vals":[2,4,5,9,12,17,22,29,35]},{"name":"Dragon Flag Hip Raise","key":"cl.dragon-flag-hip-raise","metric":"reps","vals":[5,8,10,14,18,24,30,38,45]},{"name":"Skin The Cat","key":"cl.skin-the-cat","metric":"reps","vals":[1,2,3,5,6,8,10,13,15]},{"name":"Dragon Flag","key":"cl.dragon-flag","metric":"reps","vals":[1,2,3,5,6,8,10,13,15]},{"name":"Inverted Sit-Up","key":"cl.inverted-situp","metric":"reps","vals":[1,2,3,5,6,8,10,13,15]},{"name":"Standing Ab Rollout","key":"cl.standing-ab-rollout","metric":"reps","vals":[1,2,3,5,6,8,10,13,15]},{"name":"Hollow Body Hold","key":"cl.hollow-body-30","metric":"seconds","vals":[10,15,20,25,30,38,45,53,60]},{"name":"Extended Plank","key":"cl.extended-plank","metric":"seconds","vals":[20,33,45,53,60,90,120,150,180]},{"name":"German Hang","key":"cl.german-hang","metric":"seconds","vals":[10,15,20,25,30,38,45,53,60]},{"name":"Bird Dog Plank","key":"cl.bird-dog-plank","metric":"seconds","vals":[15,23,30,38,45,53,60,75,90]},{"name":"Superman Plank","key":"cl.superman-plank","metric":"seconds","vals":[15,23,30,38,45,53,60,75,90]},{"name":"Tuck Front Lever","key":"cl.tuck-front-lever","metric":"seconds","vals":[3,4,5,8,10,15,20,25,30]},{"name":"Straddle Front Lever","key":"cl.straddle-front-lever","metric":"seconds","vals":[2,3,4,6,8,12,15,20,25]},{"name":"Tuck Back Lever","key":"cl.tuck-back-lever","metric":"seconds","vals":[3,4,5,8,10,13,15,18,20]},{"name":"Straddle Back Lever","key":"cl.straddle-back-lever","metric":"seconds","vals":[2,4,5,8,10,13,15,18,20]},{"name":"Back Lever","key":"cl.full-back-lever","metric":"seconds","vals":[3,4,5,2,5,8,12,16,20],"tierEx":["Tuck Back Lever","Tuck Back Lever","Tuck Back Lever","Back Lever","Back Lever","Back Lever","Back Lever","Back Lever","Back Lever"],"leadMetric":"seconds","floor":3},{"name":"Semi Straddle L-Sit","key":"cl.semi-straddle-l-sit","metric":"seconds","vals":[3,5,6,9,12,16,20,25,30]},{"name":"Straddle L-Sit","key":"cl.straddle-l-sit","metric":"seconds","vals":[5,8,10,13,15,20,25,33,40]},{"name":"V-Sit","key":"cl.v-sit","metric":"seconds","vals":[2,3,4,6,7,10,12,16,20]},{"name":"Front Lever","key":"cl.full-front-lever","metric":"seconds","vals":[3,4,5,8,1,3,6,10,15],"tierEx":["Tuck Front Lever","Tuck Front Lever","Tuck Front Lever","Tuck Front Lever","Front Lever","Front Lever","Front Lever","Front Lever","Front Lever"],"leadMetric":"seconds","floor":4},{"name":"360 Ring Pulls","key":"cl.three-sixty-pulls","metric":"reps","vals":[1,2,3,5,6,8,1,2,4],"tierEx":["Skin The Cat","Skin The Cat","Skin The Cat","Skin The Cat","Skin The Cat","Skin The Cat","360 Ring Pulls","360 Ring Pulls","360 Ring Pulls"],"leadMetric":"reps","floor":6}],"Handstand":[{"name":"Wall Plank","key":"hs.wall-plank","metric":"seconds","vals":[20,30,40,50,60,75,90,105,120]},{"name":"Wall Handstand","key":"hs.wall-handstand-30","metric":"seconds","vals":[10,20,30,45,60,75,90,105,120]},{"name":"Headstand","key":"hs.headstand","metric":"seconds","vals":[15,23,30,45,60,75,90,105,120]},{"name":"Crow Pose","key":"hs.crow-pose","metric":"seconds","vals":[5,10,15,23,30,38,45,53,60]},{"name":"Tuck Handstand","key":"hs.tuck-handstand","metric":"seconds","vals":[5,8,10,15,20,25,30,38,45]},{"name":"Crane Pose","key":"hs.crane-pose","metric":"seconds","vals":[5,8,10,15,20,25,30,38,45]},{"name":"Elbow Lever","key":"hs.elbow-lever","metric":"seconds","vals":[5,8,10,15,20,25,30,38,45]},{"name":"Flying Crow","key":"hs.flying-crow","metric":"seconds","vals":[3,4,5,8,10,13,15,20,25]},{"name":"Freestanding Handstand","key":"hs.freestanding-hs-30","metric":"seconds","vals":[5,10,15,23,30,38,45,53,60]},{"name":"One-Arm Elbow Lever","key":"hs.one-arm-elbow-lever","metric":"seconds","vals":[5,8,10,15,3,6,10,15,25],"tierEx":["Elbow Lever","Elbow Lever","Elbow Lever","Elbow Lever","One-Arm Elbow Lever","One-Arm Elbow Lever","One-Arm Elbow Lever","One-Arm Elbow Lever","One-Arm Elbow Lever"],"leadMetric":"seconds","floor":4},{"name":"Wall-Supported One-Arm Handstand","key":"hs.wall-supported-oah","metric":"seconds","vals":[5,10,15,23,30,3,5,8,12],"tierEx":["Freestanding Handstand","Freestanding Handstand","Freestanding Handstand","Freestanding Handstand","Freestanding Handstand","Wall-Supported One-Arm Handstand","Wall-Supported One-Arm Handstand","Wall-Supported One-Arm Handstand","Wall-Supported One-Arm Handstand"],"leadMetric":"seconds","floor":5},{"name":"Tuck Press","key":"hs.tuck-press","metric":"reps","vals":[5,8,10,14,1,2,3,5,8],"tierEx":["Pike Pushup","Pike Pushup","Pike Pushup","Pike Pushup","Tuck Press","Tuck Press","Tuck Press","Tuck Press","Tuck Press"],"leadMetric":"reps","floor":4},{"name":"Straddle Press","key":"hs.straddle-press","metric":"reps","vals":[5,8,10,14,18,24,1,2,4],"tierEx":["Pike Pushup","Pike Pushup","Pike Pushup","Pike Pushup","Pike Pushup","Pike Pushup","Straddle Press","Straddle Press","Straddle Press"],"leadMetric":"reps","floor":6},{"name":"Press To Handstand","key":"hs.press-to-handstand","metric":"reps","vals":[5,8,10,14,18,24,1,3,5],"tierEx":["Pike Pushup","Pike Pushup","Pike Pushup","Pike Pushup","Pike Pushup","Pike Pushup","Press To Handstand","Press To Handstand","Press To Handstand"],"leadMetric":"reps","floor":6}],"Planche":[{"name":"Bent Arm Planche","key":"pl.bent-arm-planche","metric":"seconds","vals":[2,3,4,5,6,7,8,10,12]},{"name":"Tuck Planche","key":"pl.tuck-planche","metric":"seconds","vals":[3,4,5,8,10,15,20,25,30]},{"name":"Straddle Planche","key":"pl.straddle-planche","metric":"seconds","vals":[3,4,5,8,2,4,7,12,20],"tierEx":["Tuck Planche","Tuck Planche","Tuck Planche","Tuck Planche","Straddle Planche","Straddle Planche","Straddle Planche","Straddle Planche","Straddle Planche"],"leadMetric":"seconds","floor":4},{"name":"Half-Lay Planche","key":"pl.half-lay-planche","metric":"seconds","vals":[3,4,5,8,10,2,4,8,15],"tierEx":["Tuck Planche","Tuck Planche","Tuck Planche","Tuck Planche","Tuck Planche","Half-Lay Planche","Half-Lay Planche","Half-Lay Planche","Half-Lay Planche"],"leadMetric":"seconds","floor":5},{"name":"Full Planche","key":"pl.full-planche","metric":"seconds","vals":[3,4,5,8,10,15,1,4,8],"tierEx":["Tuck Planche","Tuck Planche","Tuck Planche","Tuck Planche","Tuck Planche","Tuck Planche","Full Planche","Full Planche","Full Planche"],"leadMetric":"seconds","floor":6}],"Legs":[{"name":"Goblet Squat","key":"ld.goblet-20","metric":"bodyweightRatio","vals":[0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5]},{"name":"Glute Bridge","key":"ld.glute-bridge","metric":"reps","vals":[10,18,25,35,45,58,70,85,100]},{"name":"Calf Raise","key":"ld.calf-raise","metric":"reps","vals":[15,23,30,40,50,63,75,88,100]},{"name":"Fire Hydrant","key":"ld.fire-hydrant","metric":"reps","vals":[10,16,22,31,40,51,62,76,90]},{"name":"Step Up","key":"ld.step-up","metric":"reps","vals":[8,13,18,27,35,45,55,68,80]},{"name":"Split Squat","key":"ld.split-squat","metric":"reps","vals":[5,10,14,22,30,40,50,63,75]},{"name":"Single-Leg Glute Bridge","key":"ld.single-leg-glute-bridge","metric":"reps","vals":[5,9,13,21,28,37,45,55,65]},{"name":"Bulgarian Split Squat","key":"ld.bulgarian-split-squat","metric":"reps","vals":[3,7,10,16,22,30,38,47,55]},{"name":"Deep Squat","key":"ld.deep-squat","metric":"seconds","vals":[30,45,60,75,90,105,120,150,180]},{"name":"Box Jump","key":"ld.box-jump","metric":"reps","vals":[1,2,3,4,5,6,7,8,9]},{"name":"Jumping Squat","key":"ld.jumping-squat","metric":"reps","vals":[1,2,3,4,5,7,8,9,10]},{"name":"Leg Kickback","key":"ld.flying-kickback","metric":"reps","vals":[8,13,18,27,35,45,55,68,80]},{"name":"Bodyweight Leg Extension","key":"ld.leg-extensions","metric":"reps","vals":[10,15,20,28,35,45,55,68,80]},{"name":"Nordic Hip Hinge","key":"ld.nordic-hip-hinge","metric":"reps","vals":[3,6,8,12,16,21,26,32,38]},{"name":"Pistol Squat","key":"ld.pistol-squat","metric":"reps","vals":[3,8,5,1,3,8,13,25,38],"tierEx":["partial pistol squat","partial pistol squat","assisted pistol squat","pistol squat","pistol squat","pistol squat","pistol squat","pistol squat","pistol squat"]},{"name":"Shrimp Squat","key":"ld.shrimp-squat","metric":"reps","vals":[3,3,3,1,3,6,9,3,3],"tierEx":["assisted shrimp squat","beginner shrimp squat","intermediate shrimp squat","shrimp squat","shrimp squat","shrimp squat","shrimp squat","two-hand shrimp squat","elevated two-hand shrimp squat"]},{"name":"Advanced Nordic Hip Hinge","key":"ld.advancing-nordic-curl","metric":"reps","vals":[1,2,3,4,5,6,7,8,9]},{"name":"Floor To Ceiling Squat","key":"ld.floor-to-ceiling-squat","metric":"reps","vals":[1,2,3,5,6,8,10,13,15]},{"name":"Sissy Squat","key":"ld.sissy-squat","metric":"reps","vals":[2,4,6,10,14,19,24,30,35]},{"name":"Nordic Curl","key":"ld.nordic-curl","metric":"reps","vals":[1,3,5,1,2,3,2,1,1],"tierEx":["nordic curl negative","nordic curl negative","nordic curl negative","nordic curl","nordic curl","nordic curl","nordic curl arms overhead","tuck one-leg nordic curl","one-leg nordic curl"]},{"name":"Weighted Pistol","key":"ld.weighted-pistol","metric":"bodyweightRatio","vals":[0.1,0.15,0.2,0.3,0.4,0.5,0.6,0.75,0.9]},{"name":"Weighted Split Squat","key":"ld.weighted-split-squat","metric":"bodyweightRatio","vals":[0.15,0.25,0.3,0.4,0.5,0.65,0.75,0.9,1.0]},{"name":"Weighted Bss","key":"ld.weighted-bss","metric":"bodyweightRatio","vals":[0.15,0.25,0.3,0.4,0.5,0.65,0.75,0.9,1.0]},{"name":"Single-Leg Calf Raise","key":"ld.weighted-sl-calf","metric":"bodyweightRatio","vals":[0.15,0.25,0.35,0.5,0.6,0.75,0.9,1.1,1.3]}],"One-arm handstand":[{"name":"One-Arm Handstand","key":"oah.one-arm-handstand-5s","metric":"seconds","vals":[5,10,15,23,30,38,3,5,8],"tierEx":["Freestanding Handstand","Freestanding Handstand","Freestanding Handstand","Freestanding Handstand","Freestanding Handstand","Freestanding Handstand","One-Arm Handstand","One-Arm Handstand","One-Arm Handstand"],"leadMetric":"seconds","floor":6},{"name":"Full One Arm Handstand","key":"oah.full-one-arm-handstand","metric":"seconds","vals":[5,10,15,23,30,38,45,3,8],"tierEx":["Freestanding Handstand","Freestanding Handstand","Freestanding Handstand","Freestanding Handstand","Freestanding Handstand","Freestanding Handstand","Freestanding Handstand","Full One Arm Handstand","Full One Arm Handstand"],"leadMetric":"seconds","floor":7}]},"gym":{"back squat":{"m":[0,0.75,1.0,1.25,1.38,1.5,1.88,2.25,2.75],"f":[0,0.5,0.63,0.75,1.0,1.25,1.38,1.5,2.0]},"deadlift":{"m":[0,1.0,1.25,1.5,1.75,2.0,2.25,2.5,3.0],"f":[0,0.5,0.75,1.0,1.13,1.25,1.5,1.75,2.5]},"bench press":{"m":[0,0.5,0.63,0.75,1.0,1.25,1.5,1.75,2.0],"f":[0,0.25,0.38,0.5,0.63,0.75,0.88,1.0,1.5]},"overhead press":{"m":[0,0.35,0.45,0.55,0.68,0.8,0.95,1.1,1.4],"f":[0,0.2,0.28,0.35,0.43,0.5,0.63,0.75,1.0]},"barbell row":{"m":[0,0.5,0.63,0.75,0.88,1.0,1.25,1.5,1.75],"f":[0,0.25,0.33,0.4,0.53,0.65,0.78,0.9,1.2]}},"acc":{"Biceps curl (F1)":{"m":[0,0.2,0.3,0.4,0.5,0.6,0.73,0.85,1.15],"f":[0,0.1,0.15,0.2,0.3,0.4,0.5,0.6,0.85]},"Triceps ext (F2)":{"m":[0,0.25,0.38,0.5,0.63,0.75,0.88,1.0,1.5],"f":[0,0.15,0.2,0.25,0.38,0.5,0.63,0.75,1.05]},"Leg extension (F3)":{"m":[0,0.5,0.63,0.75,1.0,1.25,1.5,1.75,2.5],"f":[0,0.25,0.38,0.5,0.75,1.0,1.13,1.25,2.0]},"Leg curl (F4)":{"m":[0,0.5,0.63,0.75,0.88,1.0,1.25,1.5,2.0],"f":[0,0.25,0.35,0.45,0.6,0.75,0.9,1.05,1.45]},"Calf raise (F6)":{"m":[0,0.25,0.5,0.75,1.0,1.25,1.63,2.0,3.0],"f":[0,0.25,0.38,0.5,0.75,1.0,1.38,1.75,2.5]},"Vertical pull (F7)":{"m":[0,0.5,0.63,0.75,0.88,1.0,1.25,1.5,1.75],"f":[0,0.3,0.38,0.45,0.58,0.7,0.83,0.95,1.3]},"Hip thrust (F8)":{"m":[0,0.5,0.75,1.0,1.38,1.75,2.13,2.5,3.5],"f":[0,0.5,0.75,1.0,1.25,1.5,1.88,2.25,3.0]},"Loaded ab (F9)":{"m":[0,0.25,0.38,0.5,0.75,1.0,1.25,1.5,2.25],"f":[0,0.25,0.38,0.5,0.75,1.0,1.25,1.5,2.25]}}};
+
+function fmtVal(metric,val,name){
+  if(metric==="reps") return `<span class="v">${val}</span>`;
+  if(metric==="seconds") return `<span class="v">${val}</span><span class="unit">s</span>`;
+  if(name&&name.toLowerCase().includes("weighted")) return `<span class="unit">+</span><span class="v">${Math.round(val*100)}</span><span class="unit">%</span>`;
+  return `<span class="unit">×</span><span class="v">${val.toFixed(2)}</span>`;
+}
+function fmtRatio(v){return v<=0?`<span class="unit">—</span>`:`<span class="unit">×</span><span class="v">${v.toFixed(2)}</span>`;}
+
+function rankHead(firstLabel){
+  let h=`<thead><tr><th class="skill">${firstLabel}</th>`;
+  RANKS.forEach(r=>h+=`<th style="color:${r.c}">${r.n}<span class="ord">${r.o}</span></th>`);
+  return h+`</tr></thead>`;
+}
+function skillTable(rows,firstLabel){
+  let body="<tbody>";
+  rows.forEach(row=>{
+    const tx=row.tierEx;
+    const dag=tx?`<span class="dag" title="movement changes by rank">†</span>`:"";
+    body+=`<tr><td class="skill" title="${row.name}">${row.name}${dag}</td>`;
+    row.vals.forEach((v,i)=>{
+      let cls="",tag="";
+      if(tx){
+        const changed = i===0 || tx[i]!==tx[i-1];
+        if(changed && i>0){cls="tx";}            // accent where the movement changes
+        if(changed){tag=`<span class="ex">${tx[i]}</span>`;}
+      }
+      body+=`<td class="${cls}">${fmtVal(row.metric,v,tx?tx[i]:row.name)}${tag}</td>`;
+    });
+    body+=`</tr>`;
+  });
+  return `<div class="tablewrap"><table>${rankHead(firstLabel)}${body}</tbody></table></div>`;
+}
+function ratioTable(obj,firstLabel,fam){
+  let body="<tbody>";
+  Object.keys(obj).forEach(k=>{
+    ["m","f"].forEach(sx=>{
+      const vals=obj[k][sx];
+      const label = fam ? `${k} <span class="unit">${sx==="m"?"M":"F"}</span>` : `${k[0].toUpperCase()+k.slice(1)} <span class="unit">${sx==="m"?"M":"F"}</span>`;
+      body+=`<tr><td class="skill">${label}</td>`;
+      vals.forEach(v=>body+=`<td>${fmtRatio(v)}</td>`);
+      body+=`</tr>`;
+    });
+  });
+  return `<div class="tablewrap"><table>${rankHead(firstLabel)}${body}</tbody></table></div>`;
+}
+const legend=`<div class="legend">
+ <span class="k"><span class="sw tx"></span> the movement changes here - easier lead-ups fill the low ranks so every rank is earnable</span>
+ <span class="k"><b>†</b> progression ladder · reps · <b>s</b>=hold seconds · <b>+N%</b>=added load vs bodyweight</span>
+</div>`;
+
+const SLIDES=[];
+function countAll(){let n=0;for(const k in DATA.clusters)n+=DATA.clusters[k].length;return n;}
+
+// 1 title
+SLIDES.push(`<section class="slide title">
+  <div class="eyebrow">Rank model · proposal <span class="badge">PREVIEW</span></div>
+  <h1>Every rank <span class="accent">earnable from the bottom</span></h1>
+  <div class="tag">No more locked skills and no empty floor rank. <strong>Unranked</strong> is the only "nothing" state; <strong>Initiate</strong> is a real rank you earn the moment you clear a movement's lowest standard.</div>
+  <div class="bigq"><b>The change:</b> every exercise - even the hard feats - now has a real standard at <b>every</b> rank, by folding in its lead-up movement at the low ranks (the way pistol &amp; nordic already work).</div>
+  <div class="meta"><span>Deck preview - <b>no app code changed yet</b></span><span>${countAll()} skills re-laddered from source</span></div>
+</section>`);
+
+// 2 ladder with unranked
+let chips=`<div class="rk unranked"><div class="ord">PRE-RANK</div><div class="nm">Unranked</div><div class="tagn">no proof logged yet · the only empty state</div><div class="dot" style="background:#3a3a44;box-shadow:none"></div></div>`;
+RANKS.forEach(r=>chips+=`<div class="rk" style="--c:${r.c}"><div class="ord">TIER ${r.o.slice(1)}</div><div class="nm">${r.n}</div><div class="loc">${r.loc}</div><div class="dot"></div></div>`);
+SLIDES.push(`<section class="slide">
+  <div class="eyebrow">The Ladder</div>
+  <h2>Unranked, then nine earnable ranks</h2>
+  <p><strong>Unranked</strong> means you simply haven't proven anything yet. The instant you clear a movement's lowest bar you earn <strong style="color:var(--t0)">Initiate</strong> on it - Initiate is no longer an automatic freebie, it's the first real rank.</p>
+  <div class="ladder">${chips}</div>
+</section>`);
+
+// 3 what changed
+SLIDES.push(`<section class="slide">
+  <div class="eyebrow">What changed</div>
+  <h2>Three moves, one idea</h2>
+  <div class="cards3">
+    <div class="c3"><div class="tag">Floor</div><h3>Unranked ≠ Initiate</h3><p><b>Unranked</b> is the true zero (no data). <b>Initiate</b> is now earned - the lowest real standard on each move. The dead participation rank is gone.</p></div>
+    <div class="c3"><div class="tag">Coverage</div><h3>Nothing starts locked</h3><p>Every exercise has a standard at every rank. Hard feats fold in a lead-up at the low ranks, so a beginner can still earn Initiate→Master on the way to the feat.</p><div class="demo"><b>Full front lever</b><br/>Initiate-Forged → tuck FL 3-8s<br/>Veteran-Unbound → full FL 1→15s</div></div>
+    <div class="c3"><div class="tag">Tunable</div><h3>We can scale</h3><p>Which lead-up fills which rank, and where the Novice floor sits, are dials. This preview uses each feat's primary lead-up across its whole locked span - easy to refine per rank.</p></div>
+  </div>
+</section>`);
+
+// 4 toc
+const order=Object.keys(DATA.clusters);
+const blurbs={Pull:"bars, rows, levers, muscle-ups",Push:"push-ups, dips, HSPU, one-arm",Core:"raises, holds, levers",Handstand:"balances & presses",Planche:"the straight-arm lean",Legs:"squats, pistols, nordics","One-arm handstand":"the apex line"};
+let toc="";
+order.forEach(k=>toc+=`<div class="tocc"><span class="c">${DATA.clusters[k].length}</span><div class="n">${k}</div><div class="d">${blurbs[k]||""}</div></div>`);
+toc+=`<div class="tocc"><span class="c">5</span><div class="n">Barbell compounds</div><div class="d">squat · dead · bench · OHP · row (×BW)</div></div>`;
+toc+=`<div class="tocc"><span class="c">8</span><div class="n">Accessories</div><div class="d">curl · triceps · legs · calf · hip thrust (×BW)</div></div>`;
+SLIDES.push(`<section class="slide">
+  <div class="eyebrow">The standards</div>
+  <h2>Every movement, re-laddered</h2>
+  <div class="toc">${toc}</div>
+  <p class="note" style="margin-top:1.1rem">The next slides give every row. Rows marked <b>†</b> are the feats whose low ranks are now filled by a lead-up movement (shown in the cells).</p>
+</section>`);
+
+// cluster tables
+order.forEach(k=>{
+  SLIDES.push(`<section class="slide">
+    <div class="eyebrow">Bodyweight standards · earnable from Initiate</div>
+    <h2>${k}<span class="cnt">${DATA.clusters[k].length} MOVEMENTS</span></h2>
+    ${skillTable(DATA.clusters[k],"Movement")}
+    ${legend}
+  </section>`);
+});
+
+// gym + acc
+SLIDES.push(`<section class="slide">
+  <div class="eyebrow">Loaded standards · × bodyweight</div>
+  <h2>Barbell compounds<span class="cnt">LOAD ÷ BODYWEIGHT</span></h2>
+  ${ratioTable(DATA.gym,"Lift (heaviest working set)",false)}
+  <div class="note">Each cell = required <b>load ÷ bodyweight</b>, by sex. These already start at Initiate (T0 = the lightest real bar). Unchanged by this proposal.</div>
+</section>`);
+SLIDES.push(`<section class="slide">
+  <div class="eyebrow">Loaded standards · × bodyweight</div>
+  <h2>Accessory families<span class="cnt">8 FAMILIES · ×BW</span></h2>
+  ${ratioTable(DATA.acc,"Accessory family",true)}
+  <div class="note">Any member exercise ranks on its family's ratio table (load ÷ bodyweight), by sex. Unchanged by this proposal.</div>
+</section>`);
+
+// closing - to tune
+SLIDES.push(`<section class="slide">
+  <div class="eyebrow">Before we touch code</div>
+  <h2>What's a dial, what's a decision</h2>
+  <div class="closing">
+    <div class="steps">
+      <div class="step"><div class="n">1</div><div class="b"><b>Lead-up per rank.</b> Right now one primary lead-up fills a feat's whole low span. We could ramp through several (e.g. front lever: tuck → straddle → full) for a smoother climb.</div></div>
+      <div class="step"><div class="n">2</div><div class="b"><b>Novice floor + rescale.</b> With Initiate now earned (not free), decide how low the lowest bar sits and rescale the curve so Initiate feels like a real first win.</div></div>
+      <div class="step"><div class="n">3</div><div class="b"><b>Initiate trigger.</b> Confirm the rule: any cleared lowest standard = Initiate on that move; truly no logged proof = Unranked.</div></div>
+      <div class="step"><div class="n">4</div><div class="b"><b>Then code.</b> This is the model. On sign-off I wire it into RankService / the standards tables / tests in the worktree.</div></div>
+    </div>
+    <div class="summary">
+      <div class="q">Your call, captured</div>
+      <div class="a">Unranked is the only empty state. Initiate is earned. Nothing is locked.</div>
+      <p>Every one of the ${countAll()} skills now has a real standard at every rank. Tell me where the lead-ups or the floor feel off and I'll adjust the preview before any app change.</p>
+    </div>
+  </div>
+</section>`);
+
+const deck=document.getElementById("deck");
+deck.innerHTML=SLIDES.join("");
+const slides=[...deck.querySelectorAll(".slide")];
+const dots=document.getElementById("dots");
+slides.forEach((_,i)=>{const b=document.createElement("button");b.onclick=()=>go(i);dots.appendChild(b);});
+document.getElementById("tot").textContent=slides.length;
+let idx=0;
+function go(i){idx=Math.max(0,Math.min(slides.length-1,i));slides.forEach((s,j)=>s.classList.toggle("active",j===idx));[...dots.children].forEach((d,j)=>d.classList.toggle("on",j===idx));document.getElementById("cur").textContent=idx+1;document.getElementById("bar").style.width=((idx+1)/slides.length*100)+"%";slides[idx].scrollTop=0;}
+document.getElementById("next").onclick=()=>go(idx+1);
+document.getElementById("prev").onclick=()=>go(idx-1);
+addEventListener("keydown",e=>{if(e.key==="ArrowRight"||e.key==="PageDown"){go(idx+1);e.preventDefault();}if(e.key==="ArrowLeft"||e.key==="PageUp"){go(idx-1);e.preventDefault();}if(e.key==="Home")go(0);if(e.key==="End")go(slides.length-1);});
+go(0);
+</script>
+</body>
+</html>

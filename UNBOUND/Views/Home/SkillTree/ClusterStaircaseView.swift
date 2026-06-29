@@ -29,7 +29,7 @@ import UIKit
 // Preserved
 //   • Header, summary card, cosmetic picker, detail sheet handoff
 //   • Active pulse, auto-scroll to active on appear
-//   • Keystone sizing + crown + "N BEATS AWAY" chip
+//   • Keystone sizing + crown
 //   • MYTHIC section below the tree when keystone achieved
 
 struct ClusterStaircaseView: View {
@@ -38,13 +38,36 @@ struct ClusterStaircaseView: View {
     let nodeStates: [String: NodeState]
     var nodeProgress: [String: Double] = [:]
 
+    /// When set, the tree opens, flies the camera to this node, and ignites it
+    /// in place (the post-workout unlock reveal). nil = normal browsing.
+    var unlockRevealNodeId: String? = nil
+    /// DEBUG screenshot aid: hold the ignite peak instead of playing + auto-finishing.
+    var revealFreeze: Bool = false
+    /// Called when the reveal finishes (or the user dismisses it) so the
+    /// presenter can drop the cover and return the user where they were.
+    var onUnlockRevealFinished: (() -> Void)? = nil
+
     @Environment(\.dismiss) var dismiss
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     @State var selectedNode: SkillNode?
     @State var showCosmetics: Bool = false
     @State var activePulse: CGFloat = 1.0
     @State var treeLayout: ComputedTreeLayout?
     @StateObject var skinService = SkinService.shared
+
+    // Unlock-reveal animation state (only used when unlockRevealNodeId is set).
+    // Deliberately minimal: a gentle camera centering + a clean enlarge of the
+    // node's hex with a soft glow. No rings/sparks/flash (that read as a
+    // targeting reticle — "too much").
+    @State var revealStarted: Bool = false
+    @State var revealIgnited: Bool = false   // once-guard so ignite runs a single time
+    @State var revealFocus: CGPoint? = nil
+    @State var revealChainProgress: CGFloat = 0   // 0→1 rail lighting from the parent node
+    @State var revealHexScale: CGFloat = 1.0
+    @State var revealGlow: Double = 0
+    @State var revealOutline: CGFloat = 0   // 0→1 stroke traced around the hex
+    @State var revealCaption: Bool = false
 
     let minZoom: CGFloat = 0.45
     let maxZoom: CGFloat = 1.5
@@ -99,6 +122,7 @@ struct ClusterStaircaseView: View {
                     if treeLayout == nil {
                         treeLayout = buildLayout()
                     }
+                    startUnlockRevealIfNeeded()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .skinChanged)) { _ in
                     treeLayout = buildLayout()
@@ -106,6 +130,7 @@ struct ClusterStaircaseView: View {
             }
         }
         .background(Color.unbound.bg.ignoresSafeArea())
+        .overlay(alignment: .bottom) { unlockRevealCaption }
         .fullScreenCover(item: $selectedNode) { node in
             RankDetailView(
                 node: node,

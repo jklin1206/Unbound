@@ -1,0 +1,3474 @@
+[
+  {
+    "asset" : "exercise_visual_exercise_goblet-squat",
+    "displayName" : "Goblet Squat",
+    "id" : "skill.ld.goblet-20",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_split-squat",
+    "displayName" : "Split Squat",
+    "id" : "skill.ld.split-squat",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bulgarian-split-squat",
+    "displayName" : "Bulgarian Split Squat",
+    "id" : "skill.ld.bulgarian-split-squat",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_shrimp-squat",
+    "displayName" : "Shrimp Squat",
+    "id" : "skill.ld.shrimp-squat",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pistol-squat",
+    "displayName" : "Pistol Squat",
+    "id" : "skill.ld.pistol-squat",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-pistol",
+    "displayName" : "Weighted Pistol Squat",
+    "id" : "skill.ld.weighted-pistol",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dead-hang",
+    "displayName" : "Dead Hang",
+    "id" : "skill.pp.dead-hang",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pull-up",
+    "displayName" : "Pull-Up",
+    "id" : "skill.pp.pullup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pullup",
+    "displayName" : "Strict Pull-Up",
+    "id" : "skill.pp.strict-pullup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_archer-pull-up",
+    "displayName" : "Archer Pull-Up",
+    "id" : "skill.pp.archer-pullup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-pullup",
+    "displayName" : "Weighted Pull-Up",
+    "id" : "skill.pp.weighted-pullup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_negative-pullup",
+    "displayName" : "One-Arm Pull-Up Negative",
+    "id" : "skill.pp.oap-negative",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_one-arm-pullup",
+    "displayName" : "One-Arm Pull-Up",
+    "id" : "skill.pp.one-arm-pullup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "pp_muscle-up",
+    "displayName" : "Muscle-Up",
+    "id" : "skill.pp.muscle-up",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "pp_ring-muscle-up",
+    "displayName" : "Ring Muscle-Up",
+    "id" : "skill.pp.ring-muscle-up",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_plank",
+    "displayName" : "Plank",
+    "id" : "skill.cal.plank-30",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "cal_l-sit-10",
+    "displayName" : "L-Sit",
+    "id" : "skill.cal.l-sit-10",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_push-up",
+    "displayName" : "Push-Up",
+    "id" : "skill.cal.pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dip",
+    "displayName" : "Dip",
+    "id" : "skill.cal.5-dips",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_ring-dip",
+    "displayName" : "Ring Dip",
+    "id" : "skill.cal.ring-dip",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_diamond-push-up",
+    "displayName" : "Diamond Push-Up",
+    "id" : "skill.cal.diamond-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pseudo-planche-push-up",
+    "displayName" : "Pseudo-Planche Push-Up",
+    "id" : "skill.cal.pseudo-planche-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "pl_tuck-planche",
+    "displayName" : "Tuck Planche",
+    "id" : "skill.pl.tuck-planche",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_tuck-planche-push-up",
+    "displayName" : "Tuck Planche Push-Up",
+    "id" : "skill.cal.tuck-planche-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "pl_straddle-planche",
+    "displayName" : "Straddle Planche",
+    "id" : "skill.pl.straddle-planche",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "pl_full-planche",
+    "displayName" : "Full Planche",
+    "id" : "skill.pl.full-planche",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_handstand-push-up",
+    "displayName" : "Handstand Push-Up",
+    "id" : "skill.cal.handstand-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_ninety-degree-push-up",
+    "displayName" : "Ninety-Degree Push-Up",
+    "id" : "skill.cal.ninety-degree-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_clapping-handstand-pushup",
+    "displayName" : "Clapping Handstand Push-Up",
+    "id" : "skill.cal.clapping-handstand-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pike-push-up",
+    "displayName" : "Pike Push-Up",
+    "id" : "skill.cal.pike-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_elevated-pike-push-up",
+    "displayName" : "Elevated Pike Push-Up",
+    "id" : "skill.cal.elevated-pike-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "hs_wall-handstand-30",
+    "displayName" : "Wall Handstand",
+    "id" : "skill.hs.wall-handstand-30",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "hs_freestanding-hs-30",
+    "displayName" : "Freestanding Handstand",
+    "id" : "skill.hs.freestanding-hs-30",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "oah_one-arm-handstand-5s",
+    "displayName" : "One-Arm Handstand",
+    "id" : "skill.oah.one-arm-handstand-5s",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_full-one-arm-handstand",
+    "displayName" : "Full One-Arm Handstand",
+    "id" : "skill.oah.full-one-arm-handstand",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hollow-hold",
+    "displayName" : "Hollow Body Hold",
+    "id" : "skill.cl.hollow-body-30",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hanging-knee-raise",
+    "displayName" : "Hanging Knee Raise",
+    "id" : "skill.cl.hanging-knee-raise",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hanging-leg-raise",
+    "displayName" : "Hanging Leg Raise",
+    "id" : "skill.cl.hanging-leg-raise",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_toes-to-bar",
+    "displayName" : "Toes-to-Bar",
+    "id" : "skill.cl.toes-to-bar",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_standing-ab-rollout",
+    "displayName" : "Standing Ab Rollout",
+    "id" : "skill.cl.standing-ab-rollout",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dragon-flag",
+    "displayName" : "Dragon Flag",
+    "id" : "skill.cl.dragon-flag",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "cl_tuck-front-lever",
+    "displayName" : "Tuck Front Lever",
+    "id" : "skill.cl.tuck-front-lever",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "cl_straddle-front-lever",
+    "displayName" : "Straddle Front Lever",
+    "id" : "skill.cl.straddle-front-lever",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "cl_full-front-lever",
+    "displayName" : "Full Front Lever",
+    "id" : "skill.cl.full-front-lever",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "cl_tuck-back-lever",
+    "displayName" : "Tuck Back Lever",
+    "id" : "skill.cl.tuck-back-lever",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "cl_straddle-back-lever",
+    "displayName" : "Straddle Back Lever",
+    "id" : "skill.cl.straddle-back-lever",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "cl_full-back-lever",
+    "displayName" : "Full Back Lever",
+    "id" : "skill.cl.full-back-lever",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_chin-up",
+    "displayName" : "Chin-Up",
+    "id" : "skill.pp.chin-up",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_chin-up",
+    "displayName" : "Strict Chin-Up",
+    "id" : "skill.pp.strict-chin-up",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-chin-up",
+    "displayName" : "Weighted Chin-Up",
+    "id" : "skill.pp.weighted-chin-up",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_l-sit-chin-up",
+    "displayName" : "L-Sit Chin-Up",
+    "id" : "skill.pp.l-sit-chin-up",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_wide-grip-pullup",
+    "displayName" : "Wide Pull-Up",
+    "id" : "skill.pp.wide-pullup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_explosive-pull-up",
+    "displayName" : "Explosive Pull-Up",
+    "id" : "skill.pp.explosive-pullup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_clapping-pull-up",
+    "displayName" : "Clapping Pull-Up",
+    "id" : "skill.pp.clapping-pullup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_incline-push-up",
+    "displayName" : "Incline Push-Up",
+    "id" : "skill.cal.incline-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_decline-push-up",
+    "displayName" : "Decline Push-Up",
+    "id" : "skill.cal.decline-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_sphinx-push-up",
+    "displayName" : "Sphinx Push-Up",
+    "id" : "skill.cal.sphinx-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_archer-push-up",
+    "displayName" : "Archer Push-Up",
+    "id" : "skill.cal.archer-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_one-arm-push-up",
+    "displayName" : "One-Arm Push-Up",
+    "id" : "skill.cal.one-arm-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_explosive-push-up",
+    "displayName" : "Explosive Push-Up",
+    "id" : "skill.cal.explosive-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_clapping-push-up",
+    "displayName" : "Clapping Push-Up",
+    "id" : "skill.cal.clapping-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_floating-pike-push-up",
+    "displayName" : "Floating Pike Push-Up",
+    "id" : "skill.cal.floating-pike-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bench-dip",
+    "displayName" : "Bench Dip",
+    "id" : "skill.cal.bench-dip",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_triple-clap-push-up",
+    "displayName" : "Triple Clap Push-Up",
+    "id" : "skill.cal.triple-clap-pushup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_calf-raise",
+    "displayName" : "Calf Raise",
+    "id" : "skill.ld.calf-raise",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-single-leg-calf-raise",
+    "displayName" : "Weighted Single-Leg Calf Raise",
+    "id" : "skill.ld.weighted-sl-calf",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_box-jump",
+    "displayName" : "Box Jump",
+    "id" : "skill.ld.box-jump",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_jumping-squat",
+    "displayName" : "Jumping Squat",
+    "id" : "skill.ld.jumping-squat",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-split-squat",
+    "displayName" : "Weighted Split Squat",
+    "id" : "skill.ld.weighted-split-squat",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_fire-hydrant",
+    "displayName" : "Fire Hydrant",
+    "id" : "skill.ld.fire-hydrant",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_single-leg-glute-bridge",
+    "displayName" : "Single-Leg Glute Bridge",
+    "id" : "skill.ld.single-leg-glute-bridge",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_leg-kickback",
+    "displayName" : "Leg Kickback",
+    "id" : "skill.ld.flying-kickback",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bodyweight-leg-extension",
+    "displayName" : "Bodyweight Leg Extension",
+    "id" : "skill.ld.leg-extensions",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_advanced-nordic-hip-hinge",
+    "displayName" : "Advanced Nordic Hip Hinge",
+    "id" : "skill.ld.advancing-nordic-curl",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_floor-to-ceiling-squat",
+    "displayName" : "Floor to Ceiling Squat",
+    "id" : "skill.ld.floor-to-ceiling-squat",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_crunch",
+    "displayName" : "Crunch",
+    "id" : "skill.cl.crunch",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_reverse-crunch",
+    "displayName" : "Reverse Crunch",
+    "id" : "skill.cl.reverse-crunch",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_superman-plank",
+    "displayName" : "Superman Plank",
+    "id" : "skill.cl.superman-plank",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_extended-plank",
+    "displayName" : "Extended Plank",
+    "id" : "skill.cl.extended-plank",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_kneeling-ab-rollout",
+    "displayName" : "Kneeling Ab Rollout",
+    "id" : "skill.cl.knee-ab-rollout",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_levitation-crunch",
+    "displayName" : "Levitation Crunch",
+    "id" : "skill.cl.levitation-crunch",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_inverted-sit-up",
+    "displayName" : "Inverted Sit-Up",
+    "id" : "skill.cl.inverted-situp",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_skin-the-cat",
+    "displayName" : "Skin the Cat",
+    "id" : "skill.cl.skin-the-cat",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_german-hang",
+    "displayName" : "German Hang",
+    "id" : "skill.cl.german-hang",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_360-degree-pulls",
+    "displayName" : "360-Degree Pulls",
+    "id" : "skill.cl.three-sixty-pulls",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_headstand",
+    "displayName" : "Headstand",
+    "id" : "skill.hs.headstand",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_tuck-handstand",
+    "displayName" : "Tuck Handstand",
+    "id" : "skill.hs.tuck-handstand",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_crow-pose",
+    "displayName" : "Crow Pose",
+    "id" : "skill.hs.crow-pose",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_crane-pose",
+    "displayName" : "Crane Pose",
+    "id" : "skill.hs.crane-pose",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_flying-crow-pose",
+    "displayName" : "Flying Crow Pose",
+    "id" : "skill.hs.flying-crow",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "hs_elbow-lever",
+    "displayName" : "Elbow Lever",
+    "id" : "skill.hs.elbow-lever",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_one-arm-elbow-lever",
+    "displayName" : "One-Arm Elbow Lever",
+    "id" : "skill.hs.one-arm-elbow-lever",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_tuck-press-to-handstand",
+    "displayName" : "Tuck Press to Handstand",
+    "id" : "skill.hs.tuck-press",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_straddle-press-to-handstand",
+    "displayName" : "Straddle Press to Handstand",
+    "id" : "skill.hs.straddle-press",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_press-to-handstand",
+    "displayName" : "Press to Handstand",
+    "id" : "skill.hs.press-to-handstand",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "pl_bent-arm-planche",
+    "displayName" : "Bent Arm Planche",
+    "id" : "skill.pl.bent-arm-planche",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_half-lay-planche",
+    "displayName" : "Half-Lay Planche",
+    "id" : "skill.pl.half-lay-planche",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_incline-row",
+    "displayName" : "Incline Row",
+    "id" : "skill.pp.incline-row",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_inverted-row",
+    "displayName" : "Row",
+    "id" : "skill.pp.row",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_decline-row",
+    "displayName" : "Decline Row",
+    "id" : "skill.pp.decline-row",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_one-arm-row",
+    "displayName" : "One-Arm Row",
+    "id" : "skill.pp.one-arm-row",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_tuck-row",
+    "displayName" : "Tuck Lever Row",
+    "id" : "skill.pp.tuck-row",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "pp_straddle-row",
+    "displayName" : "Straddle Row",
+    "id" : "skill.pp.straddle-row",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "pp_tuck-front-lever-pullup",
+    "displayName" : "Tuck Front Lever Pull-Up",
+    "id" : "skill.pp.tuck-front-lever-pullup",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_heighted-chin-up",
+    "displayName" : "Heighted Chin-Up",
+    "id" : "skill.pp.heighted-chin-up",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_one-arm-chin-up",
+    "displayName" : "One-Arm Chin-Up",
+    "id" : "skill.pp.one-arm-chin-up",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "pp_strict-muscle-up",
+    "displayName" : "Strict Muscle-Up",
+    "id" : "skill.pp.strict-muscle-up",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bent-arm-press",
+    "displayName" : "Bent Arm Press",
+    "id" : "skill.cal.bent-arm-press",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_step-up",
+    "displayName" : "Step Up",
+    "id" : "skill.ld.step-up",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_deep-squat",
+    "displayName" : "Deep Squat",
+    "id" : "skill.ld.deep-squat",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_glute-bridge",
+    "displayName" : "Glute Bridge",
+    "id" : "skill.ld.glute-bridge",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-bulgarian-split-squat",
+    "displayName" : "Weighted Bulgarian Split Squat",
+    "id" : "skill.ld.weighted-bss",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_sissy-squat",
+    "displayName" : "Sissy Squat",
+    "id" : "skill.ld.sissy-squat",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_nordic-hip-hinge",
+    "displayName" : "Nordic Hip Hinge",
+    "id" : "skill.ld.nordic-hip-hinge",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_nordic-curl",
+    "displayName" : "Nordic Curl",
+    "id" : "skill.ld.nordic-curl",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bird-dog-plank",
+    "displayName" : "Bird Dog Plank",
+    "id" : "skill.cl.bird-dog-plank",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_v-sit",
+    "displayName" : "V-Sit",
+    "id" : "skill.cl.v-sit",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_straddle-l-sit",
+    "displayName" : "Straddle L-Sit",
+    "id" : "skill.cl.straddle-l-sit",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dragon-flag-hip-raise",
+    "displayName" : "Dragon Flag Hip Raise",
+    "id" : "skill.cl.dragon-flag-hip-raise",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_decline-sit-up",
+    "displayName" : "Decline Sit-Up",
+    "id" : "skill.cl.decline-situp",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_knee-raise",
+    "displayName" : "Knee Raise",
+    "id" : "skill.cl.knee-raise",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_leg-raise",
+    "displayName" : "Leg Raise",
+    "id" : "skill.cl.leg-raise",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_semi-straddle-l-sit",
+    "displayName" : "Semi Straddle L-Sit",
+    "id" : "skill.cl.semi-straddle-l-sit",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_wall-plank",
+    "displayName" : "Wall Plank",
+    "id" : "skill.hs.wall-plank",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_wall-supported-one-arm-handstand",
+    "displayName" : "Wall Supported One-Arm Handstand",
+    "id" : "skill.hs.wall-supported-oah",
+    "loads" : true,
+    "role" : "skillTarget"
+  },
+  {
+    "asset" : "exercise_visual_exercise_back-squat",
+    "displayName" : "Barbell Back Squat",
+    "id" : "exercise.back-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_front-squat",
+    "displayName" : "Barbell Front Squat",
+    "id" : "exercise.front-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_safety-bar-squat",
+    "displayName" : "Safety Bar Squat",
+    "id" : "exercise.safety-bar-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hack-squat",
+    "displayName" : "Hack Squat",
+    "id" : "exercise.hack-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_leg-press",
+    "displayName" : "Leg Press",
+    "id" : "exercise.leg-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pendulum-squat",
+    "displayName" : "Pendulum Squat",
+    "id" : "exercise.pendulum-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_v-squat-machine",
+    "displayName" : "V-Squat",
+    "id" : "exercise.v-squat-machine",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_belt-squat",
+    "displayName" : "Belt Squat",
+    "id" : "exercise.belt-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_smith-machine-squat",
+    "displayName" : "Smith Machine Squat",
+    "id" : "exercise.smith-machine-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_assisted-squat",
+    "displayName" : "Assisted Squat",
+    "id" : "exercise.assisted-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_parallel-squat",
+    "displayName" : "Parallel Squat",
+    "id" : "exercise.parallel-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bodyweight-squat",
+    "displayName" : "Bodyweight Squat",
+    "id" : "exercise.bodyweight-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_split-squat",
+    "displayName" : "Split Squat",
+    "id" : "exercise.split-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bulgarian-split-squat",
+    "displayName" : "Bulgarian Split Squat",
+    "id" : "exercise.bulgarian-split-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_step-up",
+    "displayName" : "Step Up",
+    "id" : "exercise.step-up",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_deep-step-up",
+    "displayName" : "Deep Step Up",
+    "id" : "exercise.deep-step-up",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cossack-squat",
+    "displayName" : "Cossack Squat",
+    "id" : "exercise.cossack-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_partial-pistol-squat",
+    "displayName" : "Partial Pistol Squat",
+    "id" : "exercise.partial-pistol-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_assisted-pistol-squat",
+    "displayName" : "Assisted Pistol Squat",
+    "id" : "exercise.assisted-pistol-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pistol-squat",
+    "displayName" : "Pistol Squat",
+    "id" : "exercise.pistol-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_assisted-shrimp-squat",
+    "displayName" : "Assisted Shrimp Squat",
+    "id" : "exercise.assisted-shrimp-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_beginner-shrimp-squat",
+    "displayName" : "Beginner Shrimp Squat",
+    "id" : "exercise.beginner-shrimp-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_intermediate-shrimp-squat",
+    "displayName" : "Intermediate Shrimp Squat",
+    "id" : "exercise.intermediate-shrimp-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-pistol",
+    "displayName" : "Weighted Pistol Squat",
+    "id" : "exercise.weighted-pistol",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_shrimp-squat",
+    "displayName" : "Shrimp Squat",
+    "id" : "exercise.shrimp-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_two-hand-shrimp-squat",
+    "displayName" : "Two-Hand Shrimp Squat",
+    "id" : "exercise.two-hand-shrimp-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_elevated-two-hand-shrimp-squat",
+    "displayName" : "Elevated Two-Hand Shrimp Squat",
+    "id" : "exercise.elevated-two-hand-shrimp-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hip-adductor-machine",
+    "displayName" : "Hip Adductor",
+    "id" : "exercise.hip-adductor-machine",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_walking-lunge",
+    "displayName" : "Walking Lunge",
+    "id" : "exercise.walking-lunge",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-step-up",
+    "displayName" : "Dumbbell Step Up",
+    "id" : "exercise.dumbbell-step-up",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_smith-machine-split-squat",
+    "displayName" : "Smith Machine Split Squat",
+    "id" : "exercise.smith-machine-split-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_smith-machine-reverse-lunge",
+    "displayName" : "Smith Machine Reverse Lunge",
+    "id" : "exercise.smith-machine-reverse-lunge",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_goblet-squat",
+    "displayName" : "Goblet Squat",
+    "id" : "exercise.goblet-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_jump-squat",
+    "displayName" : "Jump Squat",
+    "id" : "exercise.jump-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bodyweight-leg-extension",
+    "displayName" : "Bodyweight Leg Extension",
+    "id" : "exercise.bodyweight-leg-extension",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_leg-extension",
+    "displayName" : "Leg Extension",
+    "id" : "exercise.leg-extension",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_single-leg-extension",
+    "displayName" : "Single-Leg Extension",
+    "id" : "exercise.single-leg-extension",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_deadlift",
+    "displayName" : "Conventional Deadlift",
+    "id" : "exercise.deadlift",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_trap-bar-deadlift",
+    "displayName" : "Trap Bar Deadlift",
+    "id" : "exercise.trap-bar-deadlift",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_romanian-deadlift",
+    "displayName" : "Romanian Deadlift",
+    "id" : "exercise.romanian-deadlift",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-romanian-deadlift",
+    "displayName" : "Dumbbell Romanian Deadlift",
+    "id" : "exercise.dumbbell-romanian-deadlift",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_smith-machine-romanian-deadlift",
+    "displayName" : "Smith Machine Romanian Deadlift",
+    "id" : "exercise.smith-machine-romanian-deadlift",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_single-leg-rdl",
+    "displayName" : "Single-Leg RDL",
+    "id" : "exercise.single-leg-rdl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_leg-curl-lying",
+    "displayName" : "Leg Curl (Lying)",
+    "id" : "exercise.leg-curl-lying",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_leg-curl-seated",
+    "displayName" : "Leg Curl (Seated)",
+    "id" : "exercise.leg-curl-seated",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_single-leg-curl",
+    "displayName" : "Single-Leg Curl",
+    "id" : "exercise.single-leg-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_nordic-curl-negative",
+    "displayName" : "Nordic Curl Negative",
+    "id" : "exercise.nordic-curl-negative",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_nordic-curl",
+    "displayName" : "Nordic Curl",
+    "id" : "exercise.nordic-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_nordic-curl-arms-overhead",
+    "displayName" : "Nordic Curl Arms Overhead",
+    "id" : "exercise.nordic-curl-arms-overhead",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_tuck-one-leg-nordic-curl",
+    "displayName" : "Tuck One-Leg Nordic Curl",
+    "id" : "exercise.tuck-one-leg-nordic-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_one-leg-nordic-curl",
+    "displayName" : "One-Leg Nordic Curl",
+    "id" : "exercise.one-leg-nordic-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_glute-ham-raise",
+    "displayName" : "Glute-Ham Raise",
+    "id" : "exercise.glute-ham-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_good-morning",
+    "displayName" : "Good Morning",
+    "id" : "exercise.good-morning",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_back-extension",
+    "displayName" : "Back Extension",
+    "id" : "exercise.back-extension",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_reverse-hyper",
+    "displayName" : "Reverse Hyper",
+    "id" : "exercise.reverse-hyper",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cable-pull-through",
+    "displayName" : "Cable Pull Through",
+    "id" : "exercise.cable-pull-through",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_glute-bridge",
+    "displayName" : "Glute Bridge",
+    "id" : "exercise.glute-bridge",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hip-thrust",
+    "displayName" : "Hip Thrust",
+    "id" : "exercise.hip-thrust",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_smith-machine-hip-thrust",
+    "displayName" : "Smith Machine Hip Thrust",
+    "id" : "exercise.smith-machine-hip-thrust",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hip-abductor-machine",
+    "displayName" : "Hip Abductor",
+    "id" : "exercise.hip-abductor-machine",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cable-hip-abduction",
+    "displayName" : "Cable Hip Abduction",
+    "id" : "exercise.cable-hip-abduction",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cable-glute-kickback",
+    "displayName" : "Cable Glute Kickback",
+    "id" : "exercise.cable-glute-kickback",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_machine-glute-kickback",
+    "displayName" : "Machine Glute Kickback",
+    "id" : "exercise.machine-glute-kickback",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_kettlebell-swing",
+    "displayName" : "Kettlebell Swing",
+    "id" : "exercise.kettlebell-swing",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bench-press",
+    "displayName" : "Barbell Bench Press",
+    "id" : "exercise.bench-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-bench-press",
+    "displayName" : "Dumbbell Bench Press",
+    "id" : "exercise.dumbbell-bench-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_incline-bench-press",
+    "displayName" : "Incline Barbell Press",
+    "id" : "exercise.incline-bench-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_incline-dumbbell-press",
+    "displayName" : "Incline Dumbbell Press",
+    "id" : "exercise.incline-dumbbell-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_decline-bench-press",
+    "displayName" : "Decline Press",
+    "id" : "exercise.decline-bench-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_smith-machine-bench-press",
+    "displayName" : "Smith Machine Bench Press",
+    "id" : "exercise.smith-machine-bench-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_smith-machine-incline-press",
+    "displayName" : "Smith Machine Incline Press",
+    "id" : "exercise.smith-machine-incline-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_machine-chest-press",
+    "displayName" : "Machine Chest Press",
+    "id" : "exercise.machine-chest-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_machine-incline-chest-press",
+    "displayName" : "Machine Incline Chest Press",
+    "id" : "exercise.machine-incline-chest-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cable-fly",
+    "displayName" : "Cable Fly",
+    "id" : "exercise.cable-fly",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_low-to-high-cable-fly",
+    "displayName" : "Low-to-High Cable Fly",
+    "id" : "exercise.low-to-high-cable-fly",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_high-to-low-cable-fly",
+    "displayName" : "High-to-Low Cable Fly",
+    "id" : "exercise.high-to-low-cable-fly",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-fly",
+    "displayName" : "Dumbbell Fly",
+    "id" : "exercise.dumbbell-fly",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pec-dec",
+    "displayName" : "Pec Deck",
+    "id" : "exercise.pec-dec",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_incline-pushup",
+    "displayName" : "Incline Push-Up",
+    "id" : "exercise.incline-pushup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pushup",
+    "displayName" : "Push-Up",
+    "id" : "exercise.pushup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_diamond-pushup",
+    "displayName" : "Diamond Push-Up",
+    "id" : "exercise.diamond-pushup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_decline-pushup",
+    "displayName" : "Decline Push-Up",
+    "id" : "exercise.decline-pushup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pseudo-planche-pushup",
+    "displayName" : "Pseudo-Planche Push-Up",
+    "id" : "exercise.pseudo-planche-pushup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_archer-pushup",
+    "displayName" : "Archer Push-Up",
+    "id" : "exercise.archer-pushup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_overhead-press",
+    "displayName" : "Barbell OHP",
+    "id" : "exercise.overhead-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-overhead-press",
+    "displayName" : "Dumbbell OHP",
+    "id" : "exercise.dumbbell-overhead-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_arnold-press",
+    "displayName" : "Arnold Press",
+    "id" : "exercise.arnold-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_seated-machine-press",
+    "displayName" : "Seated Machine Press",
+    "id" : "exercise.seated-machine-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_smith-machine-shoulder-press",
+    "displayName" : "Smith Machine Shoulder Press",
+    "id" : "exercise.smith-machine-shoulder-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_landmine-press",
+    "displayName" : "Landmine Press",
+    "id" : "exercise.landmine-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_lateral-raise-db",
+    "displayName" : "Lateral Raise (DB)",
+    "id" : "exercise.lateral-raise-db",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_lateral-raise-cable",
+    "displayName" : "Lateral Raise (Cable)",
+    "id" : "exercise.lateral-raise-cable",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_machine-lateral-raise",
+    "displayName" : "Machine Lateral Raise",
+    "id" : "exercise.machine-lateral-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-front-raise",
+    "displayName" : "Dumbbell Front Raise",
+    "id" : "exercise.dumbbell-front-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cable-front-raise",
+    "displayName" : "Cable Front Raise",
+    "id" : "exercise.cable-front-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cable-y-raise",
+    "displayName" : "Cable Y Raise",
+    "id" : "exercise.cable-y-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_prone-shoulder-raise",
+    "displayName" : "Prone Shoulder Raise",
+    "id" : "exercise.prone-shoulder-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_upright-row",
+    "displayName" : "Upright Row",
+    "id" : "exercise.upright-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_rear-delt-fly-db",
+    "displayName" : "Rear Delt Fly (DB)",
+    "id" : "exercise.rear-delt-fly-db",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_rear-delt-fly-machine",
+    "displayName" : "Rear Delt Fly (Machine)",
+    "id" : "exercise.rear-delt-fly-machine",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_face-pull",
+    "displayName" : "Face Pull (Cable)",
+    "id" : "exercise.face-pull",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pike-pushup",
+    "displayName" : "Pike Push-Up",
+    "id" : "exercise.pike-pushup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_wall-handstand-pushup",
+    "displayName" : "Wall Handstand Push-Up",
+    "id" : "exercise.wall-handstand-pushup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bent-over-row",
+    "displayName" : "Barbell Bent-Over Row",
+    "id" : "exercise.bent-over-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-row",
+    "displayName" : "Dumbbell Row",
+    "id" : "exercise.dumbbell-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cable-row-seated",
+    "displayName" : "Cable Row (Seated)",
+    "id" : "exercise.cable-row-seated",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_machine-row",
+    "displayName" : "Machine Row",
+    "id" : "exercise.machine-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_single-arm-cable-row",
+    "displayName" : "Single-Arm Cable Row",
+    "id" : "exercise.single-arm-cable-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_wide-grip-cable-row",
+    "displayName" : "Wide-Grip Cable Row",
+    "id" : "exercise.wide-grip-cable-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hammer-strength-high-row",
+    "displayName" : "High Row (Machine)",
+    "id" : "exercise.hammer-strength-high-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_chest-supported-row",
+    "displayName" : "Chest Supported Row",
+    "id" : "exercise.chest-supported-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_machine-chest-supported-row",
+    "displayName" : "Machine Chest Supported Row",
+    "id" : "exercise.machine-chest-supported-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_t-bar-row",
+    "displayName" : "T-Bar Row",
+    "id" : "exercise.t-bar-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_landmine-row",
+    "displayName" : "Landmine Row",
+    "id" : "exercise.landmine-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_meadows-row",
+    "displayName" : "Meadows Row",
+    "id" : "exercise.meadows-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pendlay-row",
+    "displayName" : "Pendlay Row",
+    "id" : "exercise.pendlay-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_band-row",
+    "displayName" : "Band Row",
+    "id" : "exercise.band-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_inverted-row",
+    "displayName" : "Inverted Row",
+    "id" : "exercise.inverted-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_superman-pull",
+    "displayName" : "Superman Pull",
+    "id" : "exercise.superman-pull",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_negative-pullup",
+    "displayName" : "Negative Pull-Up",
+    "id" : "exercise.negative-pullup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_assisted-pullup-band",
+    "displayName" : "Assisted Pull-Up (Band)",
+    "id" : "exercise.assisted-pullup-band",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_chin-up",
+    "displayName" : "Chin-Up",
+    "id" : "exercise.chin-up",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pullup",
+    "displayName" : "Pull-Up",
+    "id" : "exercise.pullup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_assisted-pullup-machine",
+    "displayName" : "Assisted Pull-Up Machine",
+    "id" : "exercise.assisted-pullup-machine",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_lat-pulldown-neutral",
+    "displayName" : "Lat Pulldown (Neutral)",
+    "id" : "exercise.lat-pulldown-neutral",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_wide-grip-lat-pulldown",
+    "displayName" : "Wide-Grip Lat Pulldown",
+    "id" : "exercise.wide-grip-lat-pulldown",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_close-grip-lat-pulldown",
+    "displayName" : "Close-Grip Lat Pulldown",
+    "id" : "exercise.close-grip-lat-pulldown",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_reverse-grip-lat-pulldown",
+    "displayName" : "Reverse-Grip Lat Pulldown",
+    "id" : "exercise.reverse-grip-lat-pulldown",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_wide-grip-pullup",
+    "displayName" : "Wide-Grip Pull-Up",
+    "id" : "exercise.wide-grip-pullup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-pullup",
+    "displayName" : "Weighted Pull-Up",
+    "id" : "exercise.weighted-pullup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_banded-muscle-up",
+    "displayName" : "Banded Muscle-Up",
+    "id" : "exercise.banded-muscle-up",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_low-bar-muscle-up-transition",
+    "displayName" : "Low-Bar Muscle-Up Transition",
+    "id" : "exercise.low-bar-muscle-up-transition",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_assisted-turnover-freeze",
+    "displayName" : "Assisted Turnover Freeze",
+    "id" : "exercise.assisted-turnover-freeze",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_muscle-up",
+    "displayName" : "Muscle-Up",
+    "id" : "exercise.muscle-up",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_lat-pulldown",
+    "displayName" : "Lat Pulldown (Bar)",
+    "id" : "exercise.lat-pulldown",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_single-arm-pulldown",
+    "displayName" : "Single-Arm Pulldown",
+    "id" : "exercise.single-arm-pulldown",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_straight-arm-pulldown",
+    "displayName" : "Straight-Arm Pulldown",
+    "id" : "exercise.straight-arm-pulldown",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_band-lat-pull",
+    "displayName" : "Band Lat Pulldown",
+    "id" : "exercise.band-lat-pull",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_machine-pullover",
+    "displayName" : "Lat Pullover",
+    "id" : "exercise.machine-pullover",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_chest-to-bar-pullup",
+    "displayName" : "Chest-to-Bar Pull-Up",
+    "id" : "exercise.chest-to-bar-pullup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_barbell-curl",
+    "displayName" : "Barbell Curl",
+    "id" : "exercise.barbell-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_ez-bar-curl",
+    "displayName" : "EZ-Bar Curl",
+    "id" : "exercise.ez-bar-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-curl",
+    "displayName" : "Dumbbell Curl",
+    "id" : "exercise.dumbbell-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_incline-dumbbell-curl",
+    "displayName" : "Incline Dumbbell Curl",
+    "id" : "exercise.incline-dumbbell-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_concentration-curl",
+    "displayName" : "Concentration Curl",
+    "id" : "exercise.concentration-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_spider-curl",
+    "displayName" : "Spider Curl",
+    "id" : "exercise.spider-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cable-curl",
+    "displayName" : "Cable Curl",
+    "id" : "exercise.cable-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_rope-cable-curl",
+    "displayName" : "Rope Cable Curl",
+    "id" : "exercise.rope-cable-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hammer-curl",
+    "displayName" : "Hammer Curl",
+    "id" : "exercise.hammer-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_rope-hammer-curl",
+    "displayName" : "Rope Hammer Curl",
+    "id" : "exercise.rope-hammer-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_preacher-curl",
+    "displayName" : "Preacher Curl (Machine)",
+    "id" : "exercise.preacher-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_machine-biceps-curl",
+    "displayName" : "Machine Biceps Curl",
+    "id" : "exercise.machine-biceps-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_band-curl",
+    "displayName" : "Band Curl",
+    "id" : "exercise.band-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_close-grip-bench-press",
+    "displayName" : "Close Grip Bench",
+    "id" : "exercise.close-grip-bench-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_tricep-pushdown",
+    "displayName" : "Tricep Pushdown (Cable)",
+    "id" : "exercise.tricep-pushdown",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_rope-tricep-pushdown",
+    "displayName" : "Rope Tricep Pushdown",
+    "id" : "exercise.rope-tricep-pushdown",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_straight-bar-tricep-pushdown",
+    "displayName" : "Straight-Bar Tricep Pushdown",
+    "id" : "exercise.straight-bar-tricep-pushdown",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_overhead-tricep-extension",
+    "displayName" : "Overhead Tricep Ext (Cable)",
+    "id" : "exercise.overhead-tricep-extension",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_rope-overhead-tricep-extension",
+    "displayName" : "Rope Overhead Tricep Extension",
+    "id" : "exercise.rope-overhead-tricep-extension",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_machine-triceps-extension",
+    "displayName" : "Machine Triceps Extension",
+    "id" : "exercise.machine-triceps-extension",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_band-tricep-extension",
+    "displayName" : "Band Tricep Extension",
+    "id" : "exercise.band-tricep-extension",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_skull-crushers",
+    "displayName" : "Skull Crushers",
+    "id" : "exercise.skull-crushers",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dip",
+    "displayName" : "Dip (Tricep)",
+    "id" : "exercise.dip",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_straight-bar-dip",
+    "displayName" : "Straight Bar Dip",
+    "id" : "exercise.straight-bar-dip",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_assisted-dip-machine",
+    "displayName" : "Assisted Dip Machine",
+    "id" : "exercise.assisted-dip-machine",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dip-machine",
+    "displayName" : "Dip Machine",
+    "id" : "exercise.dip-machine",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_plank",
+    "displayName" : "Plank",
+    "id" : "exercise.plank",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_high-plank",
+    "displayName" : "High Plank",
+    "id" : "exercise.high-plank",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hollow-hold",
+    "displayName" : "Hollow Body Hold",
+    "id" : "exercise.hollow-hold",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_l-sit-tucked",
+    "displayName" : "L-Sit (Tucked)",
+    "id" : "exercise.l-sit-tucked",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_l-sit",
+    "displayName" : "L-Sit",
+    "id" : "exercise.l-sit",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_tuck-front-lever",
+    "displayName" : "Tuck Front Lever",
+    "id" : "exercise.tuck-front-lever",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_advanced-tuck-front-lever",
+    "displayName" : "Advanced Tuck Front Lever",
+    "id" : "exercise.advanced-tuck-front-lever",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dragon-flag",
+    "displayName" : "Dragon Flag",
+    "id" : "exercise.dragon-flag",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cable-crunch",
+    "displayName" : "Cable Crunch",
+    "id" : "exercise.cable-crunch",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hanging-leg-raise",
+    "displayName" : "Hanging Leg Raise",
+    "id" : "exercise.hanging-leg-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hanging-knee-raise",
+    "displayName" : "Hanging Knee Raise",
+    "id" : "exercise.hanging-knee-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_captains-chair-knee-raise",
+    "displayName" : "Captain's Chair Knee Raise",
+    "id" : "exercise.captains-chair-knee-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_captains-chair-leg-raise",
+    "displayName" : "Captain's Chair Leg Raise",
+    "id" : "exercise.captains-chair-leg-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_ab-wheel",
+    "displayName" : "Ab Wheel",
+    "id" : "exercise.ab-wheel",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pallof-press",
+    "displayName" : "Pallof Press",
+    "id" : "exercise.pallof-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_landmine-rotation",
+    "displayName" : "Landmine Rotation",
+    "id" : "exercise.landmine-rotation",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_machine-crunch",
+    "displayName" : "Machine Crunch",
+    "id" : "exercise.machine-crunch",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_decline-situp",
+    "displayName" : "Decline Sit-Up",
+    "id" : "exercise.decline-situp",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_roman-chair-situp",
+    "displayName" : "Roman Chair Sit-Up",
+    "id" : "exercise.roman-chair-situp",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hollow-rock",
+    "displayName" : "Hollow Rock",
+    "id" : "exercise.hollow-rock",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_standing-calf-raise",
+    "displayName" : "Standing Calf Raise",
+    "id" : "exercise.standing-calf-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_seated-calf-raise",
+    "displayName" : "Seated Calf Raise",
+    "id" : "exercise.seated-calf-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_leg-press-calf-raise",
+    "displayName" : "Leg Press Calf Raise",
+    "id" : "exercise.leg-press-calf-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_smith-machine-calf-raise",
+    "displayName" : "Smith Machine Calf Raise",
+    "id" : "exercise.smith-machine-calf-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_donkey-calf-raise",
+    "displayName" : "Donkey Calf Raise",
+    "id" : "exercise.donkey-calf-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_tibialis-raise",
+    "displayName" : "Tibialis Raise",
+    "id" : "exercise.tibialis-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_cardio_run",
+    "displayName" : "Run",
+    "id" : "cardio.run",
+    "loads" : true,
+    "role" : "cardioModality"
+  },
+  {
+    "asset" : "exercise_visual_cardio_bike",
+    "displayName" : "Bike",
+    "id" : "cardio.bike",
+    "loads" : true,
+    "role" : "cardioModality"
+  },
+  {
+    "asset" : "exercise_visual_cardio_row",
+    "displayName" : "Row",
+    "id" : "cardio.row",
+    "loads" : true,
+    "role" : "cardioModality"
+  },
+  {
+    "asset" : "exercise_visual_cardio_walk",
+    "displayName" : "Walk",
+    "id" : "cardio.walk",
+    "loads" : true,
+    "role" : "cardioModality"
+  },
+  {
+    "asset" : "exercise_visual_cardio_swim",
+    "displayName" : "Swim",
+    "id" : "cardio.swim",
+    "loads" : true,
+    "role" : "cardioModality"
+  },
+  {
+    "asset" : "exercise_visual_cardio_stairs",
+    "displayName" : "Stairs",
+    "id" : "cardio.stairs",
+    "loads" : true,
+    "role" : "cardioModality"
+  },
+  {
+    "asset" : "exercise_visual_cardio_elliptical",
+    "displayName" : "Elliptical",
+    "id" : "cardio.elliptical",
+    "loads" : true,
+    "role" : "cardioModality"
+  },
+  {
+    "asset" : "exercise_visual_exercise_farmer-carry",
+    "displayName" : "Farmer Carry",
+    "id" : "carry.farmer-carry",
+    "loads" : true,
+    "role" : "carrySled"
+  },
+  {
+    "asset" : "exercise_visual_carry_suitcase-carry",
+    "displayName" : "Suitcase Carry",
+    "id" : "carry.suitcase-carry",
+    "loads" : true,
+    "role" : "carrySled"
+  },
+  {
+    "asset" : "exercise_visual_exercise_sled-push",
+    "displayName" : "Sled Push",
+    "id" : "carry.sled-push",
+    "loads" : true,
+    "role" : "carrySled"
+  },
+  {
+    "asset" : "exercise_visual_carry_sandbag-carry",
+    "displayName" : "Sandbag Carry",
+    "id" : "carry.sandbag-carry",
+    "loads" : true,
+    "role" : "carrySled"
+  },
+  {
+    "asset" : "exercise_visual_carry_loaded-march",
+    "displayName" : "Loaded March",
+    "id" : "carry.loaded-march",
+    "loads" : true,
+    "role" : "carrySled"
+  },
+  {
+    "asset" : "exercise_visual_mobility_hip-flexor-stretch",
+    "displayName" : "Hip Flexor Stretch",
+    "id" : "mobility.hip-flexor-stretch",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_hamstring-fold",
+    "displayName" : "Hamstring Fold",
+    "id" : "mobility.hamstring-fold",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_pigeon-pose",
+    "displayName" : "Pigeon Pose",
+    "id" : "mobility.pigeon-pose",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_thoracic-rotation",
+    "displayName" : "Thoracic Rotation",
+    "id" : "mobility.thoracic-rotation",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_cat-cow",
+    "displayName" : "Cat-Cow",
+    "id" : "mobility.cat-cow",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_frog-stretch",
+    "displayName" : "Frog Stretch",
+    "id" : "mobility.frog-stretch",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_wrist-prep",
+    "displayName" : "Wrist Prep Flow",
+    "id" : "mobility.wrist-prep",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_shoulder-dislocates",
+    "displayName" : "Shoulder Dislocates",
+    "id" : "mobility.shoulder-dislocates",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_deep-squat-hold",
+    "displayName" : "Deep Squat Hold",
+    "id" : "mobility.deep-squat-hold",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_ankle-rocks",
+    "displayName" : "Ankle Rocks",
+    "id" : "mobility.ankle-rocks",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_standing-calf-stretch",
+    "displayName" : "Standing Calf Stretch",
+    "id" : "mobility.standing-calf-stretch",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_quad-stretch",
+    "displayName" : "Quad Stretch",
+    "id" : "mobility.quad-stretch",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_doorway-pec-stretch",
+    "displayName" : "Doorway Pec Stretch",
+    "id" : "mobility.doorway-pec-stretch",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_lat-stretch",
+    "displayName" : "Lat Stretch",
+    "id" : "mobility.lat-stretch",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_childs-pose",
+    "displayName" : "Child's Pose",
+    "id" : "mobility.childs-pose",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_ninety-ninety-hip-switch",
+    "displayName" : "90\/90 Hip Switch",
+    "id" : "mobility.ninety-ninety-hip-switch",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_cobra-stretch",
+    "displayName" : "Cobra Stretch",
+    "id" : "mobility.cobra-stretch",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_mobility_worlds-greatest-stretch",
+    "displayName" : "World's Greatest Stretch",
+    "id" : "mobility.worlds-greatest-stretch",
+    "loads" : true,
+    "role" : "mobilityDuration"
+  },
+  {
+    "asset" : "exercise_visual_exercise_wall-handstand",
+    "displayName" : "Wall Handstand",
+    "id" : "skill-drill.wall-handstand",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_exercise_freestanding-handstand",
+    "displayName" : "Freestanding Handstand",
+    "id" : "skill-drill.freestanding-handstand",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_wall-plank",
+    "displayName" : "Wall Plank",
+    "id" : "skill-drill.wall-plank",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_wall-shoulder-tap",
+    "displayName" : "Wall Shoulder Tap",
+    "id" : "skill-drill.wall-shoulder-tap",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_kick-up-practice",
+    "displayName" : "Kick-Up Practice",
+    "id" : "skill-drill.kick-up-practice",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_exercise_crow-pose",
+    "displayName" : "Crow Pose",
+    "id" : "skill-drill.crow-pose",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_exercise_headstand",
+    "displayName" : "Headstand",
+    "id" : "skill-drill.headstand",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_planche-lean",
+    "displayName" : "Planche Lean",
+    "id" : "skill-drill.planche-lean",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_frog-stand",
+    "displayName" : "Frog Stand",
+    "id" : "skill-drill.frog-stand",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_band-assisted-tuck-planche",
+    "displayName" : "Band-Assisted Tuck Planche",
+    "id" : "skill-drill.band-assisted-tuck-planche",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_advanced-tuck-planche",
+    "displayName" : "Advanced Tuck Planche",
+    "id" : "skill-drill.advanced-tuck-planche",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_band-assisted-full-planche",
+    "displayName" : "Band-Assisted Full Planche",
+    "id" : "skill-drill.band-assisted-full-planche",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_exercise_l-sit-tucked",
+    "displayName" : "Tuck L-Sit",
+    "id" : "skill-drill.tuck-l-sit",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_single-leg-l-sit",
+    "displayName" : "Single-Leg L-Sit",
+    "id" : "skill-drill.single-leg-l-sit",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_foot-supported-l-sit",
+    "displayName" : "Foot-Supported L-Sit",
+    "id" : "skill-drill.foot-supported-l-sit",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_one-leg-front-lever",
+    "displayName" : "One-Leg Front Lever",
+    "id" : "skill-drill.one-leg-front-lever",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_advanced-tuck-back-lever",
+    "displayName" : "Advanced Tuck Back Lever",
+    "id" : "skill-drill.advanced-tuck-back-lever",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_one-leg-back-lever",
+    "displayName" : "One-Leg Back Lever",
+    "id" : "skill-drill.one-leg-back-lever",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_close-hand-straddle-handstand",
+    "displayName" : "Close-Hand Straddle Handstand",
+    "id" : "skill-drill.close-hand-straddle-handstand",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_one-arm-handstand-weight-shift",
+    "displayName" : "One-Arm Handstand Weight Shift",
+    "id" : "skill-drill.one-arm-handstand-weight-shift",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_two-finger-tent",
+    "displayName" : "Two-Finger Tent",
+    "id" : "skill-drill.two-finger-tent",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_one-finger-tent",
+    "displayName" : "One-Finger Tent",
+    "id" : "skill-drill.one-finger-tent",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_off-hand-float",
+    "displayName" : "Off-Hand Float",
+    "id" : "skill-drill.off-hand-float",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_skill-drill_hollow-body-hold",
+    "displayName" : "Hollow Body Hold",
+    "id" : "skill-drill.hollow-body-hold",
+    "loads" : true,
+    "role" : "skillDrill"
+  },
+  {
+    "asset" : "exercise_visual_exercise_goblet-squat",
+    "displayName" : "Goblet Squat",
+    "id" : "ld.goblet-20",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_split-squat",
+    "displayName" : "Split Squat",
+    "id" : "ld.split-squat",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bulgarian-split-squat",
+    "displayName" : "Bulgarian Split Squat",
+    "id" : "ld.bulgarian-split-squat",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_shrimp-squat",
+    "displayName" : "Shrimp Squat",
+    "id" : "ld.shrimp-squat",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pistol-squat",
+    "displayName" : "Pistol Squat",
+    "id" : "ld.pistol-squat",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-pistol",
+    "displayName" : "Weighted Pistol Squat",
+    "id" : "ld.weighted-pistol",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dead-hang",
+    "displayName" : "Dead Hang",
+    "id" : "pp.dead-hang",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pull-up",
+    "displayName" : "Pull-Up",
+    "id" : "pp.pullup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pullup",
+    "displayName" : "Strict Pull-Up",
+    "id" : "pp.strict-pullup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_archer-pull-up",
+    "displayName" : "Archer Pull-Up",
+    "id" : "pp.archer-pullup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-pullup",
+    "displayName" : "Weighted Pull-Up",
+    "id" : "pp.weighted-pullup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_negative-pullup",
+    "displayName" : "One-Arm Pull-Up Negative",
+    "id" : "pp.oap-negative",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_one-arm-pullup",
+    "displayName" : "One-Arm Pull-Up",
+    "id" : "pp.one-arm-pullup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "pp_muscle-up",
+    "displayName" : "Muscle-Up",
+    "id" : "pp.muscle-up",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "pp_ring-muscle-up",
+    "displayName" : "Ring Muscle-Up",
+    "id" : "pp.ring-muscle-up",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_plank",
+    "displayName" : "Plank",
+    "id" : "cal.plank-30",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "cal_l-sit-10",
+    "displayName" : "L-Sit",
+    "id" : "cal.l-sit-10",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_push-up",
+    "displayName" : "Push-Up",
+    "id" : "cal.pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dip",
+    "displayName" : "Dip",
+    "id" : "cal.5-dips",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_ring-dip",
+    "displayName" : "Ring Dip",
+    "id" : "cal.ring-dip",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_diamond-push-up",
+    "displayName" : "Diamond Push-Up",
+    "id" : "cal.diamond-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pseudo-planche-push-up",
+    "displayName" : "Pseudo-Planche Push-Up",
+    "id" : "cal.pseudo-planche-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "pl_tuck-planche",
+    "displayName" : "Tuck Planche",
+    "id" : "pl.tuck-planche",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_tuck-planche-push-up",
+    "displayName" : "Tuck Planche Push-Up",
+    "id" : "cal.tuck-planche-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "pl_straddle-planche",
+    "displayName" : "Straddle Planche",
+    "id" : "pl.straddle-planche",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "pl_full-planche",
+    "displayName" : "Full Planche",
+    "id" : "pl.full-planche",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_handstand-push-up",
+    "displayName" : "Handstand Push-Up",
+    "id" : "cal.handstand-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_ninety-degree-push-up",
+    "displayName" : "Ninety-Degree Push-Up",
+    "id" : "cal.ninety-degree-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_clapping-handstand-pushup",
+    "displayName" : "Clapping Handstand Push-Up",
+    "id" : "cal.clapping-handstand-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_pike-push-up",
+    "displayName" : "Pike Push-Up",
+    "id" : "cal.pike-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_elevated-pike-push-up",
+    "displayName" : "Elevated Pike Push-Up",
+    "id" : "cal.elevated-pike-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "hs_wall-handstand-30",
+    "displayName" : "Wall Handstand",
+    "id" : "hs.wall-handstand-30",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "hs_freestanding-hs-30",
+    "displayName" : "Freestanding Handstand",
+    "id" : "hs.freestanding-hs-30",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "oah_one-arm-handstand-5s",
+    "displayName" : "One-Arm Handstand",
+    "id" : "oah.one-arm-handstand-5s",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_full-one-arm-handstand",
+    "displayName" : "Full One-Arm Handstand",
+    "id" : "oah.full-one-arm-handstand",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hollow-hold",
+    "displayName" : "Hollow Body Hold",
+    "id" : "cl.hollow-body-30",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hanging-knee-raise",
+    "displayName" : "Hanging Knee Raise",
+    "id" : "cl.hanging-knee-raise",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hanging-leg-raise",
+    "displayName" : "Hanging Leg Raise",
+    "id" : "cl.hanging-leg-raise",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_toes-to-bar",
+    "displayName" : "Toes-to-Bar",
+    "id" : "cl.toes-to-bar",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_standing-ab-rollout",
+    "displayName" : "Standing Ab Rollout",
+    "id" : "cl.standing-ab-rollout",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dragon-flag",
+    "displayName" : "Dragon Flag",
+    "id" : "cl.dragon-flag",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "cl_tuck-front-lever",
+    "displayName" : "Tuck Front Lever",
+    "id" : "cl.tuck-front-lever",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "cl_straddle-front-lever",
+    "displayName" : "Straddle Front Lever",
+    "id" : "cl.straddle-front-lever",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "cl_full-front-lever",
+    "displayName" : "Full Front Lever",
+    "id" : "cl.full-front-lever",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "cl_tuck-back-lever",
+    "displayName" : "Tuck Back Lever",
+    "id" : "cl.tuck-back-lever",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "cl_straddle-back-lever",
+    "displayName" : "Straddle Back Lever",
+    "id" : "cl.straddle-back-lever",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "cl_full-back-lever",
+    "displayName" : "Full Back Lever",
+    "id" : "cl.full-back-lever",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_chin-up",
+    "displayName" : "Chin-Up",
+    "id" : "pp.chin-up",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_chin-up",
+    "displayName" : "Strict Chin-Up",
+    "id" : "pp.strict-chin-up",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-chin-up",
+    "displayName" : "Weighted Chin-Up",
+    "id" : "pp.weighted-chin-up",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_l-sit-chin-up",
+    "displayName" : "L-Sit Chin-Up",
+    "id" : "pp.l-sit-chin-up",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_wide-grip-pullup",
+    "displayName" : "Wide Pull-Up",
+    "id" : "pp.wide-pullup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_explosive-pull-up",
+    "displayName" : "Explosive Pull-Up",
+    "id" : "pp.explosive-pullup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_clapping-pull-up",
+    "displayName" : "Clapping Pull-Up",
+    "id" : "pp.clapping-pullup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_incline-push-up",
+    "displayName" : "Incline Push-Up",
+    "id" : "cal.incline-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_decline-push-up",
+    "displayName" : "Decline Push-Up",
+    "id" : "cal.decline-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_sphinx-push-up",
+    "displayName" : "Sphinx Push-Up",
+    "id" : "cal.sphinx-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_archer-push-up",
+    "displayName" : "Archer Push-Up",
+    "id" : "cal.archer-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_one-arm-push-up",
+    "displayName" : "One-Arm Push-Up",
+    "id" : "cal.one-arm-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_explosive-push-up",
+    "displayName" : "Explosive Push-Up",
+    "id" : "cal.explosive-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_clapping-push-up",
+    "displayName" : "Clapping Push-Up",
+    "id" : "cal.clapping-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_floating-pike-push-up",
+    "displayName" : "Floating Pike Push-Up",
+    "id" : "cal.floating-pike-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bench-dip",
+    "displayName" : "Bench Dip",
+    "id" : "cal.bench-dip",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_triple-clap-push-up",
+    "displayName" : "Triple Clap Push-Up",
+    "id" : "cal.triple-clap-pushup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_calf-raise",
+    "displayName" : "Calf Raise",
+    "id" : "ld.calf-raise",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-single-leg-calf-raise",
+    "displayName" : "Weighted Single-Leg Calf Raise",
+    "id" : "ld.weighted-sl-calf",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_box-jump",
+    "displayName" : "Box Jump",
+    "id" : "ld.box-jump",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_jumping-squat",
+    "displayName" : "Jumping Squat",
+    "id" : "ld.jumping-squat",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-split-squat",
+    "displayName" : "Weighted Split Squat",
+    "id" : "ld.weighted-split-squat",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_fire-hydrant",
+    "displayName" : "Fire Hydrant",
+    "id" : "ld.fire-hydrant",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_single-leg-glute-bridge",
+    "displayName" : "Single-Leg Glute Bridge",
+    "id" : "ld.single-leg-glute-bridge",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_leg-kickback",
+    "displayName" : "Leg Kickback",
+    "id" : "ld.flying-kickback",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bodyweight-leg-extension",
+    "displayName" : "Bodyweight Leg Extension",
+    "id" : "ld.leg-extensions",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_advanced-nordic-hip-hinge",
+    "displayName" : "Advanced Nordic Hip Hinge",
+    "id" : "ld.advancing-nordic-curl",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_floor-to-ceiling-squat",
+    "displayName" : "Floor to Ceiling Squat",
+    "id" : "ld.floor-to-ceiling-squat",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_crunch",
+    "displayName" : "Crunch",
+    "id" : "cl.crunch",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_reverse-crunch",
+    "displayName" : "Reverse Crunch",
+    "id" : "cl.reverse-crunch",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_superman-plank",
+    "displayName" : "Superman Plank",
+    "id" : "cl.superman-plank",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_extended-plank",
+    "displayName" : "Extended Plank",
+    "id" : "cl.extended-plank",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_kneeling-ab-rollout",
+    "displayName" : "Kneeling Ab Rollout",
+    "id" : "cl.knee-ab-rollout",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_levitation-crunch",
+    "displayName" : "Levitation Crunch",
+    "id" : "cl.levitation-crunch",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_inverted-sit-up",
+    "displayName" : "Inverted Sit-Up",
+    "id" : "cl.inverted-situp",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_skin-the-cat",
+    "displayName" : "Skin the Cat",
+    "id" : "cl.skin-the-cat",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_german-hang",
+    "displayName" : "German Hang",
+    "id" : "cl.german-hang",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_360-degree-pulls",
+    "displayName" : "360-Degree Pulls",
+    "id" : "cl.three-sixty-pulls",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_headstand",
+    "displayName" : "Headstand",
+    "id" : "hs.headstand",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_tuck-handstand",
+    "displayName" : "Tuck Handstand",
+    "id" : "hs.tuck-handstand",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_crow-pose",
+    "displayName" : "Crow Pose",
+    "id" : "hs.crow-pose",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_crane-pose",
+    "displayName" : "Crane Pose",
+    "id" : "hs.crane-pose",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_flying-crow-pose",
+    "displayName" : "Flying Crow Pose",
+    "id" : "hs.flying-crow",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "hs_elbow-lever",
+    "displayName" : "Elbow Lever",
+    "id" : "hs.elbow-lever",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_one-arm-elbow-lever",
+    "displayName" : "One-Arm Elbow Lever",
+    "id" : "hs.one-arm-elbow-lever",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_tuck-press-to-handstand",
+    "displayName" : "Tuck Press to Handstand",
+    "id" : "hs.tuck-press",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_straddle-press-to-handstand",
+    "displayName" : "Straddle Press to Handstand",
+    "id" : "hs.straddle-press",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_press-to-handstand",
+    "displayName" : "Press to Handstand",
+    "id" : "hs.press-to-handstand",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "pl_bent-arm-planche",
+    "displayName" : "Bent Arm Planche",
+    "id" : "pl.bent-arm-planche",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_half-lay-planche",
+    "displayName" : "Half-Lay Planche",
+    "id" : "pl.half-lay-planche",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_incline-row",
+    "displayName" : "Incline Row",
+    "id" : "pp.incline-row",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_inverted-row",
+    "displayName" : "Row",
+    "id" : "pp.row",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_decline-row",
+    "displayName" : "Decline Row",
+    "id" : "pp.decline-row",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_one-arm-row",
+    "displayName" : "One-Arm Row",
+    "id" : "pp.one-arm-row",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_tuck-row",
+    "displayName" : "Tuck Lever Row",
+    "id" : "pp.tuck-row",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "pp_straddle-row",
+    "displayName" : "Straddle Row",
+    "id" : "pp.straddle-row",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "pp_tuck-front-lever-pullup",
+    "displayName" : "Tuck Front Lever Pull-Up",
+    "id" : "pp.tuck-front-lever-pullup",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_heighted-chin-up",
+    "displayName" : "Heighted Chin-Up",
+    "id" : "pp.heighted-chin-up",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_one-arm-chin-up",
+    "displayName" : "One-Arm Chin-Up",
+    "id" : "pp.one-arm-chin-up",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "pp_strict-muscle-up",
+    "displayName" : "Strict Muscle-Up",
+    "id" : "pp.strict-muscle-up",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bent-arm-press",
+    "displayName" : "Bent Arm Press",
+    "id" : "cal.bent-arm-press",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_step-up",
+    "displayName" : "Step Up",
+    "id" : "ld.step-up",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_deep-squat",
+    "displayName" : "Deep Squat",
+    "id" : "ld.deep-squat",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_glute-bridge",
+    "displayName" : "Glute Bridge",
+    "id" : "ld.glute-bridge",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_weighted-bulgarian-split-squat",
+    "displayName" : "Weighted Bulgarian Split Squat",
+    "id" : "ld.weighted-bss",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_sissy-squat",
+    "displayName" : "Sissy Squat",
+    "id" : "ld.sissy-squat",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_nordic-hip-hinge",
+    "displayName" : "Nordic Hip Hinge",
+    "id" : "ld.nordic-hip-hinge",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_nordic-curl",
+    "displayName" : "Nordic Curl",
+    "id" : "ld.nordic-curl",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bird-dog-plank",
+    "displayName" : "Bird Dog Plank",
+    "id" : "cl.bird-dog-plank",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_v-sit",
+    "displayName" : "V-Sit",
+    "id" : "cl.v-sit",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_straddle-l-sit",
+    "displayName" : "Straddle L-Sit",
+    "id" : "cl.straddle-l-sit",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dragon-flag-hip-raise",
+    "displayName" : "Dragon Flag Hip Raise",
+    "id" : "cl.dragon-flag-hip-raise",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_decline-sit-up",
+    "displayName" : "Decline Sit-Up",
+    "id" : "cl.decline-situp",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_knee-raise",
+    "displayName" : "Knee Raise",
+    "id" : "cl.knee-raise",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_leg-raise",
+    "displayName" : "Leg Raise",
+    "id" : "cl.leg-raise",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_semi-straddle-l-sit",
+    "displayName" : "Semi Straddle L-Sit",
+    "id" : "cl.semi-straddle-l-sit",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_wall-plank",
+    "displayName" : "Wall Plank",
+    "id" : "hs.wall-plank",
+    "loads" : true,
+    "role" : "skillNode"
+  },
+  {
+    "asset" : "exercise_visual_exercise_wall-supported-one-arm-handstand",
+    "displayName" : "Wall Supported One-Arm Handstand",
+    "id" : "hs.wall-supported-oah",
+    "loads" : true,
+    "role" : "skillNode"
+  }
+]

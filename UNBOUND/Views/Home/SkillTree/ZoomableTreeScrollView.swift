@@ -7,6 +7,14 @@ struct ZoomableTreeScrollView<Content: View>: UIViewRepresentable {
     let maxZoom: CGFloat
     let initialZoom: CGFloat
     let initialOffset: CGPoint?
+    /// Animated camera move: when this point (content coordinates) changes to a
+    /// non-nil value, the scroll view flies to center it at `focusZoom`. Used by
+    /// the in-tree unlock reveal to "fly to" the node being forged.
+    var focusPoint: CGPoint? = nil
+    var focusZoom: CGFloat = 1.3
+    /// Fired once the camera has finished flying to `focusPoint`, so callers can
+    /// start an in-place reveal only after travel completes (not mid-flight).
+    var onFocusArrived: (() -> Void)? = nil
     @ViewBuilder let content: () -> Content
 
     func makeCoordinator() -> Coordinator {
@@ -58,15 +66,23 @@ struct ZoomableTreeScrollView<Content: View>: UIViewRepresentable {
         let isInteracting = scrollView.isZooming || scrollView.isDragging || scrollView.isDecelerating
         if !isInteracting {
             context.coordinator.hostingController?.rootView = content()
-            if context.coordinator.hostingController?.view.bounds.size != contentSize {
-                context.coordinator.hostingController?.view.frame = CGRect(origin: .zero, size: contentSize)
-            }
         }
+
+        // Apply the content SIZE only when the layout itself changes. UIScrollView
+        // manages contentSize while zooming (it becomes size × zoomScale); re-setting
+        // it to the unzoomed size on every refresh — a skin change, a state update,
+        // the looping active-pulse animation — clobbered that, leaving the tree
+        // scrollable into empty space after any zoom (the "no locked borders" bug).
+        if contentSize != context.coordinator.lastLayoutSize {
+            context.coordinator.lastLayoutSize = contentSize
+            context.coordinator.hostingController?.view.frame = CGRect(origin: .zero, size: contentSize)
+            scrollView.contentSize = contentSize
+        }
+
         context.coordinator.minZoom = minZoom
         context.coordinator.maxZoom = maxZoom
         scrollView.minimumZoomScale = minZoom
         scrollView.maximumZoomScale = maxZoom
-        scrollView.contentSize = contentSize
 
         if !context.coordinator.didApplyInitialZoom {
             let zoom = min(max(initialZoom, minZoom), maxZoom)
@@ -74,6 +90,40 @@ struct ZoomableTreeScrollView<Content: View>: UIViewRepresentable {
             context.coordinator.didApplyInitialZoom = true
         } else if scrollView.zoomScale < minZoom || scrollView.zoomScale > maxZoom {
             scrollView.setZoomScale(min(max(scrollView.zoomScale, minZoom), maxZoom), animated: false)
+        }
+
+        // Animated camera fly-to (unlock reveal). A symmetric contentInset of
+        // half the viewport lets even edge/corner nodes reach dead center
+        // (without it the offset clamps at the content edge and the node lands
+        // in a corner). User scrolling is DISABLED while focused — it's a
+        // watch-the-unlock moment, and otherwise that big inset would let the
+        // tree pan endlessly past its edges.
+        if let fp = focusPoint {
+            if fp != context.coordinator.lastFocusApplied {
+                context.coordinator.lastFocusApplied = fp
+                context.coordinator.isFocusing = true
+                scrollView.isScrollEnabled = false
+                let z = min(max(focusZoom, minZoom), maxZoom)
+                let arrived = onFocusArrived
+                DispatchQueue.main.async {
+                    let vw = scrollView.bounds.width
+                    let vh = scrollView.bounds.height
+                    scrollView.contentInset = UIEdgeInsets(top: vh / 2, left: vw / 2, bottom: vh / 2, right: vw / 2)
+                    let target = CGPoint(x: fp.x * z - vw / 2, y: fp.y * z - vh / 2)
+                    UIView.animate(withDuration: 0.75, delay: 0, options: [.curveEaseInOut]) {
+                        scrollView.zoomScale = z
+                        scrollView.contentOffset = target
+                    } completion: { _ in
+                        arrived?()
+                    }
+                }
+            }
+        } else {
+            // Normal browsing: guarantee no leftover focus inset (which would
+            // remove the scroll boundaries) and keep scrolling enabled. Idempotent.
+            context.coordinator.isFocusing = false
+            if scrollView.contentInset != .zero { scrollView.contentInset = .zero }
+            if !scrollView.isScrollEnabled { scrollView.isScrollEnabled = true }
         }
 
         // Apply initial content offset once, after zoom is set, so the
@@ -101,6 +151,9 @@ struct ZoomableTreeScrollView<Content: View>: UIViewRepresentable {
         var maxZoom: CGFloat = 1.5
         var didApplyInitialZoom = false
         var didApplyInitialOffset = false
+        var lastFocusApplied: CGPoint?
+        var isFocusing = false
+        var lastLayoutSize: CGSize = .zero
 
         init(minZoom: CGFloat, maxZoom: CGFloat) {
             self.minZoom = minZoom
@@ -137,6 +190,7 @@ struct ZoomableTreeScrollView<Content: View>: UIViewRepresentable {
         }
 
         func centerContentIfNeeded() {
+            guard !isFocusing else { return }
             guard let scrollView, let hostedView = hostingController?.view else { return }
             let boundsSize = scrollView.bounds.size
             var frame = hostedView.frame

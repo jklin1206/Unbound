@@ -26,18 +26,21 @@ enum SquadLogoCatalog {
     static let defaultId = "forge"
 
     static let presets: [SquadLogoPreset] = [
-        SquadLogoPreset(id: "forge", title: "Shadow Legion", assetName: "squad_logo_forge", palette: .forge),
-        SquadLogoPreset(id: "ember", title: "Hunter Guild", assetName: "squad_logo_ember", palette: .ember),
-        SquadLogoPreset(id: "volt", title: "White Tiger", assetName: "squad_logo_volt", palette: .volt),
-        SquadLogoPreset(id: "crown", title: "Gatebreakers", assetName: "squad_logo_crown", palette: .crown),
-        SquadLogoPreset(id: "barbell", title: "Iron Guard", assetName: "squad_logo_barbell", palette: .steel),
-        SquadLogoPreset(id: "pulse", title: "Striker Unit", assetName: "squad_logo_pulse", palette: .pulse),
-        SquadLogoPreset(id: "nova", title: "Scout Wing", assetName: "squad_logo_nova", palette: .nova),
-        SquadLogoPreset(id: "glacier", title: "Arcane Tower", assetName: "squad_logo_glacier", palette: .glacier),
-        SquadLogoPreset(id: "focus", title: "Assassin Cell", assetName: "squad_logo_focus", palette: .neon),
-        SquadLogoPreset(id: "prism", title: "Reaper Order", assetName: "squad_logo_prism", palette: .prism),
-        SquadLogoPreset(id: "eclipse", title: "Berserker Fang", assetName: "squad_logo_eclipse", palette: .dusk),
-        SquadLogoPreset(id: "signal", title: "Raid Command", assetName: "squad_logo_signal", palette: .signal)
+        SquadLogoPreset(id: "forge", title: "Strawhat Blades", assetName: "squad_logo_forge", palette: .forge),
+        SquadLogoPreset(id: "ember", title: "Golden Charge", assetName: "squad_logo_ember", palette: .ember),
+        SquadLogoPreset(id: "volt", title: "Bald Cape", assetName: "squad_logo_volt", palette: .volt),
+        SquadLogoPreset(id: "crown", title: "Shadow Monarchs", assetName: "squad_logo_crown", palette: .nova),
+        SquadLogoPreset(id: "pulse", title: "Cursed Blade", assetName: "squad_logo_pulse", palette: .signal),
+        SquadLogoPreset(id: "barbell", title: "Slayer Breath", assetName: "squad_logo_barbell", palette: .prism),
+        SquadLogoPreset(id: "nova", title: "Hero Spark", assetName: "squad_logo_nova", palette: .neon),
+        SquadLogoPreset(id: "glacier", title: "Stand Rush", assetName: "squad_logo_glacier", palette: .nova),
+        SquadLogoPreset(id: "focus", title: "Soul Reaper", assetName: "squad_logo_focus", palette: .ember)
+    ]
+
+    private static let retiredIdAliases: [String: String] = [
+        "prism": "crown",
+        "eclipse": "ember",
+        "signal": "focus"
     ]
 
     static func preset(for id: String?) -> SquadLogoPreset {
@@ -45,11 +48,14 @@ enum SquadLogoCatalog {
     }
 
     static func resolvedId(_ id: String?) -> String {
-        guard let id,
-              presets.contains(where: { $0.id == id })
+        guard let id
         else {
             return defaultId
         }
-        return id
+        let resolvedId = retiredIdAliases[id] ?? id
+        guard presets.contains(where: { $0.id == resolvedId }) else {
+            return defaultId
+        }
+        return resolvedId
     }
 }

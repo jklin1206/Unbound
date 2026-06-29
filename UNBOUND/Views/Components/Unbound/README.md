@@ -12,7 +12,6 @@ UNBOUND's brand component library: the buttons, cards, pickers, list rows, badge
 | `InlineNumberPad.swift` | `InlineNumberPad` + `NumberPadKey` — the stateless bottom-docked numeric keypad that pops when a set value is tapped (calm-list Phase 1b); parent owns the typed buffer. |
 | `MultiSelectChip.swift` | `MultiSelectChip` — capsule chip for multi-select grids (equipment, obstacles); SF Symbol icon, violet selected state. |
 | `MultiSelectListRow.swift` | `MultiSelectListRow` — full-width multi-select card row with a checkbox indicator; visually matches `SelectionListRow`. |
-| `NodeUnlockedOverlay.swift` | `NodeUnlockedOverlay` — full-screen takeover when a skill-tree node flips to `.proven` (scrim → hexagon bloom → labels → gains ticker); driven by `SkillProgressService.pendingUnlock`. |
 | `NumberPadEditor.swift` | The shared bottom-docked keypad-editing module (Phase 2): `NumberPadFieldKind` + the editing state machine/`NumberPadCellConfig` used by BOTH active-workout logging and the session editor; callers supply seed/live-write/commit closures. |
 | `OnboardingProgressBar.swift` | `OnboardingProgressBar` — thin 2pt progress bar under the back chevron on onboarding screens; violet fill springs between steps. |
 | `OnboardingScaffold.swift` | `OnboardingScaffold` — shared chrome for every onboarding screen (title/subtitle, back button, progress, CTA), with a default mode and an anime-HUD mode (`hudStep != nil`). |
@@ -44,7 +43,7 @@ UNBOUND's brand component library: the buttons, cards, pickers, list rows, badge
 - **Calm-list metadata text** → `MetaLine` in `CalmList.swift`.
 - **Badges / pills** → `TierBadge` (skill tier), `TitleBadge` (earned title), `SquadTitleBadge` (squad title).
 - **Rank library row + tab/filter chrome** → `RankRow` (list row), `UnderlineTabBar` (tab switcher), `SegmentedFilterBar` (filter control).
-- **Skill tree rendering + node unlock moment** → `SkillTreeView`, `NodeUnlockedOverlay`.
+- **Skill tree rendering** → `SkillTreeView`. The node-unlock moment is the in-tree reveal in `../../Home/SkillTree/ClusterStaircaseView.swift` (presented by `../Cinematic/NodeUnlock/SkillUnlockTreeReveal.swift`).
 - **Post-set/session celebration + share asset** → `RewardShareCard`.
 - **Workout-end payout sequence** → `WorkoutReward/`.
 - **Paywall blur teaser** → `BlurredPreviewOverlay`.

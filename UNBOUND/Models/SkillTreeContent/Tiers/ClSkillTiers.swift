@@ -87,23 +87,22 @@ enum CoreSkillAnchors {
         "cl.straddle-front-lever":.init(exerciseName: "straddle front lever", metric: .seconds, spec: .full([2, 4, 8, 15, 25])), // FL straddle (statics §2)
         "cl.tuck-back-lever":     .init(exerciseName: "tuck back lever",     metric: .seconds, spec: .full([3, 5, 10, 15, 20])), // BL tuck — canonical first horizontal pause
         "cl.straddle-back-lever": .init(exerciseName: "straddle back lever", metric: .seconds, spec: .full([2, 5, 10, 15, 20])), // BL straddle — back lever is easier
-        "cl.full-back-lever":     .init(exerciseName: "back lever",          metric: .seconds, spec: .feat(floor: .forged, ladder: [2, 5, 8, 12, 16, 20])), // owning a full back lever = Forged floor (one notch under full front lever's Veteran — BL is the easier family); 6 vals = 9−3
+        "cl.full-back-lever":     .init(exerciseName: "back lever",          metric: .seconds, spec: .scaled(to: 45)), // owning a full back lever = Forged floor (one notch under full front lever's Veteran — BL is the easier family); 6 vals = 9−3
 
         // ── L-sit / V-sit compression holds — GRIND seconds ──
 
         "cl.semi-straddle-l-sit": .init(exerciseName: "semi straddle l-sit", metric: .seconds, spec: .full([3, 6, 12, 20, 30])),
         "cl.straddle-l-sit":      .init(exerciseName: "straddle l-sit",      metric: .seconds, spec: .full([5, 10, 15, 25, 40])),
-        "cl.vertical-l-sit":      .init(exerciseName: "vertical l-sit",      metric: .seconds, spec: .full([2, 4, 7, 12, 20])),  // advanced compression
         "cl.v-sit":               .init(exerciseName: "v-sit",              metric: .seconds, spec: .full([2, 4, 7, 12, 20])),  // v-sit can't/2-3/5/10/20
 
         // ── Apex feats — start high (floor from difficulty), short ladder floor…peak ──
 
         // Full front lever — elite straight-arm feat; sits above every rep anchor.
         // floor .veteran (rawValue 4) → ladder count 9-4 = 5.
-        "cl.full-front-lever":  .init(exerciseName: "front lever",     metric: .seconds, spec: .feat(floor: .veteran, ladder: [1, 3, 6, 10, 15])),
+        "cl.full-front-lever":  .init(exerciseName: "front lever",     metric: .seconds, spec: .scaled(to: 40)),
         // 360 ring pulls — rare straight-arm ring arc; floor .vessel (rawValue 6)
         // -> ladder count 9-6 = 3.
-        "cl.three-sixty-pulls": .init(exerciseName: "360 ring pulls", metric: .reps,   spec: .feat(floor: .vessel,  ladder: [1, 2, 4])),
+        "cl.three-sixty-pulls": .init(exerciseName: "360 ring pulls", metric: .reps,   spec: .scaled(to: 13)),
     ]
 }
 

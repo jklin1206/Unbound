@@ -30,7 +30,7 @@ extension SkillGraph {
             title: "V-Sit",
             cluster: .coreLever, tier: 5, type: .hold,
             target: .hold(exercise: "v-sit", seconds: 10),
-            prereqs: [PrerequisiteGroup("cal.l-sit-10")],
+            prereqs: [PrerequisiteGroup(["cal.l-sit-10", "cl.hollow-body-30"])],
             primary: [.core, .arms], secondary: [.shoulders],
             subtitle: "L-Sit, compressed upward.",
             description: "From a seated push-up position, lift the legs until they're above horizontal — body forms a V shape. 10 seconds. The compression and hip-flexor strength benchmark beyond the L-sit.",
@@ -52,7 +52,7 @@ extension SkillGraph {
             title: "Straddle L-Sit",
             cluster: .coreLever, tier: 6, type: .hold,
             target: .hold(exercise: "straddle l-sit", seconds: 10),
-            prereqs: [PrerequisiteGroup("cl.semi-straddle-l-sit")],
+            prereqs: [PrerequisiteGroup(["cl.semi-straddle-l-sit", "cal.l-sit-10"])],
             primary: [.core, .arms], secondary: [.shoulders],
             subtitle: "Wide. Horizontal. Humbling.",
             description: "L-sit with legs split into a wide straddle — legs parallel to floor, toes pointed outward. 10 seconds. The lateral compression demand the standard L-sit doesn't test.",
@@ -182,28 +182,6 @@ extension SkillGraph {
                 "Shoulders shrugging up"
             ],
             timeline: "2-6 months from clean L-sit."
-        ),
-        .simple(
-            id: "cl.vertical-l-sit",
-            title: "Vertical L-Sit",
-            cluster: .coreLever, tier: 6, type: .hold,
-            target: .hold(exercise: "vertical l-sit", seconds: 5),
-            prereqs: [PrerequisiteGroup("cl.v-sit")],
-            primary: [.core, .arms], secondary: [.shoulders],
-            subtitle: "Legs go past vertical.",
-            description: "5s compression hold with hands pressed on parallel bars or floor and legs lifted beyond the regular V-sit line toward the face. The standard is visible extra compression, not a vague almost-vertical raise.",
-            formCues: [
-                "Arms locked, shoulders depressed",
-                "Chest stays tall while ribs stay braced",
-                "Legs lift beyond the V-sit line toward the face",
-                "Toes pointed, no bend in knees"
-            ],
-            commonMistakes: [
-                "Calling a normal V-sit the vertical standard",
-                "Bent arms cheat the press",
-                "Hips drop below hand line or chest collapses"
-            ],
-            timeline: "1-2 years from clean V-sit."
         ),
     ]
 }

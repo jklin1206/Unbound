@@ -3,12 +3,25 @@ import UIKit
 
 extension ClusterStaircaseView {
     func mainTree(layout: ComputedTreeLayout) -> some View {
-        ZoomableTreeScrollView(
+        // During an unlock reveal, OPEN already framed on the parent→node chain
+        // (slightly zoomed out) instead of on the tree's active node — otherwise
+        // it pans across the whole tree and parks on unrelated nodes mid-flight.
+        // The focusPoint fly then does a small punch-in onto the chain.
+        let revealOpenFocus = unlockFocusPoint(layout: layout)
+        let openZoom: CGFloat = revealOpenFocus != nil ? 0.95 : layout.activeZoom
+        let openOffset: CGPoint? = revealOpenFocus
+            .map { revealInitialOffset(focus: $0, zoom: openZoom, layout: layout) }
+            ?? layout.initialOffset
+
+        return ZoomableTreeScrollView(
             contentSize: CGSize(width: layout.contentWidth, height: layout.treeHeight),
             minZoom: minZoom,
             maxZoom: maxZoom,
-            initialZoom: layout.activeZoom,
-            initialOffset: layout.initialOffset
+            initialZoom: openZoom,
+            initialOffset: openOffset,
+            focusPoint: revealFocus,
+            focusZoom: 1.08,
+            onFocusArrived: { igniteReveal() }
         ) {
             ZStack(alignment: .topLeading) {
                 cosmeticTreeBackground(width: layout.contentWidth, height: layout.treeHeight)
@@ -27,18 +40,8 @@ extension ClusterStaircaseView {
                         )
                 }
 
-                // Dotted horizontal dividers between adjacent rank groups.
-                ForEach(Array(layout.bandRegions.dividers.enumerated()), id: \.offset) { _, y in
-                    Path { path in
-                        path.move(to: CGPoint(x: 0, y: y))
-                        path.addLine(to: CGPoint(x: layout.contentWidth, y: y))
-                    }
-                    .stroke(
-                        Color.unbound.border.opacity(0.5),
-                        style: StrokeStyle(lineWidth: 0.8, dash: [4, 6])
-                    )
-                    .frame(width: layout.contentWidth, height: layout.treeHeight)
-                }
+                // Rank groups read from the faint per-tier band tints above plus
+                // the gutter badge ladder — no dotted dividers needed.
 
                 // Rails — pre-rendered UIImage at full content size. Avoids
                 // SwiftUI Canvas lazy-rendering bug inside UIScrollView where
@@ -46,6 +49,9 @@ extension ClusterStaircaseView {
                 Image(uiImage: layout.railsImage)
                     .frame(width: layout.contentWidth, height: layout.treeHeight)
                     .allowsHitTesting(false)
+
+                // Unlock reveal: the rail from the parent lights up into the node.
+                unlockChainOverlay(layout: layout)
 
                 // Interactive hex nodes — kept OUTSIDE any drawingGroup so
                 // tap gestures still fire.
@@ -55,8 +61,31 @@ extension ClusterStaircaseView {
                     {
                         let role = layout.roles[id] ?? .tangent
                         let size = sizeFor(role: role)
+                        let isReveal = (id == unlockRevealNodeId)
+                        // The parent the unlock flows from — glows while the chain lights.
+                        let isRevealParent = (unlockRevealNodeId != nil)
+                            && (id == layout.primaryParent[unlockRevealNodeId ?? ""])
 
                         hexCore(node: node, role: role, size: size)
+                            .overlay {
+                                if isReveal {
+                                    Hexagon()
+                                        .trim(from: 0, to: revealOutline)
+                                        .stroke(
+                                            skinService.currentSkin.impactColor,
+                                            style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round)
+                                        )
+                                        .frame(width: size, height: size)
+                                        .shadow(color: skinService.currentSkin.impactColor.opacity(0.9), radius: 6)
+                                }
+                            }
+                            .scaleEffect(isReveal ? revealHexScale : 1)
+                            .shadow(
+                                color: skinService.currentSkin.impactColor.opacity(
+                                    isReveal ? revealGlow * 0.85 : (isRevealParent ? revealChainProgress * 0.6 : 0)
+                                ),
+                                radius: (isReveal || isRevealParent) ? 22 : 0
+                            )
                             .position(x: pos.x, y: pos.y)
                             .modifier(ActiveAnchorModifier(isActive: role == .active))
 
@@ -64,7 +93,6 @@ extension ClusterStaircaseView {
                             .position(x: pos.x, y: pos.y + size / 2 + belowOffset(for: role))
                     }
                 }
-
             }
             .frame(width: layout.contentWidth, height: layout.treeHeight, alignment: .topLeading)
         }
@@ -74,6 +102,177 @@ extension ClusterStaircaseView {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(skinService.currentSkin.primaryColor.opacity(0.32), lineWidth: 1)
         )
+    }
+
+    // MARK: - Unlock reveal (post-workout: fly to the node + ignite in place)
+
+    /// The point the reveal camera frames: biased toward the new node, with its
+    /// in-cluster primary parent kept visible above (the chain the unlock travels
+    /// down). Falls back to the node itself for root/entry nodes with no parent.
+    func unlockFocusPoint(layout: ComputedTreeLayout) -> CGPoint? {
+        guard let nodeId = unlockRevealNodeId, let pos = layout.positions[nodeId] else { return nil }
+        guard let parentPos = layout.primaryParent[nodeId].flatMap({ layout.positions[$0] }) else { return pos }
+        return CGPoint(x: (parentPos.x + pos.x) / 2,
+                       y: parentPos.y + (pos.y - parentPos.y) * 0.62)
+    }
+
+    /// Content offset that centers `focus` in the viewport at `zoom`, clamped to
+    /// the content. Mirrors the active-node offset math in `buildLayout`.
+    func revealInitialOffset(focus: CGPoint, zoom: CGFloat, layout: ComputedTreeLayout) -> CGPoint {
+        let vw = ScreenMetrics.bounds.width
+        let vh = layout.viewportHeight
+        let maxOffX = max(0, layout.contentWidth * zoom - vw)
+        let maxOffY = max(0, layout.treeHeight * zoom - vh)
+        return CGPoint(
+            x: min(max(0, focus.x * zoom - vw / 2), maxOffX),
+            y: min(max(0, focus.y * zoom - vh / 2), maxOffY)
+        )
+    }
+
+    /// Drives the camera fly-to + ignition when the tree is opened focused on a
+    /// freshly-unlocked node. No-op during normal browsing.
+    func startUnlockRevealIfNeeded() {
+        guard !revealStarted,
+              let nodeId = unlockRevealNodeId,
+              let layout = treeLayout,
+              let pos = layout.positions[nodeId] else { return }
+        revealStarted = true
+
+        let focus = unlockFocusPoint(layout: layout) ?? pos
+
+        // Freeze (screenshot aid): jump straight to the lit + unlocked state.
+        if revealFreeze {
+            revealFocus = focus
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                revealChainProgress = 1
+                revealHexScale = 1.22
+                revealOutline = 1
+                revealGlow = 0.7
+                revealCaption = true
+            }
+            return
+        }
+
+        // Bring the parent + node into frame. The ignite is NOT on a timer — it
+        // fires from `onFocusArrived` once travel completes (see igniteReveal),
+        // so nothing lights up mid-flight. A fallback fires it if the arrival
+        // callback is missed.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            withAnimation { revealFocus = focus }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.6) {
+            igniteReveal()
+        }
+    }
+
+    /// On camera arrival: a quick, smooth highlight flows down the rail from the
+    /// parent, then wraps + forges the node. Idempotent — only the first call
+    /// has any effect.
+    func igniteReveal() {
+        guard revealStarted, !revealIgnited,
+              let nodeId = unlockRevealNodeId,
+              let layout = treeLayout,
+              layout.positions[nodeId] != nil else { return }
+        revealIgnited = true
+
+        let hasParent = !reduceMotion && layout.primaryParent[nodeId] != nil
+        if hasParent {
+            // One continuous line-draw (SwiftUI .trim) down the rail, paced slow
+            // enough to clearly watch it trace, then the wrap. Not segmented.
+            UnboundHaptics.soft()
+            withAnimation(.easeInOut(duration: 1.4)) { revealChainProgress = 1 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) { wrapAndForgeNode() }
+        } else {
+            revealChainProgress = 1
+            wrapAndForgeNode()
+        }
+    }
+
+    /// The highlight arrives and WRAPS around the node's hex (outline trace from
+    /// the top, where the chain lands), then the node forges: grows once to its
+    /// held size + glows, holding until the user taps Continue.
+    private func wrapAndForgeNode() {
+        UnboundHaptics.medium()
+        withAnimation(.easeInOut(duration: 0.7)) { revealOutline = 1 }   // wrap around the hex
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            UnboundHaptics.success()
+            withAnimation(.easeOut(duration: 0.55)) { revealHexScale = 1.22 }
+            withAnimation(.easeOut(duration: 0.6)) { revealGlow = 1 }
+            withAnimation(.easeOut(duration: 0.4)) { revealCaption = true }
+            if !reduceMotion {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                    withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                        revealGlow = 0.6
+                    }
+                }
+            }
+        }
+    }
+
+    /// The rail from the unlock node's parent into it, drawn over the static
+    /// rails image and trimmed 0→1 so the highlight visibly snakes down the
+    /// chain. Gated on the node/parent EXISTENCE (not on progress) so the view
+    /// is present before the trim animates — otherwise it's inserted mid-flight
+    /// at the final value and the line just pops in fully drawn.
+    @ViewBuilder
+    func unlockChainOverlay(layout: ComputedTreeLayout) -> some View {
+        if let nodeId = unlockRevealNodeId,
+           let parentId = layout.primaryParent[nodeId],
+           let parentPos = layout.positions[parentId],
+           let nodePos = layout.positions[nodeId] {
+            ChainPath(
+                from: parentPos,
+                to: nodePos,
+                fromSize: sizeFor(role: layout.roles[parentId] ?? .tangent),
+                toSize: sizeFor(role: layout.roles[nodeId] ?? .tangent)
+            )
+            .trim(from: 0, to: revealChainProgress)
+            .stroke(
+                skinService.currentSkin.impactColor,
+                style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round)
+            )
+            .shadow(color: skinService.currentSkin.impactColor.opacity(0.9), radius: 8)
+            .frame(width: layout.contentWidth, height: layout.treeHeight, alignment: .topLeading)
+            .allowsHitTesting(false)
+        }
+    }
+
+    @ViewBuilder
+    var unlockRevealCaption: some View {
+        if revealCaption,
+           let nodeId = unlockRevealNodeId,
+           let node = graph.node(id: nodeId) {
+            let headline = node.isMythic ? "MYTHIC ACHIEVED"
+                : node.isKeystone ? "KEYSTONE UNLOCKED" : "NODE UNLOCKED"
+            VStack(spacing: 10) {
+                Text(headline)
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(3.0)
+                    .foregroundStyle(skinService.currentSkin.impactColor)
+                Text(node.title)
+                    .font(Font.unbound.titleM)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 24)
+                UnboundButton(title: "Continue", icon: "arrow.right") {
+                    onUnlockRevealFinished?()
+                }
+                .padding(.horizontal, 40)
+                .padding(.top, 4)
+            }
+            .padding(.top, 28)
+            .padding(.bottom, 36)
+            .frame(maxWidth: .infinity)
+            .background(
+                LinearGradient(
+                    colors: [Color.unbound.bg.opacity(0), Color.unbound.bg.opacity(0.82), Color.unbound.bg],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            )
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
     }
 
     func cosmeticTreeBackground(width: CGFloat, height: CGFloat) -> some View {
@@ -126,13 +325,9 @@ extension ClusterStaircaseView {
             let cgCtx = ctx.cgContext
             cgCtx.setLineCap(.round)
             cgCtx.setLineJoin(.round)
-            drawGhostRailsCG(
-                cgCtx,
-                positions: positions,
-                primaryParent: primaryParent,
-                roles: roles,
-                nodeById: nodeById
-            )
+            // Only the primary progression spine is drawn. Secondary prereqs are
+            // surfaced explicitly in the skill detail's PREREQUISITES section
+            // instead of a dashed cross-link web that read as visual noise.
             drawPrimaryRailsCG(
                 cgCtx,
                 positions: positions,
@@ -341,5 +536,26 @@ extension ClusterStaircaseView {
         func body(content: Content) -> some View {
             if isActive { content.id("active") } else { content }
         }
+    }
+}
+
+/// The orthogonal rail from a parent node down into its child, in tree content
+/// coordinates. Trimmed 0→1 to animate the unlock travelling down the chain.
+private struct ChainPath: Shape {
+    let from: CGPoint   // parent center
+    let to: CGPoint     // child center
+    let fromSize: CGFloat
+    let toSize: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let start = CGPoint(x: from.x, y: from.y + fromSize / 2)  // parent bottom
+        let end = CGPoint(x: to.x, y: to.y - toSize / 2)          // child top
+        let midY = (start.y + end.y) / 2
+        p.move(to: start)
+        p.addLine(to: CGPoint(x: start.x, y: midY))
+        p.addLine(to: CGPoint(x: end.x, y: midY))
+        p.addLine(to: end)
+        return p
     }
 }

@@ -159,6 +159,34 @@ final class TrainingCompletionService {
                 bodyweightKg: result.bodyweightKg
             )
 
+            // Persist the cumulative skill-tier advance so the rank the user SEES
+            // moves when they log. ProofEngine above computes the reveal delta
+            // against the prior state; this writes the full-history tier into
+            // UserSkillTierStore (what the rank library reads). Runs AFTER
+            // ProofEngine so the reveal still diffs against the pre-advance state.
+            // Previously nothing wired this — evaluateTierCrossings had no caller,
+            // so a skill's rank froze after the one-time SkillTierMigration.
+            let tierAdvances = await RankService.shared.evaluateTierCrossings(
+                log: workoutLog,
+                userId: performanceLog.userId
+            )
+            if !tierAdvances.isEmpty {
+                LoggingService.shared.log(
+                    "Skill tier advanced: \(tierAdvances.map { "\($0.skillId) → \($0.to)" }.joined(separator: ", "))",
+                    level: .info,
+                    context: ["performanceLogId": performanceLog.id]
+                )
+            }
+
+            // Detect skill-tree node unlocks from this session and stash the
+            // event on SkillProgressService.pendingUnlock. The in-tree unlock
+            // reveal (mounted on HomeTabView) presents it once the workout +
+            // reward covers dismiss and the home tab is revealed.
+            await SkillProgressService.shared.recompute(
+                after: workoutLog,
+                userBodyweightKg: result.bodyweightKg
+            )
+
             // Squad cluster: a real finished workout advances squad-mission and
             // friend-challenge progress. The legacy WorkoutLogService.saveLog
             // path that used to do this is now deleted, so this is the canonical

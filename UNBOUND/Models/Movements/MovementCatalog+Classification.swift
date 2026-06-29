@@ -40,6 +40,90 @@ extension MovementCatalog {
         variantOfMovementId(for: exercise) ?? "exercise.\(slug(exercise.name))"
     }
 
+    /// The authoritative "this library exercise IS this skill's own movement"
+    /// join - beyond the precise `skillId` that drill/target definitions already
+    /// carry. Used by `MovementProofMatcher`/`owningSkillId` so logging the
+    /// library exercise advances the SAME rank as the drill or the skill block
+    /// (the "one rank, fed from any surface" unification), and (P4) so the rank
+    /// library can fold by this explicit map instead of fragile name-matching.
+    ///
+    /// Only the movement that IS the skill belongs here, never a merely-
+    /// associated one or a regression: the Hollow Body Hold exercise IS the
+    /// hollow-body hold, but "Hollow Rock" (dynamic) and "Tuck L-Sit" (an easier
+    /// regression) are excluded - they keep their own identity.
+    ///
+    /// Every pair is metric-compatible (a hold skill twins only a hold exercise,
+    /// a rep/loaded skill only a rep/loaded exercise), audited via
+    /// `MovementFoldMapDumpTests`. `CanonicalTwinMapTests` locks soundness +
+    /// completeness so the map can never silently drift as the catalog grows.
+    static let exerciseSkillTwins: [String: String] = [
+        // Calisthenics push / holds
+        "exercise.pushup": "cal.pushup",
+        "exercise.incline-pushup": "cal.incline-pushup",
+        "exercise.decline-pushup": "cal.decline-pushup",
+        "exercise.diamond-pushup": "cal.diamond-pushup",
+        "exercise.archer-pushup": "cal.archer-pushup",
+        "exercise.pike-pushup": "cal.pike-pushup",
+        "exercise.pseudo-planche-pushup": "cal.pseudo-planche-pushup",
+        "exercise.plank": "cal.plank-30",
+        "exercise.l-sit": "cal.l-sit-10",
+        // Core levers
+        "exercise.hollow-hold": "cl.hollow-body-30",
+        "exercise.dragon-flag": "cl.dragon-flag",
+        "exercise.decline-situp": "cl.decline-situp",
+        "exercise.hanging-knee-raise": "cl.hanging-knee-raise",
+        "exercise.hanging-leg-raise": "cl.hanging-leg-raise",
+        "exercise.tuck-front-lever": "cl.tuck-front-lever",
+        // Pull power
+        "exercise.pullup": "pp.pullup",
+        "exercise.chin-up": "pp.chin-up",
+        "exercise.weighted-pullup": "pp.weighted-pullup",
+        "exercise.muscle-up": "pp.muscle-up",
+        // Leg dominance
+        "exercise.pistol-squat": "ld.pistol-squat",
+        "exercise.weighted-pistol": "ld.weighted-pistol",
+        "exercise.shrimp-squat": "ld.shrimp-squat",
+        "exercise.split-squat": "ld.split-squat",
+        "exercise.bulgarian-split-squat": "ld.bulgarian-split-squat",
+        "exercise.step-up": "ld.step-up",
+        "exercise.glute-bridge": "ld.glute-bridge",
+        "exercise.goblet-squat": "ld.goblet-20",
+        "exercise.nordic-curl": "ld.nordic-curl",
+        "exercise.bodyweight-leg-extension": "ld.leg-extensions"
+    ]
+
+    /// Skill drills that ARE the same physical movement as a rankable library
+    /// exercise route their XP into that ONE canonical standard, so a single
+    /// movement never banks into two `movement_progress` rows (P3 of the
+    /// movement unification). Only true-twin drills (the drill == the skill's
+    /// criterion movement) that ALSO have an exercise twin belong here -
+    /// regressions like Tuck L-Sit keep their own standard.
+    ///
+    /// Today this is just the hollow body hold (the only movement with two
+    /// rankable true-twins). The skill-drill factory reads this to set the
+    /// drill's `rankStandardMovementId`, and
+    /// `MovementProgressConsolidationMigration` merges any pre-existing split
+    /// rows on upgrade. `CanonicalTwinMapTests` locks the routing.
+    static let skillDrillCanonicalStandard: [String: String] = [
+        "skill-drill.hollow-body-hold": "exercise.hollow-hold"
+    ]
+
+    /// The skill a movement *is* (its own rank source), or nil if it is not a
+    /// skill movement. Drills and skill targets carry a precise `skillId`;
+    /// exercise twins resolve through `exerciseSkillTwins`. Deliberately
+    /// excludes mere `skillAssociations`, which are too broad — Hollow Rock and
+    /// Hanging Knee Raise both associate with the hollow-body skill yet are
+    /// distinct movements that must not advance it.
+    static func owningSkillId(forMovementId movementId: String?) -> String? {
+        guard let movementId else { return nil }
+        if let definition = definition(for: movementId),
+           let skillId = definition.skillId,
+           SkillGraph.shared.node(id: skillId) != nil {
+            return skillId
+        }
+        return exerciseSkillTwins[movementId]
+    }
+
     static let exerciseAttributeWeights: [String: [AttributeKey: Double]] = {
         guard let url = Bundle.main.url(forResource: "AttributeContributions", withExtension: "json"),
               let data = try? Data(contentsOf: url),
@@ -719,6 +803,12 @@ extension MovementCatalog {
             aliases += ["bodyweight leg extensions", "reverse nordic", "reverse-nordic", "reverse nordic curl", "kneeling leg extension"]
         case "plank":
             aliases += ["plank hold", "plank max hold"]
+        case "machine chest press":
+            aliases += ["plate loaded chest press", "hammer strength chest press", "converging chest press"]
+        case "machine row":
+            aliases += ["plate loaded row", "hammer strength row", "hammer strength low row"]
+        case "seated machine press":
+            aliases += ["plate loaded shoulder press"]
         default:
             break
         }

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>UNBOUND - Rank Standards Audit</title>
+<style>
+  :root{
+    --bg:#08080A; --panel:#101015; --panel2:#16161D; --line:#26262F;
+    --ink:#F3F2F0; --ink2:#A9A7B2; --ink3:#6E6C78;
+    --gold:#FFC857;
+    --t0:#7C7A88; --t1:#6A70C4; --t2:#C79D46; --t3:#AF401A; --t4:#3E7449;
+    --t5:#2C90BB; --t6:#7E51B5; --t7:#C24BC9; --t8:#FFC857;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Inter,system-ui,sans-serif;
+    overflow:hidden; -webkit-font-smoothing:antialiased;
+  }
+  .deck{height:100vh;width:100vw;position:relative}
+  .slide{
+    position:absolute;inset:0;display:none;flex-direction:column;
+    padding:7.6vh 5.2vw 6.5vh;opacity:0;transition:opacity .35s ease;
+    overflow:auto;
+  }
+  .slide.active{display:flex;opacity:1}
+  .eyebrow{font-size:.8rem;letter-spacing:.26em;text-transform:uppercase;color:var(--ink3);font-weight:600;margin-bottom:1.1rem}
+  h1{font-size:clamp(2.2rem,5.2vw,4.4rem);line-height:1.02;font-weight:800;letter-spacing:-.02em}
+  h2{font-size:clamp(1.5rem,3.1vw,2.5rem);line-height:1.06;font-weight:780;letter-spacing:-.015em;margin-bottom:.4rem}
+  h2 .sub{color:var(--ink3);font-weight:600}
+  p{color:var(--ink2);font-size:clamp(.95rem,1.35vw,1.22rem);line-height:1.55;max-width:62ch}
+  .lead{color:var(--ink);font-size:clamp(1.05rem,1.6vw,1.5rem);line-height:1.5;max-width:46ch}
+  .muted{color:var(--ink3)}
+  .accent{color:var(--gold)}
+  strong{color:var(--ink);font-weight:700}
+  code{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:.85em;background:#1c1c24;border:1px solid var(--line);padding:.08em .4em;border-radius:5px;color:#d9d7e2}
+
+  /* Title slide */
+  .title{justify-content:center}
+  .title h1{max-width:18ch}
+  .title .tag{margin-top:1.6rem;font-size:clamp(1rem,1.7vw,1.5rem);color:var(--ink2);max-width:40ch;line-height:1.45}
+  .title .meta{margin-top:auto;display:flex;gap:2.2rem;flex-wrap:wrap;color:var(--ink3);font-size:.85rem;letter-spacing:.04em}
+  .title .meta b{color:var(--ink);font-weight:600}
+  .bigq{margin-top:2rem;padding:1.1rem 1.4rem;border-left:3px solid var(--gold);background:linear-gradient(90deg,rgba(255,200,87,.08),transparent);border-radius:0 10px 10px 0}
+  .bigq b{color:var(--gold)}
+
+  /* Rank ladder chips */
+  .ladder{display:grid;grid-template-columns:repeat(9,1fr);gap:.7rem;margin-top:1.8rem}
+  .rk{border-radius:13px;padding:1rem .7rem 1.1rem;background:var(--panel);border:1px solid var(--line);position:relative;overflow:hidden;min-height:148px;display:flex;flex-direction:column}
+  .rk::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:var(--c)}
+  .rk .ord{font-size:.72rem;color:var(--ink3);font-weight:700;letter-spacing:.1em}
+  .rk .nm{font-size:1.02rem;font-weight:800;margin-top:.35rem;color:var(--c)}
+  .rk .loc{font-size:.74rem;color:var(--ink3);margin-top:.3rem;line-height:1.3}
+  .rk .dot{width:9px;height:9px;border-radius:50%;background:var(--c);margin-top:auto;box-shadow:0 0 14px var(--c)}
+
+  /* Two-column layout */
+  .cols{display:grid;grid-template-columns:1.05fr 1fr;gap:2.6rem;flex:1;align-items:start;margin-top:1.4rem}
+  .cols.center{align-items:center}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.5rem 1.6rem}
+  .card h3{font-size:1.05rem;font-weight:750;margin-bottom:.7rem;display:flex;align-items:center;gap:.5rem}
+  .card.aSrc{border-color:rgba(108,112,196,.4)}
+  .card.bSrc{border-color:rgba(255,200,87,.35)}
+  .pill{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.2em .6em;border-radius:6px}
+  .pill.a{background:rgba(108,112,196,.18);color:#9ea4ff}
+  .pill.b{background:rgba(255,200,87,.16);color:var(--gold)}
+  ul.clean{list-style:none;display:flex;flex-direction:column;gap:.6rem;margin-top:.3rem}
+  ul.clean li{position:relative;padding-left:1.3rem;color:var(--ink2);font-size:clamp(.9rem,1.2vw,1.08rem);line-height:1.45}
+  ul.clean li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+  ul.clean li b{color:var(--ink)}
+
+  /* Standards table */
+  .tablewrap{flex:0 0 auto;max-height:76vh;overflow:auto;margin-top:1.1rem;border:1px solid var(--line);border-radius:14px}
+  table{border-collapse:collapse;width:100%;font-size:clamp(.74rem,1.05vw,.95rem)}
+  thead th{position:sticky;top:0;background:#0d0d12;z-index:2}
+  th,td{padding:.5rem .55rem;text-align:center;white-space:nowrap;border-bottom:1px solid #1d1d25}
+  th.skill,td.skill{text-align:left;position:sticky;left:0;background:#0d0d12;z-index:1;font-weight:650;color:var(--ink);min-width:172px;border-right:1px solid var(--line)}
+  thead th{font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;font-weight:800;padding-top:.7rem;padding-bottom:.7rem}
+  thead th .rkn{display:block}
+  thead th .ord{display:block;color:var(--ink3);font-size:.62rem;font-weight:600;margin-top:.15rem}
+  tbody tr:hover td{background:rgba(255,255,255,.02)}
+  tbody tr:hover td.skill{background:#13131a}
+  td .v{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
+  td.locked .v{color:#3c3a44}
+  td.locked{background:repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(255,255,255,.012) 5px,rgba(255,255,255,.012) 10px)}
+  td.floor{position:relative}
+  td.floor .v{color:#0a0a0c;font-weight:800}
+  td.floor::after{content:"";position:absolute;inset:5px 3px;border-radius:6px;background:var(--fc);z-index:-1;opacity:.92}
+  td.floor{z-index:0}
+  .unit{color:var(--ink3);font-weight:500;font-size:.86em}
+  .clusternote{font-size:.82rem;color:var(--ink3);margin-top:.6rem;display:flex;gap:1.4rem;flex-wrap:wrap}
+  .clusternote .k{display:inline-flex;align-items:center;gap:.4rem}
+  .sw{width:22px;height:11px;border-radius:3px;display:inline-block}
+  .sw.locked{background:repeating-linear-gradient(45deg,#1a1a22,#1a1a22 3px,#222 3px,#222 6px);border:1px solid #2a2a33}
+  .sw.floor{background:#8a8a8a}
+
+  /* Verdict */
+  .verdict{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin-top:1.5rem;flex:1;align-content:start}
+  .vc{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.4rem 1.4rem 1.5rem;display:flex;flex-direction:column}
+  .vc .tagline{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--ink3)}
+  .vc h3{font-size:1.18rem;font-weight:780;margin:.5rem 0 .2rem}
+  .vc .ex{font-size:.82rem;color:var(--ink3);margin-bottom:.7rem}
+  .vc p{font-size:.93rem;line-height:1.5}
+  .vc .stamp{margin-top:auto;padding-top:.9rem;font-weight:800;font-size:.96rem;display:flex;align-items:center;gap:.5rem}
+  .vc.keep{border-color:rgba(62,116,73,.5)} .vc.keep .stamp{color:#64C475}
+  .vc.keep .tagline{color:#64C475}
+  .vc.watch{border-color:rgba(199,157,70,.5)} .vc.watch .stamp{color:var(--gold)}
+  .vc.watch .tagline{color:var(--gold)}
+  .vc.ratio{border-color:rgba(44,144,187,.5)} .vc.ratio .stamp{color:#54b6e0}
+  .vc.ratio .tagline{color:#54b6e0}
+
+  .keyfinding{display:flex;flex-direction:column;gap:1.1rem;margin-top:1.4rem;flex:1}
+  .kf{display:grid;grid-template-columns:auto 1fr;gap:1.2rem;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.2rem 1.5rem}
+  .kf .big{font-size:clamp(1.6rem,3.4vw,2.7rem);font-weight:850;letter-spacing:-.02em;white-space:nowrap}
+  .kf.bw .big{color:#54b6e0}
+  .kf.abs .big{color:var(--gold)}
+  .kf p{margin:0}
+  .takeaway{margin-top:1.1rem;padding:1.1rem 1.4rem;background:linear-gradient(90deg,rgba(255,200,87,.09),transparent);border-left:3px solid var(--gold);border-radius:0 12px 12px 0}
+  .takeaway p{color:var(--ink);max-width:none}
+
+  .reco{display:grid;grid-template-columns:1.2fr 1fr;gap:2rem;flex:1;margin-top:1.2rem;align-items:start}
+  .steps{display:flex;flex-direction:column;gap:.9rem}
+  .step{display:grid;grid-template-columns:auto 1fr;gap:1rem;align-items:start}
+  .step .n{width:30px;height:30px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--gold);font-size:.9rem}
+  .step .b{font-size:clamp(.92rem,1.25vw,1.1rem);line-height:1.45;color:var(--ink2)}
+  .step .b b{color:var(--ink)}
+  .summary{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.5rem}
+  .summary .q{font-size:1.05rem;font-weight:750;color:var(--ink);margin-bottom:.5rem}
+  .summary .a{font-size:1.5rem;font-weight:820;color:var(--gold);line-height:1.15;margin-bottom:.8rem;letter-spacing:-.01em}
+
+  /* nav */
+  .nav{position:fixed;bottom:0;left:0;right:0;height:5.2vh;min-height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 1.4rem;background:linear-gradient(0deg,#08080A,transparent);z-index:50}
+  .progress{position:fixed;bottom:0;left:0;height:3px;background:var(--gold);z-index:60;transition:width .35s ease;box-shadow:0 0 12px var(--gold)}
+  .nav .where{font-size:.78rem;color:var(--ink3);letter-spacing:.05em;font-variant-numeric:tabular-nums}
+  .nav .where b{color:var(--ink)}
+  .dots{display:flex;gap:7px;align-items:center}
+  .dots button{width:8px;height:8px;border-radius:50%;border:none;background:#33333d;cursor:pointer;padding:0;transition:all .2s}
+  .dots button.on{background:var(--gold);transform:scale(1.3)}
+  .arrows{display:flex;gap:.5rem}
+  .arrows button{background:var(--panel2);border:1px solid var(--line);color:var(--ink2);width:34px;height:30px;border-radius:8px;cursor:pointer;font-size:1rem;transition:all .15s}
+  .arrows button:hover{background:#22222b;color:var(--ink)}
+  .hint{position:fixed;top:2.6vh;right:3vw;font-size:.72rem;color:var(--ink3);letter-spacing:.08em;z-index:55}
+  .num{position:fixed;top:2.6vh;left:3vw;font-size:.72rem;color:var(--ink3);letter-spacing:.18em;font-weight:700;z-index:55}
+</style>
+</head>
+<body>
+<div class="num" id="kicker">UNBOUND // STANDARDS</div>
+<div class="hint">← → to navigate</div>
+<div class="deck" id="deck"></div>
+<div class="progress" id="bar"></div>
+<div class="nav">
+  <div class="where">Slide <b id="cur">1</b> / <span id="tot">0</span></div>
+  <div class="dots" id="dots"></div>
+  <div class="arrows"><button id="prev">‹</button><button id="next">›</button></div>
+</div>
+
+<script>
+const RANKS=[
+ {n:"Initiate",o:"TIER 0",c:"var(--t0)",hex:"#7C7A88",loc:"The Quiet Room"},
+ {n:"Novice",o:"TIER 1",c:"var(--t1)",hex:"#6A70C4",loc:"The Outer Gate"},
+ {n:"Apprentice",o:"TIER 2",c:"var(--t2)",hex:"#C79D46",loc:"The Lantern Hall"},
+ {n:"Forged",o:"TIER 3",c:"var(--t3)",hex:"#AF401A",loc:"The Forge"},
+ {n:"Veteran",o:"TIER 4",c:"var(--t4)",hex:"#3E7449",loc:"The Mossgrown Shrine"},
+ {n:"Master",o:"TIER 5",c:"var(--t5)",hex:"#2C90BB",loc:"The Summit"},
+ {n:"Vessel",o:"TIER 6",c:"var(--t6)",hex:"#7E51B5",loc:"The Sealed Chamber"},
+ {n:"Ascendant",o:"TIER 7",c:"var(--t7)",hex:"#C24BC9",loc:"The Ascension Hall"},
+ {n:"Unbound",o:"TIER 8",c:"var(--t8)",hex:"#FFC857",loc:"The Sky Temple"},
+];
+const DATA={"clusters":{"Pull (pp)":[{"name":"Pull-up","metric":"reps","vals":[1,4,6,10,13,18,23,28,32]},{"name":"Chin-up","metric":"reps","vals":[1,4,7,10,13,18,22,26,30]},{"name":"Wide pull-up","metric":"reps","vals":[1,3,4,7,9,13,17,21,24]},{"name":"Muscle-up","metric":"reps","vals":[1,2,3,5,7,9,11,14,17]},{"name":"Bodyweight row","metric":"reps","vals":[1,4,7,13,19,26,33,41,48]},{"name":"Dead hang","metric":"seconds","vals":[20,30,40,50,60,75,90,105,120]},{"name":"Weighted pull-up (+%BW)","metric":"ratio","vals":[0.1,0.2,0.25,0.4,0.5,0.65,0.75,0.9,1.0]},{"name":"Archer pull-up","metric":"reps","vals":[1,1,1,2,3,4,6,8,9]},{"name":"Strict muscle-up","metric":"reps","vals":[1,1,1,1,2,3,5,8,12]},{"name":"Ring muscle-up","metric":"reps","vals":[1,1,1,1,1,2,4,6,9]},{"name":"One-arm pull-up","metric":"reps","vals":[1,1,1,1,1,1,1,3,5]},{"name":"Tuck front-lever pull-up","metric":"reps","vals":[1,1,1,1,1,3,5,7,10]},{"name":"One-arm chin-up","metric":"reps","vals":[1,1,1,1,1,1,1,3,5]}],"Push (cal)":[{"name":"Incline push-up","metric":"reps","vals":[10,18,25,35,45,55,65,78,90]},{"name":"Push-up","metric":"reps","vals":[5,13,20,30,40,52,64,77,90]},{"name":"Decline push-up","metric":"reps","vals":[3,9,14,22,30,40,50,61,72]},{"name":"Diamond push-up","metric":"reps","vals":[3,7,10,17,24,32,39,48,56]},{"name":"Archer push-up","metric":"reps","vals":[1,5,9,17,24,34,44,55,65]},{"name":"Pseudo-planche push-up","metric":"reps","vals":[3,5,6,8,10,13,16,19,22]},{"name":"Dip","metric":"reps","vals":[1,6,10,15,20,26,31,38,44]},{"name":"Ring dip","metric":"reps","vals":[1,4,7,11,15,20,25,31,36]},{"name":"Pike push-up","metric":"reps","vals":[5,8,10,14,18,24,30,36,42]},{"name":"Handstand push-up","metric":"reps","vals":[1,1,1,1,1,8,18,32,46]},{"name":"One-arm push-up","metric":"reps","vals":[1,1,1,1,1,8,18,30,43]},{"name":"Plank","metric":"seconds","vals":[20,33,45,53,60,90,120,150,180]},{"name":"L-sit","metric":"seconds","vals":[3,4,5,10,15,23,30,38,45]},{"name":"90-degree push-up","metric":"reps","vals":[1,1,1,1,1,1,1,2,4]}],"Core (cl)":[{"name":"Hanging leg raise","metric":"reps","vals":[1,3,4,6,8,10,12,16,20]},{"name":"Toes to bar","metric":"reps","vals":[1,3,5,9,12,17,22,29,35]},{"name":"Dragon flag","metric":"reps","vals":[1,2,3,5,6,8,10,13,15]},{"name":"Hollow body hold","metric":"seconds","vals":[10,15,20,25,30,38,45,53,60]},{"name":"Extended plank","metric":"seconds","vals":[20,33,45,53,60,90,120,150,180]},{"name":"Tuck front lever","metric":"seconds","vals":[3,4,5,8,10,15,20,25,30]},{"name":"Straddle front lever","metric":"seconds","vals":[2,3,4,6,8,12,15,20,25]},{"name":"Tuck back lever","metric":"seconds","vals":[3,4,5,8,10,13,15,18,20]},{"name":"Full back lever","metric":"seconds","vals":[2,2,2,2,5,8,12,16,20]},{"name":"Straddle L-sit","metric":"seconds","vals":[5,8,10,13,15,20,25,33,40]},{"name":"V-sit","metric":"seconds","vals":[2,3,4,6,7,10,12,16,20]},{"name":"Full front lever","metric":"seconds","vals":[1,1,1,1,1,3,6,10,15]}],"Handstand (hs)":[{"name":"Wall plank","metric":"seconds","vals":[20,30,40,50,60,75,90,105,120]},{"name":"Wall handstand","metric":"seconds","vals":[10,20,30,45,60,75,90,105,120]},{"name":"Headstand","metric":"seconds","vals":[15,23,30,45,60,75,90,105,120]},{"name":"Crow pose","metric":"seconds","vals":[5,10,15,23,30,38,45,53,60]},{"name":"Tuck handstand","metric":"seconds","vals":[5,8,10,15,20,25,30,38,45]},{"name":"Elbow lever","metric":"seconds","vals":[5,8,10,15,20,25,30,38,45]},{"name":"Freestanding handstand","metric":"seconds","vals":[5,10,15,23,30,38,45,53,60]},{"name":"One-arm elbow lever","metric":"seconds","vals":[3,3,3,3,3,6,10,15,25]},{"name":"Wall-supported one-arm HS","metric":"seconds","vals":[3,3,3,3,3,3,5,8,12]},{"name":"Tuck press to HS","metric":"reps","vals":[1,1,1,1,1,2,3,5,8]},{"name":"Straddle press to HS","metric":"reps","vals":[1,1,1,1,1,1,1,2,4]},{"name":"Press to handstand","metric":"reps","vals":[1,1,1,1,1,1,1,3,5]}],"Planche (pl)":[{"name":"Bent-arm planche","metric":"seconds","vals":[2,3,4,5,6,7,8,10,12]},{"name":"Tuck planche","metric":"seconds","vals":[3,4,5,8,10,15,20,25,30]},{"name":"Straddle planche","metric":"seconds","vals":[2,2,2,2,2,4,7,12,20]},{"name":"Half-lay planche","metric":"seconds","vals":[2,2,2,2,2,2,4,8,15]},{"name":"Full planche","metric":"seconds","vals":[1,1,1,1,1,1,1,4,8]}],"Legs (ld)":[{"name":"Goblet squat (×BW)","metric":"ratio","vals":[0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5]},{"name":"Glute bridge","metric":"reps","vals":[10,18,25,35,45,58,70,85,100]},{"name":"Bulgarian split squat","metric":"reps","vals":[3,7,10,16,22,30,38,47,55]},{"name":"Deep squat hold","metric":"seconds","vals":[30,45,60,75,90,105,120,150,180]},{"name":"Pistol squat","metric":"reps","vals":[1,2,3,8,13,19,25,32,38]},{"name":"Shrimp squat","metric":"reps","vals":[1,2,3,6,9,14,18,23,28]},{"name":"Nordic curl","metric":"reps","vals":[1,2,3,4,5,6,7,8,9]},{"name":"Weighted pistol (×BW)","metric":"ratio","vals":[0.1,0.15,0.2,0.3,0.4,0.5,0.6,0.75,0.9]},{"name":"Box jump","metric":"reps","vals":[1,2,3,4,5,6,7,8,9]}],"One-arm handstand (oah)":[{"name":"One-arm handstand (5s)","metric":"seconds","vals":[3,3,3,3,3,3,3,5,8]},{"name":"Full one-arm handstand","metric":"seconds","vals":[3,3,3,3,3,3,3,3,8]}]},"gym":{"back squat":{"m":[0.0,0.75,1.0,1.25,1.38,1.5,1.88,2.25,2.75],"f":[0.0,0.5,0.63,0.75,1.0,1.25,1.38,1.5,2.0]},"bench press":{"m":[0.0,0.5,0.63,0.75,1.0,1.25,1.5,1.75,2.0],"f":[0.0,0.25,0.38,0.5,0.63,0.75,0.88,1.0,1.5]},"deadlift":{"m":[0.0,1.0,1.25,1.5,1.75,2.0,2.25,2.5,3.0],"f":[0.0,0.5,0.75,1.0,1.13,1.25,1.5,1.75,2.5]},"overhead press":{"m":[0.0,0.35,0.45,0.55,0.68,0.8,0.95,1.1,1.4],"f":[0.0,0.2,0.28,0.35,0.43,0.5,0.63,0.75,1.0]},"barbell row":{"m":[0.0,0.5,0.63,0.75,0.88,1.0,1.25,1.5,1.75],"f":[0.0,0.25,0.33,0.4,0.53,0.65,0.78,0.9,1.2]}}};
+
+function fmtSkill(metric,val,name){
+  if(metric==="reps") return `<span class="v">${val}</span>`;
+  if(metric==="seconds") return `<span class="v">${val}</span><span class="unit">s</span>`;
+  // ratio
+  if(name.includes("+%BW")) return `<span class="v">+${Math.round(val*100)}</span><span class="unit">%</span>`;
+  return `<span class="unit">×</span><span class="v">${val.toFixed(2)}</span>`;
+}
+function fmtRatio(v){return v<=0?`<span class="unit">-</span>`:`<span class="unit">×</span><span class="v">${v.toFixed(2)}</span>`;}
+
+function floorIndex(vals){let i=0;while(i+1<vals.length&&vals[i+1]===vals[0])i++;return i;}
+
+function skillTable(rows){
+  let head=`<thead><tr><th class="skill">Movement</th>`;
+  RANKS.forEach(r=>head+=`<th style="color:${r.c}"><span class="rkn">${r.n}</span><span class="ord">${r.o.replace("TIER ","T")}</span></th>`);
+  head+=`</tr></thead>`;
+  let body="<tbody>";
+  rows.forEach(row=>{
+    const fi=floorIndex(row.vals); const isFeat=fi>0;
+    body+=`<tr><td class="skill">${row.name}</td>`;
+    row.vals.forEach((v,i)=>{
+      let cls="";
+      if(isFeat&&i<fi)cls="locked";
+      else if(isFeat&&i===fi)cls="floor";
+      const style=cls==="floor"?`style="--fc:${RANKS[i].hex}"`:"";
+      body+=`<td class="${cls}" ${style}>${fmtSkill(row.metric,v,row.name)}</td>`;
+    });
+    body+=`</tr>`;
+  });
+  body+="</tbody>";
+  return `<div class="tablewrap"><table>${head}${body}</table></div>`;
+}
+function gymTable(){
+  let head=`<thead><tr><th class="skill">Lift (heaviest working set)</th>`;
+  RANKS.forEach(r=>head+=`<th style="color:${r.c}"><span class="rkn">${r.n}</span><span class="ord">${r.o.replace("TIER ","T")}</span></th>`);
+  head+=`</tr></thead>`;
+  let body="<tbody>";
+  const order=["back squat","deadlift","bench press","overhead press","barbell row"];
+  order.forEach(k=>{
+    ["m","f"].forEach(sx=>{
+      const vals=DATA.gym[k][sx];
+      body+=`<tr><td class="skill">${k[0].toUpperCase()+k.slice(1)} <span class="unit">(${sx==="m"?"M":"F"})</span></td>`;
+      vals.forEach(v=>body+=`<td>${fmtRatio(v)}</td>`);
+      body+=`</tr>`;
+    });
+  });
+  body+="</tbody>";
+  return `<div class="tablewrap"><table>${head}${body}</table></div>`;
+}
+
+const clusterNote=`<div class="clusternote">
+ <span class="k"><span class="sw floor"></span> floor rank - first rep/hold earns this tier</span>
+ <span class="k"><span class="sw locked"></span> locked - not earnable from this move (lead-ups carry early ranks)</span>
+ <span class="k">reps = best single set · s = hold seconds · ×N / +N% = load vs bodyweight</span>
+</div>`;
+
+const SLIDES=[];
+
+// 1 - title
+SLIDES.push(`<section class="slide title">
+  <div class="eyebrow">Rank &amp; Skill Standards · Audit</div>
+  <h1>What does it take to earn <span class="accent">every rank</span> in UNBOUND?</h1>
+  <div class="tag">A full read of the nine-tier ladder, the standards behind each rank, and the one question underneath it all.</div>
+  <div class="bigq"><b>The core question:</b> should skill standards be based on bodyweight, the way the gym lifts already are? &nbsp;<span class="muted">Short answer on the last slides.</span></div>
+  <div class="meta"><span>Branch <b>claude+rank-library-redesign</b></span><span>Source <b>SkillTierGenerator · StrengthStandards</b></span><span>Numbers are <b>generated, not hand-typed</b></span></div>
+</section>`);
+
+// 2 - ladder
+let chips="";
+RANKS.forEach((r,i)=>chips+=`<div class="rk" style="--c:${r.c}"><div class="ord">${r.o}</div><div class="nm">${r.n}</div><div class="loc">${r.loc}</div><div class="dot"></div></div>`);
+SLIDES.push(`<section class="slide">
+  <div class="eyebrow">The Ladder</div>
+  <h2>One ladder, nine tiers <span class="sub">- Initiate to Unbound</span></h2>
+  <p>Every movement, bodyweight skill or barbell lift, is graded against this <strong>single</strong> nine-rank ladder (<code>RankTier</code>). Your overall rank is the floor across what you've proven. <span class="accent">Unbound</span> is the peak.</p>
+  <div class="ladder">${chips}</div>
+</section>`);
+
+// 3 - how standards work
+SLIDES.push(`<section class="slide">
+  <div class="eyebrow">How a rank is earned</div>
+  <h2>Two authorities decide a standard</h2>
+  <div class="cols">
+    <div class="card aSrc">
+      <h3><span class="pill a">Source A</span> Bodyweight skills</h3>
+      <p style="margin-bottom:.8rem">Rep &amp; hold moves - pull-up, dip, planche, front lever, muscle-up. Each skill node carries a generated 9-tier ladder.</p>
+      <ul class="clean">
+        <li><b>5 real anchor levels</b> (Beginner→Elite) per move, curve-filled to all 9 tiers by <code>SkillTierGenerator</code>.</li>
+        <li>Units are <b>reps</b> or <b>hold seconds</b> - raw counts.</li>
+        <li>Hard feats use a <b>floor</b>: your first rep jumps you straight to an advanced tier (e.g. a full planche = Vessel).</li>
+        <li><b>Bodyweight never enters the math.</b> 5 muscle-ups is 5 muscle-ups, at any size.</li>
+      </ul>
+    </div>
+    <div class="card bSrc">
+      <h3><span class="pill b">Source B</span> Loaded &amp; gym lifts</h3>
+      <p style="margin-bottom:.8rem">Barbell compounds, accessories, and weighted calisthenics (weighted pull-up, weighted pistol).</p>
+      <ul class="clean">
+        <li>Standards are stored as a <b>multiple of bodyweight</b>, per sex - e.g. Unbound bench = <code>2.0× BW</code>.</li>
+        <li>A lift is ranked by <code>liftKg ÷ bodyweightKg</code>, then placed on the table.</li>
+        <li>Weighted calisthenics grade on <b>added load as % of bodyweight</b> (e.g. +100% BW pull-up = Elite).</li>
+        <li><b>Bodyweight is the entire denominator.</b> Lighter athlete → same kg ranks higher.</li>
+      </ul>
+    </div>
+  </div>
+</section>`);
+
+// 4 - key finding (asymmetry)
+SLIDES.push(`<section class="slide">
+  <div class="eyebrow">The Headline Finding</div>
+  <h2>The standards are split on bodyweight - by design</h2>
+  <div class="keyfinding">
+    <div class="kf abs"><div class="big">absolute</div><p><b>Bodyweight skills</b> (reps &amp; holds) are graded on raw counts. The user's mass is <b>never read</b> when ranking a pull-up, plank, planche, or front lever. A 60 kg and a 95 kg athlete face the <b>identical</b> rep/second bar.</p></div>
+    <div class="kf bw"><div class="big">÷ bodyweight</div><p><b>Loaded lifts</b> are graded relative to mass. Every barbell &amp; weighted-calisthenics standard is a multiple of bodyweight, so the same kg means a <b>higher rank for a lighter athlete</b>.</p></div>
+  </div>
+  <div class="takeaway"><p><strong>Net effect:</strong> a heavier athlete gets <strong>no break</strong> on the calisthenics side (the rep bar is fixed) and a <strong>tougher absolute-kg bar</strong> on the lift side. The question is whether that split is a bug to fix or the correct model. <span class="accent">It's mostly the correct model - here's why.</span></p></div>
+</section>`);
+
+// 5..N cluster tables
+const clusterSlides=[
+ ["Pull (pp)","Pull - chest-to-bar, levers, the muscle-up line"],
+ ["Push (cal)","Push - push-ups, dips, the HSPU / one-arm line"],
+ ["Core (cl)","Core - raises, holds, front &amp; back levers"],
+ ["Handstand (hs)","Handstand - balance holds &amp; presses"],
+ ["Planche (pl)","Planche - the straight-arm lean line"],
+ ["Legs (ld)","Legs - squat patterns, pistols, nordics"],
+ ["One-arm handstand (oah)","One-arm handstand - the apex line"],
+];
+clusterSlides.forEach(([key,title])=>{
+  SLIDES.push(`<section class="slide">
+    <div class="eyebrow">Standards · Bodyweight skills</div>
+    <h2>${title}</h2>
+    ${skillTable(DATA.clusters[key])}
+    ${clusterNote}
+  </section>`);
+});
+
+// gym lifts
+SLIDES.push(`<section class="slide">
+  <div class="eyebrow">Standards · Loaded lifts (× bodyweight)</div>
+  <h2>Barbell compounds <span class="sub">- every cell is a multiple of your bodyweight</span></h2>
+  ${gymTable()}
+  <div class="clusternote"><span class="k">Cells show required <b>load ÷ bodyweight</b>. T0 (×0.00) is the unranked floor. Female column is held a notch lower per the cited standards.</span></div>
+</section>`);
+
+// verdict
+SLIDES.push(`<section class="slide">
+  <div class="eyebrow">The Verdict</div>
+  <h2>Should skill standards be bodyweight-based?</h2>
+  <p style="max-width:74ch">It depends on the kind of movement. Splitting the skill set into three buckets makes the answer clear:</p>
+  <div class="verdict">
+    <div class="vc keep">
+      <div class="tagline">Static holds &amp; feats</div>
+      <h3>Bodyweight is already the load</h3>
+      <div class="ex">planche · front lever · muscle-up · OAH · HSPU</div>
+      <p>A "5 s full planche" is intrinsically a strength-to-weight feat - you are lifting 100% of yourself. Multiplying by bodyweight would <b>double-count</b>. Heavier already = harder, automatically.</p>
+      <div class="stamp">✓ Keep absolute</div>
+    </div>
+    <div class="vc watch">
+      <div class="tagline">Volume rep moves</div>
+      <h3>Reps are the honest, legible bar</h3>
+      <div class="ex">push-up · pull-up · dip · squat patterns</div>
+      <p>A heavier athlete doing 20 pull-ups does more total work, but the <b>rep count</b> is what every athlete understands, and "harder when heavier" is a <b>real</b> strength-to-weight signal, not unfairness.</p>
+      <div class="stamp">✓ Keep reps · eyes open</div>
+    </div>
+    <div class="vc ratio">
+      <div class="tagline">Loaded / weighted</div>
+      <h3>Already bodyweight-relative</h3>
+      <div class="ex">barbell lifts · weighted pull-up · weighted pistol</div>
+      <p>These <b>should</b> scale with mass, and they already do - stored as multiples of bodyweight. This is exactly right and needs no change.</p>
+      <div class="stamp">✓ Correct as-is</div>
+    </div>
+  </div>
+</section>`);
+
+// recommendation
+SLIDES.push(`<section class="slide">
+  <div class="eyebrow">Recommendation</div>
+  <h2>Don't bodyweight-adjust the skill reps. Do close two real gaps.</h2>
+  <div class="reco">
+    <div class="steps">
+      <div class="step"><div class="n">1</div><div class="b"><b>Leave hold &amp; feat criteria absolute.</b> For planche / lever / muscle-up / OAH, bodyweight is the load. Adding a multiplier is conceptually wrong and would penalize twice.</div></div>
+      <div class="step"><div class="n">2</div><div class="b"><b>Keep rep counts for volume moves</b> - they're the universal, legible standard. The implicit "harder when heavier" is a feature, matching how calisthenics is actually graded.</div></div>
+      <div class="step"><div class="n">3</div><div class="b"><b>Surface strength-to-weight as context, not as the grade.</b> If you want to reward the heavy athlete, show a relative-strength stat next to the rep PR rather than rescaling the rank.</div></div>
+      <div class="step"><div class="n">4</div><div class="b"><b>Audit the female loaded tables &amp; the bodyweight default.</b> Rank eval falls back to <code>70 kg</code> when profile weight is missing - verify that path can't silently mis-rank a loaded lift.</div></div>
+    </div>
+    <div class="summary">
+      <div class="q">So - should skills be based on bodyweight?</div>
+      <div class="a">For pure skills: no. They already are, in the only way that counts.</div>
+      <p>The system is bodyweight-aware exactly where mass changes the difficulty (loaded lifts) and bodyweight-agnostic exactly where mass is already baked into the movement (skill holds). The "asymmetry" is the correct model, not a defect. The only worthwhile work is communication + verifying the loaded-side edge cases.</p>
+    </div>
+  </div>
+</section>`);
+
+// render
+const deck=document.getElementById("deck");
+deck.innerHTML=SLIDES.join("");
+const slides=[...deck.querySelectorAll(".slide")];
+const dots=document.getElementById("dots");
+slides.forEach((_,i)=>{const b=document.createElement("button");b.onclick=()=>go(i);dots.appendChild(b);});
+document.getElementById("tot").textContent=slides.length;
+let idx=0;
+function go(i){
+  idx=Math.max(0,Math.min(slides.length-1,i));
+  slides.forEach((s,j)=>s.classList.toggle("active",j===idx));
+  [...dots.children].forEach((d,j)=>d.classList.toggle("on",j===idx));
+  document.getElementById("cur").textContent=idx+1;
+  document.getElementById("bar").style.width=((idx+1)/slides.length*100)+"%";
+  slides[idx].scrollTop=0;
+}
+document.getElementById("next").onclick=()=>go(idx+1);
+document.getElementById("prev").onclick=()=>go(idx-1);
+addEventListener("keydown",e=>{
+  if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){go(idx+1);e.preventDefault();}
+  if(e.key==="ArrowLeft"||e.key==="PageUp"){go(idx-1);e.preventDefault();}
+  if(e.key==="Home")go(0); if(e.key==="End")go(slides.length-1);
+});
+go(0);
+</script>
+</body>
+</html>

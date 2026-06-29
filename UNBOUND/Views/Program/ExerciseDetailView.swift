@@ -132,3 +132,31 @@ private struct ExerciseDetailMetadataFlowLayout: Layout {
         ))
     }
 }
+
+#if DEBUG
+/// DEBUG harness (`-exerciseDetailDemo`): opens ExerciseDetailView directly so
+/// the in-program Target Muscle map can be screenshotted without walking the
+/// quest → workout-detail flow. `EXERCISE_DETAIL_DEMO_NAME` picks the movement
+/// (default a 3-mover squat so all three intensity levels show).
+struct ExerciseDetailDemoHarness: View {
+    private var name: String {
+        ProcessInfo.processInfo.environment["EXERCISE_DETAIL_DEMO_NAME"] ?? "Barbell Back Squat"
+    }
+
+    var body: some View {
+        NavigationStack {
+            ExerciseDetailView(exercise: Exercise(
+                id: "demo",
+                name: name,
+                muscleGroups: [.legs, .glutes, .core],
+                sets: 4,
+                reps: "6-8",
+                restSeconds: 120,
+                rpe: 8,
+                notes: "Keep chest up, brace core, drive through heels.",
+                substitution: "Goblet Squat"
+            ))
+        }
+    }
+}
+#endif

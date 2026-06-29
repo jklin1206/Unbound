@@ -169,7 +169,7 @@ final class ProgramAwareLoggingTests: XCTestCase {
         s.replaceExercise(at: 0, with: pushup)
 
         let exercise = s.exercises[0]
-        XCTAssertEqual(exercise.name, "Pushup")
+        XCTAssertEqual(exercise.name, "Push-Up")
         XCTAssertEqual(exercise.movementId, expected.movementId)
         XCTAssertEqual(exercise.rankStandardMovementId, expected.rankStandardMovementId)
         XCTAssertEqual(exercise.muscleGroups, pushup.muscleGroups)
@@ -178,7 +178,7 @@ final class ProgramAwareLoggingTests: XCTestCase {
         s.confirmAsPlanned(exerciseIndex: 0, setIndex: 0)
         let performanceLog = s.assemblePerformanceLog(userId: "u")
         let loggedExercise = try XCTUnwrap(performanceLog.blocks.first?.exercises.first)
-        XCTAssertEqual(loggedExercise.name, "Pushup")
+        XCTAssertEqual(loggedExercise.name, "Push-Up")
         XCTAssertEqual(loggedExercise.movementId, expected.movementId)
         XCTAssertEqual(loggedExercise.rankStandardMovementId, expected.rankStandardMovementId)
     }

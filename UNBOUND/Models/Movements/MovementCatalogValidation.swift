@@ -33,6 +33,21 @@ enum MovementCatalogValidation {
                 if !base.rankable {
                     issues.append("\(definition.id) rolls into non-rankable base \(base.id).")
                 }
+            } else if definition.rankStandardMovementId != definition.id {
+                // A non-variant rank-standard redirection (e.g. a skill drill that
+                // banks into its canonical exercise, P3). The base must exist, be
+                // rankable, and be a direct standard (not itself a redirection).
+                let target = definition.rankStandardMovementId
+                if let base = definitionsById[target] {
+                    if !base.rankable {
+                        issues.append("\(definition.id) rolls into non-rankable standard \(target).")
+                    }
+                    if base.rankStandardMovementId != base.id {
+                        issues.append("\(definition.id) rolls into non-direct standard \(target).")
+                    }
+                } else {
+                    issues.append("\(definition.id) rankStandardMovementId points at missing \(target).")
+                }
             }
 
             for skillId in definition.skillAssociations where !skillIds.contains(skillId) {

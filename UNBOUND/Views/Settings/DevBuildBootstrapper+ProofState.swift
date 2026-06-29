@@ -683,6 +683,154 @@ extension DevBuildBootstrapper {
         await resetSkillForProof(skillId: skillId)
     }
 
+    /// Logs a qualifying proof of `skillId`'s strongest rep/hold criterion
+    /// through the REAL `TrainingCompletionService` path, so the live skill-rank
+    /// advance (Stage 1) can be demoed on-sim. Pair with `--unbound-dev-fresh-login`
+    /// for a clean Initiate → advanced before/after. DEBUG launch-arg only.
+    static func proveSkillForDemo(skillId: String) async {
+        AuthService.shared.activateDevUser(id: userId)
+        guard let node = SkillGraph.shared.node(id: skillId) else { return }
+
+        // Strongest rep/hold threshold among the node's criteria → a visible jump.
+        var bestReps = 0
+        var bestSeconds = 0
+        var movementName: String?
+        for criterion in node.tierCriteria.values {
+            switch criterion {
+            case .reps(let n, let name):
+                if n >= bestReps { bestReps = n; movementName = name }
+            case .exerciseSeconds(let n, let name):
+                if n >= bestSeconds { bestSeconds = n; movementName = name }
+            default:
+                break
+            }
+        }
+        guard let movementName else { return }
+
+        let set = PerformanceSet(
+            setNumber: 1,
+            reps: bestReps > 0 ? bestReps : nil,
+            weightKg: nil,
+            holdSeconds: bestSeconds > 0 ? bestSeconds : nil,
+            durationSeconds: nil,
+            distanceMeters: nil,
+            calories: nil,
+            rpe: nil,
+            qualityFlags: [],
+            notes: nil
+        )
+        let resolved = MovementResolver.resolve(movementName)
+        let exercise = PerformanceExercise(
+            name: movementName,
+            movementId: resolved.movementId,
+            rankStandardMovementId: resolved.rankStandardMovementId,
+            plannedSets: 1,
+            plannedTarget: "Dev proof",
+            sets: [set],
+            notes: nil
+        )
+        let block = PerformanceBlock(
+            kind: .skill,
+            title: node.title,
+            exercises: [exercise],
+            durationSeconds: nil,
+            distanceMeters: nil,
+            calories: nil,
+            notes: "Dev skill proof"
+        )
+        let now = Date()
+        let log = PerformanceLog(
+            id: "dev-prove-\(skillId)-\(UUID().uuidString)",
+            userId: userId,
+            source: .custom,
+            title: "\(node.title) Dev Proof",
+            startedAt: now,
+            completedAt: now,
+            blocks: [block],
+            overallRPE: nil,
+            notes: nil
+        )
+        _ = try? await TrainingCompletionService.shared.complete(log, services: ServiceContainer())
+    }
+
+    /// Seeds a realistic, dated climb of a skill's OWN criterion through the REAL
+    /// completion path, so the rank + stats render an actual user's experience
+    /// (not the dev account's). The series climbs with two deload dips to prove the
+    /// rank is sticky-best: a lighter session never lowers the earned rank. Pair
+    /// with `--unbound-dev-fresh-login` for a clean Initiate → climb. DEBUG-only.
+    static func seedSkillHistory(skillId: String) async {
+        AuthService.shared.activateDevUser(id: userId)
+        guard let node = SkillGraph.shared.node(id: skillId) else { return }
+
+        // Does the skill rank on a timed hold or on reps? (mirrors the detail's logMode)
+        let isHold: Bool = {
+            switch node.target {
+            case .hold, .carry:
+                return true
+            case .composite(let reqs):
+                return reqs.contains { req in
+                    if case .hold = req { return true }
+                    if case .carry = req { return true }
+                    return false
+                }
+            default:
+                return false
+            }
+        }()
+
+        // The criterion movement the node ranks on (e.g. "front lever"), so logged
+        // sets credit the node's tierCriteria and the tier actually advances.
+        var movementName = node.title
+        for criterion in node.tierCriteria.values {
+            switch criterion {
+            case .exerciseSeconds(_, let name) where isHold:
+                movementName = name
+            case .reps(_, let name) where !isHold:
+                movementName = name
+            default:
+                break
+            }
+        }
+
+        // ~12 weekly sessions with two deload dips (indices 6 and 10). Sticky-best
+        // means those dips never lower the rank the earlier peaks earned.
+        let holdSeries = [2, 3, 4, 5, 6, 7, 5, 8, 9, 10, 8, 12]
+        let repSeries = [1, 2, 3, 4, 5, 4, 6, 7, 6, 8, 9, 8]
+        let series = isHold ? holdSeries : repSeries
+        let count = series.count
+        let now = Date()
+        let calendar = Calendar.current
+
+        for (index, value) in series.enumerated() {
+            let completedAt = calendar.date(byAdding: .day, value: -7 * (count - 1 - index), to: now) ?? now
+            let startedAt = completedAt.addingTimeInterval(-600)
+            let set = LoggedSet(
+                reps: isHold ? 0 : value,
+                holdSeconds: isHold ? value : nil,
+                weightKg: nil,
+                rpe: 7,
+                qualityFlags: [.clean]
+            )
+            let log = TrainingSessionAdapters.performanceLogForSkillSession(
+                id: "dev-skillhist-\(skillId)-\(index)",
+                userId: userId,
+                skillId: skillId,
+                skillTitle: node.title,
+                startedAt: startedAt,
+                completedAt: completedAt,
+                durationSeconds: 600,
+                exercises: [LoggedExercise(name: movementName, sets: [set])]
+            )
+            _ = try? await TrainingCompletionService.shared.complete(
+                log,
+                services: ServiceContainer(),
+                skillXPAwarded: 10
+            )
+        }
+
+        await SkillProgressService.shared.load(userId: userId)
+    }
+
     static func mondayZeroIndex(for date: Date) -> Int {
         let weekday = Calendar(identifier: .iso8601).component(.weekday, from: date)
         switch weekday {
@@ -704,8 +852,6 @@ extension DevBuildBootstrapper {
         case .legDominance: return .legs
         case .coreLever: return .core
         case .handstand: return .skills
-        case .handstandPushup: return .push
-        case .oneArmHandstand: return .skills
         case .planche: return .skills
         case .conditioning: return .conditioning
         }

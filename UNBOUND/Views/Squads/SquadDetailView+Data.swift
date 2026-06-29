@@ -40,7 +40,7 @@ extension SquadDetailView {
         }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--unbound-demo-squad-mission") {
-            selectedTab = .challenges
+            selectedTab = .mission
             let demoId = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE") ?? UUID()
             currentMissionState = SquadMission(
                 id: demoId,
@@ -60,7 +60,7 @@ extension SquadDetailView {
             return
         }
         if ProcessInfo.processInfo.arguments.contains("--unbound-demo-mission-celebration") {
-            selectedTab = .challenges
+            selectedTab = .mission
             let demoId = UUID(uuidString: "CCCCCCCC-DDDD-EEEE-FFFF-AAAAAAAAAAAA") ?? UUID()
             let completedMission = SquadMission(
                 id: demoId,
@@ -117,6 +117,12 @@ extension SquadDetailView {
             routineDrops = []
             return
         }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--unbound-demo-routine-drops") {
+            routineDrops = demoRoutineDrops(squadId: squadId)
+            return
+        }
+        #endif
         routineDrops = await SquadRoutineDropService.shared.fetchRecent(squadId: squadId, limit: 12)
     }
 
@@ -341,4 +347,50 @@ extension SquadDetailView {
             sourceId: SquadRewardPolicy.missionSourceId(mission.id)
         )
     }
+
+    #if DEBUG
+    func demoRoutineDrops(squadId: UUID) -> [SquadRoutineDrop] {
+        let me = currentUserId ?? UUID(uuidString: "11111111-1111-1111-1111-111111111111") ?? UUID()
+        let crew: [(UUID, String)] = [
+            (me, "You"),
+            (UUID(uuidString: "22222222-2222-2222-2222-222222222222") ?? UUID(), "Mara"),
+            (UUID(uuidString: "33333333-3333-3333-3333-333333333333") ?? UUID(), "Kenji"),
+            (UUID(uuidString: "44444444-4444-4444-4444-444444444444") ?? UUID(), "Sol")
+        ]
+        let titles = [
+            "Pull Density 30",
+            "Hotel Upper",
+            "Legs Without Machines",
+            "Core Lock",
+            "Push Speed",
+            "Posterior Chain",
+            "Mobility Reset",
+            "Grip Finisher",
+            "Quiet Full Body",
+            "Back Day Short",
+            "Zone 2 Add-On",
+            "Shoulder Armor"
+        ]
+        let notes = [
+            "Strict rest. Stop one rep before form breaks.",
+            "Fits a small hotel gym.",
+            "Single-leg work first, hinge second.",
+            "Slow holds, no rushed transitions."
+        ]
+
+        return titles.enumerated().map { index, title in
+            let author = crew[index % crew.count]
+            let workout = SavedWorkout(title: title, blocks: [])
+            return SquadRoutineDrop(
+                squadId: squadId,
+                authorUserId: author.0,
+                authorDisplayName: author.1,
+                title: title,
+                note: notes[index % notes.count],
+                workout: workout,
+                createdAt: Date().addingTimeInterval(TimeInterval(-index * 54 * 60))
+            )
+        }
+    }
+    #endif
 }

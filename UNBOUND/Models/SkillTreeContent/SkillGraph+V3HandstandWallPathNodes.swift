@@ -29,7 +29,7 @@ extension SkillGraph {
             title: "Wall Supported One-Arm Handstand",
             cluster: .handstand, tier: 5, type: .hold,
             target: .hold(exercise: "wall-supported one-arm handstand", seconds: 5),
-            prereqs: [PrerequisiteGroup("hs.freestanding-hs-30")],
+            prereqs: [PrerequisiteGroup(["hs.freestanding-hs-30", "hs.wall-handstand-30"])],
             primary: [.shoulders, .core], secondary: [.forearms, .arms],
             subtitle: "One arm. Wall for insurance.",
             description: "One-arm handstand drill using chest-to-wall, side-wall, or fingertip wall feedback so the working arm carries the stack without a banana-back lean. The bridge between freestanding handstand and a freestanding one-arm handstand.",

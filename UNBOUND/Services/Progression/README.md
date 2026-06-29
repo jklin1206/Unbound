@@ -10,6 +10,7 @@ Post-workout progression ingest: deterministic RPE-based weight/rep advancement 
 | `BodyMapProgressService.swift` | Per-region training-load profile with recency half-life; supplies the region-novelty multiplier (including a synchronous cached preview path). |
 | `DeloadPlanner.swift` | Decides when a deload is warranted (`shouldDeload`) and rewrites `ProgressionState`s into a deload block (`planDeload`). |
 | `MovementAPCalculator.swift` | Computes per-movement AP gains from a `PerformanceLog`; resolves logged names to rank-standard movement ids. |
+| `MovementProgressConsolidationMigration.swift` | One-time local migration that folds a retired `movement_progress` row into its canonical standard when a movement's rank standards were unified (P3); idempotent, sums AP + unions dedupe sets. |
 | `MovementProgressService.swift` | `@MainActor` ingest entry point for a `PerformanceLog` → `MovementProgressIngestResult`; best-effort or strict persistence modes. |
 | `OverallLevelService.swift` | Accumulates weighted XP into `OverallLevelProgress` (total XP / level); caches last-known progress for synchronous reward previews. |
 | `PlateauDetector.swift` | Flags exercises stalled at the same weight for consecutive sessions (`PlateauedExercise`). |

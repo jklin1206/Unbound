@@ -77,10 +77,17 @@ final class TrialReadinessService {
         let attributeProfile = AttributeProfileStore.shared.load(userId: userId)
         let bodyweightKg = userProfile?.weightKg ?? 0
         let nextFormat = OverallRankTrialDefinitions.nextTrial(after: progress.currentRank)?.format
+        // Pool for the `movementsAtRank` gate key: proven skill tiers + the tracked
+        // barbell compounds (the lift tiers RankService now persists at completion).
+        let skillTiers = Array(UserSkillTierStore.shared.load(userId: userId).perSkill.values)
+        let liftTiers = ["bench press", "back squat", "deadlift", "overhead press"].map {
+            LiftTierService.shared.tier(lift: $0, userId: userId)
+        }
         let history = WorkoutLogGateKeyHistory(
             workoutLogs: workoutLogs,
             attributeProfile: attributeProfile,
-            trialProgress: progress
+            trialProgress: progress,
+            movementTiers: skillTiers + liftTiers
         )
         let clearedGateKeys = nextFormat.map {
             GateKeys.clearedKeys(for: $0, history: history, bodyweightKg: bodyweightKg)

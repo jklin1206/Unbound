@@ -28,7 +28,7 @@ struct SquadDetailView: View {
 
     enum SquadTab: String, CaseIterable {
         case crew = "CREW"
-        case challenges = "CHALLENGES"
+        case mission = "MISSION"
         case season = "SEASON"
     }
     @State var selectedTab: SquadTab = .crew
@@ -60,7 +60,7 @@ struct SquadDetailView: View {
                         VStack(alignment: .leading, spacing: 22) {
                             switch selectedTab {
                             case .crew: crewTabContent(squad: squad)
-                            case .challenges: challengesTabContent
+                            case .mission: challengesTabContent
                             case .season: seasonTabContent(squad: squad)
                             }
                         }
@@ -194,7 +194,7 @@ struct SquadDetailView: View {
 
             if let inviteURL = squad.inviteURL {
                 ShareLink(item: inviteURL) {
-                    Image(systemName: "person.badge.plus")
+                    Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Color.unbound.textSecondary)
                         .frame(width: 38, height: 38)

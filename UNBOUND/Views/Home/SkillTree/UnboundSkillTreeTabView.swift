@@ -74,7 +74,6 @@ struct UnboundSkillTreeTabView: View {
             .presentationDragIndicator(.visible)
             .presentationBackground(Color.unbound.bg)
         }
-        .nodeUnlockOverlay()
         .skinUnlockToast()
         .task {
             let userId = services.auth.currentUserId ?? "anonymous"

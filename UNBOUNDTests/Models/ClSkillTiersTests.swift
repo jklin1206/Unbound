@@ -2,8 +2,9 @@ import XCTest
 @testable import UNBOUND
 
 final class ClSkillTiersTests: XCTestCase {
-    func testClClusterHasAll31Skills() {
-        XCTAssertEqual(ClSkillTiers.table.count, 31)
+    func testClClusterHasAll30Skills() {
+        // 30 after the vertical-l-sit leaf node was removed (folded into v-sit).
+        XCTAssertEqual(ClSkillTiers.table.count, 30)
     }
     func testEveryClSkillHasNineTiers() {
         for (id, tiers) in ClSkillTiers.table {

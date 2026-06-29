@@ -3,12 +3,9 @@ import UIKit
 
 struct ProgramRankTargetBodyFigure: View {
     let side: BodyMapSide
-    let targetRegions: [BodyRegion]
-    let tint: Color
-
-    private var targetSet: Set<BodyRegion> {
-        Set(targetRegions)
-    }
+    /// region → importance rank (0 = primary mover … 2 = support). Drives the
+    /// heat-ramp tint per region; regions absent from the map stay unfilled.
+    let rankByRegion: [BodyRegion: Int]
 
     var body: some View {
         GeometryReader { proxy in
@@ -29,21 +26,18 @@ struct ProgramRankTargetBodyFigure: View {
                 }
 
                 ForEach(ProgramRankTargetSVGAsset.paths(for: side)) { spec in
-                    let isTargeted = targetSet.contains(spec.region)
-                    let regionTint = ProgramRankTargetRegionPalette.tint(
-                        for: spec.region,
-                        fallback: tint
-                    )
+                    let rank = rankByRegion[spec.region]
+                    let isTargeted = rank != nil
 
                     spec.path(in: drawRect, viewBox: viewBox)
                         .fill(
-                            isTargeted ? regionTint.opacity(0.66) : Color.clear,
+                            rank.map(ProgramRankTargetRegionSet.fillColor(forRank:)) ?? Color.clear,
                             style: FillStyle(eoFill: spec.usesEvenOdd)
                         )
 
                     spec.path(in: drawRect, viewBox: viewBox)
                         .stroke(
-                            isTargeted ? regionTint.opacity(0.92) : Color.unbound.borderSubtle.opacity(0.6),
+                            rank.map(ProgramRankTargetRegionSet.strokeColor(forRank:)) ?? Color.unbound.borderSubtle.opacity(0.6),
                             style: StrokeStyle(
                                 lineWidth: isTargeted ? separatorWidth + 0.35 : separatorWidth,
                                 lineCap: .round,
@@ -51,7 +45,7 @@ struct ProgramRankTargetBodyFigure: View {
                             )
                         )
                         .shadow(
-                            color: isTargeted ? regionTint.opacity(0.20) : .clear,
+                            color: rank.map { ProgramRankTargetRegionSet.color(forRank: $0).opacity(0.25) } ?? .clear,
                             radius: isTargeted ? 3 : 0
                         )
                 }
@@ -87,8 +81,9 @@ struct ProgramRankTargetBodyFigure: View {
     }
 
     private var accessibilityValue: String {
-        let names = targetRegions
+        let names = rankByRegion.keys
             .filter { $0.isVisible(on: side) }
+            .sorted { (rankByRegion[$0] ?? 9) < (rankByRegion[$1] ?? 9) }
             .map(\.displayName)
         return names.isEmpty ? "No highlighted regions" : names.joined(separator: ", ")
     }
@@ -107,8 +102,21 @@ struct ProgramRankTargetBodyFigure: View {
 }
 
 struct ProgramRankTargetRegionStrip: View {
-    let regions: [BodyRegion]
-    let tint: Color
+    let regions: [ProgramRankTargetRegionSet.RankedTargetRegion]
+
+    /// Regions grouped into their importance tiers, order preserved. One entry
+    /// per tier → one legend row.
+    private var tiers: [(rank: Int, names: [String])] {
+        var result: [(rank: Int, names: [String])] = []
+        for item in regions {
+            if let last = result.last, last.rank == item.rank {
+                result[result.count - 1].names.append(item.region.displayName)
+            } else {
+                result.append((rank: item.rank, names: [item.region.displayName]))
+            }
+        }
+        return result
+    }
 
     var body: some View {
         if regions.isEmpty {
@@ -117,39 +125,169 @@ struct ProgramRankTargetRegionStrip: View {
                 .tracking(1.2)
                 .foregroundStyle(Color.unbound.textTertiary)
         } else {
-            // Calm color-coded legend (no pills): a tint dot per region + label,
-            // matching the colors on the body figures above.
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(regions, id: \.self) { region in
-                        let regionTint = ProgramRankTargetRegionPalette.tint(
-                            for: region,
-                            fallback: tint
-                        )
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(regionTint)
-                                .frame(width: 6, height: 6)
-                            Text(region.displayName.uppercased())
-                                .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                                .tracking(0.7)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                        }
+            // One calm row per tier (no swatch dots): a role label in the tier's
+            // own heat color — the color tie to the figures — then the specific
+            // muscles joined by middots. Names stay white for legibility; the
+            // distinct hue carries the rank.
+            VStack(alignment: .leading, spacing: 9) {
+                ForEach(tiers, id: \.rank) { tier in
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        Text(ProgramRankTargetRegionSet.roleLabel(forRank: tier.rank))
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(1.0)
+                            .foregroundStyle(ProgramRankTargetRegionSet.color(forRank: tier.rank))
+                            .frame(width: 78, alignment: .leading)
+                        Text(tier.names.joined(separator: "  ·  "))
+                            .font(Font.unbound.bodyS.weight(.semibold))
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
                     }
                 }
-                .padding(.horizontal, 1)
             }
-            .scrollClipDisabled()
         }
     }
 }
 
 enum ProgramRankTargetRegionSet {
-    static func regions(for definition: MovementDefinition) -> [BodyRegion] {
-        let seeded = definition.bodyRegions.isEmpty
-            ? bodyRegions(from: definition.muscleGroups)
-            : definition.bodyRegions
-        return ordered(normalized(seeded))
+    /// A SPECIFIC muscle region (quads, hamstrings, lats, …) ranked by importance
+    /// tier: 0 = primary mover, 1 = secondary, 2 = support. Tiers are dense — a
+    /// tier is only consumed by a muscle group that contributes at least one
+    /// not-yet-listed region, so the PRIMARY / SECONDARY / SUPPORT labels never
+    /// skip even when groups overlap (e.g. legs already lit the glutes).
+    struct RankedTargetRegion: Identifiable {
+        let region: BodyRegion
+        let rank: Int
+        var id: String { region.rawValue }
+    }
+
+    /// The specific target regions for a movement, each tagged with its
+    /// importance tier and capped to the top 3 tiers — detailed enough to name
+    /// quads vs hamstrings vs glutes, not just "legs". Prefers the skill node's
+    /// primary→secondary ordering (the real importance signal — the movement
+    /// definition flattens + alphabetizes it); falls back to the definition's
+    /// listed groups for gym lifts with no node.
+    static func rankedRegions(node: SkillNode?, definition: MovementDefinition?) -> [RankedTargetRegion] {
+        // A skill node's primary -> secondary groups ARE the authored importance,
+        // so expand them in full. A pure gym lift (no node) instead carries precise
+        // per-exercise regions on its definition; use those so an isolation lift
+        // (leg extension = quads only) does not fan out into the whole leg group.
+        rankedRegions(
+            orderedGroups: importanceOrderedGroups(node: node, definition: definition),
+            preciseRegions: node == nil ? (definition?.bodyRegions ?? []) : []
+        )
+    }
+
+    /// Rank directly from an importance-ordered muscle-group list - used by the
+    /// in-program exercise detail. Pass the movement's precise `bodyRegions` so an
+    /// isolation lift only lights the regions it actually trains (empty = none, in
+    /// which case the broad groups are expanded in full).
+    static func rankedRegions(muscleGroups: [MuscleGroup], bodyRegions: [BodyRegion] = []) -> [RankedTargetRegion] {
+        rankedRegions(orderedGroups: drawableDeduped(muscleGroups), preciseRegions: bodyRegions)
+    }
+
+    /// Expand importance-ordered groups into specific regions, each tagged with a
+    /// dense importance tier. A group that adds no new region doesn't consume a
+    /// tier; ranking stops after the top 3 contributing tiers. When `preciseRegions`
+    /// is non-empty the movement carries authored per-exercise regions, so each
+    /// group's expansion is narrowed to just those; any precise region that belongs
+    /// to no listed group (e.g. rear delts, adductors) still shows as a trailing
+    /// tier, so precision never silently drops a real target.
+    private static func rankedRegions(
+        orderedGroups: [MuscleGroup],
+        preciseRegions: [BodyRegion]
+    ) -> [RankedTargetRegion] {
+        let precise = normalized(preciseRegions)
+
+        // Importance-ordered buckets: one per group, then a trailing bucket for
+        // precise regions outside every listed group.
+        var buckets: [[BodyRegion]] = orderedGroups.map { group in
+            let expanded = ordered(normalized(bodyRegions(from: [group])))
+            return precise.isEmpty ? expanded : expanded.filter { precise.contains($0) }
+        }
+        if !precise.isEmpty {
+            let grouped = Set(buckets.flatMap { $0 })
+            buckets.append(ordered(precise).filter { !grouped.contains($0) })
+        }
+
+        var seen = Set<BodyRegion>()
+        var result: [RankedTargetRegion] = []
+        var tier = -1
+        for bucket in buckets {
+            let fresh = bucket.filter { !seen.contains($0) }
+            guard !fresh.isEmpty else { continue }
+            tier += 1
+            if tier > 2 { break }   // keep to the top 3 importance tiers
+            for region in fresh {
+                seen.insert(region)
+                result.append(RankedTargetRegion(region: region, rank: tier))
+            }
+        }
+        return result
+    }
+
+    /// region → importance tier, for tinting the body figures.
+    static func rankByRegion(from regions: [RankedTargetRegion]) -> [BodyRegion: Int] {
+        regions.reduce(into: [BodyRegion: Int]()) { map, item in
+            map[item.region] = item.rank
+        }
+    }
+
+    /// Distinct per-tier hue — a hot→cool heat ramp (red = most worked, cyan =
+    /// support). Color carries the importance rank, so tiers no longer rely on
+    /// opacity to separate (which left support too faded). Uses the design
+    /// system's sanctioned fitness-ramp tokens.
+    static func color(forRank rank: Int) -> Color {
+        switch rank {
+        case 0:  return Color.unbound.rankRed     // #EF4444 — primary mover
+        case 1:  return Color.unbound.rankAmber   // #EAB308 — secondary
+        default: return Color.unbound.coachCyan   // #06B6D4 — support
+        }
+    }
+
+    /// Body-fill color for a region's tier (hue + a near-uniform fill, with a
+    /// touch more presence on the prime mover). Hue, not opacity, signals rank.
+    static func fillColor(forRank rank: Int) -> Color {
+        let opacity: Double = rank == 0 ? 0.66 : (rank == 1 ? 0.58 : 0.52)
+        return color(forRank: rank).opacity(opacity)
+    }
+
+    /// Outline color for a filled region.
+    static func strokeColor(forRank rank: Int) -> Color {
+        color(forRank: rank).opacity(0.95)
+    }
+
+    static func roleLabel(forRank rank: Int) -> String {
+        switch rank {
+        case 0:  return "PRIMARY"
+        case 1:  return "SECONDARY"
+        default: return "SUPPORT"
+        }
+    }
+
+    /// Importance-ordered, deduped muscle groups. Groups that light no drawable
+    /// region (e.g. neck) are skipped so they never claim a top-3 slot.
+    private static func importanceOrderedGroups(
+        node: SkillNode?,
+        definition: MovementDefinition?
+    ) -> [MuscleGroup] {
+        var combined: [MuscleGroup] = []
+        if let node, !(node.primaryMuscles.isEmpty && node.secondaryMuscles.isEmpty) {
+            combined += node.primaryMuscles + node.secondaryMuscles
+        }
+        if let definition { combined += definition.muscleGroups }
+        return drawableDeduped(combined)
+    }
+
+    /// Dedupe preserving order, dropping groups that light no drawable region.
+    private static func drawableDeduped(_ groups: [MuscleGroup]) -> [MuscleGroup] {
+        var seen = Set<MuscleGroup>()
+        var result: [MuscleGroup] = []
+        for group in groups where !seen.contains(group) && !bodyRegions(from: [group]).isEmpty {
+            seen.insert(group)
+            result.append(group)
+        }
+        return result
     }
 
     private static func normalized(_ regions: [BodyRegion]) -> Set<BodyRegion> {
@@ -380,33 +518,6 @@ enum ProgramRankTargetBodyImage {
             return image
         }
         return UIImage(named: side.rankTargetBaseImageName)
-    }
-}
-
-enum ProgramRankTargetRegionPalette {
-    static func tint(for region: BodyRegion, fallback: Color) -> Color {
-        switch region {
-        case .upperChest, .midLowerChest:
-            return Color.unbound.alert
-        case .frontSideDelts, .rearDelts:
-            return Color.unbound.rankGreen
-        case .biceps, .triceps:
-            return Color.unbound.warnOrange
-        case .forearms:
-            return Color.unbound.rankAmber
-        case .traps, .rhomboids, .lats:
-            return Color.unbound.coachCyan
-        case .abs, .obliques, .lowerBack:
-            return Color.unbound.accent
-        case .quads, .adductors:
-            return Color.unbound.rankGold
-        case .abductors, .hamstrings, .glutes:
-            return Color.unbound.impact
-        case .calves:
-            return Color.unbound.success
-        case .chest, .shoulders:
-            return fallback
-        }
     }
 }
 

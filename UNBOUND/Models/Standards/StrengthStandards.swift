@@ -213,16 +213,6 @@ enum StrengthStandards {
     }
 
 
-    /// Back-compat shim: barbell + weighted-pullup path, male column.
-    /// Retained for any caller that has no sex context.
-    static func subRank(
-        liftKg: Double,
-        bodyweightKg: Double,
-        exerciseKey: String
-    ) -> RankTier? {
-        rank(liftKg: liftKg, bodyweightKg: bodyweightKg, exerciseKey: exerciseKey, sex: nil)
-    }
-
     // MARK: Interpolation
 
     /// Place a value on the 9-tier anchor ladder (index = ordinal 0…8) and
@@ -601,21 +591,5 @@ enum StrengthStandards {
     private static func clampFraction(value: Double, lo: Double, hi: Double) -> Double {
         guard hi > lo else { return 1.0 }
         return max(0.0, min(1.0, (value - lo) / (hi - lo)))
-    }
-
-    // MARK: Bodyweight-skill family mapping (unchanged)
-
-    /// Map a ProgressionFamilyState tier (0–7) to a representative RankTier.
-    static func subRank(forFamilyTier tier: Int) -> RankTier {
-        switch max(0, tier) {
-        case 0: return RankTier.nearest(for: 1.0 / 2.0)   // E  → initiate
-        case 1: return RankTier.nearest(for: 4.0 / 2.0)   // D  → apprentice
-        case 2: return RankTier.nearest(for: 7.0 / 2.0)   // C  → forged
-        case 3: return RankTier.nearest(for: 8.0 / 2.0)   // C+ → veteran
-        case 4: return RankTier.nearest(for: 10.0 / 2.0)  // B  → master
-        case 5: return RankTier.nearest(for: 11.0 / 2.0)  // B+ → master
-        case 6: return RankTier.nearest(for: 13.0 / 2.0)  // A  → vessel
-        default: return RankTier.nearest(for: 16.0 / 2.0) // S  → ascendant
-        }
     }
 }

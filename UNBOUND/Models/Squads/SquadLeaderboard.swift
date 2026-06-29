@@ -4,6 +4,10 @@ struct SquadSeason: Equatable, Sendable {
     let title: String
     let interval: DateInterval
 
+    private static let seasonLengthMonths = 3
+    private static let firstSeasonStartYear = 2026
+    private static let firstSeasonStartMonth = 4
+
     var start: Date { interval.start }
     var end: Date { interval.end }
     var seasonNumber: Int {
@@ -31,38 +35,39 @@ struct SquadSeason: Equatable, Sendable {
     static func current(now: Date = Date(), calendar input: Calendar = .current) -> SquadSeason {
         var calendar = input
         calendar.timeZone = input.timeZone
-        let components = calendar.dateComponents([.year, .month], from: now)
-        let month = components.month ?? 1
-        let quarter = ((month - 1) / 3) + 1
-        let quarterStartMonth = ((month - 1) / 3) * 3 + 1
 
-        var startComponents = DateComponents()
-        startComponents.calendar = calendar
-        startComponents.year = components.year
-        startComponents.month = quarterStartMonth
-        startComponents.day = 1
-
-        let start = calendar.date(from: startComponents) ?? calendar.startOfDay(for: now)
-        let end = calendar.date(byAdding: .month, value: 3, to: start)
+        let firstStart = firstSeasonStart(calendar: calendar, fallback: now)
+        let monthOffset = calendar.dateComponents([.month], from: firstStart, to: now).month ?? 0
+        let seasonIndex = max(0, monthOffset / seasonLengthMonths)
+        let start = calendar.date(byAdding: .month, value: seasonIndex * seasonLengthMonths, to: firstStart)
+            ?? firstStart
+        let end = calendar.date(byAdding: .month, value: seasonLengthMonths, to: start)
             ?? calendar.date(byAdding: .day, value: 90, to: start)
             ?? now
-        return SquadSeason(title: "S\(quarter) \(components.year ?? 0)", interval: DateInterval(start: start, end: end))
+        return SquadSeason(title: "Season \(seasonIndex + 1)", interval: DateInterval(start: start, end: end))
     }
 
     static func previous(endingBefore now: Date = Date(), calendar input: Calendar = .current) -> SquadSeason {
         var calendar = input
         calendar.timeZone = input.timeZone
         let current = SquadSeason.current(now: now, calendar: calendar)
+        guard current.seasonNumber > 1 else { return current }
         let previousStart = calendar.date(byAdding: .month, value: -3, to: current.start)
             ?? calendar.date(byAdding: .day, value: -90, to: current.start)
             ?? current.start
-        let components = calendar.dateComponents([.year, .month], from: previousStart)
-        let month = components.month ?? 1
-        let quarter = ((month - 1) / 3) + 1
         return SquadSeason(
-            title: "S\(quarter) \(components.year ?? 0)",
+            title: "Season \(current.seasonNumber - 1)",
             interval: DateInterval(start: previousStart, end: current.start)
         )
+    }
+
+    private static func firstSeasonStart(calendar: Calendar, fallback: Date) -> Date {
+        var startComponents = DateComponents()
+        startComponents.calendar = calendar
+        startComponents.year = firstSeasonStartYear
+        startComponents.month = firstSeasonStartMonth
+        startComponents.day = 1
+        return calendar.date(from: startComponents) ?? calendar.startOfDay(for: fallback)
     }
 
     func daysRemaining(from now: Date = Date(), calendar: Calendar = .current) -> Int {

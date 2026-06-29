@@ -56,9 +56,9 @@ enum PlancheSkillAnchors {
         // Feats — owning the stage at all is advanced→elite; start at a difficulty floor,
         // climb a short ladder floor…peak (count == 9 - floor.rawValue). Floors rise with
         // difficulty; full planche is highest (Vessel), ranking it above every other stage.
-        "pl.straddle-planche": .init(exerciseName: "straddle planche", metric: .seconds, spec: .feat(floor: .veteran, ladder: [2, 4, 7, 12, 20])), // floor 4 → 5 vals; advanced/elite stage
-        "pl.half-lay-planche": .init(exerciseName: "half-lay planche", metric: .seconds, spec: .feat(floor: .master,  ladder: [2, 4, 8, 15])),     // floor 5 → 4 vals; between straddle and full
-        "pl.full-planche":     .init(exerciseName: "full planche",     metric: .seconds, spec: .feat(floor: .vessel,  ladder: [1, 4, 8])),         // floor 6 → 3 vals; 1 s = Vessel, 8 s elite, peak ~world-class
+        "pl.straddle-planche": .init(exerciseName: "straddle planche", metric: .seconds, spec: .scaled(to: 35)), // floor 4 → 5 vals; advanced/elite stage
+        "pl.half-lay-planche": .init(exerciseName: "half-lay planche", metric: .seconds, spec: .scaled(to: 26)),     // floor 5 → 4 vals; between straddle and full
+        "pl.full-planche":     .init(exerciseName: "full planche",     metric: .seconds, spec: .scaled(to: 18)),         // floor 6 → 3 vals; 1 s = Vessel, 8 s elite, peak ~world-class
     ]
 }
 

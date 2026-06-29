@@ -83,8 +83,7 @@ enum BodyRegion: String, Codable, CaseIterable, Sendable, Hashable, Identifiable
         case .midLowerChest:
             return [
                 "bench press", "dumbbell bench press", "machine chest press",
-                "plate loaded chest press", "hammer strength chest press",
-                "converging chest press", "pushup", "dip",
+                "pushup", "dip",
                 "decline bench press", "cable fly", "dumbbell fly",
                 "high-to-low cable fly", "pec dec"
             ]

@@ -50,13 +50,13 @@ enum HandstandSkillAnchors {
 
         // ── Hard feats — floor by eliteness (NOT node.tier); short ladder floor…peak. ──
         // One-arm elbow lever: a held one-arm balance — veteran entry.
-        "hs.one-arm-elbow-lever": .init(exerciseName: "one-arm elbow lever",            metric: .seconds, spec: .feat(floor: .veteran, ladder: [3, 6, 10, 15, 25])), // floor 4 → 5 vals
+        "hs.one-arm-elbow-lever": .init(exerciseName: "one-arm elbow lever",            metric: .seconds, spec: .scaled(to: 30)), // floor 4 → 5 vals
         // Wall-supported one-arm handstand: master entry (real OAH lead-up).
-        "hs.wall-supported-oah":  .init(exerciseName: "wall-supported one-arm handstand", metric: .seconds, spec: .feat(floor: .master, ladder: [3, 5, 8, 12])),       // floor 5 → 4 vals
+        "hs.wall-supported-oah":  .init(exerciseName: "wall-supported one-arm handstand", metric: .seconds, spec: .scaled(to: 35)),       // floor 5 → 4 vals
         // Press chain (reps) — tuck press is the press-to-handstand lead-up, veteran entry.
-        "hs.tuck-press":          .init(exerciseName: "tuck press",                       metric: .reps,    spec: .feat(floor: .veteran, ladder: [1, 2, 3, 5, 8])),    // floor 4 → 5 vals
-        "hs.straddle-press":      .init(exerciseName: "straddle press",                   metric: .reps,    spec: .feat(floor: .vessel,  ladder: [1, 2, 4])),          // floor 6 → 3 vals
-        "hs.press-to-handstand":  .init(exerciseName: "press to handstand",               metric: .reps,    spec: .feat(floor: .vessel,  ladder: [1, 3, 5])),          // floor 6 → 3 vals
+        "hs.tuck-press":          .init(exerciseName: "tuck press",                       metric: .reps,    spec: .scaled(to: 24)),    // floor 4 → 5 vals
+        "hs.straddle-press":      .init(exerciseName: "straddle press",                   metric: .reps,    spec: .scaled(to: 21)),          // floor 6 → 3 vals
+        "hs.press-to-handstand":  .init(exerciseName: "press to handstand",               metric: .reps,    spec: .scaled(to: 18)),          // floor 6 → 3 vals
     ]
 }
 

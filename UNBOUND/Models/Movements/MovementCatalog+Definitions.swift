@@ -368,7 +368,7 @@ extension MovementCatalog {
         switch node.cluster {
         case .pullingPower:
             return [.power: 0.45, .control: 0.3, .endurance: 0.25]
-        case .calisthenicControl, .planche, .handstand, .handstandPushup, .oneArmHandstand:
+        case .calisthenicControl, .planche, .handstand:
             return [.control: 0.55, .power: 0.25, .endurance: 0.2]
         case .coreLever:
             return [.control: 0.6, .power: 0.2, .endurance: 0.2]
@@ -458,8 +458,9 @@ extension MovementCatalog {
     }
 
     static func skillDrill(_ id: String, _ displayName: String, aliases: [String], skillId: String) -> MovementDefinition {
-        MovementDefinition(
-            id: "skill-drill.\(id)",
+        let drillId = "skill-drill.\(id)"
+        return MovementDefinition(
+            id: drillId,
             displayName: displayName,
             role: .skillDrill,
             rankable: true,
@@ -469,6 +470,7 @@ extension MovementCatalog {
             aliases: aliases,
             attributeWeights: skillMovementAttributeWeights(forId: skillId) ?? [.control: 0.6, .power: 0.2, .endurance: 0.2],
             canonicalExerciseName: nil,
+            rankStandardMovementId: skillDrillCanonicalStandard[drillId],
             skillId: skillId,
             cardioType: nil,
             defaultMetric: .holdSeconds,

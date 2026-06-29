@@ -106,17 +106,22 @@ extension SquadDetailView {
             if routineDrops.isEmpty {
                 emptySlab("No routines shared yet. Drop a Saved Workout from the Program tab.", icon: "square.and.arrow.up.fill")
             } else {
-                VStack(spacing: 10) {
-                    ForEach(routineDrops.prefix(5)) { drop in
-                        SquadRoutineDropCard(
-                            drop: drop,
-                            authorName: displayName(for: drop.authorUserId),
-                            isMine: drop.authorUserId == currentUserId,
-                            onSave: { saveRoutineDrop(drop) },
-                            onUseToday: { useRoutineDropToday(drop) }
-                        )
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: 12) {
+                        ForEach(routineDrops) { drop in
+                            SquadRoutineDropCard(
+                                drop: drop,
+                                authorName: displayName(for: drop.authorUserId),
+                                isMine: drop.authorUserId == currentUserId,
+                                onSave: { saveRoutineDrop(drop) },
+                                onUseToday: { useRoutineDropToday(drop) }
+                            )
+                            .frame(width: 306)
+                        }
                     }
+                    .padding(.vertical, 2)
                 }
+                .scrollClipDisabled()
             }
         }
     }

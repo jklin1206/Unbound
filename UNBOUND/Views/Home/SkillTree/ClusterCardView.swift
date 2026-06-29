@@ -26,33 +26,21 @@ struct ClusterCardView: View {
     private var activeNode: SkillNode? {
         tree.activeNode(in: graph, states: nodeStates)
     }
+    /// The skill the user has flagged as their target for this tree, if any.
+    private var targetNode: SkillNode? {
+        tree.targetNode(in: graph, targetIds: SkillProgressService.shared.targetSkillIds)
+    }
     private var representativeNode: SkillNode? {
         tree.farthestProvenNode(in: graph, states: nodeStates)
+            ?? targetNode
             ?? activeNode
             ?? tree.previewKeystone(in: graph, states: nodeStates)
     }
     private var representativeAssetName: String? {
         representativeNode.flatMap { SkillTraditionalVisualResolver.assetName(for: $0) }
     }
-    private var achievementPreview: AchievementPreview? {
-        if let provenNode = tree.farthestProvenNode(in: graph, states: nodeStates) {
-            return AchievementPreview(node: provenNode, label: "FARTHEST", icon: "trophy.fill", isAchieved: true)
-        }
-        if let activeNode {
-            return AchievementPreview(node: activeNode, label: "CHASING", icon: "scope", isAchieved: false)
-        }
-        return nil
-    }
-    private var isLocked: Bool {
-        tree.isLocked(in: graph, states: nodeStates)
-    }
-
     var body: some View {
-        if isLocked {
-            lockedBody
-        } else {
-            unlockedBody
-        }
+        unlockedBody
     }
 
     // MARK: - Unlocked body
@@ -62,12 +50,7 @@ struct ClusterCardView: View {
             headerRow
             divider
             progressBlock
-            if let node = activeNode, achievementPreview?.isAchieved ?? true {
-                nowChip(node)
-            }
-            if let preview = achievementPreview {
-                achievementRow(preview)
-            }
+            targetRow
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -90,46 +73,6 @@ struct ClusterCardView: View {
         )
     }
 
-    // MARK: - Locked body
-
-    private var lockedBody: some View {
-        let requiredName = tree.requiredClusterName()?.uppercased() ?? "—"
-        return VStack(alignment: .leading, spacing: 14) {
-            headerRow
-            divider
-            HStack(spacing: 10) {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text("REQUIRES · \(requiredName) KEYSTONE")
-                    .font(Font.unbound.captionS.weight(.semibold))
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                Spacer(minLength: 0)
-            }
-            Text("\(total) skills · locked")
-                .font(Font.unbound.captionS)
-                .tracking(0.8)
-                .foregroundStyle(Color.unbound.textTertiary)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.55))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(
-                    Color.unbound.border,
-                    style: StrokeStyle(lineWidth: 1, dash: [4, 4])
-                )
-        )
-        .opacity(0.6)
-    }
-
     // MARK: - Pieces
 
     private var headerRow: some View {
@@ -143,18 +86,10 @@ struct ClusterCardView: View {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         treeTitle
                         chapterSubtitleLabel
-                        if tree.isUmbrella {
-                            subClusterPill
-                        }
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 8) {
-                            treeTitle
-                            if tree.isUmbrella {
-                                subClusterPill
-                            }
-                        }
+                        treeTitle
                         chapterSubtitleLabel
                     }
                 }
@@ -205,50 +140,20 @@ struct ClusterCardView: View {
                     .interpolation(.high)
                     .aspectRatio(contentMode: .fit)
                     .padding(3)
-                    .opacity(isLocked ? 0.58 : 1)
-                    .saturation(isLocked ? 0.45 : 1)
-                    .shadow(color: Color.black.opacity(isLocked ? 0.16 : 0.34), radius: 5, x: 0, y: 3)
+                    .shadow(color: Color.black.opacity(0.34), radius: 5, x: 0, y: 3)
             } else {
-                SkillTreeIconMark(tree: tree, isLocked: isLocked)
+                SkillTreeIconMark(tree: tree)
                     .padding(7)
-            }
-
-            if isLocked {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .frame(width: 18, height: 18)
-                    .background(Circle().fill(Color.unbound.bg.opacity(0.86)))
-                    .padding(4)
             }
         }
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(
-                    isLocked ? Color.unbound.border : Color.unbound.accent.opacity(0.30),
+                    Color.unbound.accent.opacity(0.30),
                     lineWidth: 1
                 )
         )
         .accessibilityHidden(true)
-    }
-
-    private var subClusterPill: some View {
-        HStack(spacing: 4) {
-            Text("3")
-                .font(.system(size: 11, weight: .heavy, design: .monospaced))
-            Text("STAGES")
-                .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                .tracking(1.2)
-        }
-        .foregroundStyle(Color.unbound.accent)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(
-            Capsule().fill(Color.unbound.accent.opacity(0.12))
-        )
-        .overlay(
-            Capsule().strokeBorder(Color.unbound.accent.opacity(0.4), lineWidth: 1)
-        )
     }
 
     private var divider: some View {
@@ -282,95 +187,77 @@ struct ClusterCardView: View {
         }
     }
 
-    private func nowChip(_ node: SkillNode) -> some View {
+    // MARK: - Target row (the goal you set for this tree)
+
+    @ViewBuilder
+    private var targetRow: some View {
+        if let target = targetNode {
+            targetSetRow(target: target)
+        } else if activeNode != nil {
+            noTargetRow
+        }
+    }
+
+    private func targetSetRow(target: SkillNode) -> some View {
         let userId = AuthService.shared.currentUserId ?? "anonymous"
-        let earnedTier = UserSkillTierStore.shared.load(userId: userId).perSkill[node.id] ?? .initiate
-        return HStack(spacing: 8) {
-            Circle()
-                .fill(Color.unbound.accent)
-                .frame(width: 6, height: 6)
-            Text("NOW")
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.4)
+        let earned = UserSkillTierStore.shared.load(userId: userId).perSkill[target.id] ?? .initiate
+        return HStack(spacing: 10) {
+            Image(systemName: "scope")
+                .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Color.unbound.accent)
-            Text("·")
-                .foregroundStyle(Color.unbound.textTertiary)
-            Text(node.title)
-                .font(Font.unbound.bodyMStrong)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .truncationMode(.tail)
-                .layoutPriority(1)
-            Spacer(minLength: 4)
-            TierBadge(tier: earnedTier, compact: true)
-                .fixedSize()
+            VStack(alignment: .leading, spacing: 2) {
+                Text("TARGET")
+                    .font(Font.unbound.captionS.weight(.heavy))
+                    .tracking(1.6)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Text(target.title)
+                    .font(Font.unbound.bodyMStrong)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .truncationMode(.tail)
+            }
+            .layoutPriority(1)
+            Spacer(minLength: 6)
+            Image(earned.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 32, height: 32)
+                .shadow(color: earned.rewardTint.opacity(0.35), radius: 6)
+                .accessibilityLabel("\(earned.displayName) rank")
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(Capsule().fill(Color.unbound.surfaceElevated))
     }
 
-    private func achievementRow(_ preview: AchievementPreview) -> some View {
-        let node = preview.node
-        return HStack(spacing: 10) {
-            Image(systemName: preview.icon)
+    private var noTargetRow: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "scope")
                 .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(preview.isAchieved ? Color.unbound.impact : Color.unbound.textTertiary)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(preview.label)
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.6)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text(node.title)
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                    .truncationMode(.tail)
-            }
-            .layoutPriority(1)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text("Tap a skill to set your target")
+                .font(Font.unbound.bodyS)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
             Spacer(minLength: 6)
-            let userId = AuthService.shared.currentUserId ?? "anonymous"
-            let skillTier = UserSkillTierStore.shared.load(userId: userId).perSkill[node.id] ?? .initiate
-            HStack(spacing: 6) {
-                TierBadge(tier: skillTier, compact: true)
-                difficultyPill(rank: node.placementRank)
-            }
-            .fixedSize()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Color.unbound.textTertiary)
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Capsule().fill(Color.unbound.surfaceElevated.opacity(0.6)))
     }
 
-    /// Intrinsic difficulty pill — renders the node's fixed `placementRank`
-    /// (RankTier) badge art, distinct from the earned TierBadge above it.
-    private func difficultyPill(rank: RankTier) -> some View {
-        Image(rank.assetName)
-            .resizable()
-            .scaledToFit()
-            .frame(width: 36, height: 36)
-            .shadow(color: rank.rewardTint.opacity(0.35), radius: 8)
-            .accessibilityLabel("\(rank.displayName) difficulty")
-    }
-}
-
-private struct AchievementPreview {
-    let node: SkillNode
-    let label: String
-    let icon: String
-    let isAchieved: Bool
 }
 
 private struct SkillTreeIconMark: View {
     let tree: SkillDisplayTree
-    let isLocked: Bool
 
-    private var primary: Color {
-        isLocked ? Color.unbound.textTertiary : Color.unbound.textPrimary
-    }
-
-    private var accent: Color {
-        isLocked ? Color.unbound.border : Color.unbound.accent
-    }
+    private var primary: Color { Color.unbound.textPrimary }
+    private var accent: Color { Color.unbound.accent }
 
     var body: some View {
         Canvas { context, size in

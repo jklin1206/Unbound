@@ -68,28 +68,38 @@ final class MovementResolverTests: XCTestCase {
         }
     }
 
-    func testProgressionVariantVisualsAreNotExactDuplicateAssets() throws {
-        let variantPairs = [
-            ("exercise_visual_exercise_assisted-squat", "exercise_visual_exercise_bodyweight-squat"),
-            ("exercise_visual_exercise_parallel-squat", "exercise_visual_exercise_bodyweight-squat"),
-            ("exercise_visual_exercise_deep-step-up", "exercise_visual_exercise_step-up"),
-            ("exercise_visual_exercise_partial-pistol-squat", "exercise_visual_exercise_assisted-pistol-squat"),
-            ("exercise_visual_exercise_beginner-shrimp-squat", "exercise_visual_exercise_shrimp-squat"),
-            ("exercise_visual_exercise_intermediate-shrimp-squat", "exercise_visual_exercise_shrimp-squat"),
-            ("exercise_visual_exercise_two-hand-shrimp-squat", "exercise_visual_exercise_shrimp-squat"),
-            ("exercise_visual_exercise_elevated-two-hand-shrimp-squat", "exercise_visual_exercise_shrimp-squat"),
-            ("exercise_visual_exercise_nordic-curl-negative", "exercise_visual_exercise_nordic-curl"),
-            ("exercise_visual_exercise_nordic-curl-arms-overhead", "exercise_visual_exercise_nordic-curl"),
+    /// Progression variants fall into two groups:
+    /// - Movements distinct enough to warrant their own picture must NOT be an
+    ///   exact byte-copy of their base.
+    /// - Pure depth/difficulty variants intentionally REUSE their base
+    ///   movement's picture (the pose is only a few degrees apart, not worth
+    ///   distinct art - a confirmed product decision). They must still ship a
+    ///   loadable asset, but may equal the base.
+    func testProgressionVariantVisualsAreDistinctOrIntentionallyShared() throws {
+        let distinctVariantPairs = [
             ("exercise_visual_exercise_tuck-one-leg-nordic-curl", "exercise_visual_exercise_nordic-curl"),
             ("exercise_visual_exercise_one-leg-nordic-curl", "exercise_visual_exercise_nordic-curl"),
-            ("exercise_visual_exercise_bodyweight-leg-extension", "exercise_visual_exercise_leg-extensions"),
             ("exercise_visual_exercise_single-leg-glute-bridge", "exercise_visual_exercise_glute-bridge"),
             ("exercise_visual_exercise_one-arm-inverted-row", "exercise_visual_exercise_one-arm-row"),
-            ("exercise_visual_exercise_advanced-nordic-hip-hinge", "exercise_visual_exercise_advancing-nordic-curl"),
             ("exercise_visual_exercise_single-leg-extension", "exercise_visual_exercise_leg-extensions")
         ]
 
-        for (variantAssetName, baseAssetName) in variantPairs {
+        let sharedBaseVariants = [
+            "exercise_visual_exercise_assisted-squat",
+            "exercise_visual_exercise_parallel-squat",
+            "exercise_visual_exercise_deep-step-up",
+            "exercise_visual_exercise_partial-pistol-squat",
+            "exercise_visual_exercise_beginner-shrimp-squat",
+            "exercise_visual_exercise_intermediate-shrimp-squat",
+            "exercise_visual_exercise_two-hand-shrimp-squat",
+            "exercise_visual_exercise_elevated-two-hand-shrimp-squat",
+            "exercise_visual_exercise_nordic-curl-negative",
+            "exercise_visual_exercise_nordic-curl-arms-overhead",
+            "exercise_visual_exercise_bodyweight-leg-extension",
+            "exercise_visual_exercise_advanced-nordic-hip-hinge"
+        ]
+
+        for (variantAssetName, baseAssetName) in distinctVariantPairs {
             let variantImage = try XCTUnwrap(
                 UIImage(named: variantAssetName),
                 "\(variantAssetName) should ship in Assets.xcassets"
@@ -98,11 +108,17 @@ final class MovementResolverTests: XCTestCase {
                 UIImage(named: baseAssetName),
                 "\(baseAssetName) should ship in Assets.xcassets"
             )
-
             XCTAssertNotEqual(
                 variantImage.pngData(),
                 baseImage.pngData(),
-                "\(variantAssetName) should not be an exact duplicate of \(baseAssetName)"
+                "\(variantAssetName) should have its own distinct picture, not a copy of \(baseAssetName)"
+            )
+        }
+
+        for variantAssetName in sharedBaseVariants {
+            XCTAssertNotNil(
+                UIImage(named: variantAssetName),
+                "\(variantAssetName) should ship a loadable asset (may intentionally reuse its base picture)"
             )
         }
     }
@@ -364,7 +380,7 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertEqual(MovementCatalog.legacyExercises.count, ExerciseCatalog.allExercises.count)
         XCTAssertGreaterThanOrEqual(MovementCatalog.skillTargets.count, SkillGraph.shared.nodes.count)
         XCTAssertGreaterThan(MovementCatalog.rankStandards.count, 100)
-        XCTAssertGreaterThan(MovementCatalog.loggableVariants.count, 20)
+        XCTAssertGreaterThan(MovementCatalog.loggableVariants.count, 15)
         XCTAssertGreaterThan(MovementCatalog.loggableMovements.count, MovementCatalog.rankStandards.count)
         XCTAssertEqual(MovementCatalog.cardioMovements.count, CardioType.allCases.count)
         XCTAssertFalse(MovementCatalog.carryMovements.isEmpty)
@@ -678,17 +694,17 @@ final class MovementResolverTests: XCTestCase {
             style: .bodyweight,
             userEquipment: [.bodyweight]
         )
-        XCTAssertTrue(bodyweightOnly.contains { $0.displayName == "Pushup" })
+        XCTAssertTrue(bodyweightOnly.contains { $0.displayName == "Push-Up" })
         XCTAssertTrue(bodyweightOnly.contains { $0.displayName == "Bodyweight Squat" })
         XCTAssertFalse(bodyweightOnly.contains { $0.displayName == "Lat Pulldown (Bar)" })
-        XCTAssertFalse(bodyweightOnly.contains { $0.displayName == "Pull-Up (Bodyweight)" })
+        XCTAssertFalse(bodyweightOnly.contains { $0.displayName == "Pull-Up" })
         XCTAssertFalse(bodyweightOnly.contains { $0.displayName == "Ab Wheel" })
 
         let bodyweightWithBar = MovementCatalog.programDefinitions(
             style: .bodyweight,
             userEquipment: [.bodyweight, .pullupBar]
         )
-        XCTAssertTrue(bodyweightWithBar.contains { $0.displayName == "Pull-Up (Bodyweight)" })
+        XCTAssertTrue(bodyweightWithBar.contains { $0.displayName == "Pull-Up" })
         XCTAssertFalse(bodyweightWithBar.contains { $0.displayName == "Dip (Tricep)" })
         XCTAssertFalse(bodyweightWithBar.contains { $0.displayName == "Straight Bar Dip" })
 

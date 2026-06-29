@@ -57,6 +57,11 @@ struct ProgramRankAttemptRevealOverlay: View {
                 .opacity(isPresented ? 1 : 0)
 
                 VStack(spacing: 10) {
+                    Text(reveal.isRankUp ? "NEW BEST" : "THIS ATTEMPT")
+                        .font(Font.unbound.captionS.weight(.heavy))
+                        .tracking(2.4)
+                        .foregroundStyle(reveal.isRankUp ? tint : Color.unbound.textTertiary)
+
                     Text(reveal.tier.displayName.uppercased())
                         .font(.system(size: 52, weight: .black, design: .rounded))
                         .foregroundStyle(tint)
@@ -186,30 +191,30 @@ struct ProgramRankAttemptRevealOverlay: View {
 }
 
 enum ProgramRankRepGraphRange: CaseIterable, Identifiable {
+    case sevenDays
     case thirtyDays
     case ninetyDays
-    case all
 
     var id: Self { self }
 
-    var label: String {
+    var days: Int {
         switch self {
-        case .thirtyDays: return "30D"
-        case .ninetyDays: return "90D"
-        case .all: return "ALL"
+        case .sevenDays: return 7
+        case .thirtyDays: return 30
+        case .ninetyDays: return 90
         }
     }
 
-    func cutoff(relativeTo date: Date) -> Date? {
-        let calendar = Calendar.current
+    var label: String {
         switch self {
-        case .thirtyDays:
-            return calendar.date(byAdding: .day, value: -30, to: date)
-        case .ninetyDays:
-            return calendar.date(byAdding: .day, value: -90, to: date)
-        case .all:
-            return nil
+        case .sevenDays: return "7D"
+        case .thirtyDays: return "30D"
+        case .ninetyDays: return "90D"
         }
+    }
+
+    func cutoff(relativeTo date: Date) -> Date {
+        Calendar.current.date(byAdding: .day, value: -days, to: date) ?? date
     }
 }
 
@@ -217,145 +222,108 @@ struct ProgramRankProofGraphPoint: Identifiable {
     let id: String
     let date: Date
     let value: Double
-    let isCurrentAttempt: Bool
 }
 
 struct ProgramRankProofHistoryLineGraph: View {
     let entries: [ProgramRankExerciseHistoryEntry]
-    let currentValue: Double
     let historyValue: (ProgramRankExerciseHistoryEntry) -> Double?
     let valueFormatter: (Double) -> String
     @Binding var selectedRange: ProgramRankRepGraphRange
     let tint: Color
     let accessibilityUnit: String
 
-    private var dailyHistoryPoints: [ProgramRankProofGraphPoint] {
+    @State private var selectedPointId: String?
+
+    private let plotHeight: CGFloat = 218
+    private let yAxisWidth: CGFloat = 44
+    private let topInset: CGFloat = 16
+    private let bottomInset: CGFloat = 8
+    private let levelCount = 5   // horizontal gridlines / Y labels
+    private let xTickCount = 5   // vertical gridlines / X date labels
+
+    // MARK: - Derived data
+
+    /// Best value per calendar day across the full history.
+    private var dailyPoints: [ProgramRankProofGraphPoint] {
         let calendar = Calendar.autoupdatingCurrent
         var bestByDay: [Date: ProgramRankProofGraphPoint] = [:]
-
         for entry in entries {
             guard let value = historyValue(entry) else { continue }
             let day = calendar.startOfDay(for: entry.occurredAt)
-            let point = ProgramRankProofGraphPoint(
-                id: graphPointId(for: day),
-                date: entry.occurredAt,
-                value: value,
-                isCurrentAttempt: false
+            if let existing = bestByDay[day], value <= existing.value { continue }
+            bestByDay[day] = ProgramRankProofGraphPoint(
+                id: "day-\(Int(day.timeIntervalSince1970))",
+                date: day,
+                value: value
             )
-
-            if let existing = bestByDay[day] {
-                let isBetterValue = value > existing.value
-                let isLaterTie = value == existing.value && entry.occurredAt > existing.date
-                if isBetterValue || isLaterTie {
-                    bestByDay[day] = point
-                }
-            } else {
-                bestByDay[day] = point
-            }
         }
-
         return bestByDay.values.sorted { $0.date < $1.date }
     }
 
-    private var points: [ProgramRankProofGraphPoint] {
-        let now = Date()
-        let calendar = Calendar.autoupdatingCurrent
-        let cutoff = selectedRange.cutoff(relativeTo: now)
-        var filtered = dailyHistoryPoints.filter { point in
-            guard let cutoff else { return true }
-            return point.date >= cutoff
-        }
-
-        let current = max(currentValue, 0)
-        guard current > 0 else { return filtered }
-
-        let today = calendar.startOfDay(for: now)
-        if let todayIndex = filtered.firstIndex(where: { calendar.isDate($0.date, inSameDayAs: now) }) {
-            if current >= filtered[todayIndex].value {
-                filtered[todayIndex] = ProgramRankProofGraphPoint(
-                    id: graphPointId(for: today),
-                    date: now,
-                    value: current,
-                    isCurrentAttempt: true
-                )
-            }
-            return filtered
-        }
-
-        filtered.append(
-            ProgramRankProofGraphPoint(
-                id: graphPointId(for: today),
-                date: now,
-                value: current,
-                isCurrentAttempt: true
-            )
-        )
-        return filtered
+    private var windowStart: Date {
+        Calendar.autoupdatingCurrent.startOfDay(for: selectedRange.cutoff(relativeTo: Date()))
     }
+
+    private var windowEnd: Date { Date() }
+
+    /// Logged days inside the selected window — no synthetic "today" point.
+    private var points: [ProgramRankProofGraphPoint] {
+        let start = windowStart
+        return dailyPoints.filter { $0.date >= start }
+    }
+
+    /// A clean Y scale snapped so the gridlines land on tidy values.
+    private var valueBounds: (min: Double, max: Double) {
+        let values = points.map(\.value)
+        let rawMin = values.min() ?? 0
+        let rawMax = values.max() ?? 1
+        let pad = max((rawMax - rawMin) * 0.15, 1)
+        let lower = max(0, (rawMin - pad).rounded(.down))
+        let divisor = Double(levelCount - 1)
+        let rawUpper = max(rawMax + pad, lower + divisor)
+        let step = ((rawUpper - lower) / divisor).rounded(.up)
+        return (lower, lower + step * divisor)
+    }
+
+    private var selectedPoint: ProgramRankProofGraphPoint? {
+        guard let id = selectedPointId else { return nil }
+        return points.first { $0.id == id }
+    }
+
+    // MARK: - Body
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(valueFormatter(points.last?.value ?? currentValue))
-                    .font(Font.unbound.bodyS.weight(.black))
-                    .foregroundStyle(tint)
-                    .monospacedDigit()
-                Spacer(minLength: 10)
-                rangePicker
-            }
+            rangePicker
+                .frame(maxWidth: .infinity, alignment: .trailing)
 
-            GeometryReader { proxy in
-                let plotPoints = plottedPoints(in: proxy.size)
-
-                ZStack {
-                    graphGrid
-
-                    Path { path in
-                        guard let first = plotPoints.first else { return }
-                        path.move(to: first.location)
-                        for point in plotPoints.dropFirst() {
-                            path.addLine(to: point.location)
-                        }
-                    }
-                    .stroke(
-                        LinearGradient(
-                            colors: [tint.opacity(0.45), tint],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        ),
-                        style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round)
-                    )
-                    .animation(.spring(response: 0.28, dampingFraction: 0.86), value: currentValue)
-
-                    ForEach(plotPoints) { point in
-                        Circle()
-                            .fill(point.source.isCurrentAttempt ? tint : Color.unbound.bg)
-                            .frame(width: point.source.isCurrentAttempt ? 11 : 8, height: point.source.isCurrentAttempt ? 11 : 8)
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(tint.opacity(point.source.isCurrentAttempt ? 1 : 0.7), lineWidth: 2)
-                            )
-                            .shadow(color: point.source.isCurrentAttempt ? tint.opacity(0.42) : .clear, radius: 8)
-                            .position(point.location)
+            if points.isEmpty {
+                emptyState
+            } else {
+                HStack(alignment: .top, spacing: 6) {
+                    yAxis
+                        .frame(width: yAxisWidth, height: plotHeight)
+                    VStack(spacing: 6) {
+                        plot.frame(height: plotHeight)
+                        xAxis.frame(height: 14)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(height: 130)
-
-            dateAxis
         }
         .padding(.top, 4)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Rank proof progress over time")
-        .accessibilityValue("\(valueFormatter(currentValue)) \(accessibilityUnit) selected")
+        .accessibilityLabel("Progress over time")
+        .accessibilityValue(accessibilitySummary)
     }
+
+    // MARK: - Range picker
 
     private var rangePicker: some View {
         HStack(spacing: 14) {
             ForEach(ProgramRankRepGraphRange.allCases) { range in
                 Button {
                     selectedRange = range
+                    selectedPointId = nil
                     UnboundHaptics.soft()
                 } label: {
                     VStack(spacing: 4) {
@@ -367,84 +335,176 @@ struct ProgramRankProofHistoryLineGraph: View {
                             .frame(height: 2)
                             .clipShape(Capsule())
                     }
-                    .frame(minWidth: 32)
+                    .frame(minWidth: 34)
                 }
                 .buttonStyle(.plain)
             }
         }
     }
 
-    private var graphGrid: some View {
-        VStack(spacing: 0) {
-            ForEach(0..<4, id: \.self) { index in
-                Rectangle()
-                    .fill(Color.unbound.borderSubtle.opacity(index == 3 ? 0.44 : 0.22))
-                    .frame(height: 1)
-                if index < 3 {
-                    Spacer(minLength: 0)
+    // MARK: - Y axis (value labels aligned to gridlines)
+
+    private var yAxis: some View {
+        GeometryReader { proxy in
+            let usable = max(proxy.size.height - topInset - bottomInset, 1)
+            let bounds = valueBounds
+            ForEach(0..<levelCount, id: \.self) { index in
+                let frac = Double(index) / Double(levelCount - 1)
+                let value = bounds.max - (bounds.max - bounds.min) * frac
+                Text(valueFormatter(value))
+                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .frame(width: yAxisWidth - 4, alignment: .trailing)
+                    .position(x: (yAxisWidth - 4) / 2, y: topInset + usable * CGFloat(frac))
+            }
+        }
+    }
+
+    // MARK: - Plot
+
+    private var plot: some View {
+        GeometryReader { proxy in
+            let size = proxy.size
+            let bounds = valueBounds
+            let usableH = max(size.height - topInset - bottomInset, 1)
+            let span = max(bounds.max - bounds.min, 1)
+            let timeSpan = max(windowEnd.timeIntervalSince(windowStart), 1)
+            let xPos: (Date) -> CGFloat = { date in
+                CGFloat(min(max(date.timeIntervalSince(windowStart) / timeSpan, 0), 1)) * size.width
+            }
+            let yPos: (Double) -> CGFloat = { value in
+                topInset + usableH * CGFloat(1 - (value - bounds.min) / span)
+            }
+            let locations = points.map { CGPoint(x: xPos($0.date), y: yPos($0.value)) }
+
+            ZStack {
+                // Horizontal gridlines
+                ForEach(0..<levelCount, id: \.self) { index in
+                    let gy = topInset + usableH * CGFloat(index) / CGFloat(levelCount - 1)
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: gy))
+                        path.addLine(to: CGPoint(x: size.width, y: gy))
+                    }
+                    .stroke(Color.unbound.borderSubtle.opacity(index == levelCount - 1 ? 0.42 : 0.16), lineWidth: 1)
+                }
+                // Vertical gridlines
+                ForEach(0..<xTickCount, id: \.self) { index in
+                    let gx = size.width * CGFloat(index) / CGFloat(xTickCount - 1)
+                    Path { path in
+                        path.move(to: CGPoint(x: gx, y: topInset))
+                        path.addLine(to: CGPoint(x: gx, y: topInset + usableH))
+                    }
+                    .stroke(Color.unbound.borderSubtle.opacity(0.10), lineWidth: 1)
+                }
+                // Area fill under the line
+                if locations.count >= 2 {
+                    Path { path in
+                        path.move(to: CGPoint(x: locations[0].x, y: topInset + usableH))
+                        for loc in locations { path.addLine(to: loc) }
+                        path.addLine(to: CGPoint(x: locations[locations.count - 1].x, y: topInset + usableH))
+                        path.closeSubpath()
+                    }
+                    .fill(LinearGradient(colors: [tint.opacity(0.22), tint.opacity(0.02)], startPoint: .top, endPoint: .bottom))
+                }
+                // Trend line
+                if locations.count >= 2 {
+                    Path { path in
+                        path.move(to: locations[0])
+                        for loc in locations.dropFirst() { path.addLine(to: loc) }
+                    }
+                    .stroke(
+                        LinearGradient(colors: [tint.opacity(0.5), tint], startPoint: .leading, endPoint: .trailing),
+                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
+                    )
+                }
+                // Selection guide line
+                if let selected = selectedPoint {
+                    let sx = xPos(selected.date)
+                    Path { path in
+                        path.move(to: CGPoint(x: sx, y: topInset))
+                        path.addLine(to: CGPoint(x: sx, y: topInset + usableH))
+                    }
+                    .stroke(tint.opacity(0.55), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                }
+                // Nodes + tap targets
+                ForEach(points) { point in
+                    let location = CGPoint(x: xPos(point.date), y: yPos(point.value))
+                    let isSelected = point.id == selectedPointId
+                    Circle()
+                        .fill(isSelected ? tint : Color.unbound.bg)
+                        .frame(width: isSelected ? 13 : 8, height: isSelected ? 13 : 8)
+                        .overlay(Circle().strokeBorder(tint, lineWidth: 2))
+                        .shadow(color: isSelected ? tint.opacity(0.5) : .clear, radius: 7)
+                        .position(location)
+                    Color.clear
+                        .frame(width: 40, height: 40)
+                        .contentShape(Circle())
+                        .position(location)
+                        .onTapGesture {
+                            UnboundHaptics.soft()
+                            selectedPointId = isSelected ? nil : point.id
+                        }
+                }
+                // Tapped-day callout
+                if let selected = selectedPoint {
+                    let bubbleWidth: CGFloat = 108
+                    let cx = min(max(xPos(selected.date), bubbleWidth / 2), size.width - bubbleWidth / 2)
+                    let cy = max(yPos(selected.value) - 40, 22)
+                    calloutBody(for: selected)
+                        .frame(width: bubbleWidth)
+                        .position(x: cx, y: cy)
                 }
             }
         }
     }
 
-    private var dateAxis: some View {
-        HStack {
-            Text(dateLabel(for: visibleStartDate))
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textTertiary)
-            Spacer(minLength: 8)
-            Text("Today")
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textTertiary)
+    private func calloutBody(for point: ProgramRankProofGraphPoint) -> some View {
+        VStack(spacing: 2) {
+            Text(valueFormatter(point.value))
+                .font(.system(size: 15, weight: .black, design: .rounded))
+                .foregroundStyle(tint)
+                .monospacedDigit()
+            Text(point.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(Color.unbound.textSecondary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.unbound.surfaceElevated))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(tint.opacity(0.45), lineWidth: 1))
+        .shadow(color: Color.black.opacity(0.4), radius: 8, y: 3)
+    }
+
+    // MARK: - X axis (date labels)
+
+    private var xAxis: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let timeSpan = max(windowEnd.timeIntervalSince(windowStart), 1)
+            ForEach(0..<xTickCount, id: \.self) { index in
+                let frac = Double(index) / Double(xTickCount - 1)
+                let date = windowStart.addingTimeInterval(timeSpan * frac)
+                Text(date.formatted(.dateTime.month(.abbreviated).day()))
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .fixedSize()
+                    .position(x: min(max(CGFloat(frac) * width, 16), width - 16), y: 7)
+            }
         }
     }
 
-    private var visibleStartDate: Date {
-        let now = Date()
-        if let cutoff = selectedRange.cutoff(relativeTo: now) {
-            return cutoff
-        }
-        return dailyHistoryPoints.first?.date ?? now
+    private var emptyState: some View {
+        Text("No attempts in this range.")
+            .font(Font.unbound.bodyS)
+            .foregroundStyle(Color.unbound.textTertiary)
+            .frame(maxWidth: .infinity, minHeight: 130)
     }
 
-    private func graphPointId(for day: Date) -> String {
-        "day-\(Int(day.timeIntervalSince1970))"
-    }
-
-    private func dateLabel(for date: Date) -> String {
-        date.formatted(.dateTime.month(.abbreviated).day())
-    }
-
-    private struct PlottedPoint: Identifiable {
-        let source: ProgramRankProofGraphPoint
-        let location: CGPoint
-
-        var id: String { source.id }
-    }
-
-    private func plottedPoints(in size: CGSize) -> [PlottedPoint] {
-        guard !points.isEmpty, size.width > 0, size.height > 0 else { return [] }
-
-        let now = Date()
-        let startDate = visibleStartDate
-        let timeSpan = max(now.timeIntervalSince(startDate), 1)
-        let values = points.map(\.value)
-        let rawMin = values.min() ?? 0
-        let rawMax = values.max() ?? 1
-        let padding = max((rawMax - rawMin) * 0.18, 1)
-        let minValue = max(rawMin - padding, 0)
-        let maxValue = max(rawMax + padding, minValue + 1)
-        let valueSpan = max(maxValue - minValue, 1)
-
-        return points.map { point in
-            let xRatio = min(max(point.date.timeIntervalSince(startDate) / timeSpan, 0), 1)
-            let yRatio = CGFloat((point.value - minValue) / valueSpan)
-            let location = CGPoint(
-                x: CGFloat(xRatio) * size.width,
-                y: size.height - (yRatio * size.height)
-            )
-            return PlottedPoint(source: point, location: location)
-        }
+    private var accessibilitySummary: String {
+        guard let latest = points.last else { return "No data in range" }
+        return "\(valueFormatter(latest.value)) \(accessibilityUnit) latest, \(points.count) sessions"
     }
 }
 
@@ -630,7 +690,39 @@ struct ProgramRankExerciseHistoryEntry: Identifiable {
                                 occurredAt: log.completedAt,
                                 summary: summary,
                                 oneRepMaxKg: estimatedOneRepMaxKg(weightKg: set.weightKg, reps: set.reps),
-                                reps: set.reps,
+                                reps: set.reps.flatMap { $0 > 0 ? $0 : nil },
+                                holdSeconds: set.holdSeconds ?? set.durationSeconds
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        return Array(entries.prefix(80))
+    }
+
+    /// Attempt history for a SKILL, gathered from blocks the skill itself logged
+    /// (`block.skillId`). Skills rank on their own criterion, so their history is
+    /// keyed by skill identity — independent of whatever movement twin a reps
+    /// template might resolve. A hold set's reps==0 sentinel is dropped so it
+    /// reads as a hold, not "0 reps".
+    static func entries(
+        from logs: [PerformanceLog],
+        skillId: String
+    ) -> [ProgramRankExerciseHistoryEntry] {
+        var entries: [ProgramRankExerciseHistoryEntry] = []
+        for log in logs.sorted(by: { $0.completedAt > $1.completedAt }) {
+            for block in log.blocks where block.skillId == skillId {
+                for exercise in block.exercises where !exercise.skipped {
+                    for set in exercise.sets where !set.isWarmup {
+                        guard let summary = ProgramRankExerciseFormatter.summary(for: set) else { continue }
+                        entries.append(
+                            ProgramRankExerciseHistoryEntry(
+                                id: "\(log.id):\(exercise.id):\(set.id)",
+                                occurredAt: log.completedAt,
+                                summary: summary,
+                                oneRepMaxKg: estimatedOneRepMaxKg(weightKg: set.weightKg, reps: set.reps),
+                                reps: set.reps.flatMap { $0 > 0 ? $0 : nil },
                                 holdSeconds: set.holdSeconds ?? set.durationSeconds
                             )
                         )
@@ -676,10 +768,12 @@ enum ProgramRankExerciseFormatter {
 
     static func summary(for set: PerformanceSet) -> String? {
         let unit = WeightPlatePolicy.currentUnit
-        if let weight = set.weightKg, let reps = set.reps {
+        if let weight = set.weightKg, let reps = set.reps, reps > 0 {
             return "\(WeightPlatePolicy.formatLoggedWeight(weight, unit: unit))\(unit.shortLabel) x \(reps)"
         }
-        if let reps = set.reps {
+        // A hold set may carry reps == 0 as a sentinel; treat that as "no reps"
+        // so the summary falls through to the hold instead of printing "0 reps".
+        if let reps = set.reps, reps > 0 {
             return "\(reps) reps"
         }
         if let hold = set.holdSeconds {

@@ -624,6 +624,15 @@ enum DevBuildBootstrapper {
     static let devScanSandboxArg = "--unbound-dev-scan"
     static let squadRosterProofArg = "--unbound-seed-squad-roster"
     static let squadActivityProofArg = "--unbound-proof-squad-activity"
+    /// `--unbound-dev-prove-skill <skillId>`: logs a qualifying proof of the
+    /// skill's top criterion movement through the REAL completion path, so the
+    /// live skill-rank advance can be demoed on-sim (pair with
+    /// `--unbound-dev-fresh-login` for a clean Initiate → advanced before/after).
+    static let proveSkillDemoArg = "--unbound-dev-prove-skill"
+    /// `--unbound-dev-seed-skill-history <skillId>`: logs a realistic, dated climb
+    /// of the skill's own criterion through the REAL completion path, so the rank
+    /// + stats render an actual user's experience (pair with `--unbound-dev-fresh-login`).
+    static let seedSkillHistoryArg = "--unbound-dev-seed-skill-history"
     static let devAccountModeKey = "unbound.dev.accountMode"
     static let freshLoginDevAccountMode = "fresh-login"
     static let resetCompletedWorkoutsDevAccountMode = "reset-completed-workouts"
@@ -686,6 +695,12 @@ enum DevBuildBootstrapper {
         if ProcessInfo.processInfo.arguments.contains(squadActivityProofArg) {
             await seedSquadActivityProof()
         }
+        if let skillId = launchArgumentValue(for: proveSkillDemoArg) {
+            await proveSkillForDemo(skillId: skillId)
+        }
+        if let skillId = launchArgumentValue(for: seedSkillHistoryArg) {
+            await seedSkillHistory(skillId: skillId)
+        }
         UserDefaults.standard.set(true, forKey: didBootstrapKey)
     }
 
@@ -707,6 +722,7 @@ enum DevBuildBootstrapper {
             || arguments.contains(where: { $0 == dynamicProgramScenarioArg || $0.hasPrefix("\(dynamicProgramScenarioArg)=") })
             || arguments.contains(freshLoginDevAccountArg)
             || arguments.contains(where: { $0 == devScanSandboxArg || $0.hasPrefix("\(devScanSandboxArg)=") })
+            || arguments.contains(where: { $0 == seedSkillHistoryArg || $0.hasPrefix("\(seedSkillHistoryArg)=") })
             || arguments.contains(squadActivityProofArg)
     }
 

@@ -204,7 +204,7 @@ struct ProgramRankLibraryView: View {
                 Text(section.title.uppercased())
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(1.5)
-                    .foregroundStyle(Color.unbound.textTertiary)
+                    .foregroundStyle(Color.unbound.accent)
                 Spacer(minLength: 0)
                 Text("\(section.rows.count)")
                     .font(Font.unbound.monoS.weight(.bold))
@@ -255,13 +255,21 @@ struct ProgramRankLibraryView: View {
             nodeStates: skillService.nodeStates,
             programFocusIds: skillService.programFocusIds
         )
-        // A movement that's also a skill node (push-up, pistol squat, muscle-up...)
-        // would otherwise appear twice. The skill node is the single rank source,
-        // so keep it and drop the exercise/skill-drill twin (matched by normalized
-        // name, which folds "Push-Up"/"Pushup" together).
-        let skillKeys = Set(skillRows.map { Self.searchKey($0.title) })
+        // The same physical movement is modelled by up to three subsystems
+        // (skill tree, skill drill, exercise library). The skill node is the
+        // single rank source, so any movement that resolves to a shown skill via
+        // the authoritative owning-skill join (its `skillId` or an
+        // `exerciseSkillTwins` entry) folds into that skill row: the Hollow Body
+        // Hold exercise + drill and every regression drill collapse, while a
+        // genuinely different movement (Hollow Rock) keeps its own row. The
+        // explicit join replaces the old name/art heuristic; `CanonicalTwinMapTests`
+        // proves it captures every twin the heuristic would have folded.
+        let shownSkillIds = Set(skillRows.map(\.sourceId))
         let movementRows = Self.makeMovementRows(progressStates: progressStates, profile: userProfile)
-            .filter { !skillKeys.contains(Self.searchKey($0.title)) }
+            .filter { row in
+                guard let owningSkill = MovementCatalog.owningSkillId(forMovementId: row.sourceId) else { return true }
+                return !shownSkillIds.contains(owningSkill)
+            }
         rows = skillRows + movementRows
         isLoading = false
     }
