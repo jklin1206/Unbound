@@ -168,25 +168,53 @@ enum ProgramRankTargetRegionSet {
     /// definition flattens + alphabetizes it); falls back to the definition's
     /// listed groups for gym lifts with no node.
     static func rankedRegions(node: SkillNode?, definition: MovementDefinition?) -> [RankedTargetRegion] {
-        rankedRegions(orderedGroups: importanceOrderedGroups(node: node, definition: definition))
+        // A skill node's primary -> secondary groups ARE the authored importance,
+        // so expand them in full. A pure gym lift (no node) instead carries precise
+        // per-exercise regions on its definition; use those so an isolation lift
+        // (leg extension = quads only) does not fan out into the whole leg group.
+        rankedRegions(
+            orderedGroups: importanceOrderedGroups(node: node, definition: definition),
+            preciseRegions: node == nil ? (definition?.bodyRegions ?? []) : []
+        )
     }
 
-    /// Rank directly from an importance-ordered muscle-group list — used by the
-    /// in-program exercise detail, which has no node or definition handy (its
-    /// `muscleGroups` are already authored primary-first).
-    static func rankedRegions(muscleGroups: [MuscleGroup]) -> [RankedTargetRegion] {
-        rankedRegions(orderedGroups: drawableDeduped(muscleGroups))
+    /// Rank directly from an importance-ordered muscle-group list - used by the
+    /// in-program exercise detail. Pass the movement's precise `bodyRegions` so an
+    /// isolation lift only lights the regions it actually trains (empty = none, in
+    /// which case the broad groups are expanded in full).
+    static func rankedRegions(muscleGroups: [MuscleGroup], bodyRegions: [BodyRegion] = []) -> [RankedTargetRegion] {
+        rankedRegions(orderedGroups: drawableDeduped(muscleGroups), preciseRegions: bodyRegions)
     }
 
     /// Expand importance-ordered groups into specific regions, each tagged with a
     /// dense importance tier. A group that adds no new region doesn't consume a
-    /// tier; ranking stops after the top 3 contributing tiers.
-    private static func rankedRegions(orderedGroups: [MuscleGroup]) -> [RankedTargetRegion] {
+    /// tier; ranking stops after the top 3 contributing tiers. When `preciseRegions`
+    /// is non-empty the movement carries authored per-exercise regions, so each
+    /// group's expansion is narrowed to just those; any precise region that belongs
+    /// to no listed group (e.g. rear delts, adductors) still shows as a trailing
+    /// tier, so precision never silently drops a real target.
+    private static func rankedRegions(
+        orderedGroups: [MuscleGroup],
+        preciseRegions: [BodyRegion]
+    ) -> [RankedTargetRegion] {
+        let precise = normalized(preciseRegions)
+
+        // Importance-ordered buckets: one per group, then a trailing bucket for
+        // precise regions outside every listed group.
+        var buckets: [[BodyRegion]] = orderedGroups.map { group in
+            let expanded = ordered(normalized(bodyRegions(from: [group])))
+            return precise.isEmpty ? expanded : expanded.filter { precise.contains($0) }
+        }
+        if !precise.isEmpty {
+            let grouped = Set(buckets.flatMap { $0 })
+            buckets.append(ordered(precise).filter { !grouped.contains($0) })
+        }
+
         var seen = Set<BodyRegion>()
         var result: [RankedTargetRegion] = []
         var tier = -1
-        for group in orderedGroups {
-            let fresh = ordered(normalized(bodyRegions(from: [group]))).filter { !seen.contains($0) }
+        for bucket in buckets {
+            let fresh = bucket.filter { !seen.contains($0) }
             guard !fresh.isEmpty else { continue }
             tier += 1
             if tier > 2 { break }   // keep to the top 3 importance tiers

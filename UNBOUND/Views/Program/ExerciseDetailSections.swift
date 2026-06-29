@@ -193,7 +193,7 @@ private struct TargetMuscleHeatmapView: View {
     // regions (quads, hamstrings, lats …) by importance tier, in distinct
     // red→amber→cyan hues (most → least worked).
     private var regions: [ProgramRankTargetRegionSet.RankedTargetRegion] {
-        ProgramRankTargetRegionSet.rankedRegions(muscleGroups: muscleGroups)
+        ProgramRankTargetRegionSet.rankedRegions(muscleGroups: muscleGroups, bodyRegions: bodyRegions)
     }
 
     private var rankByRegion: [BodyRegion: Int] {
