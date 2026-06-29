@@ -87,3 +87,69 @@ Note: `RankService.evaluateTierCrossings(log:userId:)` exists on the protocol bu
 - **Module size guidance.** Keep modules around ~450 lines; past that, split along a `+Concern` seam (and update the README). The split exists so agents and humans can read one concern without paging a mega-file.
 - **DEBUG-only tooling.** Demo/screenshot harnesses are launch-arg driven and `#if DEBUG`-gated: `App/UnboundAppDemos.swift` plus per-feature harnesses (`Views/Program/ActiveWorkout/ActiveWorkoutDemoHarness.swift`, `Views/Program/SessionEditor/SessionEditorDemoHarness.swift`, `Views/Program/MyWorkouts/MyWorkoutsDemoHarness.swift`). Dev player tooling (`DevBuildBootstrapper`, declared in `Views/Settings/DevPlayerToolsView.swift` with `DevBuildBootstrapper+*.swift` extensions alongside) lives in `Views/Settings/`; debug entitlement overrides in `Services/Entitlement/DevFlags.swift`.
 - **Localization catalog rule.** Every new `L10n` key (`Utilities/Localization/L10n.swift`) needs a real entry in `UNBOUND/Resources/Localizable.xcstrings` — an inline `defaultValue` alone fails the localization tests. Edit the catalog as text (surgical insert); never round-trip it through a JSON serializer, which reformats the entire 14k-line file.
+
+## End-to-end testing & verification
+
+The unit suite (`UNBOUNDTests`, run with `xcodebuild test`) proves logic.
+It does NOT prove that a screen renders, that the app builds for a device, or that a Supabase guard actually holds.
+Those need the simulator/device loops below.
+This section is the hard-won playbook; read it before claiming any UI or device change works.
+
+### What E2E here CAN do
+
+- **Boot the real screen with real data.** DEBUG launch args deep-link straight to a production surface seeded by the dev user - far stronger proof than an isolated component render. A no-arg launch boots Home as the seeded dev user via `DevBuildBootstrapper.ensureReady()`. Bundle id is `com.unboundapp.ios`.
+- **Screenshot and actually look.** `xcrun simctl io booted screenshot /tmp/x.png`, then Read the PNG. A claim that an element is added/removed/changed is only true once you've seen it on the integrated screen.
+- **Crash-gauntlet a flaky screen.** Launch it 3× and confirm it stays up (`launchctl list | grep unboundapp`).
+- **Render states the live dev user isn't in.** For an in-progress vs cleared rank gate, all-gates-cleared, or no-vow, build a DEBUG `-<surface>Demo` root harness (wired in `App/RootView.swift`) that renders the real components with engine fixtures, and order the panel you want near the top.
+- **Drive dialogs/buttons deterministically.** `idb` taps the simulator's HID directly (see below) for system dialogs, scrolling grids, and in-app buttons that no launch arg reaches.
+- **Live-test the data layer.** Exercise a Supabase RPC/guard against the real DB with `supabase db query --linked "begin; ...; rollback;"` - including the INSERT and ownership-guard paths, not just the happy update.
+
+### What it CAN'T do (the traps that cost cycles)
+
+- **Code reasoning is not proof.** Editing one path and concluding the UI changed is how the left accent bar "got removed" while still live in another `cardBackground` path. Only the real integrated screen counts.
+- **`simctl install` can silently no-op.** The sim keeps running a STALE binary, so screenshots show old behavior and you chase a phantom "my edit didn't compile" bug. Always verify the installed-binary hash equals the freshly-built one (loop below).
+- **`simctl launch` on a running PID just foregrounds it.** It does NOT apply `--unbound-*` args. `terminate` first; a new PID confirms a fresh launch with args.
+- **cliclick / host-level coordinate taps are UNSAFE on this Mac.** The Simulator window loses front status between calls and blind clicks land in other apps (a live terminal/editor over the computed point). Never blind-click - add a launch arg or use `idb`.
+- **You can't fake scroll to reach below-the-fold.** `simctl ui content_size` does nothing (Font.unbound uses fixed point sizes). Add a scroll arg (`--unbound-scroll-tiles`) or reorder a demo harness.
+- **A green simulator build does NOT prove a device build.** The "unable to type-check in reasonable time" timeout is arch-specific. Gate device-bound work with the device-arch compile below.
+- **Green unit tests do NOT catch data-layer security bugs.** RLS holes, privilege escalation (SECURITY DEFINER without an ownership guard), and NOT NULL columns nulled on insert all pass mocks clean - they need a council review + the live DB test above.
+- **Never SIGKILL `akd`/`appstored`.** The "Sign in to Apple Account" nag is `appstored` re-verifying after `simctl install`; killing it wedges the launch path until a sim reboot. Dismiss it with an `idb` tap instead.
+
+### The simulator screenshot loop (the one that works)
+
+1. **Build** with the pipefail discipline below; confirm `** BUILD SUCCEEDED **` in the log.
+2. **Prove the running app IS your build.** Compare `shasum "$APP/UNBOUND"` (built) against `shasum "$(xcrun simctl get_app_container $SIM com.unboundapp.ios)/UNBOUND"` (installed); `uninstall` + `install` until they match. Keep only ONE sim booted, or always pin the UDID.
+3. **Relaunch fresh.** `xcrun simctl terminate $SIM com.unboundapp.ios` then `xcrun simctl launch $SIM com.unboundapp.ios --unbound-open-<surface>`; a new PID means the args were applied.
+4. **Screenshot and Read the PNG.** For deeper screens a launch arg can't reach, use `idb`.
+
+### Launch args (deep-link straight to a surface, all DEBUG)
+
+- **Tabs** (`HomeTabView.initialTabFromLaunchArguments()`): `--unbound-open-program` / `--unbound-open-workouts` / `--unbound-open-routine` (Train), `--unbound-open-skills`, `--unbound-open-squad`, `--unbound-open-profile`. Plus `--unbound-open-skill <id>` and `--unbound-open-cardio-log`.
+- **Home sheets** (`UnboundHomeView` `.task`): `--unbound-open-shop`, `--unbound-open-ranks`, `--unbound-open-backdrops`, `--unbound-open-weight`, `--unbound-open-rank-info`.
+- **Profile sheet**: `--unbound-open-profile --unbound-open-cosmetics`.
+- **Below-fold Home**: `--unbound-scroll-tiles` scrolls to the command-tile band on appear.
+- **Demo-root harnesses** (`App/RootView.swift`): `-rewardDemo`, `-activeWorkoutDemo`, `-sessionEditorDemo`, `-myWorkoutsDemo`, `-vowDemo`, `-homeTrialsDemo`, `-rankTrialDemo`.
+
+### Reaching what a launch arg can't: `idb`, never cliclick
+
+- `/tmp/idbenv/bin/idb ui tap --udid <UDID> <x_pt> <y_pt>` and `idb ui swipe --udid <UDID> x1 y1 x2 y2 --duration 0.4` give deterministic, sim-targeted HID input.
+- Coordinates are in **points** (iPhone 17 = 402×874 = screenshot px ÷ 3).
+- `idb` is fb-idb in a venv on Python 3.9 (breaks on Homebrew 3.14) + `idb-companion`.
+- Use launch args first; reach for `idb` only for system dialogs, scrolling grids, or in-app buttons with no arg.
+
+### Builds & the device gate
+
+- **XcodeGen.** `project.pbxproj` is gitignored and globbed from `project.yml`; run `xcodegen generate` after adding/moving/deleting any source or test file, or it isn't in the target. Scheme `UNBOUND`, test target `UNBOUNDTests`.
+- **Pipes mask failure.** `xcodebuild | tail` (or `| grep`) exits 0 even on failure. Use `set -o pipefail` and grep for `error:|BUILD (SUCCEEDED|FAILED)`; treat the absence of `** BUILD SUCCEEDED **` as failure, never the exit code alone.
+- **Never run two `xcodebuild`s concurrently on one DerivedData.** The second dies on a locked build DB and surfaces as a confusing "Testing cancelled because the build failed". Serialize them.
+- **Test-bundle staleness.** After editing a test file, `build-for-testing` again before `test-without-building` (a stale bundle gives false results), and confirm each `-only-testing` suite actually ran (`grep "Test Suite '<Name>'"`) rather than trusting `** TEST SUCCEEDED **`.
+- **Device gate.** `xcodebuild build -scheme UNBOUND -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO` recompiles for arm64-device without a provisioning profile, catching arch-specific type-check timeouts a sim build hides and isolating compile errors from signing.
+- **Disk.** Two full DerivedData trees in /private/tmp can fill the boot disk; the resulting ENOSPC looks like a "linker error" and can break the Bash tool itself. A pure SwiftUI edit can't cause a link failure - run `df -h` before debugging the link.
+- **SourceKit noise.** A wall of "Cannot find type" after `xcodegen generate` or a new file is almost always stale index noise - trust `xcodebuild`, not the editor.
+- **This Mac's sims:** iPhone 17 Pro (usually booted) / 17 Pro Max / "UNBOUND iPhone 15". There is no "iPhone 16 Pro" destination.
+
+### Suite-level gates beyond logic
+
+- **README freshness** (`ReadmeFreshnessTests`): the suite fails if any Swift file is missing from (or stale in) its directory README - update the README in the same change.
+- **Localization** (`LocalizationTests`): the suite fails if a new `L10n` key has no `Localizable.xcstrings` entry (see the Localization catalog rule above).
+- **Rank consistency** (`SkillRankConsistencyTests`): locks bodyweight skills to the single `SkillStandards` source so a parallel ladder can't drift.
