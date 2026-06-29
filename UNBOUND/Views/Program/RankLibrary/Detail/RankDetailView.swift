@@ -127,6 +127,10 @@ struct RankDetailView: View {
 
             Spacer(minLength: 8)
 
+            if vm.isSkillEntry, let node = vm.skillNode {
+                targetButton(node: node)
+            }
+
             if !(vm.row?.isRankHidden ?? false) {
                 Image(vm.displayedTier.assetName)
                     .resizable()
@@ -136,6 +140,36 @@ struct RankDetailView: View {
                     .accessibilityLabel("\(vm.displayedTier.displayName) rank")
             }
         }
+    }
+
+    /// Toggle this skill as the user's TARGET for its tree. Display-only marker
+    /// (independent of Program Focuses); reflected on the Skill-tree card.
+    private func targetButton(node: SkillNode) -> some View {
+        let isTarget = SkillProgressService.shared.isTarget(nodeId: node.id)
+        return Button {
+            UnboundHaptics.soft()
+            Task { await SkillProgressService.shared.toggleTarget(nodeId: node.id) }
+        } label: {
+            Image(systemName: "scope")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(isTarget ? Color.unbound.accent : Color.unbound.textSecondary)
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle().fill(
+                        isTarget
+                            ? Color.unbound.accent.opacity(0.18)
+                            : Color.unbound.surfaceElevated.opacity(0.9)
+                    )
+                )
+                .overlay(
+                    Circle().strokeBorder(
+                        isTarget ? Color.unbound.accent.opacity(0.7) : Color.clear,
+                        lineWidth: 1
+                    )
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isTarget ? "Remove target" : "Set as target")
     }
 
     // MARK: - 2. Tier-tinted hero

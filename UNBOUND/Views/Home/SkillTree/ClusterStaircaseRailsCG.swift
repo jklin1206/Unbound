@@ -85,58 +85,6 @@ extension ClusterStaircaseView {
         )
     }
 
-    func drawGhostRailsCG(
-        _ cgCtx: CGContext,
-        positions: [String: CGPoint],
-        primaryParent: [String: String],
-        roles: [String: NodeRole],
-        nodeById: [String: SkillNode]
-    ) {
-        let ghostUIColor = UIColor(Color.unbound.textTertiary).withAlphaComponent(0.3)
-
-        for (childId, childPt) in positions {
-            guard let childNode = nodeById[childId] else { continue }
-            let allPrereqIds = Set(childNode.prereqs.flatMap { $0.nodeIds })
-            let primary = primaryParent[childId]
-            let secondary = allPrereqIds
-                .filter { $0 != primary }
-                .filter { positions[$0] != nil }
-
-            let toSize = sizeFor(role: roles[childId] ?? .tangent)
-
-            for pid in secondary {
-                guard let parentPt = positions[pid],
-                      parentPt.y < childPt.y
-                else { continue }
-                let fromSize = sizeFor(role: roles[pid] ?? .tangent)
-                let start = CGPoint(x: parentPt.x, y: parentPt.y + fromSize / 2)
-                let end   = CGPoint(x: childPt.x,  y: childPt.y  - toSize / 2)
-
-                let path = CGMutablePath()
-                let tolerance: CGFloat = 1.0
-                if abs(end.x - start.x) <= tolerance {
-                    path.move(to: start)
-                    path.addLine(to: end)
-                } else {
-                    let biased = start.y + (end.y - start.y) * 0.7
-                    let midY = min(biased, end.y - 2)
-                    path.move(to: start)
-                    path.addLine(to: CGPoint(x: start.x, y: midY))
-                    path.addLine(to: CGPoint(x: end.x, y: midY))
-                    path.addLine(to: end)
-                }
-                cgCtx.saveGState()
-                cgCtx.setStrokeColor(ghostUIColor.cgColor)
-                cgCtx.setLineWidth(1.2)
-                cgCtx.setLineDash(phase: 0, lengths: [4, 6])
-                cgCtx.addPath(path)
-                cgCtx.strokePath()
-                cgCtx.setLineDash(phase: 0, lengths: [])
-                cgCtx.restoreGState()
-            }
-        }
-    }
-
     func drawRailCG(
         _ cgCtx: CGContext,
         from parent: CGPoint,

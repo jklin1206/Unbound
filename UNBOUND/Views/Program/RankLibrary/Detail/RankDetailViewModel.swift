@@ -350,6 +350,35 @@ final class RankDetailViewModel {
         ) ?? .initiate
     }
 
+    // MARK: - Prerequisites (skill entries)
+
+    /// A resolved prerequisite skill for the Overview tab — the node and whether
+    /// the user has already proven it.
+    struct PrereqItem: Identifiable {
+        let id: String
+        let title: String
+        let isProven: Bool
+    }
+
+    /// Prerequisite groups resolved to displayable items. Each inner array is one
+    /// AND-group (all required); multiple arrays are OR-alternatives ("any one
+    /// path"). Empty for entry nodes, exercises, or when no prereq id resolves to
+    /// a graph node. Drives the Overview's PREREQUISITES section.
+    var prerequisiteGroups: [[PrereqItem]] {
+        guard isSkillEntry, let node = skillNode else { return [] }
+        return node.prereqs.compactMap { group -> [PrereqItem]? in
+            let items = group.nodeIds.compactMap { id -> PrereqItem? in
+                guard let prereqNode = graph.node(id: id) else { return nil }
+                return PrereqItem(
+                    id: id,
+                    title: prereqNode.title,
+                    isProven: (nodeStates[id] ?? .locked) == .proven
+                )
+            }
+            return items.isEmpty ? nil : items
+        }
+    }
+
     // MARK: - Ruler logging (exercise case)
 
     private func seedRuler(from progress: MovementProgressState?) {

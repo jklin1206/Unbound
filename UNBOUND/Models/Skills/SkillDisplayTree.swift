@@ -167,4 +167,9 @@ extension SkillDisplayTree {
         }
         return terminalKeystone
     }
+
+    /// The node the user has flagged as their TARGET in this tree, if any.
+    func targetNode(in graph: SkillGraph, targetIds: Set<String>) -> SkillNode? {
+        allNodes(in: graph).first { targetIds.contains($0.id) }
+    }
 }

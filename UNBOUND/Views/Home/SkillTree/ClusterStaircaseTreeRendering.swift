@@ -40,18 +40,8 @@ extension ClusterStaircaseView {
                         )
                 }
 
-                // Dotted horizontal dividers between adjacent rank groups.
-                ForEach(Array(layout.bandRegions.dividers.enumerated()), id: \.offset) { _, y in
-                    Path { path in
-                        path.move(to: CGPoint(x: 0, y: y))
-                        path.addLine(to: CGPoint(x: layout.contentWidth, y: y))
-                    }
-                    .stroke(
-                        Color.unbound.border.opacity(0.5),
-                        style: StrokeStyle(lineWidth: 0.8, dash: [4, 6])
-                    )
-                    .frame(width: layout.contentWidth, height: layout.treeHeight)
-                }
+                // Rank groups read from the faint per-tier band tints above plus
+                // the gutter badge ladder — no dotted dividers needed.
 
                 // Rails — pre-rendered UIImage at full content size. Avoids
                 // SwiftUI Canvas lazy-rendering bug inside UIScrollView where
@@ -335,13 +325,9 @@ extension ClusterStaircaseView {
             let cgCtx = ctx.cgContext
             cgCtx.setLineCap(.round)
             cgCtx.setLineJoin(.round)
-            drawGhostRailsCG(
-                cgCtx,
-                positions: positions,
-                primaryParent: primaryParent,
-                roles: roles,
-                nodeById: nodeById
-            )
+            // Only the primary progression spine is drawn. Secondary prereqs are
+            // surfaced explicitly in the skill detail's PREREQUISITES section
+            // instead of a dashed cross-link web that read as visual noise.
             drawPrimaryRailsCG(
                 cgCtx,
                 positions: positions,

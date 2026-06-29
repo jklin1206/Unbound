@@ -37,7 +37,7 @@ struct FormPhaseSlideshow: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 500)
+            .frame(height: 560)
 
             pageDots
         }
@@ -84,7 +84,9 @@ struct FormPhaseSlideshow: View {
                     .font(Font.unbound.monoS.weight(.bold))
                     .foregroundStyle(Color.unbound.textTertiary)
             }
-            .padding(.horizontal, 4)
+            // Keeps the step caption within the page margins even when the
+            // slideshow is rendered full-bleed (image edge-to-edge).
+            .padding(.horizontal, 20)
         }
         .frame(maxWidth: .infinity, alignment: .top)
     }
