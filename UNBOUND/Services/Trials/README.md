@@ -6,7 +6,8 @@ The Weekly Vows system — historically named "Trials", and most types here carr
 
 | File | Purpose |
 | --- | --- |
-| `TitleCatalog.swift` | Maps `TitleID` → display name (axis/tier grid plus badge, shop, and squad-season-winner paths). |
+| `TitleCatalog.swift` | Single naming source for `TitleID` → display name: rank titles (The Unwritten → Gatebreaker), axis titles (the axis's `BuildClass` name), badge/shop/squad paths, plus legacy v1 cardKind names. |
+| `TitleGrants.swift` | Entitlement + granting for rank and axis titles: pure `entitledTitles(confirmedRank:profile:)` and quiet `reconcile` backfill (announced grants live at the crossing sites in `OverallRankTrialRunner` / `AttributeService`). |
 | `TrialsNotifications.swift` | `Notification.Name` constants for vow lifecycle (+ legacy `trial*` adapter names) and the `TrialsService = WeeklyVowsService` typealias. |
 | `TrialsNotificationScheduler.swift` | `WeeklyVowsNotificationScheduler` — vows are in-app by default; this now only clears legacy pending local notifications. |
 | `TrialsService.swift` | `WeeklyVowsService` — the `@MainActor` orchestrator: week roll, card pick, completion, state over store + attribute service. |
@@ -22,5 +23,5 @@ The Weekly Vows system — historically named "Trials", and most types here carr
 - **How the 3 weekly cards are picked** → `VowWeeklyDraw.swift` (draw) + `VowBankPool.swift` (card universe).
 - **Sealing a vow (self-report taps) + completion/penalty** → `TrialsService.swift`; reward/penalty policy in `WeeklyVowRewards.swift`.
 - **Vow lifecycle orchestration + state** → `TrialsService.swift` + `TrialsStore.swift`.
-- **Titles earned from vows** → `TitleCatalog.swift`.
+- **Title names + who earns which title** → `TitleCatalog.swift` (names) + `TitleGrants.swift` (entitlement/backfill).
 - **Vow badge milestones** → `VowBadgeTrack.swift`.

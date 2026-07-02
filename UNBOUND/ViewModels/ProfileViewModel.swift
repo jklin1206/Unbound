@@ -111,7 +111,9 @@ final class ProfileViewModel: ObservableObject {
             sex: profile?.biologicalSex
         )
 
-        // Load trials state
+        // Load trials state — quiet title backfill first so retroactively
+        // entitled rank/axis titles appear without waiting for a live event.
+        TitleGrants.reconcile(userId: userId)
         trialsState = services.trials.state(userId: userId)
         overallRankTrialReadiness = await TrialReadinessService.shared.readiness(userId: userId, services: services)
 

@@ -119,6 +119,14 @@ final class AttributeService: AttributeServiceProtocol {
         buildClassStore.observe(profile.buildIdentity, userId: profile.userId, at: date)
     }
 
+    /// Fresh crown-band crossings earn the axis's class-name title (Titan,
+    /// Monk, …), announced. Already-unlocked titles no-op inside unlockTitle.
+    private func grantAxisTitles(for events: [AttributeRankUpEvent], userId: String) {
+        for event in events where event.toTitle >= TitleGrants.axisTitleBar {
+            WeeklyVowsService.shared.unlockTitle(.axis(event.axis), userId: userId)
+        }
+    }
+
     func profile(userId: String) -> AttributeProfile {
         store.load(userId: userId) ?? .empty(userId: userId, at: .now)
     }
@@ -140,6 +148,7 @@ final class AttributeService: AttributeServiceProtocol {
         for event in crossings {
             NotificationCenter.default.post(name: .attributeRankUp, object: event)
         }
+        grantAxisTitles(for: crossings, userId: userId)
         // First-resolved badge: fires once when buildIdentity escapes
         // .balancedAthlete. Subsequent shape transitions are silent.
         let afterShape = profile.buildIdentity.shape
@@ -193,6 +202,7 @@ final class AttributeService: AttributeServiceProtocol {
         for event in applied.rankUpEvents {
             NotificationCenter.default.post(name: .attributeRankUp, object: event)
         }
+        grantAxisTitles(for: applied.rankUpEvents, userId: userId)
 
         let afterShape = profile.buildIdentity.shape
         if beforeShape == .balancedAthlete && afterShape != .balancedAthlete {
@@ -245,6 +255,7 @@ final class AttributeService: AttributeServiceProtocol {
         for event in applied.rankUpEvents {
             NotificationCenter.default.post(name: .attributeRankUp, object: event)
         }
+        grantAxisTitles(for: applied.rankUpEvents, userId: userId)
 
         let afterShape = profile.buildIdentity.shape
         if beforeShape == .balancedAthlete && afterShape != .balancedAthlete {
@@ -332,6 +343,7 @@ final class AttributeService: AttributeServiceProtocol {
                 timestamp: now
             )
             NotificationCenter.default.post(name: .attributeRankUp, object: event)
+            grantAxisTitles(for: [event], userId: userId)
         }
     }
 }

@@ -90,6 +90,16 @@ final class LocalizationTests: XCTestCase {
         }
     }
 
+    func testRankTitleCatalogHasEnglishFallbacks() {
+        let keys = RankTier.allCases.map { "titleRank.\($0.token)" }
+
+        for key in keys {
+            let fallback = L10n.string(key, defaultValue: "")
+            XCTAssertFalse(fallback.isEmpty, "Missing English fallback for \(key)")
+            XCTAssertNotEqual(fallback, key, "Localization returned key for \(key)")
+        }
+    }
+
     func testBuildClassCatalogHasEnglishFallbacks() {
         let keys = BuildClass.allCases.map { "buildClass.\($0.rawValue)" } + ["buildClass.pathFormat"]
 

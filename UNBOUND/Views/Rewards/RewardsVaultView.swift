@@ -314,7 +314,7 @@ struct RewardsVaultView: View {
     private var groups: [Group] {
         [
             Group(id: "titles", title: "Titles",
-                  subtitle: "Completed vows unlock titles",
+                  subtitle: "Confirm ranks, prove attributes",
                   rewards: titleRewards, destination: nil),
             Group(id: "skins", title: "Skill-tree skins",
                   subtitle: "Climb aggregate rank for skins",
@@ -328,48 +328,43 @@ struct RewardsVaultView: View {
         ]
     }
 
-    private static let titleThresholds: [(count: Int, tier: TitleID.Tier)] = [
-        (3, .bronze), (7, .silver), (15, .gold)
-    ]
-
     private var titleRewards: [Reward] {
         let state = WeeklyVowsService.shared.state(userId: userId)
         let unlocked = Set(state.unlockedTitles)
         let knownTitles = TitleCatalog.all
         let extraUnlockedTitles = state.unlockedTitles.filter { !knownTitles.contains($0) }
         return (knownTitles + extraUnlockedTitles).map { tid in
-            let isUnlocked = unlocked.contains(tid)
-            let need = Self.titleThresholds.first { $0.tier == tid.tier }?.count ?? 0
-            let (label, have): (String, Int) = {
-                switch tid.path {
-                // Axis/cardKind title tracks are retired in Binding Vows v2; their
-                // counters no longer accrue, so they render as locked legacy rewards.
-                case .axis(let key):      return (key.buildVocab, 0)
-                case .cardKind(let kind): return (kind.displayName, 0)
-                case .badge:              return ("badge", 0)
-                case .shop:               return ("shop", 0)
-                case .squadSeasonWinner:  return ("squad season leaderboard", 0)
-                }
-            }()
-            let requirement: String = {
-                switch tid.path {
-                case .squadSeasonWinner:
-                    return "Finish #1 on the squad season leaderboard"
-                default:
-                    return "\(need) \(label) vows completed"
-                }
-            }()
-            let fraction = need > 0 ? min(1.0, Double(have) / Double(need)) : nil
+            let requirement: String
+            let swatch: Color
+            switch tid.path {
+            case .rank(let tier):
+                requirement = "Confirm \(tier.displayName) at its rank gate"
+                swatch = tier.rewardTint
+            case .axis(let key):
+                requirement = "Push \(key.displayName) to \(TitleGrants.axisTitleBar.displayName)"
+                swatch = key.rewardTint
+            case .cardKind:
+                // Retired Binding Vows v1 track — renders only if persisted.
+                requirement = "Legacy vow title"
+                swatch = tierTint(tid.tier)
+            case .badge:
+                requirement = "Unlock the matching badge"
+                swatch = tierTint(tid.tier)
+            case .shop:
+                requirement = "Shop exclusive"
+                swatch = tierTint(tid.tier)
+            case .squadSeasonWinner:
+                requirement = "Finish #1 on the squad season leaderboard"
+                swatch = tierTint(tid.tier)
+            }
             return Reward(
                 id: "title:\(tid.displayName)",
                 name: tid.displayName,
-                unlocked: isUnlocked,
+                unlocked: unlocked.contains(tid),
                 requirement: requirement,
-                swatch: tierTint(tid.tier),
+                swatch: swatch,
                 icon: "seal.fill",
-                assetName: tid.rewardAssetName,
-                progress: isUnlocked ? nil : fraction,
-                progressText: isUnlocked ? nil : "\(min(have, need)) / \(need)"
+                assetName: tid.rewardAssetName
             )
         }
     }
