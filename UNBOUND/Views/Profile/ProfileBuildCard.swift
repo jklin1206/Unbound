@@ -3,6 +3,9 @@ import SwiftUI
 
 struct ProfileBuildCard: View {
     let profile: AttributeProfile
+    /// Held identity from `BuildClassStore` for the local user; nil falls
+    /// back to the live identity (squad members, whose hold isn't synced).
+    var classIdentity: BuildIdentity? = nil
 
     @State private var selectedKey: AttributeKey?
 
@@ -12,8 +15,8 @@ struct ProfileBuildCard: View {
         VStack(alignment: .leading, spacing: 16) {
             UnboundSectionHeader(
                 eyebrow: "Build",
-                title: profile.buildName,
-                detail: "Hex profile",
+                title: (classIdentity ?? profile.buildIdentity).classDisplayName,
+                detail: profile.buildName,
                 tint: primaryTint
             )
 

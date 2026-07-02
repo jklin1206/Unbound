@@ -1810,6 +1810,294 @@
     "Build your Stamina stat — run, bike, row." : {
 
     },
+    "buildClass.ascetic" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ascetic"
+          }
+        }
+      }
+    },
+    "buildClass.assassin" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assassin"
+          }
+        }
+      }
+    },
+    "buildClass.berserker" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Berserker"
+          }
+        }
+      }
+    },
+    "buildClass.bladeDancer" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blade Dancer"
+          }
+        }
+      }
+    },
+    "buildClass.colossus" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colossus"
+          }
+        }
+      }
+    },
+    "buildClass.immortal" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immortal"
+          }
+        }
+      }
+    },
+    "buildClass.juggernaut" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Juggernaut"
+          }
+        }
+      }
+    },
+    "buildClass.monk" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monk"
+          }
+        }
+      }
+    },
+    "buildClass.mystic" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mystic"
+          }
+        }
+      }
+    },
+    "buildClass.paragon" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paragon"
+          }
+        }
+      }
+    },
+    "buildClass.pathFormat" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path of the %@"
+          }
+        }
+      }
+    },
+    "buildClass.phantom" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phantom"
+          }
+        }
+      }
+    },
+    "buildClass.raider" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raider"
+          }
+        }
+      }
+    },
+    "buildClass.ronin" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ronin"
+          }
+        }
+      }
+    },
+    "buildClass.sage" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sage"
+          }
+        }
+      }
+    },
+    "buildClass.serpent" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serpent"
+          }
+        }
+      }
+    },
+    "buildClass.shinobi" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shinobi"
+          }
+        }
+      }
+    },
+    "buildClass.striker" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Striker"
+          }
+        }
+      }
+    },
+    "buildClass.swordSaint" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sword Saint"
+          }
+        }
+      }
+    },
+    "buildClass.tempest" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempest"
+          }
+        }
+      }
+    },
+    "buildClass.titan" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titan"
+          }
+        }
+      }
+    },
+    "buildClass.vagabond" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vagabond"
+          }
+        }
+      }
+    },
+    "buildClass.vanguard" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vanguard"
+          }
+        }
+      }
+    },
+    "buildClass.wanderer" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wanderer"
+          }
+        }
+      }
+    },
     "buildIdentity.axis.balanced" : {
       "comment" : "Build identity display copy and templates.",
       "extractionState" : "stale",

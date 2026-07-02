@@ -308,6 +308,15 @@ enum L10n {
         return String(format: localizedFormat, locale: Locale.current, arguments: arguments)
     }
 
+    static func format(
+        _ key: String,
+        defaultValue: String,
+        _ arguments: CVarArg...
+    ) -> String {
+        let localizedFormat = string(key, defaultValue: defaultValue)
+        return String(format: localizedFormat, locale: Locale.current, arguments: arguments)
+    }
+
     static func onboardingAnswer(
         group: String,
         id: String,

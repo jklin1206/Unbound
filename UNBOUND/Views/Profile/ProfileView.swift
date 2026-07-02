@@ -201,7 +201,13 @@ struct ProfileView: View {
     private var profileArchiveStack: some View {
         VStack(spacing: 14) {
             ProfileArchiveBand(tint: activeProfileTint) {
-                ProfileBuildCard(profile: attributeProfile)
+                ProfileBuildCard(
+                    profile: attributeProfile,
+                    classIdentity: BuildClassStore.shared.heldIdentity(
+                        userId: attributeProfile.userId,
+                        live: attributeProfile.buildIdentity
+                    )
+                )
             }
 
             ProfileArchiveBand(tint: Color.unbound.rankGold) {

@@ -5,6 +5,7 @@ Cross-cutting user/account model types: the user profile, onboarding answers, ap
 | File | Contents |
 | --- | --- |
 | `AppError.swift` | `AppError: LocalizedError` — the app-wide error enum. |
+| `BuildClass.swift` | `BuildClass` — anime-RPG class epithet (Titan, Monk, Sword Saint…) derived from `BuildIdentity` shape/axes; pure naming layer, lean shapes read as "Path of the X". |
 | `BuildIdentity.swift` | `BuildIdentity` — grounded athletic descriptor derived from `AttributeProfile` (canonical identity type; titles are a separate earned layer). |
 | `BuildIdentityDelta.swift` | `BuildIdentityDelta` — per-axis change between two BuildIdentity snapshots; UI shows positive deltas only, regressions surface via `regressedAxes`. |
 | `LoadingState.swift` | `LoadingState<T>` — idle / loading / loaded / error generic. |
@@ -26,3 +27,4 @@ Cross-cutting user/account model types: the user profile, onboarding answers, ap
 - Push-notification settings model → `NotificationPreferences.swift`.
 - Body-weight logging → `Progress.swift`.
 - The derived "build" identity shown on profile → `BuildIdentity.swift` (+ `BuildIdentityDelta.swift` for scan-to-scan change).
+- The class name shown above the hex (Titan, Monk, …) → `BuildClass.swift` (held-identity stability lives in `Services/Attributes/BuildClassStore.swift`).
