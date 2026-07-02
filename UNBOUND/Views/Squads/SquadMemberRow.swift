@@ -1,8 +1,8 @@
 // UNBOUND/Views/Squads/SquadMemberRow.swift
 //
-// One roster member as a calm list row: initials avatar (green dot when
-// live), name, and a MetaLine of real training facts (last trained, sessions
-// this week). The viewer's own row is the only raised surface in the list.
+// One roster member: colored identity avatar (green dot when live), name,
+// and real training facts. The viewer's own row highlights with a full-width
+// elevated fill that never shifts the text (no indent).
 import SwiftUI
 
 struct SquadMemberRow: View {
@@ -22,6 +22,10 @@ struct SquadMemberRow: View {
 
     private var resolvedName: String {
         displayNameOverride ?? member.displayName
+    }
+
+    private var identityTint: Color {
+        SquadMemberPalette.tint(for: member.userId)
     }
 
     private var lastTrainedText: String {
@@ -49,26 +53,33 @@ struct SquadMemberRow: View {
 
                 Spacer(minLength: 0)
 
+                if weeklySessionCount > 0 {
+                    Text("\(weeklySessionCount)")
+                        .font(Font.unbound.monoM)
+                        .foregroundStyle(identityTint)
+                        .monospacedDigit()
+                        .accessibilityHidden(true)
+                }
+
                 Image(systemName: "chevron.right")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Color.unbound.textTertiary)
             }
-            .padding(.horizontal, isSelf ? 12 : 0)
             .padding(.vertical, 10)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .activeSurface(isSelf, cornerRadius: 14)
+        .squadOwnRowHighlight(isSelf)
         .accessibilityLabel("\(resolvedName), \(lastTrainedText)")
     }
 
     private var avatar: some View {
         ZStack(alignment: .bottomTrailing) {
             ZStack {
-                Circle().fill(Color.unbound.surfaceElevated)
+                Circle().fill(identityTint.opacity(0.18))
                 Text(initials)
                     .font(Font.unbound.captionS.weight(.heavy))
-                    .foregroundStyle(Color.unbound.textSecondary)
+                    .foregroundStyle(identityTint)
             }
             .frame(width: 38, height: 38)
 
@@ -76,7 +87,7 @@ struct SquadMemberRow: View {
                 Circle()
                     .fill(Color.unbound.success)
                     .frame(width: 9, height: 9)
-                    .overlay(Circle().strokeBorder(Color.unbound.bg, lineWidth: 2))
+                    .overlay(Circle().strokeBorder(Color.unbound.surface, lineWidth: 2))
             }
         }
     }
@@ -95,7 +106,7 @@ struct SquadMemberRow: View {
 
 #Preview {
     let squadId = UUID()
-    VStack(spacing: 0) {
+    VStack(spacing: 2) {
         SquadMemberRow(
             member: SquadMember(id: UUID(), squadId: squadId, userId: UUID(), joinedAt: .now, displayName: "You", equippedTitle: nil, buildIdentity: nil),
             isLive: true,
@@ -116,7 +127,8 @@ struct SquadMemberRow: View {
             onTap: {}
         )
     }
-    .padding(20)
+    .padding(26)
+    .background(RoundedRectangle(cornerRadius: 20).fill(Color.unbound.surface).padding(10))
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(Color.unbound.bg)
 }

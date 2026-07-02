@@ -1,7 +1,8 @@
 // UNBOUND/Views/Squads/SquadSeasonTab.swift
 //
-// SEASON tab: the leaderboard, this week's honors, season rewards, and any
-// earned winner title — all flat calm sections.
+// SEASON tab: the quarterly leaderboard (gold), this week's honors (amber),
+// and the season rewards (violet) — each its own tinted section card with
+// plain-language explainers.
 import SwiftUI
 
 extension SquadDetailView {
@@ -26,28 +27,32 @@ extension SquadDetailView {
     @ViewBuilder
     var honorsSection: some View {
         if !weeklyHonors.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
-                CalmSectionHeader(title: "THIS WEEK'S HONORS")
-                    .padding(.bottom, 6)
-                ForEach(weeklyHonors) { honor in
-                    HStack(spacing: 12) {
-                        ZStack {
-                            Circle().fill(Color.unbound.surfaceElevated)
-                            Image(systemName: "laurel.leading")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(Color.unbound.rankGold)
-                        }
-                        .frame(width: 34, height: 34)
+            SquadSectionCard(
+                title: "THIS WEEK'S HONORS",
+                icon: "laurel.leading",
+                tint: Color.unbound.rankAmber
+            ) {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(weeklyHonors) { honor in
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle().fill(Color.unbound.rankAmber.opacity(0.16))
+                                Image(systemName: "laurel.leading")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Color.unbound.rankAmber)
+                            }
+                            .frame(width: 34, height: 34)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(honor.kind.displayName)
-                                .font(Font.unbound.bodyMStrong)
-                                .foregroundStyle(Color.unbound.textPrimary)
-                            MetaLine([displayName(for: honor.recipientUserId)])
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(honor.kind.displayName)
+                                    .font(Font.unbound.bodyMStrong)
+                                    .foregroundStyle(Color.unbound.textPrimary)
+                                MetaLine([displayName(for: honor.recipientUserId)])
+                            }
+                            Spacer(minLength: 0)
                         }
-                        Spacer(minLength: 0)
+                        .padding(.vertical, 8)
                     }
-                    .padding(.vertical, 9)
                 }
             }
         }
@@ -63,37 +68,18 @@ extension SquadDetailView {
         let progressRewards = rewards.filter(\.usesProgress)
         let unlockedCount = progressRewards.filter(\.isUnlocked).count
 
-        return VStack(alignment: .leading, spacing: 4) {
-            Button {
-                withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
-                    showSeasonRewards.toggle()
-                }
-            } label: {
-                HStack {
-                    CalmSectionHeader(
-                        title: "SEASON REWARDS",
-                        trailing: "\(unlockedCount)/\(progressRewards.count) unlocked"
-                    )
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .rotationEffect(.degrees(showSeasonRewards ? 180 : 0))
-                        .padding(.leading, 8)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Season rewards, \(unlockedCount) of \(progressRewards.count) unlocked")
-            .padding(.bottom, 6)
-
-            if showSeasonRewards {
+        return SquadSectionCard(
+            title: "SEASON REWARDS",
+            icon: "gift.fill",
+            tint: Color.unbound.impact,
+            trailing: "\(unlockedCount)/\(progressRewards.count) unlocked"
+        ) {
+            VStack(alignment: .leading, spacing: 2) {
                 SquadSeasonRewardsView(rewards: rewards, season: currentSeason, showsHeader: false)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
 
-            if let earnedSeasonWinnerAward {
-                earnedSeasonWinnerRow(earnedSeasonWinnerAward)
-                    .padding(.top, 8)
+                if let earnedSeasonWinnerAward {
+                    earnedSeasonWinnerRow(earnedSeasonWinnerAward)
+                }
             }
         }
     }
@@ -104,22 +90,22 @@ extension SquadDetailView {
                 Image(assetName)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 34, height: 34)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .frame(width: 40, height: 40)
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
             } else {
                 ZStack {
-                    Circle().fill(Color.unbound.surfaceElevated)
+                    Circle().fill(Color.unbound.rankGold.opacity(0.16))
                     Image(systemName: "rosette")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.unbound.rankGold)
                 }
-                .frame(width: 34, height: 34)
+                .frame(width: 40, height: 40)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(award.titleName) earned")
                     .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
+                    .foregroundStyle(Color.unbound.rankGold)
                 MetaLine(["From last season's squad board"])
             }
 
@@ -131,9 +117,11 @@ extension SquadDetailView {
     @ViewBuilder
     var squadTitlesRow: some View {
         if !state.unlockedSquadTitles.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
-                CalmSectionHeader(title: "SQUAD TITLES")
-                    .padding(.bottom, 6)
+            SquadSectionCard(
+                title: "SQUAD TITLES",
+                icon: "medal.fill",
+                tint: Color.unbound.rankGold
+            ) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(state.unlockedSquadTitles, id: \.self) { titleId in

@@ -1,8 +1,8 @@
 // UNBOUND/Views/Squads/SquadChallengesTab.swift
 //
-// MISSION tab: the weekly co-op mission (the one raised surface on this
-// tab) and the 1v1 challenge list — pending invites with accept/decline,
-// then live duels as calm rows.
+// MISSION tab: the weekly co-op mission (violet card with its emblem) and
+// the 1v1 challenge list (orange card) — pending invites with
+// accept/decline, then live duels.
 import SwiftUI
 
 extension SquadDetailView {
@@ -16,10 +16,12 @@ extension SquadDetailView {
 
     @ViewBuilder
     private var missionSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            CalmSectionHeader(title: "WEEKLY MISSION")
-                .padding(.bottom, 6)
-
+        SquadSectionCard(
+            title: "WEEKLY MISSION",
+            icon: "flag.2.crossed.fill",
+            tint: Color.unbound.accent,
+            trailing: currentMissionState == nil ? nil : "\(SquadRewardPolicy.missionArcs) Arcs on clear"
+        ) {
             if let mission = currentMissionState {
                 let namedContributions: [(name: String, total: Int)] = missionContributions.map { contribution in
                     let name = contribution.userId.map { displayName(for: $0) } ?? "Linked sessions"
@@ -52,7 +54,7 @@ extension SquadDetailView {
                 .padding(.top, 4)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
     }
 
     // MARK: - Challenges section
@@ -62,53 +64,57 @@ extension SquadDetailView {
         let pending = activeChallenges.filter(\.isPending)
         let live = activeChallenges.filter { !$0.isPending }
 
-        return VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline) {
-                CalmSectionHeader(
-                    title: "CHALLENGES",
-                    trailing: seasonWins > 0 ? "\(seasonWins) wins this season" : nil
-                )
-                Spacer(minLength: 12)
-                Button {
-                    showChallengeCreate = true
-                } label: {
-                    Text("New")
-                        .font(Font.unbound.captionS.weight(.semibold))
-                        .foregroundStyle(Color.unbound.accent)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("New challenge")
-            }
-            .padding(.bottom, 6)
-
-            if activeChallenges.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
+        return SquadSectionCard(
+            title: "1V1 CHALLENGES",
+            icon: "bolt.fill",
+            tint: Color.unbound.warnOrange,
+            trailing: seasonWins > 0 ? "\(seasonWins) wins this season" : nil
+        ) {
+            VStack(alignment: .leading, spacing: 2) {
+                if activeChallenges.isEmpty {
                     Text("No active challenges. Start a 1v1 and put points on the season board.")
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, 4)
 
                     UnboundButton(title: "Start a Challenge", variant: .secondary) {
                         showChallengeCreate = true
                     }
-                }
-                .padding(.vertical, 6)
-            } else {
-                ForEach(pending) { challenge in
-                    FriendChallengeRow(
-                        challenge: challenge,
-                        roster: state.roster,
-                        currentUserId: currentUserId,
-                        onAccept: { acceptChallenge(challenge) },
-                        onDecline: { declineChallenge(challenge) }
-                    )
-                }
-                ForEach(live) { challenge in
-                    FriendChallengeRow(
-                        challenge: challenge,
-                        roster: state.roster,
-                        currentUserId: currentUserId
-                    )
+                    .padding(.top, 8)
+                } else {
+                    ForEach(pending) { challenge in
+                        FriendChallengeRow(
+                            challenge: challenge,
+                            roster: state.roster,
+                            currentUserId: currentUserId,
+                            onAccept: { acceptChallenge(challenge) },
+                            onDecline: { declineChallenge(challenge) }
+                        )
+                    }
+                    ForEach(live) { challenge in
+                        FriendChallengeRow(
+                            challenge: challenge,
+                            roster: state.roster,
+                            currentUserId: currentUserId
+                        )
+                    }
+
+                    Button {
+                        showChallengeCreate = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text("New challenge")
+                                .font(Font.unbound.bodyS.weight(.semibold))
+                        }
+                        .foregroundStyle(Color.unbound.warnOrange)
+                        .padding(.top, 8)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("New challenge")
                 }
             }
         }

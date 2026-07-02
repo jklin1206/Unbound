@@ -100,12 +100,12 @@ struct FriendChallengeRow: View {
                     .fill(Color.unbound.accent)
                     .frame(width: max(proxy.size.width * mine - 1, myProgress > 0 ? 8 : 0))
                 Capsule()
-                    .fill(Color.unbound.border)
+                    .fill(Color.unbound.coachCyan.opacity(0.65))
                     .frame(maxWidth: .infinity)
             }
         }
         .frame(height: 4)
-        .accessibilityLabel("Your score \(myProgress), opponent \(opponentProgress)")
+        .accessibilityLabel("Your score \(myProgress) in violet, opponent \(opponentProgress) in cyan")
     }
 
     private func quietAction(_ label: String, emphasized: Bool = false, action: @escaping () -> Void) -> some View {

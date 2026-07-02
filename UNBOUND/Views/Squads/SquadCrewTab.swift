@@ -1,9 +1,8 @@
 // UNBOUND/Views/Squads/SquadCrewTab.swift
 //
-// CREW tab: who's live, the squad streak, the roster as a calm list,
-// recent shared activity, and shared routines. Everything sits flat on the
-// page background; the only raised surfaces are the live-now call to action
-// and the viewer's own roster row.
+// CREW tab: who's live, the squad streak, the roster, recent shared
+// activity, and shared routines — each as its own tinted section card
+// (streak = ember, crew = cyan, recent = violet, routines = orange).
 import SwiftUI
 
 extension SquadDetailView {
@@ -40,11 +39,14 @@ extension SquadDetailView {
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.unbound.textTertiary)
                 }
-                .padding(14)
+                .padding(16)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .activeSurface(true, cornerRadius: 16)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color.unbound.success.opacity(0.10))
+            )
         }
     }
 
@@ -55,44 +57,46 @@ extension SquadDetailView {
     var crewSection: some View {
         let presenceMap = Dictionary(uniqueKeysWithValues: state.activeRosterPresence.map { ($0.userId, $0) })
         let liveCount = state.activeRosterPresence.count
-        return VStack(alignment: .leading, spacing: 4) {
-            CalmSectionHeader(
-                title: "CREW",
-                trailing: liveCount > 0 ? "\(liveCount) live" : "\(state.roster.count) members"
-            )
-            .padding(.bottom, 6)
+        return SquadSectionCard(
+            title: "CREW",
+            icon: "person.2.fill",
+            tint: Color.unbound.coachCyan,
+            trailing: liveCount > 0 ? "\(liveCount) live" : "\(state.roster.count)/\(state.currentSquad?.maxSize ?? 10)",
+            trailingTint: liveCount > 0 ? Color.unbound.success : nil
+        ) {
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(state.roster) { member in
+                    SquadMemberRow(
+                        member: member,
+                        isLive: presenceMap[member.userId] != nil,
+                        isSelf: member.userId == currentUserId,
+                        weeklySessionCount: weeklySessionCount(for: member.userId),
+                        lastTrainedAt: lastTrainedAt(for: member.userId),
+                        displayNameOverride: displayName(for: member),
+                        onTap: { memberDetailTarget = member }
+                    )
+                }
 
-            ForEach(state.roster) { member in
-                SquadMemberRow(
-                    member: member,
-                    isLive: presenceMap[member.userId] != nil,
-                    isSelf: member.userId == currentUserId,
-                    weeklySessionCount: weeklySessionCount(for: member.userId),
-                    lastTrainedAt: lastTrainedAt(for: member.userId),
-                    displayNameOverride: displayName(for: member),
-                    onTap: { memberDetailTarget = member }
-                )
-            }
-
-            if state.roster.count < (state.currentSquad?.maxSize ?? 10),
-               let inviteURL = state.currentSquad?.inviteURL {
-                ShareLink(item: inviteURL) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Color.unbound.textSecondary)
-                            .frame(width: 34, height: 34)
-                            .background(
-                                Circle()
-                                    .strokeBorder(Color.unbound.border, style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                            )
-                        Text("Invite a crewmate")
-                            .font(Font.unbound.bodyM)
-                            .foregroundStyle(Color.unbound.textSecondary)
-                        Spacer(minLength: 0)
+                if state.roster.count < (state.currentSquad?.maxSize ?? 10),
+                   let inviteURL = state.currentSquad?.inviteURL {
+                    ShareLink(item: inviteURL) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Color.unbound.coachCyan)
+                                .frame(width: 36, height: 36)
+                                .background(
+                                    Circle()
+                                        .strokeBorder(Color.unbound.coachCyan.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                                )
+                            Text("Invite a crewmate")
+                                .font(Font.unbound.bodyM)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
                     }
-                    .padding(.vertical, 9)
-                    .contentShape(Rectangle())
                 }
             }
         }
@@ -107,47 +111,52 @@ extension SquadDetailView {
     @ViewBuilder
     var recentActivitySection: some View {
         if !state.recentActivity.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
-                CalmSectionHeader(title: "RECENT")
-                    .padding(.bottom, 6)
-                ForEach(state.recentActivity.prefix(6)) { entry in
-                    ActivityFeedRow(entry: entry, roster: state.roster)
+            SquadSectionCard(
+                title: "RECENT",
+                icon: "sparkles",
+                tint: Color.unbound.accent
+            ) {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(state.recentActivity.prefix(6)) { entry in
+                        ActivityFeedRow(entry: entry, roster: state.roster)
+                    }
                 }
             }
         }
     }
 
     var routineDropsSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            CalmSectionHeader(
-                title: "SHARED ROUTINES",
-                trailing: routineDrops.isEmpty ? nil : "\(routineDrops.count)"
-            )
-            .padding(.bottom, 6)
+        SquadSectionCard(
+            title: "SHARED ROUTINES",
+            icon: "square.and.arrow.down.fill",
+            tint: Color.unbound.warnOrange,
+            trailing: routineDrops.isEmpty ? nil : "\(routineDrops.count)"
+        ) {
+            VStack(alignment: .leading, spacing: 2) {
+                if let routineDropStatus {
+                    Text(routineDropStatus)
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.success)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, 4)
+                }
 
-            if let routineDropStatus {
-                Text(routineDropStatus)
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.success)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.bottom, 4)
-            }
-
-            if routineDrops.isEmpty {
-                Text("No routines shared yet. Share a Saved Workout from the Program tab.")
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.vertical, 6)
-            } else {
-                ForEach(routineDrops.prefix(6)) { drop in
-                    SquadRoutineDropRow(
-                        drop: drop,
-                        authorName: displayName(for: drop.authorUserId),
-                        isMine: drop.authorUserId == currentUserId,
-                        onSave: { saveRoutineDrop(drop) },
-                        onUseToday: { useRoutineDropToday(drop) }
-                    )
+                if routineDrops.isEmpty {
+                    Text("No routines shared yet. Share a Saved Workout from the Program tab.")
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, 4)
+                } else {
+                    ForEach(routineDrops.prefix(6)) { drop in
+                        SquadRoutineDropRow(
+                            drop: drop,
+                            authorName: displayName(for: drop.authorUserId),
+                            isMine: drop.authorUserId == currentUserId,
+                            onSave: { saveRoutineDrop(drop) },
+                            onUseToday: { useRoutineDropToday(drop) }
+                        )
+                    }
                 }
             }
         }

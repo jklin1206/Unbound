@@ -42,22 +42,28 @@ struct ActivityFeedRow: View {
     private var avatarView: some View {
         switch entry.payload {
         case .squadStreakExtended:
-            symbolCircle("flame.fill")
+            symbolCircle("flame.fill", tint: Color.unbound.ember)
         case .linkedSession:
-            symbolCircle("person.2.fill")
+            symbolCircle("person.2.fill", tint: Color.unbound.coachCyan)
         case .memberJoined:
-            symbolCircle("person.badge.plus")
+            symbolCircle("person.badge.plus", tint: Color.unbound.success)
+        case .workoutCompleted:
+            symbolCircle("checkmark.seal.fill", tint: Color.unbound.success)
+        case .trialCompleted:
+            symbolCircle("seal.fill", tint: Color.unbound.impact)
+        case .titleUnlocked:
+            symbolCircle("medal.fill", tint: Color.unbound.rankGold)
         default:
             initialsCircle(for: entry.userId)
         }
     }
 
-    private func symbolCircle(_ systemName: String) -> some View {
+    private func symbolCircle(_ systemName: String, tint: Color) -> some View {
         ZStack {
-            Circle().fill(Color.unbound.surfaceElevated)
+            Circle().fill(tint.opacity(0.16))
             Image(systemName: systemName)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.unbound.textSecondary)
+                .foregroundStyle(tint)
         }
         .frame(width: 34, height: 34)
     }
@@ -144,11 +150,12 @@ struct ActivityFeedRow: View {
     }
 
     private func initialsCircle(for userId: UUID?) -> some View {
-        ZStack {
-            Circle().fill(Color.unbound.surfaceElevated)
+        let tint = userId.map { SquadMemberPalette.tint(for: $0) } ?? Color.unbound.textSecondary
+        return ZStack {
+            Circle().fill(tint.opacity(0.16))
             Text(initials(for: userId))
                 .font(Font.unbound.captionS.weight(.heavy))
-                .foregroundStyle(Color.unbound.textSecondary)
+                .foregroundStyle(tint)
         }
         .frame(width: 34, height: 34)
     }

@@ -129,11 +129,12 @@ struct FriendChallengeCreateSheet: View {
             }
         } label: {
             HStack(spacing: 12) {
+                let tint = SquadMemberPalette.tint(for: member.userId)
                 ZStack {
-                    Circle().fill(Color.unbound.surfaceElevated)
+                    Circle().fill(tint.opacity(0.16))
                     Text(initials(for: member.displayName))
                         .font(Font.unbound.captionS.weight(.heavy))
-                        .foregroundStyle(Color.unbound.textSecondary)
+                        .foregroundStyle(tint)
                 }
                 .frame(width: 34, height: 34)
 
@@ -146,12 +147,11 @@ struct FriendChallengeCreateSheet: View {
 
                 radio(isSelected)
             }
-            .padding(.horizontal, isSelected ? 12 : 0)
             .padding(.vertical, 10)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .activeSurface(isSelected, cornerRadius: 14)
+        .squadOwnRowHighlight(isSelected, cornerRadius: 14)
     }
 
     // MARK: - Challenge kind
@@ -197,12 +197,11 @@ struct FriendChallengeCreateSheet: View {
 
                 radio(isSelected)
             }
-            .padding(.horizontal, isSelected ? 12 : 0)
             .padding(.vertical, 10)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .activeSurface(isSelected, cornerRadius: 14)
+        .squadOwnRowHighlight(isSelected, cornerRadius: 14)
     }
 
     // MARK: - Lift pick (heaviestLift only)
@@ -243,12 +242,11 @@ struct FriendChallengeCreateSheet: View {
                         Spacer(minLength: 8)
                         radio(isSelected)
                     }
-                    .padding(.horizontal, isSelected ? 12 : 0)
                     .padding(.vertical, 9)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .activeSurface(isSelected, cornerRadius: 12)
+                .squadOwnRowHighlight(isSelected, cornerRadius: 12)
             }
         }
     }

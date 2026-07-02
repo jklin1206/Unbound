@@ -2,7 +2,7 @@
 
 The SQUAD tab: squad creation/joining, the squad detail surface (crew roster, weekly mission, season board, shared activity), 1v1 friend challenges, shared routine drops, and squad-scoped toasts.
 `SquadTabView` is the tab root and also handles the `https://unboundapp.com/squad/<code>` universal-link join path.
-Every screen follows the calm-list language: flat rows on the page background, `MetaLine` metadata, `CalmSectionHeader` headers, and a single fill-only raised surface for the active object (the weekly mission, the viewer's own row).
+Every screen follows the squads section-card language (`SquadSectionStyles.swift`): each section is ONE tinted box (streak = ember, crew = cyan, recent = violet, routines = orange, board = gold, rewards = impact violet) with flat `MetaLine` rows inside, per-member identity colors from `SquadMemberPalette`, and the viewer's own row highlighted by a full-width elevated fill that never indents the text.
 
 ## Files
 
@@ -19,6 +19,7 @@ Every screen follows the calm-list language: flat rows on the page background, `
 | `SquadChallengesTab.swift` | Extension: Mission tab — weekly co-op mission + 1v1 challenges (pending accept/decline, live duels). |
 | `SquadSeasonTab.swift` | Extension: Season tab — season board, weekly honors, season rewards, squad titles. |
 | `SquadMemberRow.swift` | One roster member as a calm list row (presence dot, last trained, weekly sessions). |
+| `SquadSectionStyles.swift` | Shared squads visual vocabulary: one-box `SquadSectionCard` (tinted icon chip header, flat rows) + self-row highlight styling. |
 | `SquadMemberDetailView.swift` | Drill-in profile for a member: stats, build, recent workouts, challenges. |
 | `SquadMissionCard.swift` | Current squad mission: mono progress readout, thin bar, top contributors. |
 | `SquadMissionCelebrationView.swift` | Full-screen takeover when the weekly squad mission completes; claim grants Arcs via `CurrencyWalletStore` (ledger-deduped by mission sourceId). |

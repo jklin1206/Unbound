@@ -38,7 +38,7 @@ struct SquadMemberDetailView: View {
             Color.unbound.bg.ignoresSafeArea()
 
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 28) {
+                VStack(alignment: .leading, spacing: 14) {
                     heroSection
                     statsSection
                     ProfileBuildCard(profile: attributeProfile)
@@ -105,7 +105,10 @@ struct SquadMemberDetailView: View {
             statColumn(value: "\(streakSummary.totalSessions)", label: "sessions")
         }
         .padding(.vertical, 14)
-        .activeSurface(true, cornerRadius: 16)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
     }
 
     private func statColumn(value: String, label: String) -> some View {
@@ -127,10 +130,11 @@ struct SquadMemberDetailView: View {
     // MARK: - Recent workouts
 
     private var recentWorkoutsSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            CalmSectionHeader(title: "LAST WORKOUTS")
-                .padding(.bottom, 6)
-
+        SquadSectionCard(
+            title: "LAST WORKOUTS",
+            icon: "figure.strengthtraining.traditional",
+            tint: Color.unbound.success
+        ) {
             if isLoading && workoutLogs.isEmpty {
                 Text("Loading…")
                     .font(Font.unbound.bodyM)
@@ -174,10 +178,11 @@ struct SquadMemberDetailView: View {
     // MARK: - Challenges
 
     private var activeChallengesSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            CalmSectionHeader(title: "CHALLENGES")
-                .padding(.bottom, 6)
-
+        SquadSectionCard(
+            title: "CHALLENGES",
+            icon: "bolt.fill",
+            tint: Color.unbound.warnOrange
+        ) {
             if activeChallenges.isEmpty {
                 Text("Not in any challenges right now.")
                     .font(Font.unbound.bodyM)

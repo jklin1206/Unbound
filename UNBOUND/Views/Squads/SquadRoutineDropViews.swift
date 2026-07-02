@@ -27,10 +27,10 @@ struct SquadRoutineDropRow: View {
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             ZStack {
-                Circle().fill(Color.unbound.surfaceElevated)
+                Circle().fill(Color.unbound.warnOrange.opacity(0.16))
                 Image(systemName: "square.and.arrow.down")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textSecondary)
+                    .foregroundStyle(Color.unbound.warnOrange)
             }
             .frame(width: 34, height: 34)
 

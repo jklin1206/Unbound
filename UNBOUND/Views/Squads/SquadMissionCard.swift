@@ -1,9 +1,8 @@
 // UNBOUND/Views/Squads/SquadMissionCard.swift
 //
-// The weekly co-op mission — the one raised surface on the Mission tab.
-// Big mono progress readout, a thin violet bar, facts as a MetaLine, and the
-// top contributors as quiet rows. Completed missions switch the readout to
-// the success tone.
+// The weekly co-op mission content: emblem art, mono progress readout, a
+// tinted bar, and top contributors. Rendered inside the Mission section card
+// (the parent owns the box).
 import SwiftUI
 
 struct SquadMissionCard: View {
@@ -12,6 +11,7 @@ struct SquadMissionCard: View {
 
     private var progress: CGFloat { CGFloat(min(mission.progressFraction, 1.0)) }
     private var progressPercent: Int { Int((progress * 100).rounded()) }
+    private var tint: Color { mission.isCompleted ? Color.unbound.success : mission.kind.tint }
 
     private var sortedContributions: [(name: String, total: Int)] {
         contributions.sorted { $0.total > $1.total }
@@ -31,7 +31,9 @@ struct SquadMissionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .center, spacing: 14) {
+                emblem
+
                 VStack(alignment: .leading, spacing: 3) {
                     Text(mission.kind.displayName)
                         .font(Font.unbound.titleS)
@@ -41,7 +43,9 @@ struct SquadMissionCard: View {
                         .foregroundStyle(Color.unbound.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer(minLength: 12)
+
+                Spacer(minLength: 0)
+
                 if mission.isCompleted {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 20, weight: .semibold))
@@ -66,16 +70,15 @@ struct SquadMissionCard: View {
                     ZStack(alignment: .leading) {
                         Capsule().fill(Color.unbound.border)
                         Capsule()
-                            .fill(mission.isCompleted ? Color.unbound.success : Color.unbound.accent)
+                            .fill(tint)
                             .frame(width: max(proxy.size.width * progress, progress > 0 ? 6 : 0))
                     }
                 }
-                .frame(height: 4)
+                .frame(height: 5)
 
                 MetaLine([
                     "\(progressPercent)%",
-                    mission.isCompleted ? "cleared" : (weekDaysRemaining <= 1 ? "last day" : "\(weekDaysRemaining) days left"),
-                    "\(SquadRewardPolicy.missionArcs) Arcs on clear"
+                    mission.isCompleted ? "cleared" : (weekDaysRemaining <= 1 ? "last day" : "\(weekDaysRemaining) days left")
                 ])
             }
 
@@ -90,7 +93,7 @@ struct SquadMissionCard: View {
                             Spacer(minLength: 12)
                             Text(mission.kind.progressText(row.total))
                                 .font(Font.unbound.monoS)
-                                .foregroundStyle(Color.unbound.textSecondary)
+                                .foregroundStyle(tint)
                                 .monospacedDigit()
                         }
                     }
@@ -98,10 +101,26 @@ struct SquadMissionCard: View {
                 .padding(.top, 2)
             }
         }
-        .padding(16)
-        .activeSurface(true, cornerRadius: 18)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(mission.kind.displayName), \(progressPercent) percent complete")
+    }
+
+    @ViewBuilder
+    private var emblem: some View {
+        if UIImage(named: mission.kind.emblemAssetName) != nil {
+            Image(mission.kind.emblemAssetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 56, height: 56)
+        } else {
+            ZStack {
+                Circle().fill(tint.opacity(0.16))
+                Image(systemName: mission.kind.systemImage)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(tint)
+            }
+            .frame(width: 56, height: 56)
+        }
     }
 }
 

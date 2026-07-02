@@ -1,7 +1,7 @@
 // UNBOUND/Views/Squads/SquadMissionPickSheet.swift
 //
-// Captain-only sheet listing the 5 co-op mission kinds.
-// Tap a kind → calls onPick and dismisses.
+// Captain-only sheet listing the 5 co-op mission kinds, each with its
+// generated emblem and a tinted weekly target. Tap a kind → onPick + dismiss.
 import SwiftUI
 
 struct SquadMissionPickSheet: View {
@@ -18,31 +18,24 @@ struct SquadMissionPickSheet: View {
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 4) {
                         CalmSectionHeader(title: "PICK THIS WEEK'S MISSION")
-                        Text("Choose a co-op goal for your crew.")
+                        Text("One co-op goal for the crew. Every logged session pushes the bar; clearing it pays \(SquadRewardPolicy.missionArcs) Arcs.")
                             .font(Font.unbound.bodyM)
                             .foregroundStyle(Color.unbound.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
                     .padding(.bottom, 16)
 
                     ScrollView(.vertical, showsIndicators: false) {
-                        VStack(spacing: 0) {
+                        VStack(spacing: 10) {
                             ForEach(SquadMission.Kind.allCases, id: \.self) { kind in
                                 kindRow(kind: kind)
-                                if kind != SquadMission.Kind.allCases.last {
-                                    Divider()
-                                        .background(Color.unbound.surfaceElevated)
-                                        .padding(.leading, 64)
-                                }
                             }
                         }
-                        .background(Color.unbound.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                         .padding(.horizontal, 20)
+                        .padding(.bottom, 24)
                     }
-
-                    Spacer(minLength: 0)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -54,6 +47,7 @@ struct SquadMissionPickSheet: View {
                 }
             }
         }
+        .preferredColorScheme(.dark)
     }
 
     private func kindRow(kind: SquadMission.Kind) -> some View {
@@ -62,39 +56,59 @@ struct SquadMissionPickSheet: View {
             dismiss()
         } label: {
             HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(Color.unbound.surfaceElevated)
-                        .frame(width: 42, height: 42)
-                    Image(systemName: kind.systemImage)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(Color.unbound.accent)
-                }
+                emblem(kind: kind)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(kind.displayName)
-                        .font(Font.unbound.bodyMStrong)
+                        .font(Font.unbound.bodyLStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
                     Text(kind.subtitle)
-                        .font(Font.unbound.captionS)
+                        .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Spacer(minLength: 0)
+                Spacer(minLength: 8)
 
-                Text(kind.progressText(SquadMissionCatalog.target(for: kind, memberCount: memberCount)))
-                    .font(Font.unbound.monoS)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .monospacedDigit()
-                    .multilineTextAlignment(.trailing)
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(kind.progressText(SquadMissionCatalog.target(for: kind, memberCount: memberCount)))
+                        .font(Font.unbound.monoS)
+                        .foregroundStyle(kind.tint)
+                        .monospacedDigit()
+                        .multilineTextAlignment(.trailing)
+                    Text("this week")
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .contentShape(Rectangle())
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(kind.displayName), target \(kind.progressText(SquadMissionCatalog.target(for: kind, memberCount: memberCount)))")
+    }
+
+    @ViewBuilder
+    private func emblem(kind: SquadMission.Kind) -> some View {
+        if UIImage(named: kind.emblemAssetName) != nil {
+            Image(kind.emblemAssetName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 52, height: 52)
+        } else {
+            ZStack {
+                Circle().fill(kind.tint.opacity(0.16))
+                Image(systemName: kind.systemImage)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(kind.tint)
+            }
+            .frame(width: 52, height: 52)
+        }
     }
 }
 

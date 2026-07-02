@@ -16,7 +16,6 @@ struct SquadDetailView: View {
     @State var showAffinityPicker = false
     @State var leaveError: String?
     @State var showChallengeCreate = false
-    @State var showSeasonRewards = false
     @State var activeChallenges: [FriendChallenge] = []
     @State var routineDrops: [SquadRoutineDrop] = []
     @State var routineDropStatus: String?
@@ -75,7 +74,7 @@ struct SquadDetailView: View {
                     .padding(.top, 16)
 
                     ScrollView(.vertical, showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: 28) {
+                        VStack(alignment: .leading, spacing: 14) {
                             switch selectedTab {
                             case .crew: crewTabContent(squad: squad)
                             case .mission: challengesTabContent
