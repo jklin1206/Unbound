@@ -48,6 +48,7 @@ extension Notification.Name {
     static let weeklyHonorReceived     = Notification.Name("unbound.weeklyHonorReceived")
     static let friendChallengeExpired  = Notification.Name("unbound.friendChallengeExpired")
     static let friendChallengeAccepted = Notification.Name("unbound.friendChallengeAccepted")
+    static let friendChallengeDeclined = Notification.Name("unbound.friendChallengeDeclined")
     static let squadRoutineDropShared  = Notification.Name("unbound.squadRoutineDropShared")
     static let savedWorkoutScheduleTodayRequested = Notification.Name("unbound.savedWorkoutScheduleTodayRequested")
 }

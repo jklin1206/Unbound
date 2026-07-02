@@ -28,6 +28,9 @@ enum SquadError: Error, Equatable {
     case alreadyInSquad
     case squadFull
     case invalidInviteCode
+    /// The generated invite code collided with an existing squad (unique
+    /// violation on insert) — the only insertSquad failure worth retrying.
+    case inviteCodeCollision
     case notInSquad
     case notCaptain
     case backendUnavailable

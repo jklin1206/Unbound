@@ -1,6 +1,8 @@
 # Views/Squads
 
-The SQUAD tab: squad creation/joining, the squad detail surface (roster, missions, leaderboards, activity feed, chat), 1v1 friend challenges, and squad-scoped toasts. `SquadTabView` is the tab root and also handles the `https://unboundapp.com/squad/<code>` universal-link join path.
+The SQUAD tab: squad creation/joining, the squad detail surface (crew roster, weekly mission, season board, shared activity), 1v1 friend challenges, shared routine drops, and squad-scoped toasts.
+`SquadTabView` is the tab root and also handles the `https://unboundapp.com/squad/<code>` universal-link join path.
+Every screen follows the calm-list language: flat rows on the page background, `MetaLine` metadata, `CalmSectionHeader` headers, and a single fill-only raised surface for the active object (the weekly mission, the viewer's own row).
 
 ## Files
 
@@ -8,37 +10,34 @@ The SQUAD tab: squad creation/joining, the squad detail surface (roster, mission
 |---|---|
 | `SquadTabView.swift` | Tab root; routes empty vs detail, handles universal-link squad codes. |
 | `SquadEmptyView.swift` | No-squad state with create/join entry points. |
-| `CreateSquadSheet.swift` | Sheet for creating a squad. |
+| `CreateSquadSheet.swift` | Sheet for creating a squad (name + crest picker). |
 | `JoinSquadSheet.swift` | Sheet for joining a squad by code. |
-| `SquadDetailView.swift` | The main squad screen container. |
-| `SquadDetailView+Data.swift` | Extension: data loading/refresh for the detail screen. |
-| `SquadDetailView+Header.swift` | Extension: header composition. |
-| `SquadDetailView+Sections.swift` | Extension: body sections (roster, mission, honors, feed…). |
-| `SquadCrewTab.swift` | Extension: Crew tab content — squad streak section, crew roster, routine drops. |
-| `SquadChallengesTab.swift` | Extension: Challenges tab content — weekly co-op mission section + friend challenges. |
-| `SquadSeasonTab.swift` | Extension: Season tab content — squad leaderboard board + season rewards. |
-| `SquadMemberCard.swift` | Roster grid card for one member. |
-| `SquadMemberDetailView.swift` | Drill-in detail for a single member. |
-| `SquadMissionCard.swift` | Current squad mission: title, shared progress bar, reward preview. |
+| `SquadDetailView.swift` | The main squad screen container: identity header + Crew/Mission/Season underline tabs. |
+| `SquadDetailView+Data.swift` | Extension: data loading/refresh; real squads pull cross-member logs via the `squad_member_workout_logs` RPC. |
+| `SquadDetailView+Header.swift` | Extension: empty state + crest mark helpers. |
+| `SquadCrewTab.swift` | Extension: Crew tab — live-now row, squad streak, roster list, recent activity, shared routines. |
+| `SquadChallengesTab.swift` | Extension: Mission tab — weekly co-op mission + 1v1 challenges (pending accept/decline, live duels). |
+| `SquadSeasonTab.swift` | Extension: Season tab — season board, weekly honors, season rewards, squad titles. |
+| `SquadMemberRow.swift` | One roster member as a calm list row (presence dot, last trained, weekly sessions). |
+| `SquadMemberDetailView.swift` | Drill-in profile for a member: stats, build, recent workouts, challenges. |
+| `SquadMissionCard.swift` | Current squad mission: mono progress readout, thin bar, top contributors. |
 | `SquadMissionCelebrationView.swift` | Full-screen takeover when the weekly squad mission completes; claim grants Arcs via `CurrencyWalletStore` (ledger-deduped by mission sourceId). |
 | `SquadMissionPickSheet.swift` | Captain-only sheet listing the 5 co-op mission kinds; tap a kind → `onPick` + dismiss. |
 | `SquadLeaderboardViews.swift` | `SquadStreakHeroView`, `SquadBoardView`, `SquadSeasonRewardsView` — streak/leaderboard/season surfaces. |
-| `WeeklyHonorsStrip.swift` | Horizontal strip of 3 weekly honor cards (between roster and feed). |
-| `ActivityFeedRow.swift` | One row of the squad activity feed. |
-| `SquadChatView.swift` | Squad chat: message bubbles, preview row, `ChallengeDashboardRow`. |
-| `FriendChallengeCard.swift` | 1v1 challenge card — side-by-side parallel progress bars (NOT a leaderboard). |
-| `FriendChallengeCreateSheet.swift` | Sheet to create a 1v1 challenge: pick opponent from roster + challenge kind. |
+| `ActivityFeedRow.swift` | One line of squad activity (trained a workout, joined, streak, linked session, title). |
+| `FriendChallengeRow.swift` | One 1v1 challenge row: pending invite (accept/decline/withdraw) or live duel with comparative bar. |
+| `FriendChallengeCreateSheet.swift` | Sheet to create a 1v1 challenge: pick opponent, challenge kind, and (for Heaviest Lift) the lift. |
 | `FriendChallengeOutcomeToast.swift` | Bottom toast fired on `.friendChallengeExpired` (`.friendChallengeOutcomeToast()` modifier). |
 | `LinkedSessionToast.swift` | Toast + modifier for linked-session (training together) notices. |
-| `AffinityPickerSheet.swift` | Sheet for picking a squad affinity. |
+| `AffinityPickerSheet.swift` | Captain-only sheet for the squad's monthly affinity axis (squad options menu). |
 | `SquadLogoViews.swift` | Squad logo mark, picker, and edit sheet. |
-| `SquadRoutineDropViews.swift` | Routine-drop card + the squad console visual language (background, accent shapes, panel style). |
+| `SquadRoutineDropViews.swift` | `SquadRoutineDropRow` — a shared routine as a calm row with Save/Today actions. |
 
 ## Where to find X
 
 - **Join via link or code** → `SquadTabView.swift` (universal links) + `JoinSquadSheet.swift`.
-- **Add/change a section on the squad screen** → `SquadDetailView+Sections.swift`.
-- **Friend challenge lifecycle UI** → `FriendChallengeCreateSheet.swift` → `FriendChallengeCard.swift` → `FriendChallengeOutcomeToast.swift`.
-- **Leaderboard / season rewards** → `SquadLeaderboardViews.swift`.
-- **Squad-console panel styling reused across cards** → `SquadRoutineDropViews.swift` (`SquadPanelStyle`).
+- **Workout sharing (what squadmates see after you train)** → activity entries render in `ActivityFeedRow.swift` (posted by `TrainingCompletionService`); per-member stats come through `SquadDetailView+Data.swift`.
+- **Friend challenge lifecycle UI** → `FriendChallengeCreateSheet.swift` → `FriendChallengeRow.swift` (accept/decline/withdraw) → `FriendChallengeOutcomeToast.swift`.
+- **Leaderboard / season rewards / honors** → `SquadLeaderboardViews.swift` + `SquadSeasonTab.swift`.
+- **Shared routines (routine drops)** → `SquadRoutineDropViews.swift`, listed by `SquadCrewTab.swift`; share entry point lives in the Program tab's Saved Workouts list.
 - **Member data fetching (RLS-gated RPC)** → view side in `SquadDetailView+Data.swift`; backend lives in Services (not this folder).

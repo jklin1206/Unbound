@@ -8,6 +8,7 @@ protocol FriendChallengeServiceProtocol: Sendable {
     func challengeStats(squadId: UUID) async -> [UUID: FriendChallengeStats]
     func challengeStats(squadId: UUID, season: SquadSeason) async -> [UUID: FriendChallengeStats]
     func accept(_ challengeId: UUID) async throws
+    func decline(_ challengeId: UUID) async throws
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async
     func evaluateExpired() async
 }
@@ -42,36 +43,40 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
     }
 
     // MARK: - Private Codable row
+    //
+    // Properties are camelCase: UnboundSupabase.dbDecoder converts the
+    // snake_case JSON keys before matching, so a snake_case property never
+    // matches and every fetch throws keyNotFound.
 
     private struct ChallengeRow: Codable {
         let id: UUID
-        let challenger_id: UUID
-        let challenged_id: UUID
-        let squad_id: UUID
-        let challenge_kind: String
-        let exercise_name: String?
-        let started_at: Date
-        let expires_at: Date
-        let winner_user_id: UUID?
-        let accepted_at: Date?
-        let challenger_progress: Int
-        let challenged_progress: Int
+        let challengerId: UUID
+        let challengedId: UUID
+        let squadId: UUID
+        let challengeKind: String
+        let exerciseName: String?
+        let startedAt: Date
+        let expiresAt: Date
+        let winnerUserId: UUID?
+        let acceptedAt: Date?
+        let challengerProgress: Int
+        let challengedProgress: Int
 
         func toModel() -> FriendChallenge? {
-            guard let kind = FriendChallenge.Kind(rawValue: challenge_kind) else { return nil }
+            guard let kind = FriendChallenge.Kind(rawValue: challengeKind) else { return nil }
             return FriendChallenge(
                 id: id,
-                challengerId: challenger_id,
-                challengedId: challenged_id,
-                squadId: squad_id,
+                challengerId: challengerId,
+                challengedId: challengedId,
+                squadId: squadId,
                 kind: kind,
-                exerciseName: exercise_name,
-                startedAt: started_at,
-                expiresAt: expires_at,
-                acceptedAt: accepted_at,
-                challengerProgress: challenger_progress,
-                challengedProgress: challenged_progress,
-                winnerUserId: winner_user_id
+                exerciseName: exerciseName,
+                startedAt: startedAt,
+                expiresAt: expiresAt,
+                acceptedAt: acceptedAt,
+                challengerProgress: challengerProgress,
+                challengedProgress: challengedProgress,
+                winnerUserId: winnerUserId
             )
         }
     }
@@ -264,6 +269,26 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
             .eq("id", value: challengeId.uuidString)
             .execute()
         NotificationCenter.default.post(name: .friendChallengeAccepted, object: challengeId)
+    }
+
+    /// Decline a pending challenge (as the challenged user) or withdraw one
+    /// (as the challenger). RLS only permits the DELETE while the challenge is
+    /// unaccepted and unsettled, so an accepted duel can't be abandoned.
+    func decline(_ challengeId: UUID) async throws {
+        if let index = localChallenges.firstIndex(where: { $0.id == challengeId }) {
+            localChallenges.remove(at: index)
+            NotificationCenter.default.post(name: .friendChallengeDeclined, object: challengeId)
+            return
+        }
+        guard remoteBackendEnabled else {
+            throw SquadError.backendUnavailable
+        }
+        try await db
+            .from("friend_challenges")
+            .delete()
+            .eq("id", value: challengeId.uuidString)
+            .execute()
+        NotificationCenter.default.post(name: .friendChallengeDeclined, object: challengeId)
     }
 
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {

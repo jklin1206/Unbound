@@ -7,6 +7,13 @@ import Supabase
 // Wraps UnboundSupabase.client for all squad-table operations.
 // Tests never touch this file — they use MockSquadBackend.
 //
+// Row-struct convention (load-bearing): UnboundSupabase.dbDecoder uses
+// .convertFromSnakeCase, so every Decodable row property MUST be camelCase —
+// a snake_case property never matches the converted key and the whole decode
+// throws keyNotFound. Encodable-only bodies sent through functions.invoke use
+// snake_case because the Functions client encodes with a plain JSONEncoder.
+// SquadBackendRowCodingTests locks this contract with real PostgREST fixtures.
+//
 final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
 
     static let shared = SquadBackend()
@@ -19,27 +26,27 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
     private struct SquadRow: Codable {
         let id: UUID
         let name: String
-        let captain_id: UUID  // snake_case matches Supabase column
-        let affinity_axis: String?
-        let affinity_set_at: Date?
-        let invite_code: String
-        let max_size: Int
-        let squad_streak_weeks: Int
-        let created_at: Date
-        let logo_id: String?
+        let captainId: UUID
+        let affinityAxis: String?
+        let affinitySetAt: Date?
+        let inviteCode: String
+        let maxSize: Int
+        let squadStreakWeeks: Int
+        let createdAt: Date
+        let logoId: String?
 
         func toSquad() -> Squad {
             Squad(
                 id: id,
                 name: name,
-                captainId: captain_id,
-                affinityAxis: affinity_axis.flatMap { AttributeKey(rawValue: $0) },
-                affinitySetAt: affinity_set_at,
-                inviteCode: invite_code,
-                maxSize: max_size,
-                squadStreakWeeks: squad_streak_weeks,
-                createdAt: created_at,
-                logoId: logo_id
+                captainId: captainId,
+                affinityAxis: affinityAxis.flatMap { AttributeKey(rawValue: $0) },
+                affinitySetAt: affinitySetAt,
+                inviteCode: inviteCode,
+                maxSize: maxSize,
+                squadStreakWeeks: squadStreakWeeks,
+                createdAt: createdAt,
+                logoId: logoId
             )
         }
     }
@@ -56,27 +63,33 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
         struct Insert: Encodable {
             let id: String
             let name: String
-            let captain_id: String
-            let invite_code: String
-            let max_size: Int
+            let captainId: String
+            let inviteCode: String
+            let maxSize: Int
         }
         let body = Insert(
             id: id.uuidString,
             name: name,
-            captain_id: captainId.uuidString,
-            invite_code: inviteCode,
-            max_size: maxSize
+            captainId: captainId.uuidString,
+            inviteCode: inviteCode,
+            maxSize: maxSize
         )
-        let rows: [SquadRow] = try await db
-            .from("squads")
-            .insert(body)
-            .select()
-            .execute()
-            .value
-        guard let row = rows.first else {
-            throw SquadError.backendUnavailable
+        do {
+            let rows: [SquadRow] = try await db
+                .from("squads")
+                .insert(body)
+                .select()
+                .execute()
+                .value
+            guard let row = rows.first else {
+                throw SquadError.backendUnavailable
+            }
+            return row.toSquad()
+        } catch let error as PostgrestError where error.code == "23505" {
+            // Unique violation — the generated invite code collided. Mapped to
+            // a dedicated case so the service retries ONLY this failure.
+            throw SquadError.inviteCodeCollision
         }
-        return row.toSquad()
     }
 
     func fetchSquad(byId squadId: UUID) async throws -> Squad {
@@ -104,31 +117,14 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
         return rows.first?.toSquad()
     }
 
-    func deleteSquad(squadId: UUID) async throws {
-        try await db
-            .from("squads")
-            .delete()
-            .eq("id", value: squadId.uuidString)
-            .execute()
-    }
-
-    func updateCaptain(squadId: UUID, newCaptainId: UUID) async throws {
-        struct Patch: Encodable { let captain_id: String }
-        try await db
-            .from("squads")
-            .update(Patch(captain_id: newCaptainId.uuidString))
-            .eq("id", value: squadId.uuidString)
-            .execute()
-    }
-
     func updateAffinity(squadId: UUID, axis: AttributeKey?, setAt: Date?) async throws {
         struct Patch: Encodable {
-            let affinity_axis: String?
-            let affinity_set_at: Date?
+            let affinityAxis: String?
+            let affinitySetAt: Date?
         }
         let patch = Patch(
-            affinity_axis: axis?.rawValue,
-            affinity_set_at: setAt
+            affinityAxis: axis?.rawValue,
+            affinitySetAt: setAt
         )
         try await db
             .from("squads")
@@ -138,10 +134,10 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
     }
 
     func updateLogo(squadId: UUID, logoId: String) async throws {
-        struct Patch: Encodable { let logo_id: String }
+        struct Patch: Encodable { let logoId: String }
         try await db
             .from("squads")
-            .update(Patch(logo_id: SquadLogoCatalog.resolvedId(logoId)))
+            .update(Patch(logoId: SquadLogoCatalog.resolvedId(logoId)))
             .eq("id", value: squadId.uuidString)
             .execute()
     }
@@ -154,27 +150,27 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
         // identity aren't stored cross-readably, so they stay nil for now.
         struct EnrichedRow: Decodable {
             let id: UUID
-            let squad_id: UUID
-            let user_id: UUID
-            let joined_at: Date
-            let display_name: String?
-            let display_handle: String?
+            let squadId: UUID
+            let userId: UUID
+            let joinedAt: Date
+            let displayName: String?
+            let displayHandle: String?
         }
-        struct Params: Encodable { let p_squad_id: String }
+        struct Params: Encodable { let pSquadId: String }
         let rows: [EnrichedRow] = try await UnboundSupabase.client
-            .rpc("squad_members_enriched", params: Params(p_squad_id: squadId.uuidString))
+            .rpc("squad_members_enriched", params: Params(pSquadId: squadId.uuidString))
             .execute()
             .value
         return rows.map { row in
             SquadMember(
                 id: row.id,
-                squadId: row.squad_id,
-                userId: row.user_id,
-                joinedAt: row.joined_at,
+                squadId: row.squadId,
+                userId: row.userId,
+                joinedAt: row.joinedAt,
                 displayName: Self.resolveDisplayName(
-                    name: row.display_name,
-                    handle: row.display_handle,
-                    userId: row.user_id
+                    name: row.displayName,
+                    handle: row.displayHandle,
+                    userId: row.userId
                 ),
                 equippedTitle: nil,
                 buildIdentity: nil
@@ -193,17 +189,101 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
         return "Member \(userId.uuidString.prefix(4))"
     }
 
-    func deleteMember(squadId: UUID, userId: UUID) async throws {
-        try await db
-            .from("squad_members")
-            .delete()
-            .eq("squad_id", value: squadId.uuidString)
-            .eq("user_id", value: userId.uuidString)
+    func leaveSquad(squadId: UUID) async throws {
+        // leave_squad_atomic handles captain succession (earliest-joined member
+        // is promoted) and deletes the squad when the last member leaves —
+        // client-side succession can't do either under RLS.
+        struct Params: Encodable { let pSquadId: String }
+        struct Result: Decodable {
+            let error: String?
+            let status: String?
+        }
+        let result: Result = try await UnboundSupabase.client
+            .rpc("leave_squad_atomic", params: Params(pSquadId: squadId.uuidString))
             .execute()
+            .value
+        if let error = result.error {
+            switch error {
+            case "not_a_member", "squad_not_found": throw SquadError.notInSquad
+            default: throw SquadError.backendUnavailable
+            }
+        }
+    }
+
+    func fetchMemberWorkoutLogs(
+        squadId: UUID,
+        since: Date,
+        perMemberLimit: Int
+    ) async throws -> [UUID: [WorkoutLog]] {
+        // workout_logs is owner-only under RLS; this gated SECURITY DEFINER RPC
+        // returns every squadmate's completed logs so streaks / workout days /
+        // PRs on the board are computed from real data — by the same Swift
+        // code (SquadLeaderboardBuilder) that scores the local user.
+        struct Params: Encodable {
+            let pSquadId: String
+            let pSince: Date
+            let pPerMemberLimit: Int
+        }
+        // Typed mirror of a workout_logs row: WorkoutLog itself can't decode a
+        // server row (overall_rpe converts to `overallRpe`, not `overallRPE`,
+        // and program_id is nullable server-side but "" locally).
+        struct RemoteWorkoutLog: Decodable {
+            let id: UUID
+            let userId: UUID
+            let programId: UUID?
+            let dayNumber: Int
+            let plannedWorkoutName: String
+            let startedAt: Date
+            let completedAt: Date?
+            let durationMinutes: Int?
+            let overallRpe: Int?
+            let overallNotes: String?
+            let localStartHour: Int?
+            let exerciseEntries: [ExerciseLogEntry]
+
+            func toModel() -> WorkoutLog {
+                WorkoutLog(
+                    id: id.uuidString,
+                    userId: userId.uuidString,
+                    programId: programId?.uuidString ?? "",
+                    dayNumber: dayNumber,
+                    plannedWorkoutName: plannedWorkoutName,
+                    startedAt: startedAt,
+                    completedAt: completedAt,
+                    exerciseEntries: exerciseEntries,
+                    overallNotes: overallNotes,
+                    overallRPE: overallRpe,
+                    durationMinutes: durationMinutes,
+                    localStartHour: localStartHour
+                )
+            }
+        }
+        struct LogRow: Decodable {
+            let memberUserId: UUID
+            let log: RemoteWorkoutLog
+        }
+        let rows: [LogRow] = try await UnboundSupabase.client
+            .rpc(
+                "squad_member_workout_logs",
+                params: Params(
+                    pSquadId: squadId.uuidString,
+                    pSince: since,
+                    pPerMemberLimit: perMemberLimit
+                )
+            )
+            .execute()
+            .value
+
+        var logsByMember: [UUID: [WorkoutLog]] = [:]
+        for row in rows {
+            logsByMember[row.memberUserId, default: []].append(row.log.toModel())
+        }
+        return logsByMember
     }
 
     func invokeJoinSquadEdgeFunction(inviteCode: String, userId: UUID) async throws -> Squad {
         struct JoinBody: Encodable {
+            // Functions bodies encode with a plain JSONEncoder — keep snake_case.
             let invite_code: String
         }
         struct JoinResponse: Decodable {
@@ -212,8 +292,11 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
         let body = JoinBody(invite_code: inviteCode.uppercased())
         let options = FunctionInvokeOptions(body: body)
         do {
+            // The response decodes squad-table timestamps + snake_case keys, so
+            // it needs dbDecoder — the Functions client's default JSONDecoder
+            // can't parse ISO dates and would throw on every successful join.
             let response: JoinResponse = try await UnboundSupabase.client.functions
-                .invoke("join_squad", options: options)
+                .invoke("join_squad", options: options, decoder: UnboundSupabase.dbDecoder)
             return response.squad.toSquad()
         } catch let error as FunctionsError {
             switch error {
@@ -235,7 +318,7 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
     }
 
     func fetchMySquadId(userId: UUID) async throws -> UUID? {
-        struct MemberIdRow: Codable { let squad_id: UUID }
+        struct MemberIdRow: Codable { let squadId: UUID }
         let rows: [MemberIdRow] = try await db
             .from("squad_members")
             .select("squad_id")
@@ -243,22 +326,22 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
             .limit(1)
             .execute()
             .value
-        return rows.first?.squad_id
+        return rows.first?.squadId
     }
 
     func incrementMissionProgress(squadId: UUID, delta: Int, sourceLogId: String) async throws {
         struct IncrementParams: Encodable, Sendable {
-            let p_squad_id: String
-            let p_delta: Int
-            let p_source_log_id: String
+            let pSquadId: String
+            let pDelta: Int
+            let pSourceLogId: String
         }
         try await UnboundSupabase.client
             .rpc(
                 "increment_squad_mission_progress",
                 params: IncrementParams(
-                    p_squad_id: squadId.uuidString,
-                    p_delta: delta,
-                    p_source_log_id: sourceLogId
+                    pSquadId: squadId.uuidString,
+                    pDelta: delta,
+                    pSourceLogId: sourceLogId
                 )
             )
             .execute()
@@ -266,7 +349,7 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
 
     func fetchMissionContributions(missionId: UUID) async throws -> [MissionContribution] {
         struct ReceiptRow: Decodable {
-            let user_id: UUID?
+            let userId: UUID?
             let delta: Int
         }
         let rows: [ReceiptRow] = try await db
@@ -275,43 +358,43 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
             .eq("mission_id", value: missionId.uuidString)
             .execute()
             .value
-        return MissionContribution.aggregate(rows: rows.map { ($0.user_id, $0.delta) })
+        return MissionContribution.aggregate(rows: rows.map { ($0.userId, $0.delta) })
     }
 
     func pickSquadMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission? {
         struct PickParams: Encodable, Sendable {
-            let p_squad_id: String
-            let p_kind: String
+            let pSquadId: String
+            let pKind: String
         }
         // MissionRow mirrors the service's private struct — replicated here for RPC decode.
         struct MissionRow: Decodable {
             let id: UUID
-            let squad_id: UUID
-            let week_iso: String
-            let mission_kind: String
+            let squadId: UUID
+            let weekIso: String
+            let missionKind: String
             let target: Int
-            let current_progress: Int
-            let completed_at: Date?
-            let created_at: Date
+            let currentProgress: Int
+            let completedAt: Date?
+            let createdAt: Date
 
             func toModel() -> SquadMission? {
-                guard let k = SquadMission.Kind(rawValue: mission_kind) else { return nil }
+                guard let k = SquadMission.Kind(rawValue: missionKind) else { return nil }
                 return SquadMission(
                     id: id,
-                    squadId: squad_id,
-                    weekIso: week_iso,
+                    squadId: squadId,
+                    weekIso: weekIso,
                     kind: k,
                     target: target,
-                    currentProgress: current_progress,
-                    completedAt: completed_at,
-                    createdAt: created_at
+                    currentProgress: currentProgress,
+                    completedAt: completedAt,
+                    createdAt: createdAt
                 )
             }
         }
         let rows: [MissionRow] = try await UnboundSupabase.client
             .rpc(
                 "pick_squad_mission",
-                params: PickParams(p_squad_id: squadId.uuidString, p_kind: kind.rawValue)
+                params: PickParams(pSquadId: squadId.uuidString, pKind: kind.rawValue)
             )
             .execute()
             .value
@@ -335,10 +418,10 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
     func fetchRecentLinkedSessions(squadId: UUID, limit: Int) async throws -> [LinkedSession] {
         struct LinkedSessionRow: Codable {
             let id: UUID
-            let squad_id: UUID
-            let user_ids: [UUID]
-            let started_at: Date
-            let ended_at: Date
+            let squadId: UUID
+            let userIds: [UUID]
+            let startedAt: Date
+            let endedAt: Date
         }
         let rows: [LinkedSessionRow] = try await db
             .from("linked_sessions")
@@ -351,10 +434,10 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
         return rows.map {
             LinkedSession(
                 id: $0.id,
-                squadId: $0.squad_id,
-                userIds: $0.user_ids,
-                startedAt: $0.started_at,
-                endedAt: $0.ended_at
+                squadId: $0.squadId,
+                userIds: $0.userIds,
+                startedAt: $0.startedAt,
+                endedAt: $0.endedAt
             )
         }
     }

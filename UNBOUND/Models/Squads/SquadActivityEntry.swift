@@ -2,6 +2,7 @@ import Foundation
 
 struct SquadActivityEntry: Codable, Identifiable, Equatable, Sendable {
     enum Kind: String, Codable, Sendable {
+        case workoutCompleted
         case trialCompleted
         case titleUnlocked
         case linkedSession
@@ -19,6 +20,7 @@ struct SquadActivityEntry: Codable, Identifiable, Equatable, Sendable {
 }
 
 enum SquadActivityPayload: Codable, Equatable, Sendable {
+    case workoutCompleted(title: String, exerciseCount: Int, durationMinutes: Int?)
     case trialCompleted(trialName: String, theme: TrialTheme)
     case titleUnlocked(titleId: TitleID)
     case linkedSession(participantUserIds: [UUID], durationMinutes: Int)

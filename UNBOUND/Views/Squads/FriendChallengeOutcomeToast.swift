@@ -79,23 +79,7 @@ struct FriendChallengeOutcomeToast: View {
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(Color.unbound.surfaceElevated)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(
-                            RadialGradient(
-                                colors: [tint.opacity(0.15), .clear],
-                                center: .leading,
-                                startRadius: 8,
-                                endRadius: 200
-                            )
-                        )
-                        .blendMode(.screen)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(tint.opacity(0.28), lineWidth: 1)
-                )
-                .shadow(color: tint.opacity(0.22), radius: 16, y: -5)
+                .shadow(color: Color.black.opacity(0.45), radius: 16, y: 6)
         )
         .padding(.horizontal, 16)
         .padding(.bottom, 8)

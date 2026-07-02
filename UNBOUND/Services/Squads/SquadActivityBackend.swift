@@ -20,24 +20,27 @@ final class SquadActivityBackend: SquadActivityBackendProtocol, @unchecked Senda
     // We store `kind` + `payload` as a flat JSON blob in the DB and
     // reconstitute them with the encoding helpers below.
 
+    // Properties are camelCase because UnboundSupabase.dbDecoder converts the
+    // snake_case JSON keys before matching — a snake_case property here never
+    // matches and the whole fetch throws keyNotFound.
     private struct ActivityRow: Codable {
         let id: UUID
-        let squad_id: UUID
-        let user_id: UUID?
+        let squadId: UUID
+        let userId: UUID?
         let kind: String
         let payload: ActivityPayloadJSON
-        let created_at: Date
+        let createdAt: Date
 
         func toModel() -> SquadActivityEntry? {
             guard let entryKind = SquadActivityEntry.Kind(rawValue: kind) else { return nil }
             guard let activityPayload = payload.toPayload(kind: entryKind) else { return nil }
             return SquadActivityEntry(
                 id: id,
-                squadId: squad_id,
-                userId: user_id,
+                squadId: squadId,
+                userId: userId,
                 kind: entryKind,
                 payload: activityPayload,
-                createdAt: created_at
+                createdAt: createdAt
             )
         }
     }
@@ -46,6 +49,10 @@ final class SquadActivityBackend: SquadActivityBackendProtocol, @unchecked Senda
     // TrialTheme and TitleID have associated values that can't use rawValue directly,
     // so we serialize them to plain string fields here.
     private struct ActivityPayloadJSON: Codable {
+        // workoutCompleted
+        var workoutTitle: String?
+        var exerciseCount: Int?
+        var workoutDurationMinutes: Int?
         // trialCompleted
         var trialName: String?
         var themeAxis: String?          // AttributeKey rawValue, nil = wildcard
@@ -65,6 +72,12 @@ final class SquadActivityBackend: SquadActivityBackendProtocol, @unchecked Senda
 
         func toPayload(kind: SquadActivityEntry.Kind) -> SquadActivityPayload? {
             switch kind {
+            case .workoutCompleted:
+                return .workoutCompleted(
+                    title: workoutTitle ?? "Workout",
+                    exerciseCount: exerciseCount ?? 0,
+                    durationMinutes: workoutDurationMinutes
+                )
             case .trialCompleted:
                 guard let name = trialName else { return nil }
                 let theme: TrialTheme
@@ -110,6 +123,10 @@ final class SquadActivityBackend: SquadActivityBackendProtocol, @unchecked Senda
     private func makeInsertRow(from entry: SquadActivityEntry) -> ActivityInsertRow {
         var p = ActivityPayloadJSON()
         switch entry.payload {
+        case let .workoutCompleted(title, exercises, duration):
+            p.workoutTitle = title
+            p.exerciseCount = exercises
+            p.workoutDurationMinutes = duration
         case let .trialCompleted(name, theme):
             p.trialName = name
             switch theme {

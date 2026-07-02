@@ -1,4 +1,9 @@
 // UNBOUND/Views/Squads/SquadDetailView.swift
+//
+// The squad home: flat calm-list container with a compact identity header
+// and three underline tabs (Crew / Mission / Season). All content sits
+// directly on the page background — the tabs' own files decide which single
+// object earns a raised surface.
 import SwiftUI
 
 struct SquadDetailView: View {
@@ -8,6 +13,7 @@ struct SquadDetailView: View {
     @State var memberDetailTarget: SquadMember?
     @State var showLeaveConfirm = false
     @State var showLogoEditor = false
+    @State var showAffinityPicker = false
     @State var leaveError: String?
     @State var showChallengeCreate = false
     @State var showSeasonRewards = false
@@ -22,14 +28,23 @@ struct SquadDetailView: View {
     @State var earnedSeasonWinnerAward: SquadSeasonWinnerTitleAward?
     @State var currentMissionState: SquadMission?
     @State var missionContributions: [MissionContribution] = []
+    @State var weeklyHonors: [WeeklyHonor] = []
     @State var showMissionPick = false
     @State var celebratedMission: SquadMission?
     @State var seasonMissionsCompleted: Int = 0
 
     enum SquadTab: String, CaseIterable {
-        case crew = "CREW"
-        case mission = "MISSION"
-        case season = "SEASON"
+        case crew
+        case mission
+        case season
+
+        var title: String {
+            switch self {
+            case .crew: return "Crew"
+            case .mission: return "Mission"
+            case .season: return "Season"
+            }
+        }
     }
     @State var selectedTab: SquadTab = .crew
 
@@ -44,7 +59,6 @@ struct SquadDetailView: View {
     var body: some View {
         ZStack(alignment: .top) {
             Color.unbound.bg.ignoresSafeArea()
-            squadBackdrop
 
             if let squad = state.currentSquad {
                 VStack(spacing: 0) {
@@ -52,12 +66,16 @@ struct SquadDetailView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 8)
 
-                    tabPicker
-                        .padding(.horizontal, 20)
-                        .padding(.top, 14)
+                    UnderlineTabBar(
+                        tabs: SquadTab.allCases,
+                        title: \.title,
+                        selection: $selectedTab
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
 
                     ScrollView(.vertical, showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: 22) {
+                        VStack(alignment: .leading, spacing: 28) {
                             switch selectedTab {
                             case .crew: crewTabContent(squad: squad)
                             case .mission: challengesTabContent
@@ -66,7 +84,7 @@ struct SquadDetailView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 20)
-                        .padding(.top, 16)
+                        .padding(.top, 20)
                         .padding(.bottom, 118)
                     }
                     .id(selectedTab)
@@ -79,7 +97,11 @@ struct SquadDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $memberDetailTarget) { member in
             NavigationStack {
-                SquadMemberDetailView(member: member, roster: state.roster)
+                SquadMemberDetailView(
+                    member: member,
+                    roster: state.roster,
+                    initialWorkoutLogs: memberWorkoutLogs[member.userId] ?? []
+                )
             }
         }
         .sheet(isPresented: $showChallengeCreate) {
@@ -97,6 +119,13 @@ struct SquadDetailView: View {
             if let squad = state.currentSquad {
                 SquadLogoEditSheet(initialLogoId: squad.logoId) { logoId in
                     Task { await setSquadLogo(logoId) }
+                }
+            }
+        }
+        .sheet(isPresented: $showAffinityPicker) {
+            if let squad = state.currentSquad {
+                AffinityPickerSheet(initialAxis: squad.affinityAxis) { axis in
+                    Task { await setSquadAffinity(axis) }
                 }
             }
         }
@@ -146,6 +175,12 @@ struct SquadDetailView: View {
         .onReceive(NotificationCenter.default.publisher(for: .friendChallengeExpired)) { _ in
             Task { await refreshChallenges() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .friendChallengeDeclined)) { _ in
+            Task { await refreshChallenges() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .friendChallengeAccepted)) { _ in
+            Task { await refreshChallenges() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .squadMissionCompleted)) { _ in
             Task { await refreshMissionState() }
         }
@@ -170,24 +205,24 @@ struct SquadDetailView: View {
         }
     }
 
-    // MARK: - Tabbed chrome
+    // MARK: - Header
 
     private func compactHeader(squad: Squad) -> some View {
         HStack(spacing: 12) {
-            editableCrestMark(squad: squad, size: 48)
+            editableCrestMark(squad: squad, size: 44)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(squad.name)
-                    .font(.system(size: 22, weight: .black))
+                    .font(Font.unbound.titleM.weight(.bold))
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
 
-                HStack(spacing: 10) {
-                    metaItem(icon: "person.2.fill", text: "\(state.roster.count)/\(squad.maxSize)")
-                    metaItem(icon: "flame.fill", text: "\(squad.squadStreakWeeks)W")
-                    metaItem(icon: "trophy.fill", text: currentSeason.title)
-                }
+                MetaLine([
+                    "\(state.roster.count)/\(squad.maxSize) crew",
+                    squad.squadStreakWeeks > 0 ? "\(squad.squadStreakWeeks)-wk streak" : nil,
+                    currentSeason.title
+                ])
             }
 
             Spacer(minLength: 0)
@@ -195,14 +230,27 @@ struct SquadDetailView: View {
             if let inviteURL = squad.inviteURL {
                 ShareLink(item: inviteURL) {
                     Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Color.unbound.textSecondary)
                         .frame(width: 38, height: 38)
-                        .background(Circle().fill(Color.unbound.surface))
+                        .contentShape(Rectangle())
                 }
+                .accessibilityLabel("Share invite link")
             }
 
             Menu {
+                if canEditSquad(squad) {
+                    Button {
+                        showLogoEditor = true
+                    } label: {
+                        Label("Change Crest", systemImage: "shield.lefthalf.filled")
+                    }
+                    Button {
+                        showAffinityPicker = true
+                    } label: {
+                        Label("Squad Affinity", systemImage: "scope")
+                    }
+                }
                 Button(role: .destructive) {
                     showLeaveConfirm = true
                 } label: {
@@ -210,52 +258,12 @@ struct SquadDetailView: View {
                 }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color.unbound.textSecondary)
                     .frame(width: 38, height: 38)
-                    .background(Circle().fill(Color.unbound.surface))
+                    .contentShape(Rectangle())
             }
+            .accessibilityLabel("Squad options")
         }
-    }
-
-    private func metaItem(icon: String, text: String) -> some View {
-        HStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(Color.unbound.textTertiary)
-            Text(text)
-                .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                .foregroundStyle(Color.unbound.textSecondary)
-                .monospacedDigit()
-        }
-    }
-
-    private var tabPicker: some View {
-        HStack(spacing: 6) {
-            ForEach(SquadTab.allCases, id: \.self) { tab in
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.86)) {
-                        selectedTab = tab
-                    }
-                } label: {
-                    Text(tab.rawValue)
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                        .tracking(1.2)
-                        .foregroundStyle(selectedTab == tab ? Color.unbound.textPrimary : Color.unbound.textTertiary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 36)
-                        .background(
-                            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                                .fill(selectedTab == tab ? Color.unbound.surfaceElevated : Color.clear)
-                        )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(4)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.72))
-        )
     }
 }

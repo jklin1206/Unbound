@@ -6,6 +6,7 @@ final class TrainingCompletionService {
 
     private let squadMission: SquadMissionServiceProtocol
     private let friendChallenge: FriendChallengeServiceProtocol
+    private let squadActivity: SquadActivityServiceProtocol
 
     // Idempotency guard for the squad/challenge progress cascade. complete()
     // already short-circuits on the persisted training_completion_records gate,
@@ -19,16 +20,19 @@ final class TrainingCompletionService {
     convenience init() {
         self.init(
             squadMission: SquadMissionService.shared,
-            friendChallenge: FriendChallengeService.shared
+            friendChallenge: FriendChallengeService.shared,
+            squadActivity: SquadActivityService.shared
         )
     }
 
     init(
         squadMission: SquadMissionServiceProtocol,
-        friendChallenge: FriendChallengeServiceProtocol
+        friendChallenge: FriendChallengeServiceProtocol,
+        squadActivity: SquadActivityServiceProtocol = SquadActivityService.shared
     ) {
         self.squadMission = squadMission
         self.friendChallenge = friendChallenge
+        self.squadActivity = squadActivity
     }
 
     /// Records squad-mission + friend-challenge progress for a completed
@@ -46,6 +50,19 @@ final class TrainingCompletionService {
             log: workoutLog,
             userId: workoutLog.userId,
             sourceLogId: performanceLogId
+        )
+        // Share the finished workout with the squad feed. record() no-ops when
+        // the user has no squad; the entry is what squadmates see as "shared
+        // workouts" alongside mission/challenge progress.
+        let loggedEntries = workoutLog.exerciseEntries.filter { !$0.skipped }
+        await squadActivity.record(
+            kind: .workoutCompleted,
+            payload: .workoutCompleted(
+                title: workoutLog.plannedWorkoutName,
+                exerciseCount: loggedEntries.count,
+                durationMinutes: workoutLog.durationMinutes
+            ),
+            userId: workoutLog.userId
         )
     }
 

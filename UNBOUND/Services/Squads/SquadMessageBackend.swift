@@ -109,47 +109,49 @@ enum SquadMessageStorageCoder {
     }
 }
 
+// camelCase properties are load-bearing: UnboundSupabase.dbDecoder converts
+// the snake_case JSON keys before matching (snake_case properties throw).
 private struct SquadMessageReactionRow: Codable {
     let id: UUID
-    let message_id: UUID
-    let user_id: UUID
+    let messageId: UUID
+    let userId: UUID
     let emoji: String
-    let created_at: Date
+    let createdAt: Date
 
     func toModel() -> SquadMessageReaction? {
         guard let emoji = SquadMessageReaction.Emoji(rawValue: emoji) else { return nil }
         return SquadMessageReaction(
             id: id,
-            messageId: message_id,
-            userId: user_id,
+            messageId: messageId,
+            userId: userId,
             emoji: emoji,
-            createdAt: created_at
+            createdAt: createdAt
         )
     }
 }
 
 private struct SquadMessageRow: Codable {
     let id: UUID
-    let squad_id: UUID
-    let author_user_id: UUID?
+    let squadId: UUID
+    let authorUserId: UUID?
     let kind: String
     let payload: SquadMessageStoragePayload
-    let created_at: Date
-    let updated_at: Date?
-    let deleted_at: Date?
-    let squad_message_reactions: [SquadMessageReactionRow]?
+    let createdAt: Date
+    let updatedAt: Date?
+    let deletedAt: Date?
+    let squadMessageReactions: [SquadMessageReactionRow]?
 
     func toModel() -> SquadMessage? {
-        guard deleted_at == nil,
+        guard deletedAt == nil,
               let messageKind = SquadMessageStorageCoder.messageKind(storageKind: kind, payload: payload)
         else { return nil }
         return SquadMessage(
             id: id,
-            squadId: squad_id,
-            authorUserId: author_user_id,
+            squadId: squadId,
+            authorUserId: authorUserId,
             kind: messageKind,
-            reactions: (squad_message_reactions ?? []).compactMap { $0.toModel() },
-            createdAt: created_at
+            reactions: (squadMessageReactions ?? []).compactMap { $0.toModel() },
+            createdAt: createdAt
         )
     }
 }

@@ -58,7 +58,8 @@ final class SquadMissionServiceTests: XCTestCase {
         let service = SquadMissionService(
             backend: backend,
             squadService: stubSquad,
-            remoteReadsEnabled: true
+            remoteReadsEnabled: true,
+            usesLocalMissions: { false }
         )
 
         await service.recordProgress(
@@ -79,7 +80,8 @@ final class SquadMissionServiceTests: XCTestCase {
         let service = SquadMissionService(
             backend: backend,
             squadService: stubSquad,
-            remoteReadsEnabled: true
+            remoteReadsEnabled: true,
+            usesLocalMissions: { false }
         )
         await service.recordProgress(
             log: makeLog(userId: "user-m2"),
@@ -209,7 +211,8 @@ final class SquadMissionServiceTests: XCTestCase {
         let service = SquadMissionService(
             backend: backend,
             squadService: stubSquad,
-            remoteReadsEnabled: false
+            remoteReadsEnabled: false,
+            usesLocalMissions: { false }
         )
 
         let result = try await service.pickMission(squadId: squad.id, kind: .totalWeight)
@@ -223,7 +226,8 @@ final class SquadMissionServiceTests: XCTestCase {
         let service = SquadMissionService(
             backend: backend,
             squadService: StubSquadService(),
-            remoteReadsEnabled: false
+            remoteReadsEnabled: false,
+            usesLocalMissions: { false }
         )
         let result = try await service.pickMission(squadId: UUID(), kind: .totalSessions)
         XCTAssertNil(result)

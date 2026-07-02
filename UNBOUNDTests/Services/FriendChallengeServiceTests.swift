@@ -72,6 +72,40 @@ final class FriendChallengeServiceTests: XCTestCase {
         }
     }
 
+    func testDeclineRemovesLocalChallengeAndPostsNotification() async throws {
+        // Dev (non-UUID) auth id keeps decline + activeChallenges on the local
+        // path, so removal is observable without a backend.
+        let challengedUserId = "dev-challenge-decline"
+        let me = try XCTUnwrap(SquadUserIdentity.uuid(from: challengedUserId))
+        AuthService.shared.activateDevUser(id: challengedUserId)
+
+        let service = FriendChallengeService(remoteBackendEnabled: true)
+        let challenge = FriendChallenge(
+            id: UUID(),
+            challengerId: UUID(),
+            challengedId: me,
+            squadId: UUID(),
+            kind: .mostSessions,
+            exerciseName: nil,
+            startedAt: Date(),
+            expiresAt: Date().addingTimeInterval(6 * 86_400),
+            acceptedAt: nil,
+            challengerProgress: 0,
+            challengedProgress: 0,
+            winnerUserId: nil
+        )
+        service._seedLocalChallengeForTesting(challenge)
+        let seeded = await service.activeChallenges(userId: me)
+        XCTAssertEqual(seeded.map(\.id), [challenge.id])
+
+        let declined = expectation(forNotification: .friendChallengeDeclined, object: nil)
+        try await service.decline(challenge.id)
+
+        await fulfillment(of: [declined], timeout: 1)
+        let remaining = await service.activeChallenges(userId: me)
+        XCTAssertFalse(remaining.contains { $0.id == challenge.id })
+    }
+
     func testActiveChallengesReturnsEmpty() async {
         let service = FriendChallengeService(remoteBackendEnabled: false)
         let challenges = await service.activeChallenges(userId: UUID())

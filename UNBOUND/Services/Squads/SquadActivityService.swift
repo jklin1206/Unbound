@@ -21,6 +21,10 @@ final class SquadActivityService: SquadActivityServiceProtocol {
     private let auth: AuthServiceProtocol
     private let squadService: SquadServiceProtocol
     private let sessionXP: SessionXPServiceProtocol
+    /// Routes DEBUG local-only squad users to the cached-state feed instead of
+    /// Supabase. Injectable so tests with non-UUID user ids still exercise the
+    /// backend path.
+    private let usesLocalOnlyFeed: (String) -> Bool
     private var observers: [NSObjectProtocol] = []
     private var recordedVowCompletionIds = Set<String>()
 
@@ -39,12 +43,14 @@ final class SquadActivityService: SquadActivityServiceProtocol {
         auth: AuthServiceProtocol,
         squadService: SquadServiceProtocol,
         sessionXP: SessionXPServiceProtocol,
-        observesNotifications: Bool = true
+        observesNotifications: Bool = true,
+        usesLocalOnlyFeed: @escaping (String) -> Bool = SquadUserIdentity.usesLocalOnlySquad
     ) {
         self.backend = backend
         self.auth = auth
         self.squadService = squadService
         self.sessionXP = sessionXP
+        self.usesLocalOnlyFeed = usesLocalOnlyFeed
         if observesNotifications {
             observeTrialsNotifications()
         }
@@ -54,14 +60,16 @@ final class SquadActivityService: SquadActivityServiceProtocol {
         backend: SquadActivityBackendProtocol,
         auth: AuthServiceProtocol,
         squadService: SquadServiceProtocol,
-        observesNotifications: Bool = true
+        observesNotifications: Bool = true,
+        usesLocalOnlyFeed: @escaping (String) -> Bool = SquadUserIdentity.usesLocalOnlySquad
     ) {
         self.init(
             backend: backend,
             auth: auth,
             squadService: squadService,
             sessionXP: SessionXPService.shared,
-            observesNotifications: observesNotifications
+            observesNotifications: observesNotifications,
+            usesLocalOnlyFeed: usesLocalOnlyFeed
         )
     }
 
@@ -83,12 +91,28 @@ final class SquadActivityService: SquadActivityServiceProtocol {
             payload: payload,
             createdAt: .now
         )
-        await backend.insert(entry)
+        if usesLocalOnlyFeed(userId) {
+            appendLocalEntry(entry, userId: userId)
+        } else {
+            await backend.insert(entry)
+        }
         NotificationCenter.default.post(name: .squadActivityRecorded, object: entry)
     }
 
+    /// DEBUG local-only squads have no Supabase identity, so their feed lives
+    /// in the cached SquadState (capped like the remote fetch).
+    private func appendLocalEntry(_ entry: SquadActivityEntry, userId: String) {
+        var state = squadService.state(userId: userId)
+        state.recentActivity = Array(([entry] + state.recentActivity).prefix(50))
+        SquadStore.shared.save(state, userId: userId)
+    }
+
     func fetchRecent(userId: String) async throws -> [SquadActivityEntry] {
-        guard let squad = squadService.state(userId: userId).currentSquad else { return [] }
+        let state = squadService.state(userId: userId)
+        guard let squad = state.currentSquad else { return [] }
+        if usesLocalOnlyFeed(userId) {
+            return state.recentActivity.filter { $0.squadId == squad.id }
+        }
         return try await backend.fetchRecent(squadId: squad.id, limit: 50)
     }
 

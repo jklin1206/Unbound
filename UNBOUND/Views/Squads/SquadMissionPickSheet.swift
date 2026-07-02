@@ -17,10 +17,7 @@ struct SquadMissionPickSheet: View {
 
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("PICK THIS WEEK'S MISSION")
-                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                            .tracking(2.0)
-                            .foregroundStyle(Color.unbound.textTertiary)
+                        CalmSectionHeader(title: "PICK THIS WEEK'S MISSION")
                         Text("Choose a co-op goal for your crew.")
                             .font(Font.unbound.bodyM)
                             .foregroundStyle(Color.unbound.textSecondary)
@@ -88,7 +85,7 @@ struct SquadMissionPickSheet: View {
                 Spacer(minLength: 0)
 
                 Text(kind.progressText(SquadMissionCatalog.target(for: kind, memberCount: memberCount)))
-                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                    .font(Font.unbound.monoS)
                     .foregroundStyle(Color.unbound.textTertiary)
                     .monospacedDigit()
                     .multilineTextAlignment(.trailing)

@@ -1,10 +1,14 @@
 // UNBOUND/Views/Squads/SquadSeasonTab.swift
+//
+// SEASON tab: the leaderboard, this week's honors, season rewards, and any
+// earned winner title — all flat calm sections.
 import SwiftUI
 
 extension SquadDetailView {
     @ViewBuilder
     func seasonTabContent(squad: Squad) -> some View {
         squadBoardSection
+        honorsSection
         seasonRewardsSection(squad: squad)
         squadTitlesRow
     }
@@ -14,8 +18,39 @@ extension SquadDetailView {
             rows: squadBoardRows,
             season: currentSeason,
             capacity: state.currentSquad?.maxSize ?? 10,
-            inviteURL: state.currentSquad?.inviteURL
+            inviteURL: state.currentSquad?.inviteURL,
+            currentMemberUserId: currentUserId
         )
+    }
+
+    @ViewBuilder
+    var honorsSection: some View {
+        if !weeklyHonors.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                CalmSectionHeader(title: "THIS WEEK'S HONORS")
+                    .padding(.bottom, 6)
+                ForEach(weeklyHonors) { honor in
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle().fill(Color.unbound.surfaceElevated)
+                            Image(systemName: "laurel.leading")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Color.unbound.rankGold)
+                        }
+                        .frame(width: 34, height: 34)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(honor.kind.displayName)
+                                .font(Font.unbound.bodyMStrong)
+                                .foregroundStyle(Color.unbound.textPrimary)
+                            MetaLine([displayName(for: honor.recipientUserId)])
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 9)
+                }
+            }
+        }
     }
 
     func seasonRewardsSection(squad: Squad) -> some View {
@@ -27,51 +62,29 @@ extension SquadDetailView {
         )
         let progressRewards = rewards.filter(\.usesProgress)
         let unlockedCount = progressRewards.filter(\.isUnlocked).count
-        let titleName = rewards.first { $0.kind == .individualTitle }?.title ?? currentSeason.winnerTitleName
 
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 4) {
             Button {
                 withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
                     showSeasonRewards.toggle()
                 }
             } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "rosette")
-                        .font(.system(size: 13, weight: .black))
-                        .foregroundStyle(Color.unbound.accent)
-                        .frame(width: 32, height: 32)
-                        .background(Circle().fill(Color.unbound.accent.opacity(0.12)))
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("SEASON REWARDS")
-                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                            .tracking(1.4)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                        Text("\(titleName) + \(unlockedCount)/\(progressRewards.count) rewards")
-                            .font(Font.unbound.bodyMStrong)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.74)
-                    }
-
-                    Spacer(minLength: 0)
-
+                HStack {
+                    CalmSectionHeader(
+                        title: "SEASON REWARDS",
+                        trailing: "\(unlockedCount)/\(progressRewards.count) unlocked"
+                    )
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 11, weight: .black))
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(Color.unbound.textTertiary)
                         .rotationEffect(.degrees(showSeasonRewards ? 180 : 0))
+                        .padding(.leading, 8)
                 }
-                .padding(13)
-                .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color.unbound.surface.opacity(0.72))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                )
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Season rewards, \(unlockedCount) of \(progressRewards.count) unlocked")
+            .padding(.bottom, 6)
 
             if showSeasonRewards {
                 SquadSeasonRewardsView(rewards: rewards, season: currentSeason, showsHeader: false)
@@ -79,63 +92,56 @@ extension SquadDetailView {
             }
 
             if let earnedSeasonWinnerAward {
-                earnedSeasonWinnerBanner(earnedSeasonWinnerAward)
+                earnedSeasonWinnerRow(earnedSeasonWinnerAward)
+                    .padding(.top, 8)
             }
         }
     }
 
-    func earnedSeasonWinnerBanner(_ award: SquadSeasonWinnerTitleAward) -> some View {
-        HStack(spacing: 10) {
+    func earnedSeasonWinnerRow(_ award: SquadSeasonWinnerTitleAward) -> some View {
+        HStack(spacing: 12) {
             if let assetName = award.assetName {
                 Image(assetName)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 38, height: 38)
-                    .shadow(color: Color.unbound.warnOrange.opacity(0.28), radius: 8)
+                    .frame(width: 34, height: 34)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             } else {
-                Image(systemName: "rosette")
-                    .font(.system(size: 15, weight: .black))
-                    .foregroundStyle(Color.unbound.warnOrange)
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(Color.unbound.warnOrange.opacity(0.12)))
+                ZStack {
+                    Circle().fill(Color.unbound.surfaceElevated)
+                    Image(systemName: "rosette")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.unbound.rankGold)
+                }
+                .frame(width: 34, height: 34)
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(award.titleName.uppercased()) EARNED")
-                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                    .tracking(1.1)
+                Text("\(award.titleName) earned")
+                    .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
-                Text("Awarded from last season's squad leaderboard.")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.76)
+                MetaLine(["From last season's squad board"])
             }
 
             Spacer(minLength: 0)
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.unbound.warnOrange.opacity(0.10))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.unbound.warnOrange.opacity(0.30), lineWidth: 1)
-        )
+        .padding(.vertical, 9)
     }
 
     @ViewBuilder
     var squadTitlesRow: some View {
         if !state.unlockedSquadTitles.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(state.unlockedSquadTitles, id: \.self) { titleId in
-                        SquadTitleBadge(titleId: titleId, compact: true)
+            VStack(alignment: .leading, spacing: 4) {
+                CalmSectionHeader(title: "SQUAD TITLES")
+                    .padding(.bottom, 6)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(state.unlockedSquadTitles, id: \.self) { titleId in
+                            SquadTitleBadge(titleId: titleId, compact: true)
+                        }
                     }
                 }
             }
-            .padding(.top, 2)
         }
     }
 }
