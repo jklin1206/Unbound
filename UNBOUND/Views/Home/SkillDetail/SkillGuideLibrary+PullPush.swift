@@ -45,7 +45,7 @@ extension SkillGuideLibrary {
                 isChin
                     ? SkillGuideTip(title: "Run the knuckle check", detail: "Before every set, confirm a front view would see the knuckle side of both hands. From your perspective, those knuckles wrap over the far side of the bar.", icon: "hand.raised.fill")
                     : SkillGuideTip(title: "Keep the overhand shape", detail: "The loaded pull-up should keep the same pronated hand position from bottom to top instead of drifting into a mixed or half-chin grip.", icon: "hand.raised.fill"),
-                SkillGuideTip(title: "Small jumps win", detail: "Add load in small increments. A clean 2.5-5 lb jump beats a bigger jump that changes the rep.", icon: "plus.circle.fill"),
+                SkillGuideTip(title: "Small jumps win", detail: "Add load in small increments. A clean \(WeightPlatePolicy.currentUnit == .pounds ? "2.5-5 lb" : "1-2.5 kg") jump beats a bigger jump that changes the rep.", icon: "plus.circle.fill"),
                 SkillGuideTip(title: "Keep bodyweight reps alive", detail: "Weighted work builds strength, but clean unweighted volume keeps the pattern and elbows happier.", icon: "repeat")
             ],
             mistakes: [

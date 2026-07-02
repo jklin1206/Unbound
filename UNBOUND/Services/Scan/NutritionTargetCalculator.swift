@@ -30,7 +30,7 @@ struct NutritionTargetCalculator: Sendable {
                     minGrams: nil,
                     maxGrams: nil,
                     recommendedGrams: nil,
-                    displayText: "Aim for 0.7-1.0g protein per lb bodyweight. Add bodyweight in Settings for a personalized target."
+                    displayText: "Aim for \(WeightPlatePolicy.currentUnit == .pounds ? "0.7-1.0g protein per lb" : "1.6-2.2g protein per kg") bodyweight. Add bodyweight in Settings for a personalized target."
                 ),
                 hydration: .init(
                     liters: nil,
