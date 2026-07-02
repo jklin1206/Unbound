@@ -11,25 +11,41 @@ struct ProfileCosmeticsView: View {
     @State private var equippedBackgroundTier: RankTitle = .initiate
     @State private var equippedShopProfileBorder: ShopProfileBorderID?
     @State private var equippedProfileBackdrop: ShopItem?
-    @State private var selectedSurface: ProfileCosmeticSurface = .borders
+    @State private var selectedSurface: ProfileCosmeticSurface
 
+    /// Identity editing (handle, title, showcase) hosted as the first
+    /// surface — the discoverable home for "edit my profile". Nil when the
+    /// owner can't supply the context (e.g. the rewards vault entry), which
+    /// hides the segment.
+    private let identity: ProfileIdentityEditorContext?
     private let openShop: ((ShopCategory) -> Void)?
 
-    init(openShop: ((ShopCategory) -> Void)? = nil) {
+    init(
+        identity: ProfileIdentityEditorContext? = nil,
+        openShop: ((ShopCategory) -> Void)? = nil
+    ) {
+        self.identity = identity
         self.openShop = openShop
+        _selectedSurface = State(initialValue: identity == nil ? .borders : .identity)
     }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
-                header
+                if selectedSurface != .identity {
+                    header
+                }
                 surfaceSwitch
-                cosmeticGrid
+                if selectedSurface == .identity, let identity {
+                    ProfileIdentityForm(context: identity)
+                } else {
+                    cosmeticGrid
+                }
             }
             .padding(20)
         }
         .background(Color.unbound.bg.ignoresSafeArea())
-        .navigationTitle("Profile Cosmetics")
+        .navigationTitle("Profile Kit")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
         .onReceive(NotificationCenter.default.publisher(for: .shopInventoryChanged)) { _ in
@@ -98,12 +114,18 @@ struct ProfileCosmeticsView: View {
 
     private var surfaceSwitch: some View {
         Picker("Profile cosmetic type", selection: $selectedSurface) {
-            ForEach(ProfileCosmeticSurface.allCases) { surface in
+            ForEach(availableSurfaces) { surface in
                 Label(surface.title, systemImage: surface.systemImage)
                     .tag(surface)
             }
         }
         .pickerStyle(.segmented)
+    }
+
+    private var availableSurfaces: [ProfileCosmeticSurface] {
+        identity == nil
+            ? ProfileCosmeticSurface.allCases.filter { $0 != .identity }
+            : ProfileCosmeticSurface.allCases
     }
 
     @MainActor
@@ -187,6 +209,8 @@ struct ProfileCosmeticsView: View {
 
     private var profileRows: [ProfileCosmeticRow] {
         switch selectedSurface {
+        case .identity:
+            return []
         case .borders:
             return SkillTier.allCases.map(ProfileCosmeticRow.rankFrame)
                 + shopBorderItems.map(ProfileCosmeticRow.shopBorder)
@@ -306,6 +330,7 @@ private struct ProfileCosmeticOptionState {
 }
 
 private enum ProfileCosmeticSurface: String, CaseIterable, Identifiable {
+    case identity
     case borders
     case banners
 
@@ -313,6 +338,8 @@ private enum ProfileCosmeticSurface: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .identity:
+            return "Identity"
         case .borders:
             return "Borders"
         case .banners:
@@ -322,6 +349,8 @@ private enum ProfileCosmeticSurface: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
+        case .identity:
+            return "person.text.rectangle"
         case .borders:
             return "person.crop.circle.badge.sparkles"
         case .banners:
@@ -331,6 +360,8 @@ private enum ProfileCosmeticSurface: String, CaseIterable, Identifiable {
 
     var headerTitle: String {
         switch self {
+        case .identity:
+            return "IDENTITY"
         case .borders:
             return "BORDER"
         case .banners:

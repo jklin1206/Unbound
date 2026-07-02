@@ -10,7 +10,7 @@ Settings screens: account, notifications, equipment, exercise preferences, cosme
 | `AccountDeletionView.swift` | Account deletion confirmation screen. |
 | `EquipmentSettingsView.swift` | Declares available equipment (informational — never hides Skill Map nodes); feeds the recommender + adaptive program gen; persisted via `EquipmentProfileStore` (UserDefaults). |
 | `ExercisePreferencesView.swift` | YES/SUB/NO exercise library picker — rows cycle unset → available → substitute → avoid, grouped by movement pattern. |
-| `ProfileCosmeticsView.swift` | Equip profile cosmetics (borders/banners). |
+| `ProfileCosmeticsView.swift` | The Profile Kit hub: IDENTITY surface (hosts `ProfileIdentityForm`) plus border/banner equipping. |
 | `SkinPickerView.swift` | Lists every `SkillTreeSkin` with lock states + live tree-map swatch; switches `SkinService`. |
 | `DevPlayerToolsView.swift` | DEBUG tools screen + `DevBuildBootstrapper` (@MainActor enum) for seeding dev builds. |
 | `DevBuildBootstrapper+ProgramScenarios.swift` | Bootstrapper extension: program scenario seeding. |

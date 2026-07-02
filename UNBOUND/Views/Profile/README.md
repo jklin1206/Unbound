@@ -8,7 +8,7 @@ The PROFILE tab — the ARCHIVE counterpart to Home: identity, lifetime state, c
 |---|---|
 | `ProfileView.swift` | The tab root screen. |
 | `ProfileVisualComponents.swift` | Hero avatar, progress-journey section, rank-title + level plates, trophy showcase row, dossier linework. |
-| `ProfileSheets.swift` | `EditProfileSheet`, `RankInfoSheet`, `RankTrialFlowStrip`. |
+| `ProfileSheets.swift` | `ProfileIdentityForm` (+ its editor context, hosted in the Profile Kit hub), `RankInfoSheet`, `RankTrialFlowStrip`. |
 | `ProfileBuildCard.swift` | `ProfileBuildCard` — the build (attribute hex) card. |
 | `BuildAttributeCell.swift` | One attribute cell within the build card. |
 | `PhotoCalendarView.swift` | Identity log calendar of captured photos; owns the capture action and promotes it into a scan when the milestone window is open. |
@@ -20,6 +20,6 @@ The PROFILE tab — the ARCHIVE counterpart to Home: identity, lifetime state, c
 
 - **Profile data loading / badges / cosmetics state** → `UNBOUND/ViewModels/ProfileViewModel.swift` (not this folder).
 - **Header avatar, rank plate, level bar** → `ProfileVisualComponents.swift`.
-- **Edit-profile or rank-info sheets** → `ProfileSheets.swift`.
+- **Identity editing form (handle/title/showcase) or rank-info sheet** → `ProfileSheets.swift` (form is hosted by `Settings/ProfileCosmeticsView.swift`).
 - **Progress-photo capture from Profile** → `PhotoCalendarView.swift` + `ProfileScanRow.swift` (flow itself in `UNBOUND/Views/Scan/PhotoCaptureFlow.swift`).
 - **Trophy/showcase picks** → `ProfileShowcaseModels.swift` + `ProfileVisualComponents.swift` (`TrophyShowcaseRow`).

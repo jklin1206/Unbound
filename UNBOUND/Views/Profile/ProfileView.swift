@@ -53,7 +53,6 @@ struct ProfileView: View {
 
     @ObservedObject private var photoStore = ProfilePhotoStore.shared
     @State private var showPhotoOptions = false
-    @State private var showEditProfile = false
     @State private var showProfileCosmetics = false
     @State private var didAutoOpenCosmetics = false
     @State private var showShop = false
@@ -86,7 +85,18 @@ struct ProfileView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .task(id: services.auth.currentUserId ?? "anonymous") { await load() }
+        .task(id: services.auth.currentUserId ?? "anonymous") {
+            await load()
+            // Screenshot harness: `--unbound-open-cosmetics` (with
+            // `--unbound-open-profile`) lands on the Profile Kit sheet.
+            // Runs AFTER load() so the identity form captures real
+            // handle/title state instead of the empty pre-load values.
+            if !didAutoOpenCosmetics,
+               ProcessInfo.processInfo.arguments.contains("--unbound-open-cosmetics") {
+                didAutoOpenCosmetics = true
+                showProfileCosmetics = true
+            }
+        }
         .confirmationDialog("Profile picture",
                             isPresented: $showPhotoOptions,
                             titleVisibility: .visible) {
@@ -102,29 +112,6 @@ struct ProfileView: View {
             }
             Button("Cancel", role: .cancel) {}
         }
-        .sheet(isPresented: $showEditProfile) {
-            EditProfileSheet(
-                displayHandle: profile?.displayHandle ?? "",
-                unlockedTitles: trialsState.unlockedTitles,
-                equippedTitle: trialsState.equippedTitle,
-                showcaseSkillOptions: showcaseSkillOptions,
-                selectedShowcaseSkillId: showcaseSkillId,
-                showcaseLiftOptions: showcaseLiftOptions,
-                selectedShowcaseLiftId: showcaseLiftId,
-                save: saveProfileIdentity
-            )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-        }
-        .onAppear {
-            // Screenshot harness: `--unbound-open-cosmetics` (with
-            // `--unbound-open-profile`) lands directly on the cosmetics sheet.
-            if !didAutoOpenCosmetics,
-               ProcessInfo.processInfo.arguments.contains("--unbound-open-cosmetics") {
-                didAutoOpenCosmetics = true
-                showProfileCosmetics = true
-            }
-        }
         .sheet(isPresented: $showProfileCosmetics, onDismiss: {
             // Guarantee the header avatar reflects any frame/border the user
             // equipped while the picker was open, even if a change notification
@@ -132,7 +119,18 @@ struct ProfileView: View {
             refreshEquippedCosmetics()
         }) {
             NavigationStack {
-                ProfileCosmeticsView { category in
+                ProfileCosmeticsView(
+                    identity: ProfileIdentityEditorContext(
+                        displayHandle: profile?.displayHandle ?? "",
+                        unlockedTitles: trialsState.unlockedTitles,
+                        equippedTitle: trialsState.equippedTitle,
+                        showcaseSkillOptions: showcaseSkillOptions,
+                        selectedShowcaseSkillId: showcaseSkillId,
+                        showcaseLiftOptions: showcaseLiftOptions,
+                        selectedShowcaseLiftId: showcaseLiftId,
+                        save: saveProfileIdentity
+                    )
+                ) { category in
                     shopInitialCategory = category
                     showProfileCosmetics = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
@@ -716,7 +714,9 @@ struct ProfileView: View {
         let xpPerLevel = max(1, Int(OverallLevelCurve.xpRequired(forLevel: level + 1) - OverallLevelCurve.xpRequired(forLevel: level)))
         return VStack(alignment: .leading, spacing: 10) {
             Button {
-                showEditProfile = true
+                // Identity editing lives in the Profile Kit hub (paintbrush)
+                // — the name is just a second, more obvious door into it.
+                showProfileCosmetics = true
             } label: {
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(alignment: .top, spacing: 6) {
