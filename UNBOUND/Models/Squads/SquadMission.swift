@@ -81,10 +81,25 @@ struct SquadMission: Codable, Identifiable, Equatable, Sendable {
             }
         }
 
-        func progressText(_ value: Int) -> String {
-            let formatted = value.formatted(.number)
+        /// Weight amounts are stored in kilograms; convert to the user's unit
+        /// for display. Non-weight kinds pass through unchanged.
+        func displayAmount(
+            _ value: Int,
+            unit: TrainingWeightUnit = WeightPlatePolicy.currentUnit
+        ) -> Int {
             switch self {
-            case .totalWeight: return "\(formatted) kg"
+            case .totalWeight: return Int(unit.displayValue(fromKilograms: Double(value)).rounded())
+            default: return value
+            }
+        }
+
+        func progressText(
+            _ value: Int,
+            unit: TrainingWeightUnit = WeightPlatePolicy.currentUnit
+        ) -> String {
+            let formatted = displayAmount(value, unit: unit).formatted(.number)
+            switch self {
+            case .totalWeight: return "\(formatted) \(unit.shortLabel)"
             case .totalSessions: return value == 1 ? "1 session" : "\(formatted) sessions"
             case .totalReps: return "\(formatted) reps"
             case .crewCoverage: return "\(formatted) covered"

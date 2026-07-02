@@ -56,7 +56,7 @@ struct SquadMissionCard: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(mission.currentProgress.formatted(.number))
+                    Text(mission.kind.displayAmount(mission.currentProgress).formatted(.number))
                         .font(Font.unbound.monoL)
                         .foregroundStyle(mission.isCompleted ? Color.unbound.success : Color.unbound.textPrimary)
                         .monospacedDigit()

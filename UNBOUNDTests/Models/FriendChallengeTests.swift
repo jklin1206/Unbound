@@ -125,8 +125,11 @@ final class FriendChallengeTests: XCTestCase {
     func testProgressLabelFormatsPerKind() {
         XCTAssertEqual(FriendChallenge.Kind.mostSessions.progressLabel(for: 1), "1 session")
         XCTAssertEqual(FriendChallenge.Kind.mostSessions.progressLabel(for: 4), "4 sessions")
-        XCTAssertEqual(FriendChallenge.Kind.mostWeight.progressLabel(for: 1250), "1,250 kg")
-        XCTAssertEqual(FriendChallenge.Kind.heaviestLift.progressLabel(for: 100), "100 kg")
+        XCTAssertEqual(FriendChallenge.Kind.mostWeight.progressLabel(for: 1250, unit: .kilograms), "1,250 kg")
+        XCTAssertEqual(FriendChallenge.Kind.heaviestLift.progressLabel(for: 100, unit: .kilograms), "100 kg")
+        // Weight scores are stored in kg and convert to the user's unit.
+        XCTAssertEqual(FriendChallenge.Kind.mostWeight.progressLabel(for: 1250, unit: .pounds), "2,756 lb")
+        XCTAssertEqual(FriendChallenge.Kind.heaviestLift.progressLabel(for: 100, unit: .pounds), "220 lb")
         XCTAssertEqual(FriendChallenge.Kind.mostReps.progressLabel(for: 60), "60 reps")
     }
 

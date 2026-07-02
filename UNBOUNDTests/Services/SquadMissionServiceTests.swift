@@ -140,7 +140,10 @@ final class SquadMissionServiceTests: XCTestCase {
     }
 
     func testMissionProgressDisplay() {
-        XCTAssertEqual(SquadMission.Kind.totalWeight.progressText(12500), "12,500 kg")
+        XCTAssertEqual(SquadMission.Kind.totalWeight.progressText(12500, unit: .kilograms), "12,500 kg")
+        // Weight targets are stored in kg and convert to the user's unit.
+        XCTAssertEqual(SquadMission.Kind.totalWeight.progressText(12500, unit: .pounds), "27,558 lb")
+        XCTAssertEqual(SquadMission.Kind.totalWeight.displayAmount(12500, unit: .pounds), 27558)
         XCTAssertEqual(SquadMission.Kind.totalSessions.progressText(7), "7 sessions")
         XCTAssertEqual(SquadMission.Kind.crewCoverage.progressText(3), "3 covered")
     }

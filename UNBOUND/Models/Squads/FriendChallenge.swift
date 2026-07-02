@@ -50,7 +50,7 @@ struct FriendChallenge: Codable, Identifiable, Equatable, Sendable {
             switch self {
             case .mostSessions: return "Most workout sessions this week."
             case .earlyRiser: return "Most workouts before 8 AM."
-            case .mostWeight: return "Most combined kg moved this week."
+            case .mostWeight: return "Most combined \(WeightPlatePolicy.currentUnit.shortLabel) moved this week."
             case .mostReps: return "Most combined reps this week."
             case .heaviestLift: return "Pick a lift. Heaviest single set wins."
             }
@@ -66,11 +66,18 @@ struct FriendChallenge: Codable, Identifiable, Equatable, Sendable {
             }
         }
 
-        func progressLabel(for value: Int) -> String {
+        /// Weight scores are stored in kilograms; convert to the user's unit
+        /// for display.
+        func progressLabel(
+            for value: Int,
+            unit: TrainingWeightUnit = WeightPlatePolicy.currentUnit
+        ) -> String {
             switch self {
             case .mostSessions, .earlyRiser:
                 return value == 1 ? "1 session" : "\(value.formatted(.number)) sessions"
-            case .mostWeight, .heaviestLift: return "\(value.formatted(.number)) kg"
+            case .mostWeight, .heaviestLift:
+                let display = Int(unit.displayValue(fromKilograms: Double(value)).rounded())
+                return "\(display.formatted(.number)) \(unit.shortLabel)"
             case .mostReps: return "\(value.formatted(.number)) reps"
             }
         }
