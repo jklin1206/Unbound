@@ -1,10 +1,12 @@
 // UNBOUND/Views/Squads/SquadMemberDetailView.swift
 //
-// A crewmate's profile: identity, build, real training stats, recent
-// workouts, and current challenges — flat calm sections, mono numbers,
-// no tinted panels. Workout logs come from the parent (fetched via the
-// gated squad_member_workout_logs RPC for real squads); the view only
-// falls back to the local store for the viewer's own profile.
+// A crewmate's profile, rendered to mirror the owner's own Profile screen:
+// equipped banner, avatar with frame + selected border, rank plate, featured
+// skill/lift, and the build hex. The cosmetic/showcase/hex values come from the
+// member's `flair` (fetched via the gated squad_member_flair_for_squad RPC) —
+// they're device-local otherwise. Real training stats + workouts come from the
+// gated squad_member_workout_logs RPC via the parent. Falls back to local reads
+// only for the viewer's own profile before their flair has published.
 import SwiftUI
 
 struct SquadMemberDetailView: View {
@@ -15,6 +17,8 @@ struct SquadMemberDetailView: View {
     let roster: [SquadMember]
     /// Logs already fetched by SquadDetailView (RPC-backed for real squads).
     var initialWorkoutLogs: [WorkoutLog] = []
+    /// Cross-user cosmetics/showcase/hex, if the member has published them.
+    var flair: SquadMemberFlair? = nil
 
     @State private var userProfile: UserProfile?
     @State private var attributeProfile: AttributeProfile = .empty(userId: "", at: .now)
@@ -33,6 +37,21 @@ struct SquadMemberDetailView: View {
         return member.userId.uuidString
     }
 
+    // MARK: - Flair-resolved cosmetics (prefer published flair; local fallback)
+
+    private var resolvedFrameTier: RankTitle {
+        flair?.frameTier ?? RankCosmetics.equippedFrameTier(userId: profileUserId, currentTier: aggregateTier)
+    }
+    private var resolvedBorder: ShopProfileBorderID? {
+        flair?.borderId ?? ShopInventoryStore.equippedProfileBorder(userId: profileUserId)
+    }
+    private var resolvedBannerAsset: String? {
+        flair?.backdropAssetName ?? RankCosmetics.profileHeaderBannerAsset(for: resolvedFrameTier)
+    }
+    private var resolvedTint: Color {
+        resolvedBorder?.accent ?? aggregateTier.rewardTint
+    }
+
     var body: some View {
         ZStack(alignment: .top) {
             Color.unbound.bg.ignoresSafeArea()
@@ -40,13 +59,12 @@ struct SquadMemberDetailView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 14) {
                     heroSection
+                    showcaseSection
                     statsSection
                     ProfileBuildCard(profile: attributeProfile)
                     recentWorkoutsSection
                     activeChallengesSection
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
                 .padding(.bottom, 96)
             }
         }
@@ -55,42 +73,83 @@ struct SquadMemberDetailView: View {
         .task(id: profileUserId) { await load() }
     }
 
-    // MARK: - Hero
+    // MARK: - Hero (banner + bordered avatar + rank plate)
 
     private var heroSection: some View {
-        HStack(alignment: .center, spacing: 16) {
-            CosmeticAvatar(
-                tier: RankCosmetics.equippedFrameTier(userId: profileUserId, currentTier: aggregateTier),
-                size: 84,
-                image: photoStore.image(userId: profileUserId),
-                letterFallback: avatarInitial
-            )
+        ZStack(alignment: .bottomLeading) {
+            UnboundBackdropArt(assetName: resolvedBannerAsset, role: .profileBanner, tint: resolvedTint)
+                .frame(height: 168)
+                .clipped()
+                .overlay(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: Color.unbound.bg.opacity(0.45), location: 0.55),
+                            .init(color: Color.unbound.bg, location: 1)
+                        ],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(displayName)
-                    .font(Font.unbound.titleM.weight(.bold))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+            HStack(alignment: .bottom, spacing: 14) {
+                CosmeticAvatar(
+                    tier: resolvedFrameTier,
+                    size: 84,
+                    image: photoStore.image(userId: profileUserId),
+                    letterFallback: avatarInitial,
+                    shopBorder: resolvedBorder
+                )
+                .shadow(color: resolvedTint.opacity(0.35), radius: 16, y: 8)
 
-                MetaLine([
-                    displayHandle,
-                    aggregateTier.displayName,
-                    "joined \(member.joinedAt.formatted(date: .abbreviated, time: .omitted))"
-                ])
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(displayName)
+                        .font(Font.unbound.titleM.weight(.bold))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
 
-                if let titleId = member.equippedTitle {
-                    TitleBadge(titleId: titleId, compact: true)
-                        .padding(.top, 4)
+                    RankTitlePlate(tier: aggregateTier, tint: aggregateTier.rewardTint)
+
+                    if let displayHandle {
+                        Text(displayHandle)
+                            .font(Font.unbound.captionS)
+                            .foregroundStyle(Color.unbound.textTertiary)
+                    }
                 }
+                .padding(.bottom, 4)
+
+                Spacer(minLength: 0)
             }
-
-            Spacer(minLength: 0)
-
+            .padding(.horizontal, 20)
+            .padding(.bottom, 4)
+        }
+        .overlay(alignment: .topTrailing) {
             if isLoading {
-                ProgressView()
-                    .tint(Color.unbound.textTertiary)
+                ProgressView().tint(Color.unbound.textTertiary).padding()
             }
+        }
+    }
+
+    // MARK: - Showcase (featured skill + lift), from flair
+
+    @ViewBuilder
+    private var showcaseSection: some View {
+        if let flair {
+            HStack(spacing: 10) {
+                TrophyShowcaseRow(
+                    label: "SKILL",
+                    value: flair.showcaseSkillName.uppercased(),
+                    systemImage: "sparkles",
+                    badgeTier: flair.showcaseSkillTier
+                )
+                TrophyShowcaseRow(
+                    label: "LIFT",
+                    value: flair.showcaseLiftName.uppercased(),
+                    systemImage: "dumbbell.fill",
+                    badgeTier: flair.showcaseLiftTier
+                )
+            }
+            .padding(.horizontal, 20)
         }
     }
 
@@ -109,6 +168,7 @@ struct SquadMemberDetailView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color.unbound.surface)
         )
+        .padding(.horizontal, 20)
     }
 
     private func statColumn(value: String, label: String) -> some View {
@@ -151,6 +211,7 @@ struct SquadMemberDetailView: View {
                 }
             }
         }
+        .padding(.horizontal, 20)
     }
 
     private func workoutRow(_ log: WorkoutLog) -> some View {
@@ -204,6 +265,7 @@ struct SquadMemberDetailView: View {
                 }
             }
         }
+        .padding(.horizontal, 20)
     }
 
     // MARK: - Derived
@@ -270,8 +332,17 @@ struct SquadMemberDetailView: View {
         }
 
         userProfile = try? await services.user.fetchProfile(userId: resolvedUserId)
-        attributeProfile = services.attribute.snapshot(userId: resolvedUserId, asOf: .now)
-        aggregateTier = await services.rank.aggregateTier(userId: resolvedUserId)
+
+        // Cosmetics/hex/rank: prefer the member's published flair (cross-user);
+        // fall back to local reads for the viewer's own not-yet-published profile.
+        if let flair {
+            attributeProfile = flair.attributeProfile
+            aggregateTier = flair.rankTier
+        } else {
+            attributeProfile = services.attribute.snapshot(userId: resolvedUserId, asOf: .now)
+            aggregateTier = await services.rank.aggregateTier(userId: resolvedUserId)
+        }
+
         activeChallenges = await services.friendChallenge.activeChallenges(userId: member.userId)
         sessionXPRecord = services.sessionXP.record(userId: resolvedUserId)
         let statsByMember = await services.friendChallenge.challengeStats(squadId: member.squadId)

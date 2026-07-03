@@ -23,6 +23,7 @@ struct SquadDetailView: View {
     @State var memberProfiles: [UUID: UserProfile] = [:]
     @State var memberFrameTiers: [UUID: RankTitle] = [:]
     @State var memberWorkoutLogs: [UUID: [WorkoutLog]] = [:]
+    @State var memberFlair: [UUID: SquadMemberFlair] = [:]
     @State var memberSessionRecords: [UUID: SessionXPRecord] = [:]
     @State var challengeStatsByMember: [UUID: FriendChallengeStats] = [:]
     @State var earnedSeasonWinnerAward: SquadSeasonWinnerTitleAward?
@@ -100,7 +101,8 @@ struct SquadDetailView: View {
                 SquadMemberDetailView(
                     member: member,
                     roster: state.roster,
-                    initialWorkoutLogs: memberWorkoutLogs[member.userId] ?? []
+                    initialWorkoutLogs: memberWorkoutLogs[member.userId] ?? [],
+                    flair: memberFlair[member.userId]
                 )
             }
         }

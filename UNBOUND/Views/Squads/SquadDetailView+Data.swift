@@ -215,6 +215,14 @@ extension SquadDetailView {
         memberWorkoutLogs = logsByMember
         memberSessionRecords = recordsByMember
 
+        // Cross-user profile flair (equipped cosmetics + showcase + hex) so a
+        // squadmate's profile renders 1:1. Device-local otherwise; only real
+        // squads have a gated RPC to read it.
+        if let squadId = state.currentSquad?.id,
+           !SquadUserIdentity.usesLocalOnlySquad(for: authUserId) {
+            memberFlair = await SquadFlairService.fetch(squadId: squadId)
+        }
+
         if let squadId = state.currentSquad?.id {
             challengeStatsByMember = await services.friendChallenge.challengeStats(squadId: squadId)
         } else {

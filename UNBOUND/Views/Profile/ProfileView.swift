@@ -300,6 +300,27 @@ struct ProfileView: View {
         trialsState = services.trials.state(userId: userId)
 
         isLoading = false
+
+        // Publish this profile's resolved flair so squadmates can render it 1:1
+        // (their cosmetics/showcase/hex are otherwise device-local). No-ops unless
+        // signed in as the owner.
+        await publishFlairIfOwned(userId: userId)
+    }
+
+    @MainActor
+    private func publishFlairIfOwned(userId: String) async {
+        let flair = SquadMemberFlair(
+            backdropAssetName: activeProfileBackgroundAsset,
+            borderId: equippedShopProfileBorder,
+            frameTier: equippedFrameTier,
+            rankTier: aggregateTier,
+            showcaseSkillName: showcaseSkillName,
+            showcaseSkillTier: showcaseSkillTier,
+            showcaseLiftName: showcaseLiftName,
+            showcaseLiftTier: showcaseLiftTier,
+            attributeProfile: attributeProfile
+        )
+        await SquadFlairService.publish(flair, userId: userId)
     }
 
     @MainActor
