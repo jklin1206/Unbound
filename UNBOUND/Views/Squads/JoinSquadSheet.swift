@@ -111,7 +111,10 @@ struct JoinSquadSheet: View {
 
     @MainActor
     private func join() async {
-        guard let userId = services.auth.currentUserId else {
+        // Squads are cloud-only (RLS-gated RPCs); an anonymous local UUID can't
+        // join. Require a real session so the failure reads "Sign in…" instead of
+        // a dead RPC error. Forced auth at onboarding means this normally passes.
+        guard let userId = services.auth.currentUserId, await services.auth.isCloudLinked else {
             error = "Sign in to join a squad."
             return
         }

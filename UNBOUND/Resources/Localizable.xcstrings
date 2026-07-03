@@ -1580,6 +1580,42 @@
         }
       }
     },
+    "auth.google.signIn" : {
+      "comment" : "Google sign-in button title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with Google"
+          }
+        }
+      }
+    },
+    "auth.protect.title" : {
+      "comment" : "Forced auth screen headline (post-paywall).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protect your progress"
+          }
+        }
+      }
+    },
+    "auth.protect.body" : {
+      "comment" : "Forced auth screen supporting line (post-paywall).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save your training to your account so it's backed up and follows you to any device."
+          }
+        }
+      }
+    },
     "auth.email.createAccount" : {
       "comment" : "Create account button title.",
       "extractionState" : "stale",

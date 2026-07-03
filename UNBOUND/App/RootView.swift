@@ -4,7 +4,11 @@ import UIKit
 
 struct RootView: View {
     @EnvironmentObject var services: ServiceContainer
-    @State private var isAuthenticated = false
+    // Routing gates on a real CLOUD session, not merely "has a user id": every
+    // launch auto-provisions an anonymous local UUID (so data has a key during
+    // onboarding), which would otherwise read as authenticated and skip the
+    // forced "protect your progress" screen.
+    @State private var isCloudLinked = false
     @State private var isCheckingAuth = true
 
     // Reacts to UserDefaults changes — flipping this key from Settings
@@ -45,6 +49,11 @@ struct RootView: View {
             // Gate journey stage harness — pick the screen with
             // UNBOUND_GATE_STAGE=<sealed|open|hall|active|beat|verdictPass|card|verdictFail|records|crossing|flow>.
             GateExperienceDemoView()
+        } else if ProcessInfo.processInfo.arguments.contains("-authScreenDemo") {
+            // Renders the forced "protect your progress" auth screen directly
+            // (Apple + Google + email), bypassing the onboarding/cloud-link gate
+            // so it can be reviewed without walking the full first-run flow.
+            AuthContainerView()
         } else if ProcessInfo.processInfo.arguments.contains("-treeUnlockDemo") {
             TreeUnlockRevealDemoHarness()
         } else if ProcessInfo.processInfo.arguments.contains("-rankDetailDemo") {
@@ -67,7 +76,7 @@ struct RootView: View {
                 OnboardingContainerView(onComplete: {
                     hasCompletedOnboarding = true
                 })
-            } else if !isAuthenticated {
+            } else if !isCloudLinked {
                 AuthContainerView()
             } else {
                 HomeTabView()
@@ -80,9 +89,13 @@ struct RootView: View {
             #endif
 
             for await userId in services.auth.authStatePublisher.values {
-                isAuthenticated = userId != nil
+                // Anonymous users emit a userId too, so re-derive cloud-link on
+                // every change: only a real Supabase session flips this true and
+                // routes past the forced auth screen into Home.
+                let cloudLinked = await services.auth.isCloudLinked
+                isCloudLinked = cloudLinked
                 isCheckingAuth = false
-                if let userId {
+                if let userId, cloudLinked {
                     services.analytics.identify(
                         userId: userId,
                         traits: ["authState": "signedIn"]
@@ -169,7 +182,9 @@ struct RootView: View {
                         // Idempotent + local-only.
                         await MovementProgressConsolidationMigration.migrateIfNeeded(userId: userId)
                     }
-                } else {
+                } else if userId == nil {
+                    // Genuine sign-out. An anonymous user (userId set, not
+                    // cloud-linked) is mid-forced-auth — leave analytics alone.
                     services.analytics.reset()
                 }
             }

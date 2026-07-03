@@ -180,7 +180,10 @@ enum L10n {
         case legalPrivacyPolicy = "legal.privacyPolicy"
 
         case authSignInSubtitle = "auth.signIn.subtitle"
+        case authProtectTitle = "auth.protect.title"
+        case authProtectBody = "auth.protect.body"
         case authAppleSignIn = "auth.apple.signIn"
+        case authGoogleSignIn = "auth.google.signIn"
         case authEmailDivider = "auth.email.divider"
         case authLegalPrefix = "auth.legal.prefix"
         case authLegalAnd = "auth.legal.and"

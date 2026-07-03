@@ -94,7 +94,11 @@ struct CreateSquadSheet: View {
 
     @MainActor
     private func create() async {
-        guard let userId = services.auth.currentUserId else {
+        // Squads live entirely in the cloud (RLS-gated RPCs), so an anonymous
+        // local UUID can't create one — require a real session. Forced auth at
+        // onboarding means this normally passes; the check keeps the failure
+        // honest ("Sign in…") instead of a dead RPC error if it's ever reached.
+        guard let userId = services.auth.currentUserId, await services.auth.isCloudLinked else {
             error = "Sign in to create a squad."
             return
         }

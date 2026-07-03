@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Partial Info.plist. GENERATE_INFOPLIST_FILE=YES merges the generated keys
+	  (bundle id/version, usage descriptions, orientations, launch screen) on top
+	  of this file, so keep ONLY what the generator can't express: the Google
+	  Sign-In client id + its reversed-client-id URL scheme. See project.yml.
+	-->
+	<key>GIDClientID</key>
+	<string>397442368927-umsde7md9g6kre7ipk2u776ian27glap.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.397442368927-umsde7md9g6kre7ipk2u776ian27glap</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

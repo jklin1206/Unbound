@@ -20,6 +20,7 @@
 // The app side: entitlement + onContinueUserActivity handler below.
 import SwiftUI
 import UIKit
+import GoogleSignIn
 
 #if DEBUG && targetEnvironment(simulator)
 // Hot-reload for SwiftUI iteration. Save any .swift file and the
@@ -46,6 +47,11 @@ struct UnboundApp: App {
             RootView()
                 .environmentObject(services)
                 .preferredColorScheme(.dark)
+                .onOpenURL { url in
+                    // Google Sign-In callback (reversed-client-id scheme). Harmless
+                    // for any other URL — returns false when it isn't Google's.
+                    _ = GIDSignIn.sharedInstance.handle(url)
+                }
                 .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
                     guard
                         let url = activity.webpageURL,
