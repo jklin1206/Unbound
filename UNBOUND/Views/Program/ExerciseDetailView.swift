@@ -63,7 +63,7 @@ struct ExerciseDetailView: View {
                 .strokeBorder(Color.unbound.border, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: Color.black.opacity(0.30), radius: 10, x: 0, y: 3)
+        .shadow(color: Color.unbound.bg.opacity(0.30), radius: 10, x: 0, y: 3)
     }
 
     private func metadataChip(_ text: String, tint: Color) -> some View {

@@ -433,6 +433,9 @@ struct GateTrialLaunchView: View {
     var onFinished: () -> Void
 
     @State private var entered = false
+    /// Bumped by a failed gate's ENTER AGAIN — recreates the logging container
+    /// with a fresh session identity so the retry is a genuinely new attempt.
+    @State private var attemptKey = 0
 
     private var crossing: GateCrossing? {
         guard let definition = draft.programId.flatMap(OverallRankTrialDefinitions.definition) else { return nil }
@@ -447,8 +450,14 @@ struct GateTrialLaunchView: View {
                 })
                 .transition(.opacity)
             } else {
-                ActiveWorkoutContainerView(draft: draft, services: services, onFinished: onFinished)
-                    .transition(.opacity)
+                ActiveWorkoutContainerView(
+                    draft: draft,
+                    services: services,
+                    onFinished: onFinished,
+                    onGateRematch: { attemptKey += 1 }
+                )
+                .id(attemptKey)
+                .transition(.opacity)
             }
         }
     }

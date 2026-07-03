@@ -95,6 +95,7 @@ extension ProgramOverviewView {
             date: date
         ) else {
             return DailyWorkoutModifierContext(deloadFactor: deloadFactor)
+                .applyingAppState(on: date)
         }
 
         let resolution = ProgramFocusSwitchCoordinator.resolvedContext(
@@ -105,5 +106,6 @@ extension ProgramOverviewView {
             availableEquipment: resolution.dailyModifierEquipment,
             deloadFactor: deloadFactor
         )
+        .applyingAppState(on: date)
     }
 }

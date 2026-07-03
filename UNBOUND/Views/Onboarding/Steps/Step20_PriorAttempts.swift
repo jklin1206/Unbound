@@ -9,7 +9,7 @@ struct Step20_PriorAttempts: View {
     var body: some View {
         OnboardingScaffold(
             title: "What have you tried already?",
-            subtitle: "No shade on any of these. Helps us not repeat what didn't land.",
+            subtitle: nil,
             progress: progress,
             primaryTitle: "Continue",
             primaryEnabled: !flow.priorAttempts.isEmpty,

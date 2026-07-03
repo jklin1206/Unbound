@@ -1,9 +1,11 @@
 import SwiftUI
 
 /// The saved-workouts list, rendered inline (no modal/NavigationStack chrome) for
-/// the Loadouts tab. Flat calm rows on `bg` separated by hairline rules.
+/// the Loadouts tab. Each loadout is a title-first `surface` card showing its
+/// full exercise list (always expanded), an always-visible Start button, and a
+/// top-right ⋯ menu for share / edit / delete.
 /// Data from SavedWorkoutStore; delete + Squad-share handled locally; start /
-/// schedule bubble up to the parent (which applies them to the program).
+/// edit bubble up to the parent (which starts the session or opens the editor).
 struct SavedWorkoutsInlineList: View {
     @EnvironmentObject private var services: ServiceContainer
     @State private var workouts: [SavedWorkout]
@@ -11,18 +13,18 @@ struct SavedWorkoutsInlineList: View {
 
     let refreshTrigger: Int
     let onStartWorkout: (SavedWorkout) -> Void
-    let onSchedule: (SavedWorkout) -> Void
+    let onEdit: (SavedWorkout) -> Void
 
     init(
         refreshTrigger: Int = 0,
         workouts: [SavedWorkout] = SavedWorkoutStore.shared.all(),
         onStartWorkout: @escaping (SavedWorkout) -> Void,
-        onSchedule: @escaping (SavedWorkout) -> Void
+        onEdit: @escaping (SavedWorkout) -> Void
     ) {
         _workouts = State(initialValue: workouts)
         self.refreshTrigger = refreshTrigger
         self.onStartWorkout = onStartWorkout
-        self.onSchedule = onSchedule
+        self.onEdit = onEdit
     }
 
     var body: some View {
@@ -36,17 +38,18 @@ struct SavedWorkoutsInlineList: View {
                     .foregroundStyle(Color.unbound.textTertiary)
                     .padding(.vertical, 8)
             } else {
-                ForEach(Array(workouts.enumerated()), id: \.element.id) { index, workout in
-                    SavedWorkoutInlineRow(
-                        workout: workout,
-                        roleText: roleText(workout),
-                        onStartWorkout: { onStartWorkout(workout) },
-                        onSchedule: { onSchedule(workout) },
-                        onShare: { sharingWorkout = workout },
-                        onDelete: { delete(workout) }
-                    )
-                    if index < workouts.count - 1 {
-                        Divider().overlay(Color.unbound.border)
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(workouts) { workout in
+                        let role = SessionRole.fromStorageValue(workout.sessionRole)
+                        SavedWorkoutInlineRow(
+                            workout: workout,
+                            roleText: role?.displayName ?? "Custom",
+                            roleAccent: role?.accentColor ?? Color.unbound.accent,
+                            onStartWorkout: { onStartWorkout(workout) },
+                            onEdit: { onEdit(workout) },
+                            onShare: { sharingWorkout = workout },
+                            onDelete: { delete(workout) }
+                        )
                     }
                 }
             }
@@ -71,166 +74,114 @@ struct SavedWorkoutsInlineList: View {
     private func reload() {
         workouts = SavedWorkoutStore.shared.all()
     }
-
-    private func roleText(_ workout: SavedWorkout) -> String {
-        SessionRole.fromStorageValue(workout.sessionRole)?.displayName ?? "Custom"
-    }
 }
 
-// MARK: - De-boxed row
+// MARK: - Loadout card row
 
 private struct SavedWorkoutInlineRow: View {
     let workout: SavedWorkout
     let roleText: String
+    let roleAccent: Color
     let onStartWorkout: () -> Void
-    let onSchedule: () -> Void
+    let onEdit: () -> Void
     let onShare: () -> Void
     let onDelete: () -> Void
 
-    @State private var expanded = false
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header — tap to expand/collapse
-            Button {
-                withAnimation(.easeInOut(duration: 0.22)) { expanded.toggle() }
-                UnboundHaptics.soft()
-            } label: {
-                HStack(alignment: .top, spacing: 14) {
-                    WorkoutReferenceImageView(
-                        exerciseName: workout.effectiveReferenceExerciseName,
-                        fallbackSystemName: "dumbbell.fill",
-                        fallbackTint: Color.unbound.textSecondary,
-                        size: .hero
-                    )
-                    .frame(width: 72, height: 72)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(workout.title)
-                            .font(Font.unbound.bodyMStrong)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.82)
-                        MetaLine(["\(workout.exerciseCount) exercise\(workout.exerciseCount == 1 ? "" : "s")", "\(workout.estimatedMinutes)m", roleText.uppercased()])
+            // Title + the full exercise list — always expanded, nothing hidden.
+            VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(workout.title)
+                        .font(Font.unbound.titleS)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                    HStack(spacing: 8) {
+                        SessionRoleChip(text: roleText, accent: roleAccent)
+                        MetaLine(["\(workout.exerciseCount) exercise\(workout.exerciseCount == 1 ? "" : "s")"])
                     }
-                    .padding(.top, 3)
-
-                    Spacer(minLength: 8)
                 }
-                .padding(.vertical, 12)
-                .contentShape(Rectangle())
+                .padding(.top, 16)
+                .padding(.trailing, 40)
+
+                LoadoutExercisePreview(workout: workout, limit: nil)
+                    .padding(.top, 4)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Start is always one tap away — no expand needed.
+            Button {
+                UnboundHaptics.medium()
+                onStartWorkout()
+            } label: {
+                HStack(spacing: 7) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("Start")
+                        .font(Font.unbound.bodyMStrong)
+                }
+                .foregroundStyle(Color.unbound.textPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 46)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.unbound.accent)
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("\(workout.title), \(workout.exerciseCount) exercises, tap to \(expanded ? "collapse" : "expand")")
-
-            // Expanded area
-            if expanded {
-                VStack(alignment: .leading, spacing: 0) {
-                    // Exercise lines
-                    let prescriptions = workout.blocks.flatMap(\.prescriptions)
-                    if !prescriptions.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(prescriptions) { prescription in
-                                HStack(spacing: 8) {
-                                    Text(prescription.exerciseName)
-                                        .font(Font.unbound.bodyM)
-                                        .foregroundStyle(Color.unbound.textPrimary)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.8)
-                                    Spacer(minLength: 8)
-                                    Text("\(prescription.sets) × \(prescription.target.displayText)")
-                                        .font(Font.unbound.monoS.weight(.medium))
-                                        .foregroundStyle(Color.unbound.textSecondary)
-                                        .monospacedDigit()
-                                }
-                            }
-                        }
-                        .padding(.leading, 86)
-                        .padding(.bottom, 14)
-                    }
-
-                    // Primary start action
-                    Button {
-                        UnboundHaptics.medium()
-                        onStartWorkout()
-                    } label: {
-                        Text("Start Loadout")
-                            .font(Font.unbound.bodyMStrong)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 44)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(Color.unbound.accent)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Start \(workout.title)")
-
-                    // Secondary actions
-                    HStack(spacing: 8) {
-                        secondaryAction(
-                            title: "Schedule",
-                            icon: "calendar.badge.plus",
-                            tint: Color.unbound.coachCyan,
-                            action: onSchedule
-                        )
-                        .accessibilityIdentifier("myWorkouts.schedule")
-
-                        secondaryAction(
-                            title: "Drop",
-                            icon: "paperplane.fill",
-                            tint: Color.unbound.warnOrange,
-                            action: onShare
-                        )
-                        .accessibilityIdentifier("myWorkouts.dropToSquad")
-
-                        secondaryAction(
-                            title: "Delete",
-                            icon: "trash",
-                            tint: Color.unbound.alert,
-                            action: onDelete
-                        )
-                        .accessibilityIdentifier("myWorkouts.delete")
-                    }
-                    .padding(.top, 8)
-                }
-                .padding(.bottom, 12)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+            .accessibilityLabel("Start \(workout.title)")
+            .accessibilityIdentifier("myWorkouts.start")
+            .padding(.top, 6)
+            .padding(.bottom, 12)
         }
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.unbound.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(roleAccent.opacity(0.26), lineWidth: 1)
+        )
+        .overlay(alignment: .topTrailing) {
+            actionsMenu
+                .padding(.top, 8)
+                .padding(.trailing, 8)
+        }
+        .shadow(color: roleAccent.opacity(0.14), radius: 14, x: 0, y: 6)
     }
 
-    private func secondaryAction(
-        title: String,
-        icon: String,
-        tint: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button {
-            UnboundHaptics.soft()
-            action()
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 11, weight: .bold))
-                Text(title)
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(0.8)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
+    /// Share / edit / delete live behind one top-right overflow menu.
+    private var actionsMenu: some View {
+        Menu {
+            Button {
+                onShare()
+            } label: {
+                Label("Share to Squad", systemImage: "paperplane")
             }
-            .foregroundStyle(tint)
-            .frame(maxWidth: .infinity)
-            .frame(height: 40)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            Button {
+                onEdit()
+            } label: {
+                Label("Edit Loadout", systemImage: "slider.horizontal.3")
+            }
+
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Color.unbound.textTertiary)
+                .frame(width: 34, height: 34)
+                .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(title) \(workout.title)")
+        .accessibilityLabel("Loadout actions for \(workout.title)")
+        .accessibilityIdentifier("myWorkouts.actions")
     }
 }
 

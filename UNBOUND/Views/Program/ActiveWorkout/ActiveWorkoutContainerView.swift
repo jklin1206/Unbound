@@ -20,6 +20,9 @@ struct ActiveWorkoutContainerView: View {
     // Swap sheet state
     @State var swapExerciseIndex: Int? = nil
     @State var swapAlternatives: [CatalogExercise] = []
+    /// The user's gear, loaded once on appear, so the swap picker can flag
+    /// equipment-incompatible alternatives. nil = no filter (graceful default).
+    @State var swapEquipment: [Equipment]? = nil
     @State private var showingCustomBuilder = false
     @State private var showingAddExercise = false
 
@@ -49,6 +52,7 @@ struct ActiveWorkoutContainerView: View {
         let id = UUID()
         let evaluation: OverallRankTrialEvaluation
         let world: GateWorld
+        var spoils: String? = nil
     }
 
     // Grid cell editor — shared bottom-docked keypad module (no modal). The model
@@ -68,6 +72,14 @@ struct ActiveWorkoutContainerView: View {
     private let services: ServiceContainer
     private let draftStore: WorkoutDraftStore
     private let onFinished: (() -> Void)?
+    /// A failed rank gate's ENTER AGAIN. The presenter rebuilds a fresh trial
+    /// container (new session identity, new performance-log id) so the retry is
+    /// a genuinely new attempt; nil falls back to dismissing.
+    private let onGateRematch: (() -> Void)?
+    /// Rehearsal = the onboarding taste of logging. The full surface behaves
+    /// normally, but finishing writes nothing (no performance log, no XP, no
+    /// reward sequence) and drafts are never autosaved for crash recovery.
+    private let isRehearsal: Bool
 
     // MARK: - Private types
 
@@ -100,6 +112,8 @@ struct ActiveWorkoutContainerView: View {
         self.services = services
         self.draftStore = WorkoutDraftStore()
         self.onFinished = onFinished
+        self.onGateRematch = nil
+        self.isRehearsal = false
         _session = StateObject(
             wrappedValue: resuming
                 ?? ActiveWorkoutSession(workout: workout, programId: programId, dayNumber: dayNumber)
@@ -109,11 +123,15 @@ struct ActiveWorkoutContainerView: View {
     init(
         draft: TrainingSessionDraft,
         services: ServiceContainer,
-        onFinished: (() -> Void)? = nil
+        isRehearsal: Bool = false,
+        onFinished: (() -> Void)? = nil,
+        onGateRematch: (() -> Void)? = nil
     ) {
         self.services = services
         self.draftStore = WorkoutDraftStore()
         self.onFinished = onFinished
+        self.onGateRematch = onGateRematch
+        self.isRehearsal = isRehearsal
         _session = StateObject(wrappedValue: ActiveWorkoutSession(trainingDraft: draft))
     }
 
@@ -160,7 +178,11 @@ struct ActiveWorkoutContainerView: View {
                         onAddSet: { ei in
                             session.addSet(toExerciseIndex: ei)
                             saveDraft()
-                        }
+                        },
+                        // Rehearsal included: the onboarding demo should
+                        // showcase the whole mission list at a glance, not
+                        // boot into one expanded card's anatomy chart.
+                        startsFirstExerciseExpanded: false
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
@@ -191,6 +213,10 @@ struct ActiveWorkoutContainerView: View {
             await loadContext()
         }
         .task {
+            // Never during the onboarding rehearsal - the deliberate ask lives
+            // on the notifications step, and a permission dialog rising over
+            // the taste-the-loop demo reads as a bug.
+            guard !isRehearsal else { return }
             await RestNotifier.shared.requestAuthIfNeeded()
         }
         .task {
@@ -267,6 +293,7 @@ struct ActiveWorkoutContainerView: View {
                     swapExerciseIndex = nil
                     saveDraft()
                 },
+                availableEquipment: swapEquipment,
                 onCreateCustom: {
                     swapExerciseIndex = nil
                     showingCustomBuilder = true
@@ -330,7 +357,6 @@ struct ActiveWorkoutContainerView: View {
             TheCrossingView(
                 crossing: crossing,
                 definingNumber: pendingGateDefiningNumber,
-                onShare: {},
                 onReplay: {},
                 onDismiss: {
                     pendingGateCrossing = nil
@@ -348,9 +374,14 @@ struct ActiveWorkoutContainerView: View {
             GateVerdictView(
                 evaluation: context.evaluation,
                 world: context.world,
+                spoilsLine: context.spoils,
                 onRematch: {
                     pendingGateVerdict = nil
-                    finishDismiss()
+                    if let onGateRematch {
+                        onGateRematch()
+                    } else {
+                        finishDismiss()
+                    }
                 }
             )
             .interactiveDismissDisabled(true)
@@ -363,6 +394,7 @@ struct ActiveWorkoutContainerView: View {
     /// recovery is broken, so it's logged once and surfaced as a calm warning
     /// row instead of failing silently.
     func saveDraft() {
+        guard !isRehearsal else { return }
         do {
             try draftStore.save(session)
             draftAutosaveFailed = false
@@ -627,6 +659,12 @@ struct ActiveWorkoutContainerView: View {
     private func loadContext() async {
         guard let uid = services.auth.currentUserId else { return }
 
+        // Gear for the swap picker's compatibility badges (graceful: nil = no filter).
+        if let profileEquipment = (try? await services.user.fetchProfile(userId: uid))?.equipment,
+           !profileEquipment.isEmpty {
+            swapEquipment = profileEquipment
+        }
+
         // Wire point 1: fetchRecentLogs(userId:limit:) exists on WorkoutLogServiceProtocol.
         // Flatten exerciseEntries from the most-recent logs so SetPrefill can
         // find last-session values per exercise (most-recent last = .last(where:) picks latest).
@@ -668,6 +706,12 @@ struct ActiveWorkoutContainerView: View {
 
     private func complete() async {
         guard !saving else { return }
+        if isRehearsal {
+            HapticManager.notification(.success)
+            restTimer.stop()
+            finishDismiss()
+            return
+        }
         guard let uid = services.auth.currentUserId else {
             // No session — don't trap the user behind a disabled dismiss.
             dismiss()
@@ -703,7 +747,6 @@ struct ActiveWorkoutContainerView: View {
             summary.workoutPhotoContext = WorkoutPhotoSummary(performanceLog: performanceLog)
             let hasReward = totalLoggedWorkingSets > 0
                 || summary.progression?.hasContent == true
-                || summary.weeklyVowCallout != nil
                 || summary.rankTrialCallout != nil
             saving = false
             if let rt = rankTrialResult, rt.didAdvanceRank {
@@ -713,10 +756,13 @@ struct ActiveWorkoutContainerView: View {
                 stashedGateRewardSummary = gateRewardTail(from: summary)
                 pendingGateCrossing = GateCrossingCatalog.crossing(for: rt.definition.format)
             } else if let rt = rankTrialResult, !rt.evaluation.passed {
-                // Failed gate — "THE GATE HOLDS" verdict + ENTER AGAIN. XP is banked.
+                // Failed gate — "THE GATE HOLDS" verdict + ENTER AGAIN. The
+                // sequence is skipped, so the verdict carries a one-line spoils
+                // note or the banked XP/Arcs would vanish invisibly.
                 pendingGateVerdict = GateVerdictContext(
                     evaluation: rt.evaluation,
-                    world: GateWorldCatalog.world(for: rt.definition.format))
+                    world: GateWorldCatalog.world(for: rt.definition.format),
+                    spoils: gateSpoilsLine(from: summary))
             } else if hasReward {
                 rewardSequence = summary
             } else {
@@ -752,10 +798,20 @@ struct ActiveWorkoutContainerView: View {
         tail.rankTrialCallout = nil
         let hasTailReward = totalLoggedWorkingSets > 0
             || tail.progression?.hasContent == true
-            || tail.weeklyVowCallout != nil
             || !tail.badges.isEmpty
             || tail.xp.total > 0
         return hasTailReward ? tail : nil
+    }
+
+    /// One quiet line for the fail verdict: the XP/Arcs banked during the
+    /// attempt, which would otherwise never be shown (a failed gate skips the
+    /// reward sequence entirely).
+    private func gateSpoilsLine(from summary: WorkoutRewardSequenceSummary) -> String? {
+        var parts: [String] = []
+        if summary.xp.total > 0 { parts.append("+\(summary.xp.total) XP") }
+        if summary.arcsEarned > 0 { parts.append("+\(summary.arcsEarned) ARCS") }
+        guard !parts.isEmpty else { return nil }
+        return parts.joined(separator: " · ") + " BANKED"
     }
 
     private func finishDismiss() {
@@ -770,6 +826,9 @@ struct ActiveWorkoutContainerView: View {
         guard !isFinishingRewardSequence else { return }
         isFinishingRewardSequence = true
         rewardSequence = nil
+        if !isRehearsal {
+            AppStoreReviewPrompt.requestAfterFirstRealWorkoutIfNeeded()
+        }
         finishDismiss()
     }
 }

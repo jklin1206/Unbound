@@ -34,7 +34,7 @@ struct SessionEditorDemoHarness: View {
             prescriptions: [
                 rx("Overhead Press", kg: 45),
                 rx("Bench Press", kg: 60),
-                rx("Triceps Pushdown", kg: 25),
+                rx("Tricep Pushdown (Cable)", kg: 25),
                 bw("Pull-Up"),
                 hold("Plank", seconds: 45)
             ]

@@ -13,6 +13,15 @@ struct ExerciseOverflowMenu: View {
     let isWarmup: Bool
     let onIntent: (OverflowIntent) -> Void
 
+    // The weight unit moved off the column header (it used to be a tappable
+    // "WEIGHT LB ⇆" toggle) and lives here as an explicit menu action.
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey)
+    private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
+
+    private var unit: TrainingWeightUnit {
+        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
+    }
+
     var body: some View {
         Menu {
             Button {
@@ -27,8 +36,14 @@ struct ExerciseOverflowMenu: View {
             Button { onIntent(.editNotes) } label: {
                 Label("Notes", systemImage: "note.text")
             }
-            Button { onIntent(.swapExercise) } label: {
-                Label("Swap exercise", systemImage: "arrow.triangle.2.circlepath")
+            Button {
+                UnboundHaptics.tick()
+                weightUnitRaw = (unit == .kilograms ? TrainingWeightUnit.pounds : .kilograms).rawValue
+            } label: {
+                Label(
+                    unit == .kilograms ? "Switch to pounds" : "Switch to kilograms",
+                    systemImage: "scalemass"
+                )
             }
             Divider()
             Button(role: .destructive) { onIntent(.skipExercise) } label: {

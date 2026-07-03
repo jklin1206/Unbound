@@ -13,7 +13,7 @@ enum ArcGenerator {
         updated.currentArcId = arc.id
         updated.rationale = ProgramRationale(
             headline: "Arc 1 ready",
-            summaryCopy: "Calibration proof was converted into a 28-day Arc. The split shape is preserved and each day is tagged by session role.",
+            summaryCopy: "Calibration proof was converted into a \(Arc.durationDays)-day Arc. The split shape is preserved and each day is tagged by session role.",
             decisions: [
                 ProgramRationale.Decision(
                     inputSummary: "Calibration Week completed",

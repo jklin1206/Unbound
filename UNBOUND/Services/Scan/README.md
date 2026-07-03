@@ -13,9 +13,7 @@ The scan/checkpoint flow: capturing a checkpoint (photo + structured signals), v
 | `ScanCheckpointService.swift` | Orchestrates the scan flow: reads BuildIdentity from attributes (never the photo), persists photo + checkpoint, optional narrative recap. Defines `ScanPhotoWriting`. |
 | `ScanCheckpointStore.swift` | Filesystem persistence — one JSON file per `ScanCheckpoint`, history filtered by userId. |
 | `ScanComparisonService.swift` | Legacy bridge from the old two-photo comparison to the checkpoint system; keeps the persisted `ScanDeltaReport` shape for older rollover/coach surfaces. |
-| `ScanContextBuilder.swift` | Legacy builder for the removed photo-analysis payload (volume-per-muscle-group from real logged sets); kept for migration references and older tests. |
 | `ScanNarrativeService.swift` | 2-3 sentence narrative copy around derived BuildIdentity via Claude Haiku, deterministic template fallback. Never sees a photo. |
-| `ScanPayoffFlavorService.swift` | One-liner Build Identity flavor copy via claude-haiku-4-5; never references body parts; falls back on error. |
 | `TravelOverrideStore.swift` | Async cache + persistence for `TravelOverride`s (`travel_overrides`); home/program views read `activeOverride(for:)` to substitute the travel workout. |
 
 ## Where to find X
@@ -23,6 +21,5 @@ The scan/checkpoint flow: capturing a checkpoint (photo + structured signals), v
 - **The checkpoint flow steps / UI state** → `CheckpointFlow.swift`.
 - **How checkpoint answers become program inputs (incl. load bias)** → `CheckpointSummarizer.swift` + `CheckpointValidator.swift`.
 - **Saving/loading checkpoints and photos** → `ScanCheckpointService.swift` + `ScanCheckpointStore.swift`.
-- **AI-written flavor copy** → `ScanNarrativeService.swift` (recap) / `ScanPayoffFlavorService.swift` (one-liner).
 - **Travel-mode workout substitution** → `TravelOverrideStore.swift`.
-- **Legacy scan surfaces** → `ScanComparisonService.swift`, `ScanContextBuilder.swift` (both legacy, kept for compatibility).
+- **Legacy scan surfaces** → `ScanComparisonService.swift` (legacy, kept for compatibility).

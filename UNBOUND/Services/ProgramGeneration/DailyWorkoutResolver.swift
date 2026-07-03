@@ -30,6 +30,26 @@ struct DailyWorkoutModifierContext: Equatable, Sendable {
             || !avoidedMovementIds.isEmpty
             || shortSessionActive
     }
+
+    /// Boundary helper: layers live app state (today's Short-mode flag) on top
+    /// of an injected context. Call this where a REAL session launches — the
+    /// resolver itself never reads globals, so unit tests passing an explicit
+    /// context stay hermetic regardless of what the app on the device did.
+    func applyingAppState(on date: Date) -> DailyWorkoutModifierContext {
+        var context = self
+        context.shortSessionActive = context.shortSessionActive
+            || Self.appShortSessionActive(on: date)
+        return context
+    }
+
+    /// Short mode is a same-day flag the SHORT coach action writes
+    /// (`unbound.shortSessionDate` = start-of-day it was activated for).
+    static func appShortSessionActive(on date: Date) -> Bool {
+        let stored = UserDefaults.standard.double(forKey: "unbound.shortSessionDate")
+        guard stored > 0 else { return false }
+        let today = Calendar.current.startOfDay(for: date).timeIntervalSince1970
+        return abs(stored - today) < 60
+    }
 }
 
 /// Resolves the user's base program day plus active program modifiers into
@@ -133,15 +153,11 @@ enum DailyWorkoutResolver {
         modifierContext: DailyWorkoutModifierContext = .empty,
         progressionStates: [String: ProgressionState] = [:]
     ) -> TrainingSessionDraft {
-        var effectiveContext = modifierContext
-        if isShortSessionActive(on: date) {
-            effectiveContext.shortSessionActive = true
-        }
         let skillBlocks = scheduledSkillIds.compactMap { skillBlock(skillId: $0, userId: userId) }
         let adjustedWorkout = adjustedWorkout(
             workout,
             for: skillBlocks,
-            modifierContext: effectiveContext
+            modifierContext: modifierContext
         )
         var draft = TrainingSessionAdapters.draft(
             from: adjustedWorkout,
@@ -163,11 +179,6 @@ enum DailyWorkoutResolver {
         modifierContext: DailyWorkoutModifierContext = .empty,
         progressionStates: [String: ProgressionState] = [:]
     ) -> TrainingSessionDraft {
-        var effectiveContext = modifierContext
-        if isShortSessionActive(on: date) {
-            effectiveContext.shortSessionActive = true
-        }
-
         var resolved = draft
         resolved.date = date
         resolved.blocks = attachScheduledSkillBlocks(
@@ -175,26 +186,21 @@ enum DailyWorkoutResolver {
             scheduledSkillIds: scheduledSkillIds,
             userId: userId
         )
-        resolved = adjustedUserDraft(resolved, modifierContext: effectiveContext)
+        resolved = adjustedUserDraft(resolved, modifierContext: modifierContext)
         resolved.estimatedMinutes = estimatedMinutes(for: resolved.blocks, fallback: resolved.estimatedMinutes)
         return TrainingPrescriptionResolver.resolve(draft: resolved, progressionStates: progressionStates)
     }
 
     static func resolvedWorkout(
         from workout: Workout,
-        date: Date = Date(),
         scheduledSkillIds: [String] = [],
         modifierContext: DailyWorkoutModifierContext = .empty
     ) -> Workout {
-        var effectiveContext = modifierContext
-        if isShortSessionActive(on: date) {
-            effectiveContext.shortSessionActive = true
-        }
         let skillBlocks = scheduledSkillIds.compactMap { skillBlock(skillId: $0, userId: nil) }
         return adjustedWorkout(
             workout,
             for: skillBlocks,
-            modifierContext: effectiveContext
+            modifierContext: modifierContext
         )
     }
 
@@ -238,19 +244,14 @@ enum DailyWorkoutResolver {
         guard !skillBlocks.isEmpty else { return blocks }
 
         var updated = blocks
-        if let routineIndex = updated.firstIndex(where: { $0.kind == .routine }) {
-            updated.insert(contentsOf: skillBlocks, at: routineIndex)
-        } else {
-            updated.append(contentsOf: skillBlocks)
-        }
+        // Skill practice belongs right after the warmup, before the user's
+        // main work — precision work degrades fast under fatigue. Skip past
+        // any leading warmup-style blocks, then insert.
+        let insertIndex = updated.firstIndex { block in
+            !block.title.localizedCaseInsensitiveContains("warmup")
+        } ?? updated.endIndex
+        updated.insert(contentsOf: skillBlocks, at: insertIndex)
         return updated
-    }
-
-    private static func isShortSessionActive(on date: Date) -> Bool {
-        let stored = UserDefaults.standard.double(forKey: "unbound.shortSessionDate")
-        guard stored > 0 else { return false }
-        let today = Calendar.current.startOfDay(for: date).timeIntervalSince1970
-        return abs(stored - today) < 60
     }
 
     private static func skillBlock(skillId: String, userId: String?) -> TrainingBlock? {

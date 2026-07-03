@@ -23,6 +23,30 @@ final class ProgramOverviewDayResolverTests: XCTestCase {
         XCTAssertEqual(day.workout?.name, "Pull Base")
     }
 
+    func testAfternoonAnchorDoesNotShiftDayMapping() throws {
+        // The program's createdAt carries the time-of-day it was generated (e.g.
+        // an afternoon timestamp), while the week strip's tile dates are midnight.
+        // Counting whole days must normalize both ends to start-of-day, otherwise
+        // an afternoon anchor truncates a day and shifts the entire strip by one.
+        let startMidnight = try date(year: 2026, month: 6, day: 1)
+        let afternoonAnchor = try XCTUnwrap(calendar.date(byAdding: .hour, value: 15, to: startMidnight))
+        let program = makeProgram(start: afternoonAnchor)
+        let nextDay = try XCTUnwrap(calendar.date(byAdding: .day, value: 1, to: startMidnight))
+        let resolver = ProgramOverviewDayResolver(
+            userId: "u1",
+            activeTravelOverride: nil,
+            scheduleRevision: 0,
+            scheduleStore: makeScheduleStore(),
+            calendar: calendar
+        )
+
+        let day = try XCTUnwrap(resolver.day(for: nextDay, in: program))
+
+        // One calendar day after the start resolves to day 2, not day 1.
+        XCTAssertEqual(day.dayNumber, 2)
+        XCTAssertEqual(day.workout?.name, "Pull Base")
+    }
+
     func testTravelOverrideReplacesGeneratedProgramDay() throws {
         let start = try date(year: 2026, month: 6, day: 1)
         let program = makeProgram(start: start)

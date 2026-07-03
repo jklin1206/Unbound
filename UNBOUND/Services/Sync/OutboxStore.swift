@@ -11,6 +11,7 @@ final class OutboxStore: @unchecked Sendable {
     private let deadletterURL: URL
     private var pending: [OutboxEntry] = []
     private var dead: [OutboxEntry] = []
+    private let logger = LoggingService.shared
 
     init(directory: URL? = nil) {
         let base = directory ?? FileManager.default
@@ -19,14 +20,32 @@ final class OutboxStore: @unchecked Sendable {
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         self.pendingURL = base.appendingPathComponent("outbox.json")
         self.deadletterURL = base.appendingPathComponent("outbox-deadletter.json")
-        self.pending = (try? JSONDecoder().decode([OutboxEntry].self,
-                        from: Data(contentsOf: pendingURL))) ?? []
-        self.dead = (try? JSONDecoder().decode([OutboxEntry].self,
-                     from: Data(contentsOf: deadletterURL))) ?? []
+        self.pending = Self.loadEntries(from: pendingURL)
+        self.dead = Self.loadEntries(from: deadletterURL)
+    }
+
+    /// Decodes a persisted queue file. A missing file (first launch) is normal
+    /// and starts empty silently; a present-but-unreadable file is a corruption
+    /// signal - recovery is still to start empty, but never silently.
+    private static func loadEntries(from url: URL) -> [OutboxEntry] {
+        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        do {
+            return try JSONDecoder().decode([OutboxEntry].self, from: Data(contentsOf: url))
+        } catch {
+            LoggingService.shared.log(
+                "Outbox load failed; discarding unreadable queue file",
+                level: .error,
+                context: ["file": url.lastPathComponent, "error": String(describing: error)]
+            )
+            return []
+        }
     }
 
     @MainActor
     var pendingCount: Int { pending.count }
+
+    @MainActor
+    var deadletterCount: Int { dead.count }
 
     @MainActor
     func enqueue(_ entry: OutboxEntry) {
@@ -71,7 +90,7 @@ final class OutboxStore: @unchecked Sendable {
         guard let i = pending.firstIndex(where: { $0.id == id }) else { return }
         dead.append(pending.remove(at: i))
         persistPending()
-        try? JSONEncoder().encode(dead).write(to: deadletterURL, options: .atomic)
+        persist(dead, to: deadletterURL)
     }
 
     @MainActor
@@ -84,6 +103,31 @@ final class OutboxStore: @unchecked Sendable {
 
     @MainActor
     private func persistPending() {
-        try? JSONEncoder().encode(pending).write(to: pendingURL, options: .atomic)
+        persist(pending, to: pendingURL)
+    }
+
+    /// Atomic write with one immediate retry. On repeated failure the in-memory
+    /// queue is left untouched - it stays the source of truth, so a later
+    /// successful persist recovers - and the failure is never swallowed.
+    @MainActor
+    private func persist(_ entries: [OutboxEntry], to url: URL) {
+        do {
+            try JSONEncoder().encode(entries).write(to: url, options: .atomic)
+        } catch {
+            logger.log(
+                "Outbox persist failed; retrying once",
+                level: .error,
+                context: ["file": url.lastPathComponent, "error": String(describing: error)]
+            )
+            do {
+                try JSONEncoder().encode(entries).write(to: url, options: .atomic)
+            } catch {
+                logger.log(
+                    "Outbox persist retry failed; in-memory queue retained",
+                    level: .error,
+                    context: ["file": url.lastPathComponent, "error": String(describing: error)]
+                )
+            }
+        }
     }
 }

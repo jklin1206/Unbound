@@ -21,9 +21,16 @@ enum ProgramSelectedDayPresenter {
         calendar: Calendar = .current
     ) -> ProgramSelectedDayPresentation {
         let isCalibration = Self.isCalibrationDay(day)
-        let heroTint = isCalibration
-            ? Color.unbound.accent
-            : (isToday ? Color.unbound.coachCyan : Color.unbound.textPrimary.opacity(0.72))
+        // The day's session-role accent drives the card's pop (border, glow,
+        // eyebrow) — mirrors the dungeon cards' category-color language.
+        let heroTint: Color
+        if isCalibration {
+            heroTint = Color.unbound.accent
+        } else if let day {
+            heroTint = day.sessionRole.accentColor
+        } else {
+            heroTint = isToday ? Color.unbound.coachCyan : Color.unbound.textPrimary.opacity(0.72)
+        }
 
         return ProgramSelectedDayPresentation(
             headerLabel: headerLabel(for: day, isToday: isToday, isCalibration: isCalibration),

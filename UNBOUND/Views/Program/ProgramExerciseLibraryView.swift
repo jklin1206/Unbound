@@ -14,11 +14,13 @@ struct ProgramExerciseLibraryView: View {
     var preferenceStatusesByKey: [String: ExercisePreferenceStatus] = [:]
     var availableEquipment: [Equipment]? = nil
     var onCreateCustom: (() -> Void)? = nil
+    var onSearchFocused: (() -> Void)? = nil
     var onDismiss: () -> Void = {}
 
     @State private var searchText = ""
     @State private var selectedSlot: MovementSlot?
     @State private var contextFilter: ExerciseLibraryContextFilter = .best
+    @FocusState private var searchIsFocused: Bool
 
     private var filteredResults: [ExerciseLibrarySearchResult] {
         ExerciseLibrarySearch.filteredResults(
@@ -36,11 +38,15 @@ struct ProgramExerciseLibraryView: View {
         ExerciseLibrarySearch.availableSlots(in: alternatives)
     }
 
+    /// Optional context chips — shown only when they'd match something.
+    /// There is no "Best" chip: with no filter active, the list is already
+    /// ranked by fit, and labeling that state "Best" read as a claim about
+    /// every row. Tapping a selected chip deselects it.
     private var availableContextFilters: [ExerciseLibraryContextFilter] {
         ExerciseLibraryContextFilter.allCases.filter { filter in
             switch filter {
-            case .best:
-                return true
+            case .best, .available:
+                return false
             case .recent:
                 return alternatives.contains {
                     ExerciseLibrarySearch.signals(
@@ -57,8 +63,6 @@ struct ProgramExerciseLibraryView: View {
                         preferenceStatusesByKey: preferenceStatusesByKey
                     ).preferenceStatus == .available
                 }
-            case .available:
-                return false
             }
         }
     }
@@ -77,37 +81,38 @@ struct ProgramExerciseLibraryView: View {
         }
     }
 
+    /// One compact row — the old icon + headline + subtitle header pushed the
+    /// search field halfway down the sheet, and with the keyboard up almost no
+    /// results survived. Search now sits directly under this line.
     private func header(matchCount: Int) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: mode == .add ? "plus" : "arrow.triangle.2.circlepath")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Color.unbound.bg)
-                .frame(width: 34, height: 34)
-                .background(Circle().fill(mode == .add ? Color.unbound.coachCyan : Color.unbound.accent))
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundStyle(mode == .add ? Color.unbound.coachCyan : Color.unbound.accent)
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text(mode == .add ? "ADD EXERCISE" : "SWAP EXERCISE")
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                Text(mode == .add ? "Pick the next movement" : currentExerciseName)
-                    .font(Font.unbound.titleM)
+            Text(mode == .add ? "ADD EXERCISE" : "SWAP")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+
+            if mode == .swap {
+                Text(currentExerciseName)
+                    .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(2)
-                Text(mode == .add ? "Search, filter, or create a custom exercise." : "Choose a compatible replacement ranked by fit.")
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                Text("\(matchCount) of \(alternatives.count) matches")
-                    .font(Font.unbound.monoS)
-                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 8)
+
+            Text("\(matchCount) of \(alternatives.count)")
+                .font(Font.unbound.monoS)
+                .foregroundStyle(Color.unbound.textTertiary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
-        .padding(.top, 18)
-        .padding(.bottom, 8)
+        .padding(.top, 16)
+        .padding(.bottom, 10)
     }
 
     private var searchAndFilters: some View {
@@ -124,6 +129,10 @@ struct ProgramExerciseLibraryView: View {
                     .foregroundStyle(Color.unbound.textPrimary)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .focused($searchIsFocused)
+                    .onChange(of: searchIsFocused) { _, focused in
+                        if focused { onSearchFocused?() }
+                    }
                 if !searchText.isEmpty {
                     Button {
                         searchText = ""
@@ -150,17 +159,18 @@ struct ProgramExerciseLibraryView: View {
             if !slots.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
+                        filterChip(title: "All", isSelected: selectedSlot == nil && contextFilter == .best) {
+                            selectedSlot = nil
+                            contextFilter = .best
+                        }
                         ForEach(filters, id: \.self) { filter in
                             filterChip(title: filter.displayName, isSelected: contextFilter == filter) {
-                                contextFilter = filter
+                                contextFilter = contextFilter == filter ? .best : filter
                             }
-                        }
-                        filterChip(title: "All", isSelected: selectedSlot == nil) {
-                            selectedSlot = nil
                         }
                         ForEach(slots, id: \.self) { slot in
                             filterChip(title: slot.displayName, isSelected: selectedSlot == slot) {
-                                selectedSlot = slot
+                                selectedSlot = selectedSlot == slot ? nil : slot
                             }
                         }
                     }
@@ -333,13 +343,18 @@ struct ProgramExerciseLibraryView: View {
                         .font(Font.unbound.captionS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .lineLimit(2)
-                    HStack(spacing: 6) {
-                        contextBadge(compatibility.badgeTitle)
-                        ForEach(signals.badges.filter { $0 != compatibility.badgeTitle }.prefix(2), id: \.self) { badge in
-                            contextBadge(badge)
+                    // Only badges that say something this row doesn't already:
+                    // Recent / Favorite / Substitute. A "Fits" badge on every
+                    // compatible row was noise; incompatibility gets its own
+                    // warning line below.
+                    if !signals.badges.isEmpty {
+                        HStack(spacing: 6) {
+                            ForEach(signals.badges.prefix(2), id: \.self) { badge in
+                                contextBadge(badge)
+                            }
                         }
+                        .padding(.top, 2)
                     }
-                    .padding(.top, 2)
                     if !compatibility.isSelectable {
                         HStack(spacing: 6) {
                             Image(systemName: "exclamationmark.triangle.fill")
@@ -424,9 +439,9 @@ struct ProgramExerciseLibraryView: View {
 
     private func badgeColor(_ title: String) -> Color {
         switch title {
-        case "Available", "Fits":
+        case "Favorite":
             return Color.unbound.success
-        case "Avoid", "Unavailable":
+        case "Avoid":
             return Color.unbound.alert
         case "Substitute":
             return Color.unbound.warnOrange

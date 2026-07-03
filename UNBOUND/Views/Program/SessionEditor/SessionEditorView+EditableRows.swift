@@ -1,10 +1,12 @@
 import SwiftUI
 
 extension SessionEditorView {
-    /// Flat, always-visible exercise row: thumbnail + name + overflow menu, then a
-    /// compact Set · Weight · Reps grid (one editable row per set) + "add set".
-    /// Mirrors the in-workout logging grid but simplified — no RPE / rest / target /
-    /// warmup controls (those model values keep their defaults, just unexposed).
+    /// Boxed exercise card: thumbnail + name + movement-type chip + overflow menu,
+    /// then a compact Set · Weight · Reps grid of boxed editable cells + "add set".
+    /// The card border / index badge / chip carry the exercise's movement-slot
+    /// accent (push = amber, pull = blue, legs = orange …). Mirrors the in-workout
+    /// logging grid but simplified — no RPE / rest / target / warmup controls
+    /// (those model values keep their defaults, just unexposed).
     struct EditablePrescriptionRow<Visual: View>: View {
         @Binding var prescription: TrainingBlockPrescription
         let index: Int
@@ -76,17 +78,39 @@ extension SessionEditorView {
             )?.exact
         }
 
-        /// Reps-based rows keep the same Set · Weight · Reps shape as the live
-        /// workout grid. Pure bodyweight/skill rows simply render nil weight as
-        /// `—`, while loaded prescriptions stay editable.
+        /// Push / pull / legs … accent for this exercise — colors the card
+        /// border, index badge, and type chip.
+        private var movementSlot: MovementSlot {
+            movementDefinition?.movementSlot
+                ?? MovementResolver.resolve(prescription.exerciseName).movementSlot
+        }
+
+        /// Chip text; a name the catalog can't match falls back to the
+        /// routine slot internally, but labeling it "Routine" would be a lie —
+        /// call it what it is.
+        private var chipLabel: String {
+            if movementDefinition == nil,
+               MovementResolver.resolve(prescription.exerciseName).isUnmatched {
+                return "Custom"
+            }
+            return movementSlot.accentLabel
+        }
+
+        /// Rep-based movements always get the Weight column — including
+        /// bodyweight rows, where "—" means bodyweight and a typed value is
+        /// added load (weighted pull-up / dip / vest work). Only skill
+        /// attempts, mobility, routines, and time-based rows hide it, and even
+        /// those show it once a weight is actually stored. This matches the
+        /// in-workout logging grid, which always exposes weight.
         private var showsWeight: Bool {
             if hasAnyWeightValue { return true }
-            if metricKind == .reps { return true }
             switch movementDefinition?.loggerMode {
-            case .bodyweightSets, .skillAttempts, .mobility, .routinePlayer:
+            case .skillAttempts, .mobility, .routinePlayer:
                 return false
-            case .strengthSets, .hold, .cardio, .carry, .none:
+            case .strengthSets, .cardio, .carry:
                 return true
+            case .bodyweightSets, .hold, .none:
+                return metricKind == .reps
             }
         }
 
@@ -96,7 +120,9 @@ extension SessionEditorView {
         }
 
         var body: some View {
-            VStack(alignment: .leading, spacing: 12) {
+            let accent = movementSlot.accentColor
+
+            VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .center, spacing: 10) {
                     ZStack(alignment: .topLeading) {
                         visual()
@@ -104,15 +130,18 @@ extension SessionEditorView {
                             .font(Font.unbound.monoS.weight(.bold))
                             .foregroundStyle(Color.unbound.bg)
                             .frame(width: 18, height: 18)
-                            .background(Circle().fill(Color.unbound.coachCyan))
+                            .background(Circle().fill(accent))
                             .offset(x: -3, y: -3)
                     }
 
-                    Text(prescription.exerciseName)
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.76)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(prescription.exerciseName)
+                            .font(Font.unbound.bodyMStrong)
+                            .foregroundStyle(Color.unbound.textPrimary)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.76)
+                        SessionRoleChip(text: chipLabel, accent: accent)
+                    }
 
                     Spacer(minLength: 0)
 
@@ -132,8 +161,17 @@ extension SessionEditorView {
                     onProgrammingChange: onProgrammingChange
                 )
             }
-            .padding(.vertical, 14)
-            .padding(.horizontal, 4)
+            .padding(.horizontal, 14)
+            .padding(.top, 14)
+            .padding(.bottom, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.unbound.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(accent.opacity(0.24), lineWidth: 1)
+            )
         }
 
         private var rowActionsMenu: some View {
@@ -151,6 +189,8 @@ extension SessionEditorView {
                     Label("Move Down", systemImage: "arrow.down")
                 }
                 .disabled(!canMoveDown)
+
+                WeightUnitMenuButton()
 
                 Button(role: .destructive, action: onRemove) {
                     Label("Remove", systemImage: "trash")
@@ -182,7 +222,7 @@ extension SessionEditorView {
         let onProgrammingChange: () -> Void
 
         var body: some View {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
                 columnHeader
 
                 ForEach(Array(planIndices), id: \.self) { setIndex in
@@ -233,23 +273,19 @@ extension SessionEditorView {
             HStack(spacing: 8) {
                 Text("SET").frame(width: 26, alignment: .leading)
                 if showsWeight {
-                    Text(weightHeader).frame(maxWidth: .infinity, alignment: .leading)
+                    WeightUnitHeaderLabel().frame(maxWidth: .infinity, alignment: .center)
                 }
-                Text(metricHeader).frame(maxWidth: .infinity, alignment: .leading)
+                Text(metricHeader).frame(maxWidth: .infinity, alignment: .center)
                 Spacer().frame(width: 28)
             }
             .font(Font.unbound.captionS.weight(.heavy))
             .tracking(1.2)
             .foregroundStyle(Color.unbound.textTertiary)
-            .padding(.bottom, 4)
+            .padding(.top, 2)
         }
 
         private var planIndices: Range<Int> {
             (prescription.setPlans ?? prescription.effectiveSetPlans).indices
-        }
-
-        private var weightHeader: String {
-            "WEIGHT " + weightUnit.shortLabel.uppercased()
         }
 
         private var metricHeader: String {
@@ -361,12 +397,10 @@ extension SessionEditorView {
                     Spacer().frame(width: 28)
                 }
             }
-            .padding(.vertical, 4)
-            .overlay(alignment: .bottom) {
-                Rectangle().fill(Color.unbound.borderSubtle).frame(height: 1)
-            }
         }
 
+        /// Every value is a boxed, obviously-tappable field; the cell being
+        /// edited gets the violet input-focus border (per the palette rule).
         @ViewBuilder
         private func valueCell(target: CellEditTarget, displayText: String, accessibilityName: String) -> some View {
             let isActive = activeEdit == target
@@ -379,12 +413,17 @@ extension SessionEditorView {
                     .font(Font.unbound.monoM)
                     .foregroundStyle(shown.isEmpty ? Color.unbound.textTertiary : Color.unbound.textPrimary)
                     .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 8)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 7)
                     .padding(.horizontal, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(isActive ? Color.unbound.surfaceElevated : Color.clear)
+                            .fill(Color.unbound.surfaceElevated)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(isActive ? Color.unbound.accent : Color.unbound.borderSubtle, lineWidth: 1)
                     )
                     .contentShape(Rectangle())
             }
@@ -400,19 +439,26 @@ extension SessionEditorView {
         }
 
         /// Reps show the count/range as-is (range is informative even though the
-        /// keypad edits the lower bound); holds/time/distance/cal show the number.
+        /// keypad edits the lower bound); holds/time show seconds with an "s"
+        /// unit, distance in meters, so bare numbers never float unlabeled.
         private var metricDisplay: String {
             switch metricKind {
             case .reps:
                 switch plan.target {
                 case .reps(let count): return "\(count)"
-                case .repsRange(let low, let high): return "\(low)-\(high)"
+                case .repsRange(let low, _): return "\(low)"
                 case .amrap: return "AMRAP"
                 default:
                     guard let lower = plan.target.metricLowerBound else { return "" }
                     return "\(lower)"
                 }
-            case .holdSeconds, .durationSeconds, .distanceMeters, .calories:
+            case .holdSeconds, .durationSeconds:
+                guard let lower = plan.target.metricLowerBound else { return "" }
+                return "\(lower)s"
+            case .distanceMeters:
+                guard let lower = plan.target.metricLowerBound else { return "" }
+                return "\(lower)m"
+            case .calories:
                 guard let lower = plan.target.metricLowerBound else { return "" }
                 return "\(lower)"
             }

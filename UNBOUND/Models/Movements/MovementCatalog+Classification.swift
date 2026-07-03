@@ -234,12 +234,23 @@ extension MovementCatalog {
         case .freeWeights:
             if definition.equipment.contains(.barbell) { score -= 20 }
             if definition.equipment.contains(.dumbbell) || definition.equipment.contains(.kettlebell) { score -= 10 }
-            if definition.equipment.contains(.machine) || definition.equipment.contains(.cable) { score += 50 }
+            // Machines and cables are first-class for a full gym - no penalty. The
+            // best tool for the pattern (e.g. a cable lat pulldown for a vertical
+            // pull) should win on its own merits, not be pushed below a band.
         case .machines:
             if definition.equipment.contains(.machine) || definition.equipment.contains(.cable) || definition.equipment.contains(.smithMachine) { score -= 20 }
             if definition.equipment.contains(.barbell) || definition.equipment.contains(.dumbbell) { score += 50 }
         case .hybrid:
             break
+        }
+
+        // Bands are a substitute for when better equipment isn't available, not a
+        // first pick. Deprioritize them across every style so a barbell / dumbbell /
+        // cable / machine variant of the same pattern wins whenever the user's gear
+        // includes one. The equipment-filtered movement pool still falls back to a
+        // band when it is genuinely the only option for that slot.
+        if definition.equipment.contains(.band) {
+            score += 40
         }
 
         if definition.variantOfMovementId != nil {
@@ -411,14 +422,17 @@ extension MovementCatalog {
            name.contains("deadlift") || name.contains("bench press") || name.contains("overhead press") || name.contains("hip thrust") {
             equipment.insert(.barbell)
         }
-        if name.contains("dumbbell") || name.contains("arnold press") || name.contains("goblet") || name.contains("hammer curl") || name.contains("lateral raise") || name.contains("fly") || name.contains("weighted pistol") { equipment.insert(.dumbbell) }
-        if name.contains("weighted pistol") { equipment.insert(.kettlebell) }
+        if name.contains("ez bar") || name.contains("skull crusher") { equipment.insert(.barbell) }
+        if name.contains("upright row"), !isDumbbellVariant, !isBandVariant { equipment.insert(.barbell) }
+        if name.contains("dumbbell") || name.contains("arnold press") || name.contains("goblet") || (name.contains("hammer curl") && !name.contains("rope")) || name.contains("lateral raise") || name.contains("fly") || name.contains("weighted pistol") || name.contains("concentration curl") || name.contains("spider curl") || name.contains("chest supported row") || name.contains("single leg rdl") { equipment.insert(.dumbbell) }
+        if name.contains("weighted pistol") || name.contains("goblet") { equipment.insert(.kettlebell) }
         if name.contains("kettlebell") { equipment.insert(.kettlebell) }
         if !isBandVariant,
-           name.contains("cable") || name.contains("pulldown") || name.contains("pushdown") || name.contains("face pull") || name.contains("pallof") {
+           name.contains("cable") || name.contains("pulldown") || name.contains("pushdown") || name.contains("face pull") || name.contains("pallof") || name.contains("rope") {
             equipment.insert(.cable)
         }
-        if name.contains("machine") || name.contains("belt squat") || name.contains("plate loaded") || name.contains("hammer strength") || name.contains("converging") || name.contains("leg press") || name.contains("hack squat") || name.contains("pendulum") || name.contains("v squat") || name.contains("pec deck") || name.contains("leg curl") || (!isBodyweightLegExtension && name.contains("leg extension")) || name.contains("reverse hyper") || name.contains("glute ham") || name.contains("captain") { equipment.insert(.machine) }
+        if name.contains("machine") || name.contains("belt squat") || name.contains("plate loaded") || name.contains("hammer strength") || name.contains("converging") || name.contains("leg press") || name.contains("hack squat") || name.contains("pendulum") || name.contains("v squat") || name.contains("pec deck") || name.contains("leg curl") || (!isBodyweightLegExtension && name.contains("leg extension")) || name.contains("reverse hyper") || name.contains("glute ham") || name.contains("captain") || name.contains("standing calf raise") || name.contains("seated calf raise") || name.contains("donkey calf raise") { equipment.insert(.machine) }
+        if name.contains("back extension") || name.contains("roman chair") || name.contains("skull crusher") || name.contains("spider curl") { equipment.insert(.bench) }
         if name.contains("pullup") || name.contains("chin up") || name.contains("hanging") { equipment.insert(.pullupBar) }
         if name.contains("ab wheel") { equipment.insert(.mobilityTool) }
         if name.contains("dip") { equipment.insert(.dipStation) }
@@ -803,6 +817,10 @@ extension MovementCatalog {
             aliases += ["bodyweight leg extensions", "reverse nordic", "reverse-nordic", "reverse nordic curl", "kneeling leg extension"]
         case "plank":
             aliases += ["plank hold", "plank max hold"]
+        case "face pull":
+            aliases += ["face pulls", "cable face pull"]
+        case "band face pull":
+            aliases += ["band face pulls", "banded face pull"]
         case "machine chest press":
             aliases += ["plate loaded chest press", "hammer strength chest press", "converging chest press"]
         case "machine row":

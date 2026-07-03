@@ -7,6 +7,12 @@ final class LiftTierService {
     private let key = "unbound.liftTier."
     private let defaults: UserDefaults
 
+    /// The barbell compounds whose per-lift tiers feed the overall-rank aggregate
+    /// and are mirrored to the cloud (`lift_tiers`). The single source for the set
+    /// of lift keys, shared by `RankService` and the rank-progress backup/restore.
+    /// `nonisolated` so the sign-in migration (off the main actor) can read it.
+    nonisolated static let trackedLiftKeys = ["bench press", "back squat", "deadlift", "overhead press"]
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
     }

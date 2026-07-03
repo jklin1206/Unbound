@@ -69,6 +69,7 @@ extension UnboundHomeView {
               )
         else {
             return DailyWorkoutModifierContext(deloadFactor: deloadFactor)
+                .applyingAppState(on: date)
         }
 
         let resolution = ProgramFocusSwitchCoordinator.resolvedContext(
@@ -79,6 +80,7 @@ extension UnboundHomeView {
             availableEquipment: resolution.dailyModifierEquipment,
             deloadFactor: deloadFactor
         )
+        .applyingAppState(on: date)
     }
 
     // MARK: - Bodyweight display

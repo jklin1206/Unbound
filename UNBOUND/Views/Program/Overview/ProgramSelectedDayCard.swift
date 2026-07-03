@@ -49,6 +49,11 @@ struct ProgramSelectedDayCard<Content: View>: View {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(Color.unbound.surfaceElevated)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(heroTint.opacity(0.24), lineWidth: 1)
+        )
+        .shadow(color: heroTint.opacity(0.13), radius: 16, x: 0, y: 8)
     }
 
     private var header: some View {

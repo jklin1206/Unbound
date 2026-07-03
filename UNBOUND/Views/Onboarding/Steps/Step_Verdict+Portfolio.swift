@@ -8,6 +8,7 @@ extension Step_Verdict {
             initiateIdentityBlock
             initiateTierPlate
             dayZeroMilestoneBand
+            projectionReveal
             profileHexReveal
         }
         .frame(maxWidth: .infinity, alignment: .center)
@@ -155,11 +156,11 @@ extension Step_Verdict {
     var dayZeroMilestoneBand: some View {
         VStack(spacing: 10) {
             VStack(alignment: .center, spacing: 4) {
-                Text(L10n.onboarding("verdict.startingLine", defaultValue: "STARTING LINE"))
+                Text(L10n.onboarding("verdict.potentialRead", defaultValue: "POTENTIAL READ"))
                     .font(.system(size: 9, weight: .black, design: .monospaced))
                     .tracking(1.8)
                     .foregroundStyle(initiateTint)
-                Text(L10n.onboarding("verdict.startingLine.body", defaultValue: "Your first rank is locked in. The rest is earned by showing up."))
+                Text(L10n.onboarding("verdict.potentialRead.body", defaultValue: "High growth potential detected. Initiate is where your record starts, not where it ends."))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.unbound.textPrimary)
                     .multilineTextAlignment(.center)

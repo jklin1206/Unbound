@@ -55,6 +55,56 @@ final class NextGateCardModelTests: XCTestCase {
         XCTAssertEqual(model.questItems.map(\.id), ["lvl"])
     }
 
+    func testQuestItemDetailShowsConcreteRequirement() {
+        let model = NextGateCardModel(
+            readiness: readiness(status: .locked, requirements: [
+                .init(id: "lvl", kind: .overallLevel, label: "Overall LVL",
+                      current: "LVL 3", required: "LVL 15", isMet: false),
+                .init(id: "equip", kind: .equipment, label: "Equipment",
+                      current: "Bodyweight", required: "Pull-up Bar", isMet: false),
+                .init(id: "rank", kind: .rank, label: "Build to Forged",
+                      current: "Apprentice", required: "Forged", isMet: false)
+            ]),
+            world: GateWorldCatalog.world(for: .theForging))
+        XCTAssertEqual(model.questItems.map(\.detail),
+                       ["LVL 3 / LVL 15", "Needs Pull-up Bar", "Now Apprentice"])
+    }
+
+    func testQuestItemDetailQuietsWhenMetOrEmpty() {
+        let model = NextGateCardModel(
+            readiness: readiness(status: .locked, requirements: [
+                .init(id: "lvl", kind: .overallLevel, label: "Overall LVL",
+                      current: "LVL 20", required: "LVL 15", isMet: true),
+                .init(id: "bare", kind: .overallLevel, label: "bare",
+                      current: "", required: "", isMet: false)
+            ]),
+            world: GateWorldCatalog.world(for: .theForging))
+        XCTAssertEqual(model.questItems.map(\.detail), ["LVL 20", nil])
+    }
+
+    func testMetEquipmentIsNotAQuestItem() {
+        let model = NextGateCardModel(
+            readiness: readiness(status: .locked, requirements: [
+                .init(id: "lvl", kind: .overallLevel, label: "Overall LVL",
+                      current: "LVL 20", required: "LVL 15", isMet: true),
+                .init(id: "equip", kind: .equipment, label: "Equipment",
+                      current: "Full Gym", required: "Barbell", isMet: true)
+            ]),
+            world: GateWorldCatalog.world(for: .theForging))
+        XCTAssertEqual(model.questItems.map(\.id), ["lvl"])
+    }
+
+    func testMissingEquipmentSurfacesAsBlockerQuestItem() {
+        let model = NextGateCardModel(
+            readiness: readiness(status: .locked, requirements: [
+                .init(id: "equip", kind: .equipment, label: "Equipment",
+                      current: "Bodyweight", required: "Pull-up Bar", isMet: false)
+            ]),
+            world: GateWorldCatalog.world(for: .theForging))
+        XCTAssertEqual(model.questItems.map(\.id), ["equip"])
+        XCTAssertEqual(model.questItems.first?.detail, "Needs Pull-up Bar")
+    }
+
     func testNoDefinitionIsCleared() {
         let r = OverallRankTrialReadiness(status: .passed, currentRank: .unbound, targetRank: nil,
             definition: nil, resolvedTrial: nil, blockerSummary: nil, requirements: [], latestAttempt: nil)

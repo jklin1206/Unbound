@@ -37,7 +37,6 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case equipment
     case exerciseStyle       // what kinds of exercises they enjoy
     case sessionLength
-    case resultsSnapshot     // early personalized checkpoint
     case diet
     case sleep
     case stress
@@ -60,13 +59,10 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case scanAnalyzing      // cinematic 6s animation
 
     // MARK: Post-scan reveals (sell the product)
-    case verdict            // rank + photo + soft quote + plan preview
-    case appPainSolution    // names the pains again, now solved by the scanned plan
-    case workoutPreviewDemo // shows the daily mission
-    case workoutLogDemo     // lets the user taste logging
+    case verdict            // profile-built reveal: rank + photo + projection to Unbound
+    case workoutLogDemo     // taste logging on the REAL active-workout surface (rehearsal)
     case workoutRewardDemo  // shows progress/rank reward after logging
     case appRatingPrompt    // archived; native Apple prompt now fires from reward completion
-    case trajectory         // 12-month projection chart
     case obstacleFix         // names the user's obstacle and maps UNBOUND's fix
 
     // MARK: Chapter IV — "THE PATH" cinematic interstitial
@@ -86,7 +82,12 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     case commitToday
     case planReady           // custom-plan reveal right before pricing
 
-    case paywall            // blurred protocol + hard CTA
+    case pact               // sign the pact — finger-signed commitment ritual
+
+    case paywall            // trial timeline + RC package picker (hard gate)
+
+    // MARK: Cinematic pain beat — the cost of the restart loop, words punch in
+    case painCost
 
     var id: Int { rawValue }
 
@@ -97,9 +98,10 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     /// the primary dev jump menu should use this list, not `allCases`.
     static let flowOrder: [OnboardingStep] = [
         .arc01Opening,
+        .painCost,         // the cost of the restart loop — pain lands first
         .problemFrame,
-        .arc03Path,
-        .restartLoop,
+        .restartLoop,      // the answer: what you train becomes your build...
+        .arc03Path,        // ...and the build climbs the ranks
         .chapterMapping,
         .goals,
         .obstacles,
@@ -116,7 +118,6 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
         .workoutTime,
         .equipment,
         .sessionLength,
-        .resultsSnapshot,
         .diet,
         .sleep,
         .stress,
@@ -128,14 +129,13 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
         .scanReview,
         .scanAnalyzing,
         .verdict,
-        .appPainSolution,
-        .workoutPreviewDemo,
         .workoutLogDemo,
         .workoutRewardDemo,
-        .chapterPath,
+        .pact,             // sign at the sealed gate — the signature is what opens it
+        .chapterPath,      // ...and the gate answers by opening
         .whyThisProgram,
-        .trajectory,
         .socialProofGallery,
+        .obstacleFix,      // names the user's confessed blocker + the system's counter
         .commitDay90,
         .paywall
     ]
@@ -145,10 +145,10 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     /// Whether the progress bar should render. Hidden on hero frames.
     var showsProgressBar: Bool {
         switch self {
-        case .problemFrame, .restartLoop,
+        case .problemFrame, .painCost, .restartLoop,
              .arc01Opening, .arc03Path,
              .chapterMapping, .chapterScan, .chapterPath,
-             .scanLive, .scanAnalyzing, .verdict, .paywall:
+             .scanLive, .scanAnalyzing, .verdict, .obstacleFix, .pact, .paywall:
             return false
         default:
             return true
@@ -158,10 +158,10 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     /// Whether the back chevron should render.
     var showsBackButton: Bool {
         switch self {
-        case .problemFrame, .restartLoop,
+        case .problemFrame, .painCost, .restartLoop,
              .arc01Opening, .arc03Path,
              .chapterMapping, .chapterScan, .chapterPath,
-             .scanAnalyzing, .verdict, .paywall:
+             .scanAnalyzing, .verdict, .obstacleFix, .pact, .paywall:
             return false
         default:
             return true
@@ -180,7 +180,7 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
     /// Logical grouping for the HUD progress-bar eyebrow.
     var category: StepCategory {
         switch self {
-        case .problemFrame, .restartLoop,
+        case .problemFrame, .painCost, .restartLoop,
              .arc01Opening, .arc03Path,
              .lifeChangeEnergy, .lifeChangeStrength, .lifeChangeConfidence,
              .lifeChangeSleep, .lifeChangeLooksFeel, .socialProofGallery:
@@ -190,6 +190,8 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
         case .goals, .obstacles, .targetAreas, .name, .motivation,
              .commitDay30, .commitDay90, .commitToday:
             return .profile
+        case .pact:
+            return .commit
         case .experience, .targetFrequency, .trainingDays, .workoutTime,
              .equipment, .exerciseStyle, .sessionLength:
             return .training
@@ -200,11 +202,10 @@ enum OnboardingStep: Int, CaseIterable, Identifiable {
             return .lifestyle
         case .scanLive, .scanReview, .scanAnalyzing:
             return .scan
-        case .verdict, .appPainSolution, .workoutPreviewDemo,
-             .workoutLogDemo, .workoutRewardDemo, .appRatingPrompt,
-             .trajectory, .obstacleFix, .whyThisProgram:
+        case .verdict, .workoutLogDemo, .workoutRewardDemo, .appRatingPrompt,
+             .obstacleFix, .whyThisProgram:
             return .reveal
-        case .resultsSnapshot, .planReady:
+        case .planReady:
             return .reveal
         case .paywall:
             return .paywall
@@ -223,9 +224,10 @@ extension OnboardingStep {
     var debugDisplayName: String {
         switch self {
         case .arc01Opening: return "01 Opening"
+        case .painCost: return "01b The Cost"
         case .problemFrame: return "02 Pain Frame"
-        case .arc03Path: return "03 Rank Orbit"
-        case .restartLoop: return "04 Build Preview"
+        case .restartLoop: return "03 Build Preview"
+        case .arc03Path: return "04 Rank Orbit"
         case .chapterMapping: return "05 Chapter Mapping"
         case .goals: return "06 Goals"
         case .obstacles: return "07 Obstacles"
@@ -243,7 +245,6 @@ extension OnboardingStep {
         case .equipment: return "19 Equipment"
         case .exerciseStyle: return "20 Exercise Style"
         case .sessionLength: return "21 Session Length"
-        case .resultsSnapshot: return "22 Entry Map"
         case .diet: return "23 Diet"
         case .sleep: return "24 Sleep"
         case .stress: return "25 Stress"
@@ -255,18 +256,16 @@ extension OnboardingStep {
         case .scanReview: return "31 Scan Review"
         case .scanAnalyzing: return "32 Scan Analyzing"
         case .verdict: return "33 Verdict"
-        case .appPainSolution: return "34 Problems Solved"
-        case .workoutPreviewDemo: return "35 Daily Mission"
-        case .workoutLogDemo: return "36 Log Workout"
-        case .workoutRewardDemo: return "37 Reward"
-        case .chapterPath: return "39 Gate Open"
-        case .whyThisProgram: return "40 Path Benefits"
-        case .trajectory: return "41 Trajectory"
-        case .socialProofGallery: return "42 Climbers"
-        case .commitDay90: return "43 Staircase"
-        case .paywall: return "44 Paywall"
+        case .workoutLogDemo: return "34 Log Workout"
+        case .workoutRewardDemo: return "35 Reward"
+        case .pact: return "36 The Pact"
+        case .chapterPath: return "37 Gate Open"
+        case .whyThisProgram: return "38 Path Benefits"
+        case .socialProofGallery: return "39 Climbers"
+        case .obstacleFix: return "39b Obstacle Fix"
+        case .commitDay90: return "40 Staircase"
+        case .paywall: return "41 Paywall"
         case .appRatingPrompt: return "ARCHIVED · Apple Rating"
-        case .obstacleFix: return "ARCHIVED · Obstacle Fix"
         case .lifeChangeEnergy: return "ARCHIVED · Energy"
         case .lifeChangeStrength: return "ARCHIVED · Strength"
         case .lifeChangeConfidence: return "ARCHIVED · Confidence"

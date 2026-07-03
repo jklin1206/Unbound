@@ -73,7 +73,7 @@ enum RoutineLibrary {
         IntervalSegment(label: l, seconds: s)
     }
 
-    static let placeholderRoutines: [RoutineDef] = [
+    static let routines: [RoutineDef] = [
 
         // ───────── Cardio ─────────
         RoutineDef(id: "z2-walk-20", title: "Zone 2 Walk",
@@ -639,11 +639,11 @@ enum RoutineLibrary {
     ]
 
     static var routinesSortedByDifficulty: [RoutineDef] {
-        sortedByDifficulty(placeholderRoutines)
+        sortedByDifficulty(routines)
     }
 
     static func routines(category: RoutineCategory) -> [RoutineDef] {
-        sortedByDifficulty(placeholderRoutines.filter { $0.category == category })
+        sortedByDifficulty(routines.filter { $0.category == category })
     }
 
     static func sortedByDifficulty(_ routines: [RoutineDef]) -> [RoutineDef] {

@@ -11,7 +11,7 @@ Skill-system model layer: the unified skill graph and its content, the canonical
 | `SkillBlockKind.swift` | `SkillBlockKind` — block kinds within a skill session: primer / main / accessory / mobility. |
 | `SkillCluster.swift` | `SkillCluster` — the regions of the unified skill graph; every node belongs to exactly one cluster. |
 | `SkillDisplayTree.swift` | `SkillDisplayTree` — the top-level trees on the Skill Map landing screen (pull/push/legs/coreLevers/handstand/...), each mapping to clusters + display copy. |
-| `SkillEquipment.swift` | `SkillEquipment` enum + `UserSkillEquipmentProfile` — equipment availability for skill training. |
+| `SkillEquipment.swift` | `SkillEquipment` enum — per-node equipment badge metadata for skill training. |
 | `SkillRungResolver.swift` | `SkillRungResolver.resolve(...)` — picks the training rung (direct vs regression) for a skill from its plan, trainability, and last agent review. |
 | `SkillTier.swift` | The canonical 9-tier ladder (Initiate → Ascendant) — the one rank/tier type for the whole app; merged the former `SkillTier` (Int) and `RankTitle` (String) enums, old names kept as typealiases. |
 | `SkillTierGenerator.swift` | `SkillAnchor` + `SkillTierGenerator` — generates a skill's full 9-tier `[SkillTier: TierCriterion]` ladder from a few real anchors; `.full` (grind moves) and `.feat` (floor-rank hard feats) shapes. |

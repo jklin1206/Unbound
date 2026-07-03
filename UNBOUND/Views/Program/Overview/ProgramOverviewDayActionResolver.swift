@@ -34,6 +34,10 @@ struct ProgramOverviewDayActionState {
     let isEnabled: Bool
     let showsAddExtraSession: Bool
     let showsEditSession: Bool
+    /// Day-side loadout swap: any day the user can still shape (today or
+    /// ahead, not completed, not Calibration Week) offers "make this day one
+    /// of MY workouts" — including rest days, which a user plan may override.
+    let showsUseLoadout: Bool
 }
 
 enum ProgramOverviewDayActionResolver {
@@ -44,7 +48,8 @@ enum ProgramOverviewDayActionResolver {
                 label: "NOTHING PLANNED",
                 isEnabled: false,
                 showsAddExtraSession: false,
-                showsEditSession: false
+                showsEditSession: false,
+                showsUseLoadout: false
             )
         }
 
@@ -54,7 +59,8 @@ enum ProgramOverviewDayActionResolver {
                 label: input.isRestDay ? "VIEW RECOVERY" : "VIEW QUEST LOG",
                 isEnabled: true,
                 showsAddExtraSession: input.isToday,
-                showsEditSession: false
+                showsEditSession: false,
+                showsUseLoadout: false
             )
         }
 
@@ -64,7 +70,8 @@ enum ProgramOverviewDayActionResolver {
                 label: input.isToday ? "COMPLETE RECOVERY" : "REST DAY",
                 isEnabled: input.isToday,
                 showsAddExtraSession: false,
-                showsEditSession: false
+                showsEditSession: false,
+                showsUseLoadout: true
             )
         }
 
@@ -76,7 +83,8 @@ enum ProgramOverviewDayActionResolver {
                     : "NOTHING PLANNED",
                 isEnabled: input.hasWorkout,
                 showsAddExtraSession: false,
-                showsEditSession: input.isToday && input.hasWorkout
+                showsEditSession: input.isToday && input.hasWorkout,
+                showsUseLoadout: false
             )
         }
 
@@ -86,7 +94,8 @@ enum ProgramOverviewDayActionResolver {
                 label: "RESUME QUEST",
                 isEnabled: true,
                 showsAddExtraSession: false,
-                showsEditSession: input.hasWorkout
+                showsEditSession: input.hasWorkout,
+                showsUseLoadout: false
             )
         }
 
@@ -96,7 +105,8 @@ enum ProgramOverviewDayActionResolver {
                 label: "BEGIN QUEST",
                 isEnabled: true,
                 showsAddExtraSession: false,
-                showsEditSession: true
+                showsEditSession: true,
+                showsUseLoadout: true
             )
         }
 
@@ -105,7 +115,8 @@ enum ProgramOverviewDayActionResolver {
             label: input.hasWorkout ? "EDIT QUEST" : "NOTHING PLANNED",
             isEnabled: input.hasWorkout,
             showsAddExtraSession: false,
-            showsEditSession: false
+            showsEditSession: false,
+            showsUseLoadout: true
         )
     }
 }

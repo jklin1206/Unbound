@@ -5,18 +5,25 @@ import XCTest
 
 final class DeterministicProgramGeneratorTests: XCTestCase {
 
-    func testGeneratesExactlyTwentyEightDaysForStandardReadyArc() throws {
+    func testGeneratesExactlyOneArcLengthForStandardReadyArc() throws {
         let input = makeInput(frequency: .four, trainingDays: [.monday, .tuesday, .thursday, .friday])
         let program = try DeterministicProgramGenerator.generate(input: input)
-        XCTAssertEqual(program.days.count, 28)
+        XCTAssertEqual(program.days.count, Arc.durationDays)
     }
 
-    func testTrainingDayCountMatchesFourTrainingWeeks() throws {
+    func testTrainingDayCountMatchesFrequencyAcrossArc() throws {
         let days: Set<Weekday> = [.monday, .wednesday, .friday]
         let input = makeInput(frequency: .three, trainingDays: days)
         let program = try DeterministicProgramGenerator.generate(input: input)
         let trainingCount = program.days.filter { !$0.isRestDay }.count
-        XCTAssertEqual(trainingCount, 12) // 3/wk x 4 weeks
+        // Every day is scheduled, and the 3/wk cadence holds across the Arc: each
+        // full week contributes 3, and the final partial week adds at most one day
+        // per leftover weekday. Anchored to Arc.durationDays so it survives retunes.
+        let fullWeeks = Arc.durationDays / 7
+        let partialDays = Arc.durationDays % 7
+        XCTAssertEqual(program.days.count, Arc.durationDays)
+        XCTAssertGreaterThanOrEqual(trainingCount, fullWeeks * 3)
+        XCTAssertLessThanOrEqual(trainingCount, fullWeeks * 3 + partialDays)
     }
 
     func testRestDaysHaveNoWorkout() throws {
@@ -67,10 +74,10 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         XCTAssertTrue(workouts.contains { $0.notes?.localizedCaseInsensitiveContains("compressed") == true })
     }
 
-    func testDurationDaysIsTwentyEight() throws {
+    func testDurationDaysMatchesArcLength() throws {
         let input = makeInput(frequency: .three, trainingDays: [.monday, .wednesday, .friday])
         let program = try DeterministicProgramGenerator.generate(input: input)
-        XCTAssertEqual(program.durationDays, 28)
+        XCTAssertEqual(program.durationDays, Arc.durationDays)
     }
 
     func testCalibrationWeekGeneratesSevenDayLearningProgram() throws {
@@ -119,7 +126,7 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
 
         let program = try DeterministicProgramGenerator.generate(input: input)
 
-        XCTAssertEqual(program.durationDays, 28)
+        XCTAssertEqual(program.durationDays, Arc.durationDays)
         XCTAssertFalse(program.name.localizedCaseInsensitiveContains("Calibration"))
         XCTAssertFalse(program.days.compactMap(\.workout).contains {
             $0.name.localizedCaseInsensitiveContains("Calibration")
@@ -134,7 +141,7 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         XCTAssertEqual(program.arcs.count, 1)
         XCTAssertEqual(program.currentArc?.programId, program.id)
         XCTAssertEqual(program.currentArc?.startDate, input.blockStartDate)
-        XCTAssertEqual(program.currentArc?.endDate, input.blockStartDate.addingTimeInterval(28 * 86_400))
+        XCTAssertEqual(program.currentArc?.endDate, input.blockStartDate.addingTimeInterval(Double(Arc.durationDays) * 86_400))
     }
 
     func testGeneratedDaysCarrySessionRoles() throws {
@@ -204,7 +211,10 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         let exercise = try XCTUnwrap(workout.mainExercises.first { $0.name == baselineExercise.name })
 
         XCTAssertEqual(exercise.suggestedWeightKg, 60)
-        XCTAssertEqual(exercise.reps, "6-9")
+        // Single-target contract: state window 6...9, no session history →
+        // the plan asks for the bottom of the window.
+        XCTAssertEqual(exercise.reps, "\(state.currentTargetReps)")
+        XCTAssertEqual(exercise.reps, "6")
         XCTAssertNil(exercise.rpe, "prescriptions are RPE-free now")
 
         let draft = DailyWorkoutResolver.programDraft(
@@ -569,7 +579,9 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
             .flatMap(\.mainExercises)
             .first { $0.name == seededExercise.name }
 
-        XCTAssertEqual(adjusted?.reps, "6-8")
+        // Single-target contract: fresh intensification seed (6...8 window,
+        // no history) prescribes the bottom of the window.
+        XCTAssertEqual(adjusted?.reps, "\(state.currentTargetReps)")
         XCTAssertNil(adjusted?.rpe, "prescriptions are RPE-free now")
     }
 

@@ -17,7 +17,7 @@ struct Step29_SocialProof: View {
             Testimonial(
                 quote: L10n.onboarding("socialProof.testimonial.kai.quote", defaultValue: "I opened it because I wanted to see the next gate light up."),
                 name: "Kai",
-                role: L10n.onboarding("socialProof.role.betaTester", defaultValue: "Beta Tester"),
+                role: L10n.onboarding("socialProof.role.betaTester", defaultValue: "Climber"),
                 rank: .master,
                 rankStart: .initiate,
                 months: 2,
@@ -28,7 +28,7 @@ struct Step29_SocialProof: View {
             Testimonial(
                 quote: L10n.onboarding("socialProof.testimonial.mason.quote", defaultValue: "The first week felt like a quest, not another plan I had to babysit."),
                 name: "Mason",
-                role: L10n.onboarding("socialProof.role.betaTester", defaultValue: "Beta Tester"),
+                role: L10n.onboarding("socialProof.role.betaTester", defaultValue: "Climber"),
                 rank: .veteran,
                 rankStart: .initiate,
                 months: 3,
@@ -39,7 +39,7 @@ struct Step29_SocialProof: View {
             Testimonial(
                 quote: L10n.onboarding("socialProof.testimonial.jalen.quote", defaultValue: "Seeing Initiate on Day Zero made me want to earn the next title."),
                 name: "Jalen",
-                role: L10n.onboarding("socialProof.role.betaTester", defaultValue: "Beta Tester"),
+                role: L10n.onboarding("socialProof.role.betaTester", defaultValue: "Climber"),
                 rank: .forged,
                 rankStart: .initiate,
                 months: 1,
@@ -53,7 +53,7 @@ struct Step29_SocialProof: View {
     var body: some View {
         OnboardingScaffold(
             title: L10n.onboarding("socialProof.title", defaultValue: "Others started at the floor too."),
-            subtitle: L10n.onboarding("socialProof.subtitle", defaultValue: "They opened the gate, cleared sessions, and watched the ladder stop being decoration."),
+            subtitle: L10n.onboarding("socialProof.subtitle", defaultValue: "They started at Day Zero. The climb kept them coming back."),
             progress: progress,
             primaryTitle: L10n.onboarding("socialProof.primary", defaultValue: "Reveal the ladder"),
             hudStep: .socialProofGallery,
@@ -71,8 +71,6 @@ struct Step29_SocialProof: View {
                             .animation(.spring(response: 0.5, dampingFraction: 0.86).delay(0.14 + Double(index) * 0.08), value: hasAnimated)
                     }
                 }
-
-                socialProofFooter
             }
             .onAppear {
                 withAnimation(.spring(response: 0.62, dampingFraction: 0.88)) {
@@ -99,7 +97,7 @@ struct Step29_SocialProof: View {
                 )
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(L10n.onboarding("socialProof.eyebrow", defaultValue: "BETA LOG"))
+                Text(L10n.onboarding("socialProof.eyebrow", defaultValue: "CLIMB LOG"))
                     .font(.system(size: 10, weight: .black, design: .monospaced))
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.accent)
@@ -114,24 +112,6 @@ struct Step29_SocialProof: View {
                 .strokeBorder(Color.unbound.accent.opacity(0.28), lineWidth: 1)
         )
         .shadow(color: Color.unbound.accent.opacity(0.18), radius: 18)
-    }
-
-    private var socialProofFooter: some View {
-        HStack(spacing: 8) {
-            OnboardingAssetGlyph(
-                assetName: "badge_art_first_rank_up",
-                tint: Color.unbound.accent,
-                size: 26,
-                imagePadding: 5,
-                shape: .hexagon,
-                showsCornerMark: false
-            )
-            Text(L10n.onboarding("socialProof.footer", defaultValue: "The win is not the quote. The win is that the next rank gives the work somewhere to go."))
-                .font(Font.unbound.bodyS)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.top, 6)
     }
 
     private func climberProfileCard(_ t: Testimonial, index: Int) -> some View {

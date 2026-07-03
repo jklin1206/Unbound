@@ -8,9 +8,8 @@ import UIKit
 
 // MARK: - OnboardingFlowViewModel
 //
-// Drives the new 30-step UNBOUND onboarding flow. Lives alongside the legacy
-// `OnboardingViewModel` — we haven't deleted that yet so legacy auth/flow
-// gating keeps working. Day 2/3 will retire the legacy one.
+// Drives the UNBOUND onboarding flow. The legacy `OnboardingViewModel` step
+// counter has been removed; this is the only onboarding flow VM.
 //
 // Holds the full answer model, step enum, navigation helpers, and `finish()`
 // which writes everything to `UserService.updateProfile(userId:fields:)` in
@@ -62,6 +61,11 @@ final class OnboardingFlowViewModel {
     var priorAttempts: Set<PriorAttempt> = []
     var commitment: Int = 8
     var displayHandle: String = ""
+
+    /// Finger-signed pact strokes (normalized 0...1), captured at the commitment
+    /// ritual just before the paywall. Persisted so the signature can be
+    /// re-surfaced later (profile, vow surfaces).
+    var pactSignatureStrokes: [[CGPoint]] = []
 
     /// Max reps of a standard pushup — mapped to starting push tier on finish().
     var calisthenicPushReps: Int = 3
@@ -232,6 +236,14 @@ final class OnboardingFlowViewModel {
         // program generation runs on defaults.
         PendingOnboardingProfile.stash(fields)
         do {
+            // Materialize a COMPLETE profile doc first. `updateProfile` is a blind
+            // field-merge: on a user with no doc yet it creates one containing only
+            // these answer keys — with no `id` — which then fails to decode on every
+            // later `fetchProfile`, silently blocking first-run program generation
+            // (the user lands on a permanent "No program"). `createUserIfNeeded`
+            // writes a full `UserProfile` (with `id`) so the merge below lands on a
+            // decodable doc. Best-effort: if it throws, the Home self-heal recovers.
+            _ = try? await userService.createUserIfNeeded(userId: userId, email: nil)
             try await userService.updateProfile(userId: userId, fields: fields)
             UserDefaults.standard.set(true, forKey: "onboardingCompleted")
             await MainActor.run {
@@ -294,6 +306,11 @@ final class OnboardingFlowViewModel {
         if let targetFrequency { fields["targetFrequency"] = targetFrequency.rawValue }
         if !trainingDays.isEmpty { fields["trainingDays"] = trainingDays.map(\.rawValue) }
         if let sessionLength { fields["sessionLength"] = sessionLength.rawValue }
+        if !pactSignatureStrokes.isEmpty,
+           let data = try? JSONEncoder().encode(pactSignatureStrokes),
+           let json = String(data: data, encoding: .utf8) {
+            fields["pactSignature"] = json
+        }
         return fields
     }
 }

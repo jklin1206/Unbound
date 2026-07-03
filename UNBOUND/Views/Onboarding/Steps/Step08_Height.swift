@@ -50,6 +50,7 @@ struct Step08_Height: View {
                 }
             }
             .padding(.top, 8)
+            .frame(maxWidth: .infinity, minHeight: 430, alignment: .center)
         }
     }
 

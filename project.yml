@@ -13,8 +13,15 @@ settings:
     # stops resetting it to "" and wiping the Xcode team selection each run.
     DEVELOPMENT_TEAM: "6K5R25Y398"
     CODE_SIGN_STYLE: Automatic
+    # iPhone-only for the 1.0 submission: the iPad layout is untested and
+    # App Review requires iPad screenshots whenever family 2 is included.
+    TARGETED_DEVICE_FAMILY: "1"
     INFOPLIST_KEY_NSCameraUsageDescription: "UNBOUND needs camera access to capture your body scans and post-workout photos"
     INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "UNBOUND needs photo library access for your profile picture and progress photos"
+    # Required by the HealthKit entitlement: rest-day recovery reads steps,
+    # walking distance, and sleep. Read-only, so no Update description needed.
+    INFOPLIST_KEY_NSHealthShareUsageDescription: "UNBOUND reads your steps, walking distance, and sleep to check how recovered you are on rest days"
+    INFOPLIST_KEY_NSHealthUpdateUsageDescription: "UNBOUND does not write health data; this string satisfies the HealthKit API declaration requirement"
     INFOPLIST_KEY_UILaunchScreen_Generation: true
     INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
     INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown"
@@ -55,6 +62,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.unboundapp.ios
+        TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: UNBOUND
         CODE_SIGN_ENTITLEMENTS: UNBOUND/UNBOUND.entitlements
@@ -87,6 +95,21 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         BUNDLE_LOADER: "$(TEST_HOST)"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/UNBOUND.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/UNBOUND"
+  # UI-test target whose only job is to launch the real app under a live
+  # StoreKit Testing session (see UNBOUND-StoreKitTesting scheme) so genuine
+  # onboarding + the local purchase can be driven externally. No @testable
+  # imports, so it builds against a Release host without testability.
+  UNBOUNDUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UNBOUNDUITests
+    dependencies:
+      - target: UNBOUND
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: UNBOUND
 
 # Explicit scheme (replaces the auto-generated one) so the archive carries a
 # post-action: the HotReloading SPM stack embeds SwiftTrace.framework
@@ -121,3 +144,23 @@ schemes:
             APP="${ARCHIVE_PRODUCTS_PATH}/Applications/${PRODUCT_NAME}.app"
             rm -rf "${APP}/Frameworks/SwiftTrace.framework" \
                    "${APP}/Frameworks/HotReloading.framework"
+  # Drives the genuine first-run + local in-app purchase. Builds the app in
+  # Release (DEBUG dev-account bootstrapper compiled out) and launches it under
+  # the local StoreKit Testing config via the UNBOUNDUITests hold-open test, so
+  # tapping "Start arc" completes a local purchase with no Apple Account and no
+  # dev account, unlocking Home. Test-only scheme; the app ships via the
+  # UNBOUND scheme's archive action above.
+  UNBOUND-StoreKitTesting:
+    build:
+      targets:
+        UNBOUND: all
+        UNBOUNDUITests: [test]
+    run:
+      config: Release
+      storeKitConfiguration: StoreKitTesting/UnboundProducts.storekit
+    test:
+      config: Release
+      gatherCoverageData: false
+      storeKitConfiguration: StoreKitTesting/UnboundProducts.storekit
+      targets:
+        - UNBOUNDUITests

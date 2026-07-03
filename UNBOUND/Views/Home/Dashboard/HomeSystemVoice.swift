@@ -125,15 +125,15 @@ enum HomeSystemVoice {
         "Directive complete",
         "Discipline logged",
         "The System acknowledges you",
-        "Cleared — stand down",
+        "Cleared · stand down",
         "Work recorded"
     ]
 
     static let clearedStreak: [String] = [
         "{n} days unbroken",
-        "Streak holds — {n} days",
+        "Streak holds · {n} days",
         "{n} in a row",
-        "Chain intact — {n} days",
+        "Chain intact · {n} days",
         "{n}-day streak logged"
     ]
 

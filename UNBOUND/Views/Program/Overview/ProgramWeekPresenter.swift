@@ -41,7 +41,7 @@ struct ProgramWeekPresenter {
 
     func presentation(
         for program: TrainingProgram,
-        isCompleted: (ProgramDay) -> Bool
+        isCompleted: (ProgramDay, Date) -> Bool
     ) -> ProgramWeekPresentation {
         let dates = dates()
         let tiles = dates.map { date in
@@ -54,7 +54,7 @@ struct ProgramWeekPresenter {
                     for: day,
                     isToday: isToday,
                     isPast: isPast,
-                    isCompleted: day.map(isCompleted) ?? false
+                    isCompleted: day.map { isCompleted($0, date) } ?? false
                 ),
                 isSelected: calendar.isDate(selectedDate, inSameDayAs: date),
                 isToday: isToday,

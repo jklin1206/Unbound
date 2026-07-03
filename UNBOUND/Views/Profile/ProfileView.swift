@@ -547,12 +547,6 @@ struct ProfileView: View {
     private var profileTopBar: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("UNBOUND")
-                    .font(Font.unbound.captionS.weight(.black))
-                    .tracking(2.0)
-                    .foregroundStyle(Color.unbound.impact)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
                 Text("PROFILE")
                     .font(Font.unbound.titleM)
                     .tracking(1.2)

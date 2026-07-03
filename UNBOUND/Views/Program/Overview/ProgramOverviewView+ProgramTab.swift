@@ -32,57 +32,54 @@ extension ProgramOverviewView {
         }
     }
 
-    // MARK: - Block-complete state (Chunk 3)
+    // MARK: - Block-complete state
     //
-    // Surfaces when the current 28-day block has elapsed. Shows a single
-    // premium card with one primary CTA ("BUILD BLOCK N+1") and a secondary
-    // RESCAN affordance. Pulls the latest ScanDeltaReport (if any) so we can
-    // surface a small "what changed" teaser before the user commits.
+    // Surfaces when the current Arc (Arc.durationDays) has elapsed. The tab
+    // keeps its normal chrome (week strip, dock, coach chips); only the
+    // day-card slot swaps to the compact block-complete card, since the next
+    // block builds itself and this is a beat, not a destination.
 
     @ViewBuilder
     func blockCompleteState(program: TrainingProgram) -> some View {
-        let nextBlock = nextBlockNumberPreview
-        let currentBlock = currentBlockNumberPreview
-        let arc = ProgramBlockRolloverCoordinator.arcLabel(for: nextBlock)
+        ScrollView(.vertical, showsIndicators: false) {
+            // AnyView-wrapped for the same metadata-depth reason as
+            // programBody — see the comment there before "simplifying".
+            VStack(alignment: .leading, spacing: 16) {
+                #if DEBUG
+                AnyView(devDaySimulatorCard)
+                AnyView(devDynamicScenarioRail)
+                #endif
+                AnyView(weekStrip(program: program))
+                AnyView(blockCompleteCard(program: program))
+                AnyView(programBelowDayTools(program: program))
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
+        }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+        .task {
+            await loadBlockRolloverContext(program: program)
+            await autoBuildNextBlockIfNeeded(program: program)
+        }
+    }
 
-        ProgramBlockCompleteView(
-            currentBlock: currentBlock,
-            nextBlock: nextBlock,
-            arc: arc,
+    private func blockCompleteCard(program: TrainingProgram) -> some View {
+        // Calibration Week is the only 7-day period; every block is Arc.durationDays.
+        // Duration distinguishes the one-time calibration→first-block rollover, which
+        // gets its own "Calibration complete → your first 30" copy.
+        let isCalibrationComplete = program.durationDays <= DeterministicProgramGenerator.calibrationDurationDays
+
+        return ProgramBlockCompleteView(
             trainedDays: trainedDayCount(in: program),
             totalDays: program.durationDays,
-            deltaReport: rolloverDeltaReport,
-            proposal: rolloverProposal,
+            isCalibrationComplete: isCalibrationComplete,
             isGeneratingNextBlock: isGeneratingNextBlock,
-            onProgressSnapshot: {
-                UnboundHaptics.soft()
-                showProgressReveal = true
-            },
             onBuildNextBlock: {
                 UnboundHaptics.soft()
                 Task { await runGenerateNextBlock(currentProgram: program) }
-            },
-            onCheckpoint: {
-                UnboundHaptics.soft()
-                showCheckpointFlow = true
             }
         )
-        .task { await loadBlockRolloverContext(program: program) }
-        .sheet(isPresented: $showProgressReveal) {
-            if let delta = rolloverDeltaReport {
-                BlockProgressRevealView(
-                    deltaReport: delta,
-                    blockNumber: currentBlock,
-                    nextBlockNumber: nextBlock,
-                    onBuildNextBlock: {
-                        showProgressReveal = false
-                        Task { await runGenerateNextBlock(currentProgram: program) }
-                    }
-                )
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-            }
-        }
     }
 
     // MARK: - Block-complete data + actions
@@ -104,17 +101,54 @@ extension ProgramOverviewView {
         }
     }
 
-    /// Drives the BUILD BLOCK N CTA: spinner → generate → swap state to the
+    /// Auto-build: the current block (Calibration Week or an Arc) has elapsed, so
+    /// build the next Arc automatically instead of dead-ending on a manual "Build
+    /// Next Arc" tap. Marks the building state immediately so the card reads as a
+    /// transition, holds briefly so the "complete" beat registers, then generates.
+    /// Fires once per block-complete; a manual tap or an in-flight build pre-empts it.
+    func autoBuildNextBlockIfNeeded(program: TrainingProgram) async {
+        guard !hasAutoTriggeredRollover, !isGeneratingNextBlock else { return }
+        hasAutoTriggeredRollover = true
+        isGeneratingNextBlock = true
+        try? await Task.sleep(for: .seconds(1.4))
+        // Run the build in an UNSTRUCTURED task, never in this view-bound
+        // .task: runGenerateNextBlock flips the surface away from
+        // .blockComplete, which tears down this view and cancels its .task —
+        // awaiting the build here cancelled the build itself mid-flight
+        // (fetchProfile threw CancellationError, the catch silently restored
+        // the finished block, and hasAutoTriggeredRollover blocked a retry).
+        // The manual CONTINUE button already builds from a Task {}; this
+        // matches it.
+        let vm = viewModel
+        Task {
+            await runGenerateNextBlock(currentProgram: program, alreadyMarkedGenerating: true)
+            // The build can fail transiently (remote profile/log fetches);
+            // the failure is silent by design, so give the auto path ONE
+            // bounded retry before falling back to the manual CONTINUE.
+            // Unchanged program id == the first attempt didn't land.
+            if vm.program?.id == program.id {
+                try? await Task.sleep(for: .seconds(2))
+                await runGenerateNextBlock(currentProgram: program)
+            }
+        }
+    }
+
+    /// Drives the BUILD ARC N CTA: spinner → generate → swap state to the
     /// new program. Failures restore the loaded state silently so the user
-    /// can retry; production telemetry catches the failure path.
-    func runGenerateNextBlock(currentProgram: TrainingProgram) async {
-        guard let userId = services.auth.currentUserId,
-              !isGeneratingNextBlock else { return }
+    /// can retry; production telemetry catches the failure path. `alreadyMarkedGenerating`
+    /// is set by the auto-build path, which has already flipped `isGeneratingNextBlock`.
+    func runGenerateNextBlock(
+        currentProgram: TrainingProgram,
+        alreadyMarkedGenerating: Bool = false
+    ) async {
+        guard let userId = services.auth.currentUserId else { return }
+        if !alreadyMarkedGenerating, isGeneratingNextBlock { return }
         let vm = viewModel
 
+        // The block-complete card's inline spinner carries the build — the
+        // surface stays put (no full-screen loading flash) until the new
+        // program lands and swaps it in place.
         isGeneratingNextBlock = true
-        let restoreState: LoadingState<TrainingProgram> = vm.state
-        vm.state = .loading
 
         do {
             let profile = try await services.user.fetchProfile(userId: userId)
@@ -134,7 +168,21 @@ extension ProgramOverviewView {
                 level: .error,
                 context: ["currentProgramId": currentProgram.id]
             )
-            vm.state = restoreState
+            #if DEBUG
+            // os_log is unreadable from `simctl spawn log show` in practice;
+            // this breadcrumb makes a silent rollover failure diagnosable
+            // on-sim via `defaults read com.unboundapp.ios unbound.debug.lastRolloverError`.
+            UserDefaults.standard.set(
+                "\(Date()): \(error)",
+                forKey: "unbound.debug.lastRolloverError"
+            )
+            #endif
+            // A transient failure must not burn the one-shot auto-build for
+            // the whole session: the next time the block-complete card
+            // appears, the auto attempt runs again (each retry needs a fresh
+            // card appearance, so this cannot tight-loop). CONTINUE remains
+            // the always-available manual path.
+            hasAutoTriggeredRollover = false
         }
 
         isGeneratingNextBlock = false
@@ -207,7 +255,13 @@ extension ProgramOverviewView {
         VStack(spacing: 8) {
             CoachActionsRow(
                 program: program,
-                todayDay: programDay(for: programToday, in: program)
+                todayDay: programDay(for: programToday, in: program),
+                onTravelPlanAccepted: {
+                    // The day resolver reads viewModel.activeTravelOverride —
+                    // without this refresh an accepted travel plan stays
+                    // invisible until the whole surface reloads.
+                    Task { await viewModel.refreshTravelOverride() }
+                }
             )
             .environmentObject(services)
 

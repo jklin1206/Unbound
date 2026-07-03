@@ -485,7 +485,7 @@ extension MovementCatalog {
         )
     }
 
-    static let routineDefinitions: [MovementDefinition] = RoutineLibrary.placeholderRoutines.map { routine in
+    static let routineDefinitions: [MovementDefinition] = RoutineLibrary.routines.map { routine in
         MovementDefinition(
             id: "routine.\(slug(routine.title))",
             displayName: routine.title,

@@ -14,7 +14,7 @@ Squad (crew) social-system models: the squad itself, roster membership, live pre
 | `SquadPresence.swift` | `SquadPresence` — "in a workout right now" presence record with expiry. |
 | `SquadState.swift` | `SquadState` — the client-side aggregate: current squad, roster, presence, recent activity (capped at 50), unlocked squad titles. |
 | `SquadTitleID.swift` | `SquadTitleID` — identifier for earned squad titles (pact / streak / collective-axis / affinity-tenure categories). |
-| `SquadV1Models.swift` | V1 social leftovers: `SquadBadgeTier`, accountability/crew-streak badge states, `SquadMessage(+Reaction)`, `SquadRoutineDrop`, `OpenChallenge(+Joiner)`, `CoopPairChallenge`, `SavedWorkoutShare`. |
+| `SquadV1Models.swift` | V1 social leftovers: `SquadBadgeTier`, accountability/crew-streak badge states, `SquadMessage(+Reaction)`, `SquadRoutineDrop`. |
 | `WeeklyHonor.swift` | `WeeklyHonor` — per-week recognition awarded to one squad member (kind + recipient). |
 
 Where to find X:
@@ -23,5 +23,5 @@ Where to find X:
 - Leaderboard seasons, rows, and season rewards → `SquadLeaderboard.swift`
 - Weekly missions vs weekly honors → `SquadMission.swift` / `WeeklyHonor.swift`
 - 1v1 friend challenges → `FriendChallenge.swift`
-- Squad chat messages, routine drops, open/co-op challenges (v1 shapes) → `SquadV1Models.swift`
+- Squad chat messages, routine drops (v1 shapes) → `SquadV1Models.swift`
 - Who's working out right now → `SquadPresence.swift`

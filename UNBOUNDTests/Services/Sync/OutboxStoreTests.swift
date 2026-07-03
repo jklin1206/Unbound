@@ -65,5 +65,22 @@ final class OutboxStoreTests: XCTestCase {
         let e = entry("a"); s.enqueue(e)
         s.moveToDeadletter(e.id)
         XCTAssertEqual(s.pendingCount, 0)
+        XCTAssertEqual(s.deadletterCount, 1)
+    }
+
+    func test_deadletter_persists_across_relaunch() {
+        let s1 = OutboxStore(directory: dir)
+        let e = entry("a"); s1.enqueue(e)
+        s1.moveToDeadletter(e.id)
+        let s2 = OutboxStore(directory: dir)
+        XCTAssertEqual(s2.deadletterCount, 1)
+        XCTAssertEqual(s2.pendingCount, 0)
+    }
+
+    func test_load_recoversEmpty_onCorruptFile() throws {
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data("this is not json".utf8).write(to: dir.appendingPathComponent("outbox.json"))
+        let s = OutboxStore(directory: dir)
+        XCTAssertEqual(s.pendingCount, 0)
     }
 }

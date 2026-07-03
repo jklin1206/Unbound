@@ -1,7 +1,7 @@
 # Views/Squads
 
 The SQUAD tab: squad creation/joining, the squad detail surface (crew roster, weekly mission, season board, shared activity), 1v1 friend challenges, shared routine drops, and squad-scoped toasts.
-`SquadTabView` is the tab root and also handles the `https://unboundapp.com/squad/<code>` universal-link join path.
+`SquadTabView` is the tab root and also handles the `https://unboundbtr.com/squad/<code>` universal-link join path.
 Every screen follows the squads section-card language (`SquadSectionStyles.swift`): each section is ONE tinted box (streak = ember, crew = cyan, recent = violet, routines = orange, board = gold, rewards = impact violet) with flat `MetaLine` rows inside, per-member identity colors from `SquadMemberPalette`, and the viewer's own row highlighted by a full-width elevated fill that never indents the text.
 
 ## Files
@@ -28,7 +28,7 @@ Every screen follows the squads section-card language (`SquadSectionStyles.swift
 | `ActivityFeedRow.swift` | One line of squad activity (trained a workout, joined, streak, linked session, title). |
 | `FriendChallengeRow.swift` | One 1v1 challenge row: pending invite (accept/decline/withdraw) or live duel with comparative bar. |
 | `FriendChallengeCreateSheet.swift` | Sheet to create a 1v1 challenge: pick opponent, challenge kind, and (for Heaviest Lift) the lift. |
-| `FriendChallengeOutcomeToast.swift` | Bottom toast fired on `.friendChallengeExpired` (`.friendChallengeOutcomeToast()` modifier). |
+| `FriendChallengeOutcomeToast.swift` | Bottom win/loss toast (`.friendChallengeOutcomeToast()` modifier); drains settled outcomes buffered by `FriendChallengeService` so an off-tab settle is never missed. |
 | `LinkedSessionToast.swift` | Toast + modifier for linked-session (training together) notices. |
 | `AffinityPickerSheet.swift` | Captain-only sheet for the squad's monthly affinity axis (squad options menu). |
 | `SquadLogoViews.swift` | Squad logo mark, picker, and edit sheet. |

@@ -10,14 +10,6 @@ final class UserProfileTests: XCTestCase {
         XCTAssertEqual(p.cutMode, CutMode())
     }
 
-    func testDefaultSkillEquipmentProfileDoesNotAssumePullupBar() {
-        let profile = UserSkillEquipmentProfile.default
-
-        XCTAssertTrue(profile.available.contains(.bodyweight))
-        XCTAssertFalse(profile.available.contains(.pullupBar))
-        XCTAssertFalse(profile.hasFullGym)
-    }
-
     func testCodableRoundtripWithNewFields() throws {
         var p = UserProfile(id: "u", createdAt: Date(timeIntervalSince1970: 1_700_000_000), onboardingCompleted: true, totalScans: 1)
         p.trainingFeedbackMode = .quick

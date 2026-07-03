@@ -2,7 +2,7 @@
 //
 // Universal Links — /squad/<code>
 // AASA (apple-app-site-association) must be deployed at:
-//   https://unboundapp.com/.well-known/apple-app-site-association
+//   https://unboundbtr.com/.well-known/apple-app-site-association
 //
 // Required AASA content:
 // {
@@ -50,7 +50,7 @@ struct UnboundApp: App {
                     guard
                         let url = activity.webpageURL,
                         let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
-                        components.host == "unboundapp.com"
+                        components.host == "unboundbtr.com"
                     else { return }
 
                     let pathComponents = components.path

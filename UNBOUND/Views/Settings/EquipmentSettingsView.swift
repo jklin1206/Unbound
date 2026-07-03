@@ -7,25 +7,47 @@ import SwiftUI
 //   - The "what to work on next" recommender
 //   - Adaptive program generation (routes around missing equipment)
 //
-// Persistence: UserDefaults-backed via EquipmentProfileStore. Lightweight;
-// can migrate to DatabaseService later.
+// Persistence: the real source of truth is `UserProfile.equipment` (the same
+// value set during onboarding that program generation and trial readiness
+// read). Edits here write straight through `UserService.updateProfile`.
 
 struct EquipmentSettingsView: View {
-    @State private var profile: UserSkillEquipmentProfile = EquipmentProfileStore.load()
+    @EnvironmentObject private var services: ServiceContainer
+
+    @State private var selection: Set<Equipment> = []
+    @State private var isLoaded = false
+    @State private var saveError: String?
+
+    // Toggle rows: every equipment option minus the full-gym umbrella (its own
+    // toggle above), legacy `.homeWeights`, and implicit `.bodyweight` (an
+    // empty pick means bodyweight-only, matching onboarding).
+    private static let individualItems: [Equipment] =
+        Equipment.allCases.filter { $0 != .fullGym && $0 != .homeWeights && $0 != .bodyweight }
+
+    private static let togglable: Set<Equipment> =
+        Set(individualItems).union([.fullGym])
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 header
+                if let saveError {
+                    Text(saveError)
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.alert)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 fullGymToggle
                 individualEquipmentList
                 footer
             }
             .padding(20)
+            .disabled(!isLoaded)
         }
         .background(Color.unbound.bg.ignoresSafeArea())
         .navigationTitle("Equipment")
         .navigationBarTitleDisplayMode(.inline)
+        .task { await load() }
     }
 
     // MARK: Sections
@@ -44,16 +66,10 @@ struct EquipmentSettingsView: View {
 
     private var fullGymToggle: some View {
         toggleRow(
-            title: "Full commercial gym",
+            title: Equipment.fullGym.displayName,
             subtitle: "Barbells, racks, rings, everything. Toggling ON implies everything below.",
-            glyph: "building.2.fill",
-            isOn: Binding(
-                get: { profile.hasFullGym },
-                set: {
-                    profile.hasFullGym = $0
-                    EquipmentProfileStore.save(profile)
-                }
-            )
+            glyph: Equipment.fullGym.icon,
+            isOn: binding(for: .fullGym)
         )
     }
 
@@ -66,25 +82,13 @@ struct EquipmentSettingsView: View {
                 .padding(.top, 10)
                 .padding(.bottom, 4)
 
-            ForEach(SkillEquipment.allCases) { eq in
-                if eq != .bodyweight {   // bodyweight is implicit; never a toggle
-                    toggleRow(
-                        title: eq.displayName,
-                        subtitle: subtitleFor(eq),
-                        glyph: eq.glyph,
-                        isOn: Binding(
-                            get: { profile.available.contains(eq) },
-                            set: {
-                                if $0 {
-                                    profile.available.insert(eq)
-                                } else {
-                                    profile.available.remove(eq)
-                                }
-                                EquipmentProfileStore.save(profile)
-                            }
-                        )
-                    )
-                }
+            ForEach(Self.individualItems) { eq in
+                toggleRow(
+                    title: eq.displayName,
+                    subtitle: subtitleFor(eq),
+                    glyph: eq.icon,
+                    isOn: binding(for: eq)
+                )
             }
         }
     }
@@ -137,41 +141,69 @@ struct EquipmentSettingsView: View {
         .padding(.top, 8)
     }
 
+    // MARK: Data
+
+    @MainActor
+    private func load() async {
+        guard !isLoaded else { return }
+        let userId = services.auth.currentUserId ?? "anonymous"
+        if let profile = try? await services.user.fetchProfile(userId: userId) {
+            selection = Set(profile.equipment ?? []).intersection(Self.togglable)
+        }
+        isLoaded = true
+    }
+
+    private func binding(for equipment: Equipment) -> Binding<Bool> {
+        Binding(
+            get: { selection.contains(equipment) },
+            set: { isOn in setEquipment(equipment, isOn: isOn) }
+        )
+    }
+
+    private func setEquipment(_ equipment: Equipment, isOn: Bool) {
+        let previous = selection
+        var updated = selection
+        if isOn {
+            updated.insert(equipment)
+        } else {
+            updated.remove(equipment)
+        }
+        selection = updated
+        saveError = nil
+        Task { await persist(updated, rollbackTo: previous) }
+    }
+
+    @MainActor
+    private func persist(_ updated: Set<Equipment>, rollbackTo previous: Set<Equipment>) async {
+        // An empty selection means bodyweight-only — stored the same way
+        // onboarding records it so downstream generation reads it as before.
+        let payload = updated.isEmpty ? [Equipment.bodyweight] : Array(updated)
+        do {
+            try await services.user.updateProfile(
+                userId: services.auth.currentUserId ?? "anonymous",
+                fields: ["equipment": payload.map(\.rawValue)]
+            )
+        } catch {
+            if selection == updated {
+                selection = previous
+            }
+            saveError = "Couldn't save your equipment. Check your connection and try again."
+        }
+    }
+
     // MARK: Helpers
 
-    private func subtitleFor(_ eq: SkillEquipment) -> String {
+    private func subtitleFor(_ eq: Equipment) -> String {
         switch eq {
-        case .pullupBar:        return "For pullups, muscle-ups, hangs, toes-to-bar."
-        case .gymnasticRings:   return "Unlocks iron cross, ring MU, and advanced mythic moves."
-        case .barbell:          return "Squat · deadlift · bench — the strength backbone."
-        case .dumbbells:        return "Weighted pullup, goblet squats, carries."
-        case .parallettes:      return "L-sit, tuck planche, handstand pushups."
-        case .kettlebell:       return "Farmer carry, goblet squat, swings."
-        case .sled:             return "Lower-body conditioning and capacity work."
-        case .rower:            return "Conditioning benchmarks (400m row, etc)."
-        case .elevatedSurface:  return "Bench for pressing, box for Bulgarian split squats."
-        case .bodyweight:       return ""
-        }
-    }
-}
-
-// MARK: - EquipmentProfileStore (lightweight persistence)
-
-enum EquipmentProfileStore {
-    private static let defaultsKey = "unbound.equipmentProfile.v1"
-
-    static func load() -> UserSkillEquipmentProfile {
-        guard let data = UserDefaults.standard.data(forKey: defaultsKey),
-              let profile = try? JSONDecoder().decode(UserSkillEquipmentProfile.self, from: data)
-        else {
-            return .default
-        }
-        return profile
-    }
-
-    static func save(_ profile: UserSkillEquipmentProfile) {
-        if let data = try? JSONEncoder().encode(profile) {
-            UserDefaults.standard.set(data, forKey: defaultsKey)
+        case .machines:     return "Cable stacks and selectorized machines for presses and rows."
+        case .barbell:      return "Squat · deadlift · bench — the strength backbone."
+        case .dumbbells:    return "Weighted pullups, presses, goblet squats, carries."
+        case .bench:        return "Pressing support and box work like Bulgarian split squats."
+        case .pullupBar:    return "For pullups, muscle-ups, hangs, toes-to-bar."
+        case .dipStation:   return "Dips, L-sits, and straight-bar leg raises."
+        case .rings:        return "Unlocks iron cross, ring MU, and advanced mythic moves."
+        case .bands:        return "Assistance and resistance for scaling hard skills."
+        case .fullGym, .bodyweight, .homeWeights: return ""
         }
     }
 }
@@ -179,6 +211,7 @@ enum EquipmentProfileStore {
 #Preview("Equipment settings") {
     NavigationStack {
         EquipmentSettingsView()
+            .environmentObject(ServiceContainer.mock)
     }
     .preferredColorScheme(.dark)
 }

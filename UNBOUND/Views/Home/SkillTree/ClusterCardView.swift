@@ -26,13 +26,18 @@ struct ClusterCardView: View {
     private var activeNode: SkillNode? {
         tree.activeNode(in: graph, states: nodeStates)
     }
-    /// The skill the user has flagged as their target for this tree, if any.
-    private var targetNode: SkillNode? {
-        tree.targetNode(in: graph, targetIds: SkillProgressService.shared.targetSkillIds)
+    /// The skill the user is actively training in this tree (Program Focus), if any.
+    private var trainingNode: SkillNode? {
+        tree.trainingNode(in: graph, focusIds: SkillProgressService.shared.programFocusIds)
     }
+    /// The artwork shown in the card's thumbnail. Pinned to the tree's fixed
+    /// signature skill so the image is stable and always reads as the tree's
+    /// headline movement (pull-up, push-up, pistol squat, …). Falls back to
+    /// progress-derived nodes only if the signature node is somehow absent.
     private var representativeNode: SkillNode? {
-        tree.farthestProvenNode(in: graph, states: nodeStates)
-            ?? targetNode
+        graph.node(id: tree.signatureSkillId)
+            ?? tree.farthestProvenNode(in: graph, states: nodeStates)
+            ?? trainingNode
             ?? activeNode
             ?? tree.previewKeystone(in: graph, states: nodeStates)
     }
@@ -187,11 +192,11 @@ struct ClusterCardView: View {
         }
     }
 
-    // MARK: - Target row (the goal you set for this tree)
+    // MARK: - Training row (the skill you are training in this tree)
 
     @ViewBuilder
     private var targetRow: some View {
-        if let target = targetNode {
+        if let target = trainingNode {
             targetSetRow(target: target)
         } else if activeNode != nil {
             noTargetRow
@@ -202,11 +207,11 @@ struct ClusterCardView: View {
         let userId = AuthService.shared.currentUserId ?? "anonymous"
         let earned = UserSkillTierStore.shared.load(userId: userId).perSkill[target.id] ?? .initiate
         return HStack(spacing: 10) {
-            Image(systemName: "scope")
+            Image(systemName: "figure.strengthtraining.traditional")
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Color.unbound.accent)
             VStack(alignment: .leading, spacing: 2) {
-                Text("TARGET")
+                Text("TRAINING")
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(1.6)
                     .foregroundStyle(Color.unbound.textTertiary)
@@ -233,10 +238,10 @@ struct ClusterCardView: View {
 
     private var noTargetRow: some View {
         HStack(spacing: 10) {
-            Image(systemName: "scope")
+            Image(systemName: "figure.strengthtraining.traditional")
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Color.unbound.textTertiary)
-            Text("Tap a skill to set your target")
+            Text("Tap a skill to start training it")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .lineLimit(1)

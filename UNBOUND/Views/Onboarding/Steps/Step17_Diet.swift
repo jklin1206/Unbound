@@ -9,17 +9,14 @@ struct Step17_Diet: View {
     var body: some View {
         OnboardingScaffold(
             title: "How clean is your diet?",
-            subtitle: "Not perfect — honest. We calibrate from here.",
+            subtitle: "Honest, not perfect.",
             progress: progress,
             primaryTitle: "Continue",
             hudStep: .diet,
             onBack: onBack,
             onPrimary: onContinue
         ) {
-            VStack(spacing: 24) {
-                LifestyleSignalAsset(kind: LifestyleSignalAsset.Kind.diet, value: flow.dietQuality)
-                    .padding(.top, 10)
-
+            VStack(spacing: 28) {
                 HUDSlider(
                     value: $flow.dietQuality,
                     steps: HUDSlider.fivePointStoredSteps,
@@ -27,7 +24,14 @@ struct Step17_Diet: View {
                     leftAnchor: "Poor",
                     rightAnchor: "Excellent"
                 )
+
+                Text(L10n.onboarding("diet.note", defaultValue: "This tunes recovery pacing. No meal plans, no macro police."))
+                    .font(Font.unbound.bodyS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
             }
+            .frame(maxWidth: .infinity, minHeight: 420, alignment: .center)
         }
     }
 }

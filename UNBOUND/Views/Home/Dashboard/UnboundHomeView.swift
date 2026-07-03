@@ -79,7 +79,7 @@ struct UnboundHomeView: View {
     }
 
     static let defaultDailyQuestRoutine: RoutineDef = {
-        RoutineLibrary.placeholderRoutines.first { $0.id == "daily-quest" }
+        RoutineLibrary.routines.first { $0.id == "daily-quest" }
             ?? RoutineDef(
                 id: "daily-quest",
                 title: "Daily Quest",
@@ -374,9 +374,6 @@ struct UnboundHomeView: View {
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .requestOpenRankInfo)) { _ in
-            showRankInfo = true
         }
         .fullScreenCover(isPresented: $showScanCaptureFlow, onDismiss: {
             // Refresh cadence after a scan completes

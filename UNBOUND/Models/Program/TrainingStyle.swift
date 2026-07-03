@@ -35,8 +35,8 @@ enum ProgramTrainingContextScope: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .todayOnly: return "Today only"
         case .thisWeek: return "This week"
-        case .nextBlock: return "Next block"
-        case .ongoing: return "Active block"
+        case .nextBlock: return "Next arc"
+        case .ongoing: return "Active arc"
         case .freeformManual: return "Freeform"
         }
     }

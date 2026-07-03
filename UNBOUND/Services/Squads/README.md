@@ -7,7 +7,7 @@ Everything social: squad membership/state, the activity feed, presence, weekly m
 | File | Purpose |
 | --- | --- |
 | `FriendChallengeProgressPolicy.swift` | Pure policy: how much a `WorkoutLog` advances each `FriendChallenge.Kind` (sessions, early-riser hour window, etc.). |
-| `FriendChallengeService.swift` | `FriendChallengeServiceProtocol` + live service: create/accept challenges, record progress from logs, stats per squad/season, expiry evaluation. |
+| `FriendChallengeService.swift` | `FriendChallengeServiceProtocol` + live service: create/accept challenges, record progress from logs, stats per squad/season, expiry evaluation that settles duels (pays the winner duelWinArcs, ledger-idempotent) and buffers outcomes for the toast. |
 | `LinkedSessionEvaluator.swift` | Applies the +20% XP linked-session bonus (non-stacking with the +10% affinity bonus) when a partner's session overlaps the user's. |
 | `LocalSquadDirectory.swift` | UserDefaults-backed local squad+members record (debug/local-only squad support). |
 | `MockSquadActivityBackend.swift` | In-memory `SquadActivityBackendProtocol` for tests. |

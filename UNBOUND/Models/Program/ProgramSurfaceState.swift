@@ -167,7 +167,8 @@ enum ProgramProofProgramFactory {
             case .calibration, .trainingDay, .restDay, .missingDay:
                 return now
             case .blockComplete:
-                return now.addingTimeInterval(-29 * 86_400)
+                // One day past a full Arc so the scheduler reads it as elapsed.
+                return now.addingTimeInterval(-Double(Arc.durationDays + 1) * 86_400)
             }
         }()
 

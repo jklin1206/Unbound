@@ -206,6 +206,104 @@ final class UserDataMigrationCoordinatorTests: XCTestCase {
         XCTAssertEqual(summary.sessionXP.failures, 1)
         XCTAssertFalse(summary.allCollectionsSucceeded)
     }
+
+    // MARK: - Rank progress migration outcome → summary mapping
+    //
+    // The re-key itself is covered by the integration test below; here we only
+    // assert the coordinator maps each outcome into the summary correctly, and
+    // that a `.failed` blocks completion the same way SessionXP does.
+
+    private func coordinator(rankProgressOutcome: RankProgressMigrationOutcome) -> UserDataMigrationCoordinator {
+        UserDataMigrationCoordinator(
+            local: MockMigrationLocalStore(),
+            remote: MockMigrationRemoteStore(authenticated: false),
+            sessionXPStore: StubMigrationSessionXPStore(outcome: .noLegacy),
+            rankProgressStore: StubMigrationRankProgressStore(outcome: rankProgressOutcome),
+            flagStore: NeverCompletedMigrationFlagStore()
+        )
+    }
+
+    func test_rankProgress_rekeyed_outcome_counts_as_local_write() async {
+        let summary = await coordinator(rankProgressOutcome: .rekeyed)
+            .migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+        XCTAssertEqual(summary.rankProgress.scanned, 1)
+        XCTAssertEqual(summary.rankProgress.localWrites, 1)
+        XCTAssertEqual(summary.rankProgress.failures, 0)
+        XCTAssertTrue(summary.allCollectionsSucceeded)
+    }
+
+    func test_rankProgress_merged_outcome_counts_existing_target_and_write() async {
+        let summary = await coordinator(rankProgressOutcome: .merged)
+            .migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+        XCTAssertEqual(summary.rankProgress.scanned, 1)
+        XCTAssertEqual(summary.rankProgress.existingTargets, 1)
+        XCTAssertEqual(summary.rankProgress.localWrites, 1)
+    }
+
+    func test_rankProgress_noLegacy_outcome_is_noop() async {
+        let summary = await coordinator(rankProgressOutcome: .noLegacy)
+            .migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+        XCTAssertEqual(summary.rankProgress.scanned, 0)
+        XCTAssertEqual(summary.rankProgress.localWrites, 0)
+        XCTAssertEqual(summary.rankProgress.failures, 0)
+    }
+
+    func test_rankProgress_failed_outcome_blocks_migration_completion() async {
+        // A corrupt/unwritable legacy rank must count as a failure so the
+        // migration is retried instead of silently completing + resetting the
+        // displayed rank to Initiate.
+        let summary = await coordinator(rankProgressOutcome: .failed)
+            .migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+        XCTAssertEqual(summary.rankProgress.failures, 1)
+        XCTAssertFalse(summary.allCollectionsSucceeded)
+    }
+
+    // MARK: - Rank progress re-key (integration, real production store)
+
+    @MainActor
+    func test_rankProgress_migration_rekeys_trial_rank_and_lift_tiers_to_new_uid() async {
+        let suiteName = "RankProgressMigrationTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let legacyUserId = "legacy-user"
+        let supabaseUserId = UUID().uuidString
+        let trialStore = OverallRankTrialStore(defaults: defaults)
+        let liftTierStore = LiftTierService(defaults: defaults)
+
+        let legacyAttempt = OverallRankTrialAttempt(
+            id: "gate-03",
+            userId: legacyUserId,
+            definitionId: "gate",
+            targetRank: .forged,
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 700),
+            performanceLogId: "gate-03",
+            passed: true,
+            movementAPGained: 5,
+            overallLevelXPGained: 10
+        )
+        trialStore.save(
+            OverallRankTrialProgress(highestPassedRank: .forged, attempts: [legacyAttempt]),
+            userId: legacyUserId
+        )
+        liftTierStore.save(tier: .veteran, lift: "bench press", userId: legacyUserId)
+
+        let sut = ProductionUserDataMigrationRankProgressStore(
+            trialStore: trialStore,
+            liftTierStore: liftTierStore,
+            backup: NoOpRankProgressBackup()
+        )
+
+        let outcome = await sut.migrate(legacyUserId: legacyUserId, supabaseUserId: supabaseUserId)
+
+        XCTAssertEqual(outcome, .rekeyed)
+        XCTAssertEqual(trialStore.load(userId: supabaseUserId).currentRank, .forged)
+        XCTAssertEqual(trialStore.load(userId: supabaseUserId).attempts.map(\.id), ["gate-03"])
+        XCTAssertEqual(liftTierStore.tier(lift: "bench press", userId: supabaseUserId), .veteran)
+        // Legacy entry stays on disk as a backup — the re-key writes the new uid.
+        XCTAssertEqual(trialStore.load(userId: legacyUserId).currentRank, .forged)
+    }
 }
 
 private final class StubMigrationSessionXPStore: UserDataMigrationSessionXPStoring, @unchecked Sendable {
@@ -220,6 +318,25 @@ private final class StubMigrationSessionXPStore: UserDataMigrationSessionXPStori
         calls.append((legacyUserId, supabaseUserId))
         return outcome
     }
+}
+
+private final class StubMigrationRankProgressStore: UserDataMigrationRankProgressStoring, @unchecked Sendable {
+    let outcome: RankProgressMigrationOutcome
+    private(set) var calls: [(legacy: String, supabase: String)] = []
+
+    init(outcome: RankProgressMigrationOutcome) {
+        self.outcome = outcome
+    }
+
+    func migrate(legacyUserId: String, supabaseUserId: String) async -> RankProgressMigrationOutcome {
+        calls.append((legacyUserId, supabaseUserId))
+        return outcome
+    }
+}
+
+private struct NoOpRankProgressBackup: RankProgressBackuping {
+    func backupTrials(_ progress: OverallRankTrialProgress, userId: String) {}
+    func backupLiftTiers(_ tiers: [String: SkillTier], userId: String) {}
 }
 
 private final class MockMigrationLocalStore: UserDataMigrationLocalStoring, @unchecked Sendable {

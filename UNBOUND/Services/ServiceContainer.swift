@@ -6,12 +6,9 @@ final class ServiceContainer: ObservableObject {
     let database: any DatabaseServiceProtocol
     let analytics: any AnalyticsServiceProtocol
     let subscription: any SubscriptionServiceProtocol
-    let paywall: any PaywallServiceProtocol
     let user: any UserServiceProtocol
     let storage: any StorageServiceProtocol
-    let network: any NetworkServiceProtocol
     let logging: LoggingService
-    let bodyAnalysis: any BodyAnalysisServiceProtocol
     let programGeneration: any ProgramGenerationServiceProtocol
     let imageCapture: any ImageCaptureServiceProtocol
     let exercisePreference: any ExercisePreferenceServiceProtocol
@@ -45,11 +42,8 @@ final class ServiceContainer: ObservableObject {
         self.database = SyncedDatabase.shared
         self.analytics = AnalyticsService.shared
         self.subscription = SubscriptionService.shared
-        self.paywall = PaywallService.shared
-        self.network = NetworkService.shared
         self.storage = StorageService.shared
         self.user = SupabaseUserService.shared
-        self.bodyAnalysis = BodyAnalysisService.shared
         self.programGeneration = ProgramGenerationService.shared
         self.imageCapture = ImageCaptureService()
         self.exercisePreference = ExercisePreferenceService.shared
@@ -83,11 +77,8 @@ final class ServiceContainer: ObservableObject {
         database: any DatabaseServiceProtocol,
         analytics: any AnalyticsServiceProtocol,
         subscription: any SubscriptionServiceProtocol,
-        paywall: any PaywallServiceProtocol,
         user: any UserServiceProtocol,
         storage: any StorageServiceProtocol,
-        network: any NetworkServiceProtocol,
-        bodyAnalysis: any BodyAnalysisServiceProtocol,
         programGeneration: any ProgramGenerationServiceProtocol,
         imageCapture: any ImageCaptureServiceProtocol,
         exercisePreference: any ExercisePreferenceServiceProtocol,
@@ -109,11 +100,8 @@ final class ServiceContainer: ObservableObject {
         self.database = database
         self.analytics = analytics
         self.subscription = subscription
-        self.paywall = paywall
         self.user = user
         self.storage = storage
-        self.network = network
-        self.bodyAnalysis = bodyAnalysis
         self.programGeneration = programGeneration
         self.imageCapture = imageCapture
         self.exercisePreference = exercisePreference
@@ -148,11 +136,8 @@ final class ServiceContainer: ObservableObject {
             database: MockDatabaseService(),
             analytics: AnalyticsService.shared,
             subscription: MockSubscriptionService(),
-            paywall: MockPaywallService(),
             user: UserService.shared,
             storage: StorageService.shared,
-            network: NetworkService.shared,
-            bodyAnalysis: MockBodyAnalysisService(),
             programGeneration: MockProgramGenerationService(),
             imageCapture: MockImageCaptureService(),
             exercisePreference: MockExercisePreferenceService(),

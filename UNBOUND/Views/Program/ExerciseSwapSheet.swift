@@ -16,6 +16,7 @@ struct ExerciseSwapSheet: View {
     var onCreateCustom: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
+    @State private var detent: PresentationDetent = .medium
 
     var body: some View {
         ProgramExerciseLibraryView(
@@ -27,9 +28,12 @@ struct ExerciseSwapSheet: View {
             preferenceStatusesByKey: preferenceStatusesByKey,
             availableEquipment: availableEquipment,
             onCreateCustom: onCreateCustom,
+            // Typing needs room: the keyboard eats the medium detent, so the
+            // sheet grows to full height the moment search gains focus.
+            onSearchFocused: { detent = .large },
             onDismiss: { dismiss() }
         )
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.medium, .large], selection: $detent)
         .presentationDragIndicator(.visible)
         .presentationBackground(Color.unbound.bg)
     }

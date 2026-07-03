@@ -51,13 +51,7 @@ struct SquadLogoPicker: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
                 SquadLogoMarkView(logoId: selectedLogoId, size: 96)
-                VStack(alignment: .leading, spacing: 4) {
-                    CalmSectionHeader(title: "SQUAD MARK")
-                    Text(SquadLogoCatalog.preset(for: selectedLogoId).title)
-                        .font(Font.unbound.bodyLStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                }
+                CalmSectionHeader(title: "SQUAD MARK")
                 Spacer(minLength: 0)
             }
 

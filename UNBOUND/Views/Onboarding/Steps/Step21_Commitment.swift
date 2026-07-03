@@ -9,7 +9,7 @@ struct Step21_Commitment: View {
     var body: some View {
         OnboardingScaffold(
             title: "How seriously are we doing this?",
-            subtitle: "No judgment on either end. Sets how hard we push.",
+            subtitle: nil,
             progress: progress,
             primaryTitle: "Continue",
             hudStep: .commitment,

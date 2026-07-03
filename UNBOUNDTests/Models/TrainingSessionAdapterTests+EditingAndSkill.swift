@@ -3,50 +3,6 @@ import XCTest
 
 @MainActor
 extension TrainingSessionAdapterTests {
-    func testTrainingSessionEditSummaryClassifiesAddRemoveSwapAndReorder() {
-        let original = makeDraft(["Bench Press", "Overhead Press", "Pullup"])
-
-        var added = original
-        added.blocks[0].prescriptions.append(makePrescription("Dumbbell Row"))
-        var summary = TrainingSessionEditSummary.compare(original: original, edited: added)
-        XCTAssertEqual(summary.addedCount, 1)
-        XCTAssertEqual(summary.removedCount, 0)
-        XCTAssertEqual(summary.changedSlotCount, 0)
-        XCTAssertFalse(summary.reordered)
-        XCTAssertEqual(summary.headline, "1 edit staged")
-
-        var removed = original
-        removed.blocks[0].prescriptions.remove(at: 1)
-        summary = TrainingSessionEditSummary.compare(original: original, edited: removed)
-        XCTAssertEqual(summary.addedCount, 0)
-        XCTAssertEqual(summary.removedCount, 1)
-        XCTAssertEqual(summary.changedSlotCount, 0)
-
-        var swapped = original
-        swapped.blocks[0].prescriptions[1] = makePrescription("Seated Dumbbell Press")
-        summary = TrainingSessionEditSummary.compare(original: original, edited: swapped)
-        XCTAssertEqual(summary.addedCount, 0)
-        XCTAssertEqual(summary.removedCount, 0)
-        XCTAssertEqual(summary.changedSlotCount, 1)
-        XCTAssertFalse(summary.reordered)
-
-        var reordered = original
-        reordered.blocks[0].prescriptions.swapAt(0, 1)
-        summary = TrainingSessionEditSummary.compare(original: original, edited: reordered)
-        XCTAssertEqual(summary.addedCount, 0)
-        XCTAssertEqual(summary.removedCount, 0)
-        XCTAssertEqual(summary.changedSlotCount, 0)
-        XCTAssertTrue(summary.reordered)
-    }
-
-    func testTrainingSessionEditPersistenceModesAreExecutable() {
-        XCTAssertTrue(TrainingSessionEditPersistence.todayOnly.isImplemented)
-        XCTAssertTrue(TrainingSessionEditPersistence.recurringSubstitution.isImplemented)
-        XCTAssertTrue(TrainingSessionEditPersistence.equipmentPreference.isImplemented)
-        XCTAssertTrue(TrainingSessionEditPersistence.nextBlockBias.isImplemented)
-        XCTAssertEqual(TrainingSessionEditPersistence.todayOnly.displayName, "Today only")
-    }
-
     func testSkillRungResolverChoosesRegressionWhenSkillIsNotTrainable() throws {
         let decision = try XCTUnwrap(
             SkillRungResolver.resolve(skillId: "pp.muscle-up", isTrainable: false)
@@ -167,53 +123,6 @@ extension TrainingSessionAdapterTests {
             )
         )
         XCTAssertEqual(next.selectedRungTitle, "10 Strict Pull-Ups")
-    }
-
-    func testTrainingSessionEditPreferenceBuilderCreatesRecurringAndAvailablePreferences() throws {
-        let original = makeDraft(["Bench Press", "Lat Pulldown"])
-        var edited = original
-        edited.blocks[0].prescriptions[0] = makePrescription("Dumbbell Bench Press")
-        edited.blocks[0].prescriptions[1] = makePrescription("Cable Row (Seated)")
-
-        let swaps = TrainingSessionEditPreferenceBuilder.swapEdits(original: original, edited: edited)
-        XCTAssertEqual(swaps.map(\.originalExerciseName), ["Bench Press", "Lat Pulldown"])
-        XCTAssertEqual(swaps.map(\.replacementExerciseName), ["Dumbbell Bench Press", "Cable Row (Seated)"])
-
-        let recurring = TrainingSessionEditPreferenceBuilder.preferences(
-            for: swaps,
-            mode: .recurringSubstitution,
-            userId: "u1",
-            updatedAt: Date(timeIntervalSince1970: 100)
-        )
-        XCTAssertEqual(recurring.count, 2)
-        let benchPreference = try XCTUnwrap(recurring.first { $0.displayName == "Barbell Bench Press" })
-        XCTAssertEqual(benchPreference.status, .substitute)
-        XCTAssertEqual(benchPreference.exerciseName, "bench press")
-        XCTAssertEqual(benchPreference.substitutePreference, "dumbbell bench press")
-
-        let available = TrainingSessionEditPreferenceBuilder.preferences(
-            for: swaps,
-            mode: .equipmentPreference,
-            userId: "u1",
-            updatedAt: Date(timeIntervalSince1970: 100)
-        )
-        XCTAssertEqual(available.count, 2)
-        XCTAssertTrue(available.allSatisfy { $0.status == .available && $0.substitutePreference == nil })
-        XCTAssertTrue(available.contains { $0.exerciseName == "dumbbell bench press" })
-        XCTAssertTrue(available.contains { $0.exerciseName == "cable row (seated)" })
-
-        let nextBlock = TrainingSessionEditPreferenceBuilder.preferences(
-            for: swaps,
-            mode: .nextBlockBias,
-            userId: "u1",
-            updatedAt: Date(timeIntervalSince1970: 100)
-        )
-        XCTAssertEqual(nextBlock.count, 2)
-        XCTAssertTrue(nextBlock.allSatisfy { $0.status == .substitute })
-        XCTAssertEqual(
-            nextBlock.first { $0.exerciseName == "bench press" }?.notes,
-            "Queued from Session Editor for the next block proposal."
-        )
     }
 
     func testTrainingSessionAdaptationSummaryExplainsResolvedDraftChanges() {

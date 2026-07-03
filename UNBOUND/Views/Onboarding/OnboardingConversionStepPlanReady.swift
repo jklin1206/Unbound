@@ -21,8 +21,8 @@ struct Step_PlanReady: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: L10n.onboarding("planReady.title", defaultValue: "Your opening block is ready."),
-            subtitle: L10n.onboarding("planReady.subtitle", defaultValue: "Start with honest standards. Use them to unlock the first 28-day Arc."),
+            title: L10n.onboarding("planReady.title", defaultValue: "Your opening arc is ready."),
+            subtitle: L10n.onboarding("planReady.subtitle", defaultValue: "Start with honest standards. Use them to unlock the first 30-day Arc."),
             progress: progress,
             primaryTitle: L10n.onboarding("planReady.primary", defaultValue: "Unlock my training"),
             primaryIcon: "lock.open.fill",
@@ -34,7 +34,7 @@ struct Step_PlanReady: View {
                 UnboundCard {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 8) {
-                            Text(L10n.onboarding("planReady.eyebrow", defaultValue: "BLOCK READY"))
+                            Text(L10n.onboarding("planReady.eyebrow", defaultValue: "ARC READY"))
                                 .font(.system(size: 10, weight: .black, design: .monospaced))
                                 .tracking(1.1)
                                 .foregroundStyle(Color.unbound.accent)
@@ -91,7 +91,7 @@ struct Step_PlanReady: View {
                         showsCornerMark: false
                     )
                     .padding(.top, 1)
-                    Text(L10n.onboarding("planReady.callout", defaultValue: "You can start today. Unlock the calibration week, 28-day Arcs, workout logging, and profile progress that keeps moving with you."))
+                    Text(L10n.onboarding("planReady.callout", defaultValue: "You can start today. Unlock the calibration week, 30-day Arcs, workout logging, and profile progress that keeps moving with you."))
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

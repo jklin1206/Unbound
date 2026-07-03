@@ -16,6 +16,7 @@ Per-lift RankTier and skill-tier state, the overall rank-trial system (the gym e
 | `ProgramAwareStreakPolicy.swift` | Liftoff-style day-based streak rule: gaps auto-credit rest days; streak breaks only after a 3-day gap. Program-agnostic despite the name. |
 | `ProofEngine.swift` | Pure `evaluate(log:source:...)` — turns a `WorkoutLog` into proof outcomes: cleared standards/prereqs, skill unlocks, rank advancements, new bests (`ProofEngineResult`). |
 | `RankDecayService.swift` | On app foreground: 7-13 days idle → recalibrating banner; 14+ days → decay 1 sub-rank per extra week. Capability unlocks + peak rank never decay. |
+| `RankProgressCloudBackup.swift` | Mirrors the trial-confirmed rank + per-lift tiers onto the synced `users` doc (`overall_rank_trials` / `lift_tiers` jsonb) through the outbox choke point, and seeds the local stores back on launch — so a reinstall restores the rank instead of resetting to Initiate (`RankProgressBackuping`). |
 | `RankService.swift` | Owns per-lift `RankTier` state, triggered from ProgressionEngine on every ingested log; emits `.rankAdvanced`. Ratio/added-load/rep/hold anchors per lift family. |
 | `RankServiceProtocol.swift` | Protocol: pure `computeTier(skill:history:bodyweightKg:)` + `evaluateTierCrossings(log:userId:)`. |
 | `RankTrialLoadoutResolver.swift` | Resolves a trial definition + the user's available equipment into a concrete `RankTrialResolution` (preferred loadout variant, blockers). |

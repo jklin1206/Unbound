@@ -24,8 +24,6 @@ struct WorkoutRewardSequenceView: View {
     @State var animatedXP: Int = 0
     @State var pageRevealed = false
     @State var attributeHexProgress: Double = 0
-    @State var hexPrev: [AttributeKey: Double] = [:]   // phase from-map
-    @State var hexCur: [AttributeKey: Double] = [:]    // phase to-map
     @State var finishRequested = false
     @AppStorage(WeightPlatePolicy.unitDefaultsKey) var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
 
@@ -37,7 +35,6 @@ struct WorkoutRewardSequenceView: View {
         case collection
         case progression
         case rankTrial
-        case weeklyVow
         case cosmetic
         case streak
         case final
@@ -68,10 +65,6 @@ struct WorkoutRewardSequenceView: View {
 
         if summary.rankTrialCallout != nil {
             beats.append(.rankTrial)
-        }
-
-        if summary.weeklyVowCallout != nil {
-            beats.append(.weeklyVow)
         }
 
         if !summary.cosmeticUnlocks.isEmpty {
@@ -272,7 +265,6 @@ struct WorkoutRewardSequenceView: View {
         if let pr = summary.personalRecords.first { return pr.family.tint }
         if let attribute = summary.attributeDeltas.first(where: \.didAdvanceTier) { return attribute.tint }
         if let rankTrial = summary.rankTrialCallout { return rankTrial.passed ? Color.unbound.rankGold : Color.unbound.alert }
-        if let vow = summary.weeklyVowCallout { return vow.lane.tintColor }
         return Color.rewardBlue
     }
 
@@ -297,8 +289,6 @@ struct WorkoutRewardSequenceView: View {
             }
         case .rankTrial:
             rankTrialBeat
-        case .weeklyVow:
-            weeklyVowBeat
         case .cosmetic:
             cosmeticBeat
         case .streak:
@@ -357,6 +347,11 @@ struct WorkoutRewardSequenceView: View {
         UnboundHaptics.heavy()
         playSound(for: currentBeatKind)
         revealCurrentPage()
+        // When XP opens the sequence (no session-summary beat before it), the
+        // onChange(of: beat) trigger never fires for it — run the count-up here.
+        if currentBeatKind == .xp {
+            animateXP()
+        }
         #if DEBUG
         // Reward-demo recording: drive the page advances hands-free so the whole
         // sequence plays autonomously for a screen capture (no tap injection).
@@ -381,42 +376,10 @@ struct WorkoutRewardSequenceView: View {
                 pageRevealed = true
             }
             guard revealedBeat == .attributes else { return }
-            runHexSequence()
-        }
-    }
-
-    /// Attribute-hex reveal. Every axis fills from its prior level-progress to its
-    /// new progress; an axis that LEVELED UP this session overshoots to full,
-    /// then rolls over (snap to empty) and refills to its new (small) progress —
-    /// the same level-up feel as the XP bar, per axis.
-    func runHexSequence() {
-        let prev = previousAttributeMap
-        let cur = currentAttributeMap
-        let leveled = Set(summary.attributeDeltas.filter(\.didIncreaseLevel).map(\.key))
-
-        // Phase 1: fill toward current; leveled axes overshoot to full.
-        var phase1 = cur
-        for key in leveled { phase1[key] = 100 }
-        hexPrev = prev
-        hexCur = phase1
-        attributeHexProgress = 0
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-            withAnimation(.easeOut(duration: leveled.isEmpty ? 1.15 : 0.95)) {
+            // One forward push from the before-shape to the after-shape —
+            // honest values, so no overshoot/wrap theatrics are needed.
+            withAnimation(.easeOut(duration: 1.2).delay(0.25)) {
                 attributeHexProgress = 1
-            }
-        }
-
-        guard !leveled.isEmpty else { return }
-
-        // Phase 2: leveled axes roll over — snap empty, then refill to real value.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18 + 0.95 + 0.16) {
-            var from = cur
-            for key in leveled { from[key] = 0 }
-            hexPrev = from
-            hexCur = cur
-            attributeHexProgress = 0
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) {
-                withAnimation(.easeOut(duration: 0.7)) { attributeHexProgress = 1 }
             }
         }
     }
@@ -464,7 +427,7 @@ struct WorkoutRewardSequenceView: View {
         case .xp:
             animatedXP = 0
             UnboundHaptics.heavy()
-        case .proof, .attributes, .collection, .progression, .rankTrial, .weeklyVow, .cosmetic, .streak:
+        case .proof, .attributes, .collection, .progression, .rankTrial, .cosmetic, .streak:
             UnboundHaptics.medium()
         case .sessionComplete, .final:
             UnboundHaptics.soft()

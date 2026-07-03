@@ -5,6 +5,16 @@ enum AppConstants {
     enum RevenueCat {
         static let apiKey = "appl_OIQYrbHrtkobrAoGiqBJVJkLpcf"
         static let entitlementIdentifier = "Unbound Pro"
+        /// Lookup key of the exit-intent discount offering. Purchases made from
+        /// the promo sheet must resolve against this offering, never `current` —
+        /// experiment variants swap `current`, and its `$rc_annual` package is
+        /// the full-price annual.
+        static let promoOfferingKey = "promo"
+        /// RevenueCat placement id the promo sheet asks for FIRST. Experiments
+        /// and targeting rules can remap this placement to a different offering
+        /// per arm (that's how the exit price itself gets A/B-tested); when no
+        /// rule matches, the fixed `promo` offering is the fallback.
+        static let promoPlacementId = "promo_exit"
     }
     enum PostHog {
         static let apiKey = "phc_xWUn9rk9938eRhF4MVFa8pgL9A8GceCmrPideTWwWbe7"
@@ -16,10 +26,6 @@ enum AppConstants {
     enum Legal {
         static let termsURL = URL(string: "https://unboundbtr.com/terms")!
         static let privacyURL = URL(string: "https://unboundbtr.com/privacy")!
-    }
-    enum API {
-        static let analyzeBodyURL = "https://us-central1-PLACEHOLDER.cloudfunctions.net/analyzeBody"
-        static let generateProgramURL = "https://us-central1-PLACEHOLDER.cloudfunctions.net/generateProgram"
     }
     enum Limits {
         static let maxPhotoWidthPx: CGFloat = 1200

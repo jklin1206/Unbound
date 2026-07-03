@@ -12,18 +12,28 @@ struct Step_Chapter_Path: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                Image("onboarding_path_open_gate")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: fullBleedSize(proxy).width, height: fullBleedSize(proxy).height)
-                    .scaleEffect(gateOpen ? 1.72 : 2.55, anchor: .bottom)
-                    .offset(y: gateOpen ? 112 : 176)
-                    .saturation(gateOpen ? 1.18 : 0.82)
-                    .brightness(gateOpen ? 0.02 : -0.32)
-                    .contrast(gateOpen ? 1.08 : 1.22)
-                    .clipped()
-                    .ignoresSafeArea()
-                    .animation(.easeInOut(duration: 2.65), value: gateOpen)
+                // The signed-at gate answers: the SEALED doors (same art the pact
+                // stands before) crossfade into the open gate as the light hits.
+                ZStack {
+                    Image("onboarding_path_sealed_gate")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: fullBleedSize(proxy).width, height: fullBleedSize(proxy).height)
+                        .opacity(gateOpen ? 0 : 1)
+                    Image("onboarding_path_open_gate")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: fullBleedSize(proxy).width, height: fullBleedSize(proxy).height)
+                        .opacity(gateOpen ? 1 : 0)
+                }
+                .scaleEffect(gateOpen ? 1.72 : 2.55, anchor: .bottom)
+                .offset(y: gateOpen ? 112 : 176)
+                .saturation(gateOpen ? 1.18 : 0.82)
+                .brightness(gateOpen ? 0.02 : -0.32)
+                .contrast(gateOpen ? 1.08 : 1.22)
+                .clipped()
+                .ignoresSafeArea()
+                .animation(.easeInOut(duration: 2.65), value: gateOpen)
 
                 gateLight
                 gateSplit
@@ -79,6 +89,9 @@ struct Step_Chapter_Path: View {
         }
     }
 
+    // In-text over the art — no card. Readability comes from the bottom scrim
+    // in `vignette` plus per-line shadows, so the gate stays visible behind
+    // the words instead of being dimmed by a panel.
     private var bottomStory: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(L10n.onboarding("chapterPath.chapter", defaultValue: "CHAPTER IV"))
@@ -86,6 +99,7 @@ struct Step_Chapter_Path: View {
                 .tracking(4)
                 .foregroundStyle(Color.unbound.accent)
                 .shadow(color: Color.unbound.accent.opacity(0.75), radius: 18)
+                .shadow(color: .black.opacity(0.9), radius: 3)
 
             Text(L10n.onboarding("chapterPath.title", defaultValue: "THE GATE OPENED"))
                 .font(.system(size: 39, weight: .black, design: .rounded))
@@ -94,29 +108,16 @@ struct Step_Chapter_Path: View {
                 .lineLimit(2)
                 .minimumScaleFactor(0.75)
                 .shadow(color: Color.unbound.impact.opacity(0.5), radius: 20)
+                .shadow(color: .black.opacity(0.85), radius: 4, y: 1)
 
-            Text(L10n.onboarding("chapterPath.body", defaultValue: "The scan marked Day Zero. Now you step into the path: a plan, a rank ladder, and proof that changes when you do."))
+            Text(L10n.onboarding("chapterPath.body", defaultValue: "The first of eight. Beyond it: quests, dungeons, and the long climb to Unbound."))
                 .font(Font.unbound.bodyM)
-                .foregroundStyle(Color.unbound.textPrimary.opacity(0.88))
+                .foregroundStyle(Color.unbound.textPrimary.opacity(0.92))
                 .fixedSize(horizontal: false, vertical: true)
+                .shadow(color: .black.opacity(0.9), radius: 3, y: 1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.76),
-                    Color.black.opacity(0.44)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.accent.opacity(0.34), lineWidth: 1)
-        )
+        .padding(.horizontal, 4)
     }
 
     private var gateLight: some View {
@@ -203,12 +204,17 @@ struct Step_Chapter_Path: View {
 
             Spacer()
 
+            // Bottom scrim carries the story text's readability (no card box).
             LinearGradient(
-                colors: [Color.clear, Color.black.opacity(0.16), Color.clear],
+                stops: [
+                    .init(color: Color.clear, location: 0),
+                    .init(color: Color.black.opacity(0.42), location: 0.42),
+                    .init(color: Color.black.opacity(0.86), location: 1)
+                ],
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(height: 330)
+            .frame(height: 400)
         }
         .ignoresSafeArea()
     }

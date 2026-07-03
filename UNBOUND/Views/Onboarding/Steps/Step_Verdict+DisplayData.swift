@@ -140,7 +140,7 @@ extension Step_Verdict {
 
         return L10n.onboardingFormat(
             "verdict.dossier.narrative",
-            defaultValue: "Your first arc starts from your %@ baseline %@. Priority work is %@ — the gap between today and the version you keep picturing. With your %@ commitment, the first milestone is close enough to chase, and the climb keeps going after that.",
+            defaultValue: "Your first arc starts from your %@ baseline %@. Priority work: %@. With your %@ commitment, the first milestone is already in reach.",
             experiencePhrase,
             equipPhrase,
             focusPhrase,

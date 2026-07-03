@@ -89,6 +89,21 @@ struct SavedWorkout: Codable, Identifiable, Hashable, Sendable {
         )
     }
 
+    /// Draft for editing this loadout in place: keyed to the loadout's id so
+    /// the library's id-keyed auto-save updates this entry instead of
+    /// duplicating it.
+    func asEditingDraft(userId: String) -> TrainingSessionDraft {
+        TrainingSessionDraft(
+            id: id.uuidString,
+            userId: userId,
+            source: .custom,
+            title: title,
+            estimatedMinutes: estimatedMinutes,
+            referenceExerciseName: referenceExerciseName,
+            blocks: blocks
+        )
+    }
+
     static func from(
         _ workout: Workout,
         title: String? = nil,

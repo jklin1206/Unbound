@@ -10,6 +10,8 @@ import SwiftUI
 struct RankDetailView: View {
     @State private var vm: RankDetailViewModel
     @State private var selectedTab: RankDetailTab
+    @State private var showStopTrainingDialog = false
+    @State private var showSwapTrainingDialog = false
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var services: ServiceContainer
@@ -61,6 +63,12 @@ struct RankDetailView: View {
                             hero
                                 .padding(.top, 8)
                                 .id(Self.topAnchor)
+
+                            if vm.isSkillEntry, let node = vm.skillNode {
+                                programFocusCTA(node: node)
+                                    .padding(.horizontal, 20)
+                                    .padding(.top, 16)
+                            }
 
                             Section {
                                 tabContent
@@ -128,7 +136,7 @@ struct RankDetailView: View {
             Spacer(minLength: 8)
 
             if vm.isSkillEntry, let node = vm.skillNode {
-                targetButton(node: node)
+                trainButton(node: node)
             }
 
             if !(vm.row?.isRankHidden ?? false) {
@@ -142,34 +150,131 @@ struct RankDetailView: View {
         }
     }
 
-    /// Toggle this skill as the user's TARGET for its tree. Display-only marker
-    /// (independent of Program Focuses); reflected on the Skill-tree card.
-    private func targetButton(node: SkillNode) -> some View {
-        let isTarget = SkillProgressService.shared.isTarget(nodeId: node.id)
+    /// The action that puts a skill INTO the user's program: toggles it as a
+    /// Program Focus, which routes weekly rung-resolved drill blocks into
+    /// training days via ProgramScheduler + DailyWorkoutResolver. Once the
+    /// skill is training, this CTA disappears — the quiet top-bar dumbbell
+    /// toggle carries state and removal, so the screen never sits under a
+    /// persistent status banner. At the 3-slot cap the CTA stays ENABLED as a
+    /// swap: it lists the three training skills and replaces the chosen one,
+    /// so switching never requires hunting down the old skill to deselect it.
+    /// Hidden while prereqs are locked.
+    @ViewBuilder
+    private func programFocusCTA(node: SkillNode) -> some View {
+        let progress = SkillProgressService.shared
+        let isFocus = progress.isProgramFocus(nodeId: node.id)
+        let atCap = progress.programFocusIds.count >= SkillProgressService.programFocusCap
+        if !isFocus, progress.isNodeTrainable(nodeId: node.id) {
+            Button {
+                UnboundHaptics.medium()
+                if atCap {
+                    showSwapTrainingDialog = true
+                } else {
+                    Task { await SkillProgressService.shared.toggleProgramFocus(nodeId: node.id) }
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "figure.strengthtraining.traditional")
+                        .font(.system(size: 14, weight: .bold))
+                        .accessibilityHidden(true)
+                    Text(atCap ? "SWAP INTO TRAINING" : "TRAIN THIS SKILL")
+                        .font(Font.unbound.bodyMStrong)
+                        .tracking(1.6)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .foregroundStyle(Color.unbound.textPrimary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.unbound.accent)
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(atCap ? "Swap into training" : "Train this skill")
+            .accessibilityIdentifier("rankDetail.trainThisSkill")
+            .confirmationDialog(
+                "All 3 training slots are in use",
+                isPresented: $showSwapTrainingDialog,
+                titleVisibility: .visible
+            ) {
+                ForEach(currentFocusChoices(), id: \.id) { choice in
+                    Button("Replace \(choice.title)") {
+                        UnboundHaptics.medium()
+                        Task {
+                            await SkillProgressService.shared.toggleProgramFocus(nodeId: choice.id)
+                            await SkillProgressService.shared.toggleProgramFocus(nodeId: node.id)
+                        }
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Pick which skill \(node.title) should replace.")
+            }
+        }
+    }
+
+    /// Quiet top-bar toggle mirroring the old Target scope button: accent-lit
+    /// while the skill is a Program Focus. Tapping it while training asks
+    /// plainly before stopping — the lit icon alone wasn't a readable
+    /// "stop training" affordance.
+    private func trainButton(node: SkillNode) -> some View {
+        let isFocus = SkillProgressService.shared.isProgramFocus(nodeId: node.id)
         return Button {
             UnboundHaptics.soft()
-            Task { await SkillProgressService.shared.toggleTarget(nodeId: node.id) }
+            if isFocus {
+                showStopTrainingDialog = true
+            } else {
+                Task { await SkillProgressService.shared.toggleProgramFocus(nodeId: node.id) }
+            }
         } label: {
-            Image(systemName: "scope")
+            Image(systemName: "figure.strengthtraining.traditional")
                 .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(isTarget ? Color.unbound.accent : Color.unbound.textSecondary)
+                .foregroundStyle(isFocus ? Color.unbound.accent : Color.unbound.textSecondary)
                 .frame(width: 36, height: 36)
                 .background(
                     Circle().fill(
-                        isTarget
+                        isFocus
                             ? Color.unbound.accent.opacity(0.18)
                             : Color.unbound.surfaceElevated.opacity(0.9)
                     )
                 )
                 .overlay(
                     Circle().strokeBorder(
-                        isTarget ? Color.unbound.accent.opacity(0.7) : Color.clear,
+                        isFocus ? Color.unbound.accent.opacity(0.7) : Color.clear,
                         lineWidth: 1
                     )
                 )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isTarget ? "Remove target" : "Set as target")
+        .accessibilityLabel(isFocus ? "Stop training this skill" : "Train this skill")
+        .accessibilityIdentifier("rankDetail.trainToggle")
+        .confirmationDialog(
+            "\(vm.title) is in training",
+            isPresented: $showStopTrainingDialog,
+            titleVisibility: .visible
+        ) {
+            Button("Stop training", role: .destructive) {
+                UnboundHaptics.medium()
+                Task { await SkillProgressService.shared.toggleProgramFocus(nodeId: node.id) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Its drills leave your weekly sessions. You can add it back anytime.")
+        }
+    }
+
+    /// The three skills currently in training, resolved to titles for the
+    /// swap dialog. Sorted for a stable button order.
+    private func currentFocusChoices() -> [(id: String, title: String)] {
+        SkillProgressService.shared.programFocusIds
+            .compactMap { id -> (id: String, title: String)? in
+                guard let node = SkillGraph.shared.node(id: id) else { return nil }
+                return (id: id, title: node.title)
+            }
+            .sorted { $0.title < $1.title }
     }
 
     // MARK: - 2. Tier-tinted hero

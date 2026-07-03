@@ -189,6 +189,7 @@ enum ExerciseCatalog {
             .init(name: "rear delt fly (db)", displayName: "Rear Delt Fly (DB)", muscleGroups: [.shoulders, .back], defaultSubstitute: "face pull"),
             .init(name: "rear delt fly (machine)", displayName: "Rear Delt Fly (Machine)", muscleGroups: [.shoulders, .back], defaultSubstitute: "rear delt fly (db)"),
             .init(name: "face pull", displayName: "Face Pull (Cable)", muscleGroups: [.shoulders, .back, .traps], defaultSubstitute: "rear delt fly (db)"),
+            .init(name: "band face pull", displayName: "Band Face Pull", muscleGroups: [.shoulders, .back, .traps], defaultSubstitute: "face pull"),
             .init(name: "pike pushup", displayName: "Pike Push-Up", muscleGroups: [.shoulders, .arms, .core], defaultSubstitute: "dumbbell overhead press", progressionFamily: "hspu", progressionTier: 0),
             .init(name: "wall handstand pushup", displayName: "Wall Handstand Push-Up", muscleGroups: [.shoulders, .arms, .core], defaultSubstitute: "pike pushup", progressionFamily: "hspu", progressionTier: 1)
         ],

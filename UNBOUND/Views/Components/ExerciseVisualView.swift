@@ -281,15 +281,7 @@ struct ExerciseVisualView: View {
     }
 
     private var tint: Color {
-        switch definition.movementSlot {
-        case .squat, .hinge: return Color.unbound.warnOrange
-        case .horizontalPush, .verticalPush: return Color.unbound.emberGlow
-        case .horizontalPull, .verticalPull: return Color.rewardBlue
-        case .core: return Color.unbound.rankGold
-        case .mobility: return Color.rewardTeal
-        case .cardio, .carry: return Color.unbound.impact
-        case .arms, .calves, .routine, .skill: return Color.unbound.accent
-        }
+        definition.movementSlot.accentColor
     }
 
     var body: some View {

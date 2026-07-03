@@ -97,7 +97,7 @@ private struct HomeArcWalletAmount: View {
         .padding(.leading, 9)
         .overlay(alignment: .leading) {
             Rectangle()
-                .fill(Color.unbound.impact.opacity(0.38))
+                .fill(Color.unbound.borderSubtle)
                 .frame(width: 0.5, height: 22)
         }
         .accessibilityLabel("\(balance.formatted()) Arcs")
@@ -554,9 +554,12 @@ private struct HomeWeekHeatFlame: View {
     let reduceMotion: Bool
 
     var body: some View {
+        // Strictly two flame states: ignited (session logged) or unlit.
+        // "Today" is marked by the label color and a neutral ring, never by
+        // a half-ember flame - the in-between state read as a third status.
         let flameColor = hasSession
             ? Color.unbound.ember
-            : (isToday ? Color.unbound.ember.opacity(0.82) : Color.unbound.textTertiary.opacity(0.48))
+            : Color.unbound.textTertiary.opacity(0.48)
         let labelColor = isToday ? Color.unbound.textPrimary : Color.unbound.textTertiary
         let shouldAnimate = hasSession && !reduceMotion
 
@@ -566,7 +569,10 @@ private struct HomeWeekHeatFlame: View {
 
                 ZStack {
                     Circle()
-                        .fill(isToday ? Color.unbound.ember.opacity(0.12 + (0.03 * Double(pulse))) : Color.clear)
+                        .strokeBorder(
+                            isToday ? Color.unbound.textPrimary.opacity(0.22) : Color.clear,
+                            lineWidth: 1
+                        )
                         .frame(width: 28, height: 28)
 
                     Image(systemName: hasSession ? "flame.fill" : "flame")

@@ -10,9 +10,7 @@ final class CurrencyWalletStore: ObservableObject {
     static let shared = CurrencyWalletStore()
 
     private static let balanceKeyPrefix = "unbound.wallet.vows."
-    private static let starterGrantKeyPrefix = "unbound.wallet.vows.starterGrant."
     private static let grantLedgerKeyPrefix = "unbound.wallet.vows.grantLedger."
-    private static let starterGrant = 1_500
     #if DEBUG
     private static let debugUnlimitedBalance = 9_999_999
     private static let devAccountModeKey = "unbound.dev.accountMode"
@@ -33,13 +31,10 @@ final class CurrencyWalletStore: ObservableObject {
         if Self.usesUnlimitedDevCredits(userId) {
             balance = Self.debugBalance
             persistStoredBalanceWithoutBroadcast()
-            defaults.set(true, forKey: Self.starterGrantKeyPrefix + userId)
             return
         }
-        if !defaults.bool(forKey: Self.starterGrantKeyPrefix + userId) {
-            defaults.set(Self.starterGrant, forKey: Self.balanceKeyPrefix + userId)
-            defaults.set(true, forKey: Self.starterGrantKeyPrefix + userId)
-        }
+        // Arcs are earn-only: there is no starter grant. A new wallet begins at 0
+        // and every Arc is earned through training, vows, and squad rewards.
         balance = defaults.integer(forKey: Self.balanceKeyPrefix + userId)
     }
 

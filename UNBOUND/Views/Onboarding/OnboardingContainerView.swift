@@ -155,6 +155,10 @@ private struct OnboardingRouter: View {
                     Step_ProblemFrame(onContinue: advance)
                         .transition(.opacity)
 
+                case .painCost:
+                    Step_PainCost(onContinue: advance)
+                        .transition(.opacity)
+
                 case .restartLoop:
                     Step_RestartLoop(onContinue: advance)
                         .transition(screenTransition)
@@ -251,10 +255,6 @@ private struct OnboardingRouter: View {
                     Step16_SessionLength(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
 
-                case .resultsSnapshot:
-                    Step_ResultsSnapshot(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
-                        .transition(screenTransition)
-
                 case .diet:
                     Step17_Diet(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
@@ -321,16 +321,8 @@ private struct OnboardingRouter: View {
                     Step_Verdict(flow: flow, onContinue: advance)
                         .transition(.opacity)
 
-                case .appPainSolution:
-                    Step_AppPainSolution(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
-                        .transition(screenTransition)
-
-                case .workoutPreviewDemo:
-                    Step_WorkoutPreviewDemo(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
-                        .transition(screenTransition)
-
                 case .workoutLogDemo:
-                    Step_WorkoutLogDemo(progress: flow.progress, onBack: back, onContinue: advance)
+                    Step_WorkoutLogDemo(onContinue: advance)
                         .transition(screenTransition)
 
                 case .workoutRewardDemo:
@@ -340,10 +332,6 @@ private struct OnboardingRouter: View {
                 case .appRatingPrompt:
                     Step_NativeAppRatingPrompt(onContinue: advance)
                         .transition(.opacity)
-
-                case .trajectory:
-                    Step28_Trajectory(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
-                        .transition(screenTransition)
 
                 case .obstacleFix:
                     Step_ObstacleFix(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
@@ -375,6 +363,10 @@ private struct OnboardingRouter: View {
 
                 case .planReady:
                     Step_PlanReady(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
+                        .transition(screenTransition)
+
+                case .pact:
+                    Step_Pact(flow: flow, progress: flow.progress, onBack: back, onContinue: advance)
                         .transition(screenTransition)
 
                 case .paywall:

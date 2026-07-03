@@ -1,6 +1,10 @@
 // UNBOUND/Views/Squads/FriendChallengeOutcomeToast.swift
 //
-// Bottom-of-screen toast fired when `.friendChallengeExpired` is posted.
+// Bottom-of-screen toast for a settled 1v1 friend challenge. Outcomes are
+// buffered in FriendChallengeService at settle time and drained here when the
+// toast mounts (and live via `.friendChallengeExpired` while mounted), so a
+// win/loss that settles on a foreground while the user is off the Squad tab is
+// never lost. The reward is granted by the service; this view only displays it.
 // Follows the same pattern as TrialCapstoneToast — slide up, hold, fade out.
 //
 // Usage:
@@ -146,28 +150,42 @@ private struct FriendChallengeOutcomeToastModifier: ViewModifier {
                     challenge: challenge,
                     currentUserId: me,
                     opponentName: opponentName,
-                    onDismiss: { pendingChallenge = nil }
+                    onDismiss: {
+                        pendingChallenge = nil
+                        showNextOutcome()
+                    }
                 )
                 .id(challenge.id)
                 .transition(.opacity)
                 .zIndex(100)
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .friendChallengeExpired)) { note in
-            guard let challenge = note.object as? FriendChallenge else { return }
-            // opponentName resolved at call site; fallback to "Opponent" here
-            pendingChallenge = challenge
-            // Grant Arcs exactly once when the current user is the winner.
-            if let me = currentUserId, challenge.winnerUserId == me {
-                if let userId = services.auth.currentUserId {
-                    CurrencyWalletStore.shared.bind(userId: userId)
-                }
-                CurrencyWalletStore.shared.grant(
-                    SquadRewardPolicy.duelWinArcs,
-                    sourceId: SquadRewardPolicy.duelSourceId(challenge.id)
-                )
-            }
+        // Drain any outcome that settled while this toast was unmounted (e.g. the
+        // foreground settle happened on another tab), then keep draining live ones.
+        .task { showNextOutcome() }
+        .onReceive(NotificationCenter.default.publisher(for: .friendChallengeExpired)) { _ in
+            showNextOutcome()
         }
+    }
+
+    /// Pull the next settled outcome from the service buffer when the toast is
+    /// idle. The service both grants the reward and buffers the outcome at settle
+    /// time, so this view only displays it — one outcome at a time, in order.
+    private func showNextOutcome() {
+        guard pendingChallenge == nil,
+              let next = services.friendChallenge.consumePendingOutcome()
+        else { return }
+        opponentName = resolveOpponentName(for: next)
+        pendingChallenge = next
+    }
+
+    private func resolveOpponentName(for challenge: FriendChallenge) -> String {
+        guard let userId = services.auth.currentUserId,
+              let me = SquadUserIdentity.uuid(from: userId)
+        else { return "Opponent" }
+        let opponentId = challenge.challengerId == me ? challenge.challengedId : challenge.challengerId
+        let roster = services.squads.state(userId: userId).roster
+        return roster.first(where: { $0.userId == opponentId })?.displayName ?? "Opponent"
     }
 }
 

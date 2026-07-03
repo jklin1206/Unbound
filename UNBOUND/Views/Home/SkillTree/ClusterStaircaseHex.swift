@@ -74,9 +74,6 @@ extension ClusterStaircaseView {
             Hexagon()
                 .strokeBorder(skin.primaryColor, lineWidth: 2)
                 .frame(width: size, height: size)
-            Hexagon()
-                .strokeBorder(skin.impactColor.opacity(0.7), lineWidth: 1)
-                .frame(width: size + 16, height: size + 16)
             glyph(for: node, state: state, available: available, fontSize: 36)
         }
         .scaleEffect(activePulse)

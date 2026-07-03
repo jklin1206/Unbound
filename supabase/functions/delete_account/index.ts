@@ -69,6 +69,16 @@ function makeDb(admin: SupabaseClient): AccountDeletionDb {
       const { error } = await admin.auth.admin.deleteUser(userId, false)
       if (error) throw error
     },
+    async isAuthUser(userId) {
+      const { data, error } = await admin.auth.admin.getUserById(userId)
+      if (error) {
+        // A definitive not-found means the id never was an auth user. Any
+        // other failure is indeterminate — fail safe (treat as existing so
+        // the optional legacy purge is skipped, never risked cross-user).
+        return error.status !== 404
+      }
+      return data.user !== null
+    },
   }
 }
 

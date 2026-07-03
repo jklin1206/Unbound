@@ -1,249 +1,26 @@
 import SwiftUI
-import StoreKit
 #if canImport(UIKit)
 import UIKit
 #endif
 
-struct Step_AppPainSolution: View {
-    @Bindable var flow: OnboardingFlowViewModel
-    var progress: Double
-    let onBack: () -> Void
-    let onContinue: () -> Void
-
-    private var rows: [(problem: String, fix: String, assetName: String, tint: Color, imagePadding: CGFloat)] {
-        [
-            (
-                L10n.onboarding("appPainSolution.problem.today", defaultValue: "You do not know what to train today."),
-                L10n.onboarding("appPainSolution.fix.today", defaultValue: "UNBOUND gives you one daily mission."),
-                "onboarding_path_protocol_dossier",
-                Color.unbound.accent,
-                4
-            ),
-            (
-                L10n.onboarding("appPainSolution.problem.progress", defaultValue: "Progress feels invisible."),
-                L10n.onboarding("appPainSolution.fix.progress", defaultValue: "Every log moves rank, stats, and gate readiness."),
-                "badge_art_proof_10",
-                Color.unbound.impact,
-                5
-            ),
-            (
-                L10n.onboarding("appPainSolution.problem.life", defaultValue: "Life breaks generic plans."),
-                L10n.onboarding("appPainSolution.fix.life", defaultValue: "Your plan adapts to recovery, schedule, and equipment."),
-                "badge_art_consistency_loop",
-                Color.unbound.ember,
-                5
-            ),
-            (
-                L10n.onboarding("appPainSolution.problem.plateau", defaultValue: "There is no clear standard to chase."),
-                L10n.onboarding("appPainSolution.fix.plateau", defaultValue: "Rank gates tell you exactly what unlocks the next climb."),
-                "onboarding_path_rank_gates",
-                Color.unbound.rankGreen,
-                4
-            )
-        ]
-    }
-
-    var body: some View {
-        OnboardingScaffold(
-            title: L10n.onboarding("appPainSolution.title", defaultValue: "Now the app solves the loop."),
-            subtitle: L10n.onboarding("appPainSolution.subtitle", defaultValue: "Your scan gives the starting point. The daily loop turns it into action."),
-            progress: progress,
-            primaryTitle: L10n.onboarding("appPainSolution.primary", defaultValue: "Show today's mission"),
-            primaryIcon: "arrow.right",
-            hudStep: .appPainSolution,
-            onBack: onBack,
-            onPrimary: onContinue
-        ) {
-            VStack(spacing: 12) {
-                ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                    problemFixRow(
-                        index: index + 1,
-                        problem: row.problem,
-                        fix: row.fix,
-                        assetName: row.assetName,
-                        tint: row.tint,
-                        imagePadding: row.imagePadding
-                    )
-                }
-            }
-        }
-    }
-
-    private func problemFixRow(
-        index: Int,
-        problem: String,
-        fix: String,
-        assetName: String,
-        tint: Color,
-        imagePadding: CGFloat
-    ) -> some View {
-        UnboundCard(cornerRadius: 12, padding: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                OnboardingAssetGlyph(
-                    assetName: assetName,
-                    tint: tint,
-                    size: 38,
-                    imagePadding: imagePadding,
-                    shape: .hexagon
-                )
-
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(problem)
-                        .font(Font.unbound.bodyM.weight(.semibold))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    HStack(alignment: .top, spacing: 8) {
-                        OnboardingAssetGlyph(
-                            assetName: "badge_art_first_session",
-                            tint: Color.unbound.accent,
-                            size: 18,
-                            imagePadding: 3,
-                            shape: .hexagon,
-                            showsCornerMark: false
-                        )
-                        .padding(.top, 1)
-                        Text(fix)
-                            .font(Font.unbound.bodyS)
-                            .foregroundStyle(Color.unbound.textSecondary)
-                    }
-                }
-
-                Spacer(minLength: 0)
-            }
-        }
-    }
-}
-
-struct Step_WorkoutPreviewDemo: View {
-    @Bindable var flow: OnboardingFlowViewModel
-    var progress: Double
-    let onBack: () -> Void
-    let onContinue: () -> Void
-
-    private var missionTitle: String {
-        if let firstArea = flow.targetAreas.first {
-            return "\(firstArea.displayName) Rank Mission"
-        }
-        return "Rank Mission"
-    }
-
-    var body: some View {
-        OnboardingScaffold(
-            title: L10n.onboarding("workoutPreviewDemo.title", defaultValue: "This is what you open each day."),
-            subtitle: L10n.onboarding("workoutPreviewDemo.subtitle", defaultValue: "No library digging. No guessing. Just the next mission built from your scan."),
-            progress: progress,
-            primaryTitle: L10n.onboarding("workoutPreviewDemo.primary", defaultValue: "Log the workout"),
-            primaryIcon: "arrow.right",
-            hudStep: .workoutPreviewDemo,
-            onBack: onBack,
-            onPrimary: onContinue
-        ) {
-            VStack(spacing: 14) {
-                UnboundCard(cornerRadius: 12, padding: 16) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(L10n.onboarding("workoutPreviewDemo.card.eyebrow", defaultValue: "TODAY'S MISSION"))
-                                    .font(Font.unbound.captionS)
-                                    .tracking(1.4)
-                                    .foregroundStyle(Color.unbound.ember)
-                                Text(missionTitle)
-                                    .font(Font.unbound.titleM)
-                                    .foregroundStyle(Color.unbound.textPrimary)
-                            }
-                            Spacer()
-                            Text("28 MIN")
-                                .font(Font.unbound.monoS)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Capsule().fill(Color.unbound.bg.opacity(0.7)))
-                        }
-
-                        VStack(spacing: 10) {
-                            missionRow(index: 1, title: "Prime", detail: "Mobility + activation", value: "4 min")
-                            missionRow(index: 2, title: "Main Work", detail: "Push / squat progression", value: "3 sets")
-                            missionRow(index: 3, title: "Skill Gate", detail: "Core control standard", value: "2 sets")
-                            missionRow(index: 4, title: "Recovery", detail: "Breathing + readiness check", value: "2 min")
-                        }
-                    }
-                }
-
-                UnboundCard(cornerRadius: 12, padding: 14) {
-                    HStack(spacing: 12) {
-                        OnboardingAssetGlyph(
-                            assetName: "badge_art_pr_session",
-                            tint: Color.unbound.accent,
-                            size: 34,
-                            imagePadding: 5,
-                            shape: .hexagon
-                        )
-                        Text(L10n.onboarding("workoutPreviewDemo.note", defaultValue: "After you log it, UNBOUND updates your next target."))
-                            .font(Font.unbound.bodyS)
-                            .foregroundStyle(Color.unbound.textSecondary)
-                    }
-                }
-            }
-        }
-    }
-
-    private func missionRow(index: Int, title: String, detail: String, value: String) -> some View {
-        HStack(spacing: 12) {
-            Text(String(format: "%02d", index))
-                .font(Font.unbound.monoS)
-                .foregroundStyle(Color.unbound.accent)
-                .frame(width: 28, alignment: .leading)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(Font.unbound.bodyM.weight(.semibold))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text(detail)
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-            }
-            Spacer()
-            Text(value.uppercased())
-                .font(Font.unbound.captionS.weight(.bold))
-                .tracking(0.8)
-                .foregroundStyle(Color.unbound.textTertiary)
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.unbound.bg.opacity(0.55))
-        )
-    }
-}
-
+/// Onboarding "taste the loop" beat: boots the REAL active-workout surface
+/// (same container, grid, and bottom-keypad logging as the live app) in
+/// rehearsal mode — nothing is persisted, and finishing hands control back to
+/// the flow. The mission list at the top of the surface doubles as the
+/// "this is what you open each day" reveal.
 struct Step_WorkoutLogDemo: View {
-    var progress: Double
-    let onBack: () -> Void
     let onContinue: () -> Void
 
-    @StateObject private var session: ActiveWorkoutSession
-
-    init(progress: Double, onBack: @escaping () -> Void, onContinue: @escaping () -> Void) {
-        self.progress = progress
-        self.onBack = onBack
-        self.onContinue = onContinue
-        _session = StateObject(wrappedValue: ActiveWorkoutSession(trainingDraft: Self.demoDraft))
-    }
+    @EnvironmentObject var services: ServiceContainer
 
     var body: some View {
-        OnboardingScaffold(
-            title: L10n.onboarding("workoutLogDemo.title", defaultValue: "Workout log"),
-            subtitle: nil,
-            progress: progress,
-            primaryTitle: session.progressSummary.isComplete
-                ? L10n.onboarding("workoutLogDemo.primary.ready", defaultValue: "Finish log")
-                : L10n.onboarding("workoutLogDemo.primary.waiting", defaultValue: "Log all sets"),
-            primaryIcon: "checkmark",
-            primaryEnabled: session.progressSummary.isComplete,
-            hudStep: .workoutLogDemo,
-            onBack: onBack,
-            onPrimary: onContinue
-        ) {
-            OnboardingWorkoutLogExperience(session: session)
-        }
+        ActiveWorkoutContainerView(
+            draft: Self.demoDraft,
+            services: services,
+            isRehearsal: true,
+            onFinished: onContinue
+        )
+        .toolbar(.hidden, for: .navigationBar)
     }
 
     private static var demoDraft: TrainingSessionDraft {
@@ -260,13 +37,14 @@ struct Step_WorkoutLogDemo: View {
                     kind: .bodyweight,
                     title: "Main Work",
                     prescriptions: [
+                        // No RPE on the taste-the-loop demo — brand-new users
+                        // haven't been taught the scale yet; keep it reps + rest.
                         TrainingBlockPrescription(
                             exerciseName: "Push-Up",
                             sets: 2,
                             target: .repsRange(8, 10),
                             restSeconds: 75,
                             muscleGroups: [.chest, .shoulders, .arms],
-                            rpe: 7,
                             notes: "Straight line. Full lockout. Stop before form breaks."
                         ),
                         TrainingBlockPrescription(
@@ -275,126 +53,12 @@ struct Step_WorkoutLogDemo: View {
                             target: .reps(10),
                             restSeconds: 90,
                             muscleGroups: [.legs, .glutes, .core],
-                            rpe: 7,
                             suggestedWeightKg: 24
                         )
                     ]
                 )
             ]
         )
-    }
-}
-
-private struct OnboardingWorkoutLogExperience: View {
-    @ObservedObject var session: ActiveWorkoutSession
-    @State private var expandedExerciseIds: Set<String> = []
-    @State private var editing: EditTarget?
-    @State private var rpeTarget: RPETarget?
-
-    private struct EditTarget: Identifiable {
-        let id = UUID()
-        let exerciseIndex: Int
-        let setIndex: Int
-        let isWeight: Bool
-    }
-
-    private struct RPETarget: Identifiable {
-        let id = UUID()
-        let exerciseIndex: Int
-        let setIndex: Int
-    }
-
-    var body: some View {
-        VStack(spacing: 12) {
-            ForEach(Array(session.exercises.enumerated()), id: \.element.id) { exerciseIndex, exercise in
-                if !exercise.skipped {
-                    exerciseCard(exerciseIndex: exerciseIndex, exercise: exercise)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .onAppear {
-            expandedExerciseIds = Set(session.exercises.map(\.id))
-        }
-        .sheet(item: $editing) { target in
-            EditorSheet(
-                session: session,
-                ei: target.exerciseIndex,
-                si: target.setIndex,
-                isWeight: target.isWeight,
-                onCommitted: {}
-            )
-        }
-        .sheet(item: $rpeTarget) { target in
-            RPEPickerSheet(
-                current: currentRPE(for: target),
-                onPick: { value in
-                    session.setRPE(exerciseIndex: target.exerciseIndex, setIndex: target.setIndex, value)
-                }
-            )
-            .presentationDetents([.height(420)])
-        }
-    }
-
-    private func exerciseCard(
-        exerciseIndex: Int,
-        exercise: ActiveWorkoutSession.ActiveExercise
-    ) -> some View {
-        let isCurrent = exerciseIndex == session.currentExerciseIndex
-        return ExerciseLogCard(
-            name: exercise.name,
-            plannedSets: exercise.plannedSets,
-            plannedReps: exercise.plannedReps,
-            targetRPE: exercise.targetRPE,
-            restSeconds: exercise.restSeconds,
-            muscleGroups: exercise.muscleGroups,
-            formCues: exercise.formCues,
-            substitution: exercise.substitution,
-            movementId: exercise.movementId,
-            blockKind: exercise.blockKind,
-            metricKind: exercise.metricKind,
-            tracksHold: exercise.tracksHold,
-            isWarmupCurrent: exercise.sets.first?.isWarmup ?? false,
-            sets: exercise.sets,
-            isExpanded: expandedExerciseIds.contains(exercise.id),
-            isCurrent: isCurrent,
-            currentSetIndex: isCurrent ? session.currentSetIndex : nil,
-            onToggleExpand: {
-                if expandedExerciseIds.contains(exercise.id) {
-                    expandedExerciseIds.remove(exercise.id)
-                } else {
-                    expandedExerciseIds.insert(exercise.id)
-                }
-            },
-            onIntent: { _ in },
-            onEditWeight: { setIndex in
-                editing = EditTarget(exerciseIndex: exerciseIndex, setIndex: setIndex, isWeight: true)
-            },
-            onEditReps: { setIndex in
-                editing = EditTarget(exerciseIndex: exerciseIndex, setIndex: setIndex, isWeight: false)
-            },
-            onPickRPE: { setIndex in
-                rpeTarget = RPETarget(exerciseIndex: exerciseIndex, setIndex: setIndex)
-            },
-            onConfirmAsPlanned: { setIndex in
-                UnboundHaptics.medium()
-                session.confirmAsPlanned(exerciseIndex: exerciseIndex, setIndex: setIndex)
-            },
-            onToggleQualityFlag: { setIndex, flag in
-                session.toggleQualityFlag(flag, exerciseIndex: exerciseIndex, setIndex: setIndex)
-            },
-            onAddSet: {},
-            allowsProtocolEditing: false
-        )
-    }
-
-    private func currentRPE(for target: RPETarget) -> Int? {
-        guard session.exercises.indices.contains(target.exerciseIndex),
-              session.exercises[target.exerciseIndex].sets.indices.contains(target.setIndex)
-        else { return nil }
-
-        let set = session.exercises[target.exerciseIndex].sets[target.setIndex]
-        return set.rpe ?? set.suggestedRPE
     }
 }
 
@@ -415,13 +79,18 @@ struct Step_WorkoutRewardDemo: View {
     private func finishReward() {
         guard !didFinishReward else { return }
         didFinishReward = true
-        OnboardingAppStoreReviewPrompt.request()
-
+        // No rating ask here — it used to fire from this spot and Apple's
+        // sheet landed on top of the pact's sealed-gate entrance. The
+        // onboarding ask now lives on the verdict reveal (Step_Verdict).
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             onContinue()
         }
     }
 
+    /// A real-but-tiny payout: the first drip of XP and Arcs through the SAME
+    /// reward sequence the app uses — no stats, no streak theater. Numbers ride
+    /// the real curve (`OverallLevelCurve`: LVL 1 at 16 XP, LVL 2 at 64), so the
+    /// first session's +18 XP genuinely rings the user up to LEVEL 1.
     private static var onboardingRewardSummary: WorkoutRewardSequenceSummary {
         var summary = WorkoutRewardSequenceSummary(
             workoutName: "Workout Logged",
@@ -430,12 +99,19 @@ struct Step_WorkoutRewardDemo: View {
             volumeKg: 0,
             rpe: nil,
             xp: XPReward(
-                total: 0,
-                previousLevel: 1,
+                total: 18,
+                previousLevel: 0,
                 newLevel: 1,
                 previousProgress: 0,
-                newProgress: 0,
-                breakdown: []
+                newProgress: 2.0 / 48.0,
+                previousXP: 0,
+                currentXP: 18,
+                levelFloorXP: 16,
+                nextLevelXP: 64,
+                breakdown: [
+                    XPBreakdownLine(label: "Work sets logged", amount: 14),
+                    XPBreakdownLine(label: "First session", amount: 4)
+                ]
             ),
             liftProgress: [],
             attributeDeltas: [],
@@ -445,7 +121,7 @@ struct Step_WorkoutRewardDemo: View {
                 arcName: "Onboarding",
                 week: 1,
                 totalWeeks: 1,
-                completedSessions: 0,
+                completedSessions: 1,
                 totalSessions: 1,
                 didCompleteWeek: false,
                 didCompleteArc: false,
@@ -454,7 +130,10 @@ struct Step_WorkoutRewardDemo: View {
             cosmeticUnlock: nil
         )
         summary.showsSessionSummary = false
-        summary.showsFinalSummary = false
+        summary.showsFinalSummary = true
+        summary.arcsEarned = 90
+        // The first session starts the streak - day one is a freebie the
+        // reward sequence hands over, so there's something to protect tomorrow.
         summary.streak = StreakReward(dayCount: 1, didExtend: true)
         return summary
     }
@@ -474,28 +153,8 @@ struct Step_NativeAppRatingPrompt: View {
     private func requestAndContinue() {
         guard !didRequest else { return }
         didRequest = true
-        OnboardingAppStoreReviewPrompt.request()
+        AppStoreReviewPrompt.request()
         onContinue()
-    }
-}
-
-private enum OnboardingAppStoreReviewPrompt {
-    static func request() {
-        #if DEBUG
-        guard !ProcessInfo.processInfo.arguments.contains("-SuppressOnboardingReviewPrompt") else {
-            return
-        }
-        #endif
-
-        #if canImport(UIKit)
-        guard let scene = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene })
-            .first(where: { $0.activationState == .foregroundActive }) else {
-            return
-        }
-
-        SKStoreReviewController.requestReview(in: scene)
-        #endif
     }
 }
 

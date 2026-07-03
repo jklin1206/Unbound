@@ -636,10 +636,30 @@ enum DevBuildBootstrapper {
     static let devAccountModeKey = "unbound.dev.accountMode"
     static let freshLoginDevAccountMode = "fresh-login"
     static let resetCompletedWorkoutsDevAccountMode = "reset-completed-workouts"
+    /// `-genuineNewUser` (or env `UNBOUND_GENUINE_NEW_USER=1`): skip ALL dev
+    /// seeding so the app boots as a real first-launch user — no dev account and
+    /// no unlock flags — for genuine end-to-end onboarding verification on the
+    /// simulator. Everything else stays a normal DEBUG build, so the paywall's
+    /// local purchase stub still crosses the gate with no Apple Account.
+    static let genuineNewUserArg = "-genuineNewUser"
+    /// `--unbound-dev-keep-state`: activate the dev account but skip every
+    /// seeding step, keeping all persisted stores (program, schedule
+    /// occurrences, logs) exactly as the previous run left them. A plain dev
+    /// launch re-seeds `seedProgram()` and would clobber state like a
+    /// rolled-over arc, so persistence across relaunches can only be verified
+    /// with this flag.
+    static let keepStateArg = "--unbound-dev-keep-state"
+
+    static var isGenuineNewUserLaunch: Bool {
+        ProcessInfo.processInfo.arguments.contains(genuineNewUserArg)
+            || ProcessInfo.processInfo.environment["UNBOUND_GENUINE_NEW_USER"] == "1"
+    }
 
     static func ensureReady() async {
+        guard !isGenuineNewUserLaunch else { return }
         AuthService.shared.activateDevUser(id: userId)
         DevFlags.shared.unlockAllFeatures = true
+        if ProcessInfo.processInfo.arguments.contains(keepStateArg) { return }
 
         let services = ServiceContainer()
         if shouldSeedFreshLoginDevAccount {

@@ -34,4 +34,16 @@ final class AutoDeloadTests: XCTestCase {
         let plan = AutoDeloadService.plan(states: [state(week: 4)], plateauCount: 0)
         XCTAssertNotNil(plan, "Reaching week 4 in-block warrants a deload")
     }
+
+    /// Applying a deload persists each planned row under its own document id.
+    /// The planner preserves the stable `userId:exerciseKey` id, so writing the
+    /// plan is an idempotent upsert — a full re-apply after a partial write
+    /// failure (the manual Deload sheet's retry) overwrites the same rows in
+    /// place rather than forking new ones.
+    func testPlanDeloadPreservesRowIdForIdempotentReapply() {
+        let states = [state(week: 3, name: "back squat"), state(week: 3, name: "bench press")]
+        let planned = DeloadPlanner.shared.planDeload(for: states)
+        XCTAssertEqual(planned.map(\.id), states.map(\.id))
+        XCTAssertTrue(planned.allSatisfy { $0.blockType == .deload })
+    }
 }

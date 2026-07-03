@@ -8,7 +8,7 @@ struct TrainingProgram: Codable, Identifiable {
     let createdAt: Date
     var name: String
     var description: String
-    var durationDays: Int = 28
+    var durationDays: Int = Arc.durationDays
     var days: [ProgramDay]
     var nutritionPlan: NutritionPlan
     var recoveryPlan: RecoveryPlan
@@ -32,7 +32,7 @@ struct TrainingProgram: Codable, Identifiable {
         createdAt: Date,
         name: String,
         description: String,
-        durationDays: Int = 28,
+        durationDays: Int = Arc.durationDays,
         days: [ProgramDay],
         nutritionPlan: NutritionPlan,
         recoveryPlan: RecoveryPlan,
@@ -91,7 +91,7 @@ struct TrainingProgram: Codable, Identifiable {
         createdAt = try c.decode(Date.self, forKey: .createdAt)
         name = try c.decode(String.self, forKey: .name)
         description = try c.decode(String.self, forKey: .description)
-        durationDays = try c.decodeIfPresent(Int.self, forKey: .durationDays) ?? 28
+        durationDays = try c.decodeIfPresent(Int.self, forKey: .durationDays) ?? Arc.durationDays
         days = try c.decode([ProgramDay].self, forKey: .days)
         nutritionPlan = try c.decode(NutritionPlan.self, forKey: .nutritionPlan)
         recoveryPlan = try c.decode(RecoveryPlan.self, forKey: .recoveryPlan)
@@ -189,7 +189,11 @@ enum ArcState: String, Codable, Hashable, Sendable {
 }
 
 struct Arc: Codable, Identifiable, Hashable, Sendable {
-    static let durationDays = 28
+    /// Canonical Arc length. 30 days - a clean, memorable "month" that doesn't
+    /// depend on which calendar day a user started on. This is THE source; every
+    /// other surface reads `Arc.durationDays` (or interpolates it), so changing
+    /// it here cascades everywhere. Calibration Week is the only other length (7).
+    static let durationDays = 30
 
     let id: String
     let programId: String

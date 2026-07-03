@@ -133,7 +133,7 @@ extension DevBuildBootstrapper {
         let dates = graph.nodes.reduce(into: [String: Date]()) { result, node in
             result[node.id] = now
         }
-        let activeGoals = Set(graph.nodes.filter { !$0.isMythic }.prefix(6).map(\.id))
+        let activeGoals = Set(graph.nodes.filter { !$0.isMythic }.prefix(3).map(\.id))
         let schedule: [DayCategory?] = [.push, .pull, .legs, .core, .skills, .conditioning, .rest]
 
         let payload = UserSkillProgress(

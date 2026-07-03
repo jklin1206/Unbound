@@ -129,10 +129,21 @@ final class RankService: RankServiceProtocol {
         userId: String
     ) {
         let store = LiftTierService.shared
+        var didAdvance = false
         for (lift, tier) in bestBarbellLiftTiers(history: history, bodyweightKg: bodyweightKg, sex: sex)
         where tier > store.tier(lift: lift, userId: userId) {
             store.save(tier: tier, lift: lift, userId: userId)
+            didAdvance = true
         }
+        // Mirror the full tracked-lift tier map onto the synced `users` doc so a
+        // reinstall restores the tiers instead of resetting them to Initiate.
+        guard didAdvance else { return }
+        let fullMap = Dictionary(
+            uniqueKeysWithValues: LiftTierService.trackedLiftKeys.map {
+                ($0, store.tier(lift: $0, userId: userId))
+            }
+        )
+        RankProgressCloudBackup.shared.backupLiftTiers(fullMap, userId: userId)
     }
 
     /// Pure tier-advance computation: recompute every skill from the full logged
@@ -181,7 +192,7 @@ final class RankService: RankServiceProtocol {
     func aggregateTier(userId: String) async -> SkillTier {
         let skillState = UserSkillTierStore.shared.load(userId: userId)
         let skillTiers = Array(skillState.perSkill.values)
-        let liftTiers = ["bench press", "back squat", "deadlift", "overhead press"].map {
+        let liftTiers = LiftTierService.trackedLiftKeys.map {
             LiftTierService.shared.tier(lift: $0, userId: userId)
         }
         let all = skillTiers + liftTiers
@@ -389,7 +400,7 @@ final class RankService: RankServiceProtocol {
         return entries
     }
 
-    private static let aggregateLiftKeys = ["bench press", "back squat", "deadlift", "overhead press"]
+    private static var aggregateLiftKeys: [String] { LiftTierService.trackedLiftKeys }
 
     /// `1 + difficulty/8`, clamped to the 1.0–2.0 range.
     private func difficultyWeight(_ difficulty: Int) -> Double {

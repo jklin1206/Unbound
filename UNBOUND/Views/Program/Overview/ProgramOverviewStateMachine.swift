@@ -4,7 +4,6 @@ enum ProgramOverviewSheet {
     case rationale
     case savedWorkouts
     case scheduleEditor
-    case scheduleSavedWorkout(SavedWorkout)
     case focusSwitch
     case checkpoint
     case rescan

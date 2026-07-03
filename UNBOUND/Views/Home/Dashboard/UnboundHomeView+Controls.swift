@@ -80,9 +80,46 @@ extension UnboundHomeView {
     private var vowStrip: some View {
         if let trial = model.trialsState.currentTrial, trial.capstoneState != .missed {
             ActiveTrialCard(trial: trial)
+        } else if model.trialsState.skippedCurrentWeek || model.trialsState.currentWeekCards.isEmpty {
+            // Skipped (or no cards left) — a quiet status, not an inert CTA:
+            // the pick strip's tap would no-op here, which reads as broken.
+            vowRestWeekStrip
         } else {
             HomeVowPickStrip(onTap: { handleTrialCommand() })
         }
+    }
+
+    private var vowRestWeekStrip: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "moon.zzz")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(Color.unbound.textTertiary)
+                .frame(width: 36, height: 36)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("BINDING VOW")
+                    .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Text("Resting this week · new vows next week")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.unbound.surface.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+        )
     }
 
     // MARK: - Rank gate helpers
@@ -209,82 +246,6 @@ extension UnboundHomeView {
         }
     }
 
-    var bodyWeightQuickLogRow: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Button {
-                UnboundHaptics.medium()
-                showingBodyWeightHistory = true
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: model.hasLoggedBodyWeightToday ? "checkmark.circle.fill" : "scalemass.fill")
-                        .font(.system(size: 16, weight: .black))
-                        .foregroundStyle(bodyWeightStatusColor)
-                        .frame(width: 24, height: 24)
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(alignment: .firstTextBaseline, spacing: 5) {
-                            Text(bodyWeightValueText)
-                                .font(.system(size: 18, weight: .black, design: .rounded))
-                                .foregroundStyle(Color.unbound.textPrimary)
-                                .monospacedDigit()
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.72)
-
-                            Text(selectedWeightUnit.shortLabel.uppercased())
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
-                                .tracking(0.8)
-                                .foregroundStyle(Color.unbound.textSecondary)
-                        }
-
-                        Text(bodyWeightRecencyText)
-                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                            .tracking(0.8)
-                            .foregroundStyle(bodyWeightStatusColor)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.76)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Open bodyweight history")
-
-            Button {
-                model.bodyWeightSaveError = nil
-                UnboundHaptics.medium()
-                showingBodyWeightLog = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: model.hasLoggedBodyWeightToday ? "checkmark" : "plus")
-                        .font(.system(size: 10, weight: .black))
-                    Text(model.hasLoggedBodyWeightToday ? "LOGGED" : "LOG")
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                        .tracking(1.0)
-                }
-                .foregroundStyle(Color.unbound.textPrimary)
-                .padding(.horizontal, 12)
-                .frame(height: 32)
-                .background(
-                    Capsule()
-                        .fill(bodyWeightStatusColor.opacity(model.hasLoggedBodyWeightToday ? 0.20 : 0.92))
-                )
-                .overlay(
-                    Capsule()
-                        .strokeBorder(bodyWeightStatusColor.opacity(0.40), lineWidth: 1)
-                )
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Log bodyweight")
-        }
-        .padding(.vertical, 11)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Color.unbound.borderSubtle.opacity(0.62))
-                .frame(height: 0.5)
-        }
-    }
-
     // MARK: - Contextual stack
 
     @ViewBuilder
@@ -301,104 +262,6 @@ extension UnboundHomeView {
 
         }
     }
-
-    var shouldShowRankGatePulse: Bool {
-        guard let readiness = model.overallRankTrialReadiness,
-              readiness.definition != nil
-        else { return false }
-        return true
-    }
-
-    func rankGatePulseCard(_ readiness: OverallRankTrialReadiness) -> some View {
-        let tint = rankGatePulseTint(readiness)
-        let target = readiness.targetRank?.displayName ?? "Title"
-        let metCount = readiness.requirements.filter(\.isMet).count
-        let totalCount = max(1, readiness.requirements.count)
-
-        return Button {
-            UnboundHaptics.soft()
-            NotificationCenter.default.post(name: .requestOpenRankInfo, object: nil)
-        } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    Image(systemName: "seal.fill")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(tint)
-                }
-                .frame(width: 42, height: 42)
-
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 7) {
-                        Text("RANK TRIAL")
-                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                            .tracking(1.5)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                        Text(rankGatePulseStatus(readiness))
-                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                            .tracking(1.0)
-                            .foregroundStyle(tint)
-                    }
-
-                    Text("\(target) Trial · \(metCount)/\(totalCount) proofs")
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-
-                    Text(rankGatePulseDetail(readiness))
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                }
-                .layoutPriority(1)
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .bottom) {
-                UnboundNativeDivider(opacity: 0.42)
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("home.rankGatePulse")
-    }
-
-    func rankGatePulseStatus(_ readiness: OverallRankTrialReadiness) -> String {
-        if readiness.isReady { return "READY" }
-        if readiness.status == .attempted { return "REBUILD" }
-        let missing = readiness.missingRequirements.count
-        if missing == 1 { return "1 LEFT" }
-        return "\(missing) LEFT"
-    }
-
-    func rankGatePulseDetail(_ readiness: OverallRankTrialReadiness) -> String {
-        if readiness.isReady {
-            return "All proofs are in. Open Profile to run the trial."
-        }
-        if readiness.status == .attempted {
-            return "Trial attempted. Rebuild the missing proofs before the next run."
-        }
-        if let closest = readiness.missingRequirements.first {
-            return "Next proof: \(closest.label) · \(closest.current) of \(closest.required)"
-        }
-        return "Open Profile for the full trial checklist."
-    }
-
-    func rankGatePulseTint(_ readiness: OverallRankTrialReadiness) -> Color {
-        if readiness.isReady {
-            return readiness.targetRank?.rewardTextTint ?? Color.unbound.accent
-        }
-        return Color.unbound.rankGold
-    }
-
-    // MARK: - Stats grid
-
 
     // MARK: - Last session recap (inline, no card)
 
@@ -418,9 +281,6 @@ extension UnboundHomeView {
                     .tracking(1.0)
                     .foregroundStyle(Color.unbound.textSecondary)
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
             }
             .padding(.horizontal, 4)
         }
@@ -435,9 +295,9 @@ private struct HomeBandHeader: View {
 
     var body: some View {
         HStack(spacing: 9) {
-            Capsule()
-                .fill(Color.unbound.accent.opacity(0.82))
-                .frame(width: 3, height: 12)
+            Circle()
+                .fill(Color.unbound.accent)
+                .frame(width: 5, height: 5)
 
             Text(title.uppercased())
                 .font(.system(size: 10, weight: .black, design: .monospaced))

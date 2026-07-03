@@ -34,12 +34,25 @@ struct UserProfile: Codable, Identifiable {
     var workoutTime: WorkoutTime?
     var workoutMinuteOfDay: Int?
     var exerciseStyles: [ExerciseStyle]?
+    /// JSON-encoded normalized signature strokes from the onboarding pact ritual.
+    var pactSignature: String?
 
     // MARK: Program Redesign (2026-04-20)
     var trainingFeedbackMode: TrainingFeedbackMode?
     var trainingStyleOverride: TrainingStyle?
     var trainingDays: Set<Weekday>?
     var cutMode: CutMode = CutMode()
+
+    // MARK: Rank progress cloud backup (2026-07-02)
+    //
+    // The trial-confirmed rank + per-lift tiers otherwise live only in device
+    // UserDefaults (OverallRankTrialStore / LiftTierService); mirroring them onto
+    // the synced `users` doc lets a reinstall restore the real rank instead of
+    // silently resetting to Initiate. Both are optional + nil-tolerant (jsonb
+    // columns, absent on legacy rows) and follow the existing jsonb field pattern.
+    // Local remains the source of truth; these are the cloud copy.
+    var overallRankTrials: OverallRankTrialProgress?
+    var liftTiers: [String: SkillTier]?
 
     // MARK: Initializers
     //
@@ -91,7 +104,9 @@ struct UserProfile: Codable, Identifiable {
         case currentFrequency, targetFrequency, equipment, obstacles, sessionLength
         case priorAttempts, dietQuality, sleepQuality, stressLevel, commitment
         case goals, targetAreas, workoutTime, workoutMinuteOfDay, exerciseStyles
+        case pactSignature
         case trainingFeedbackMode, trainingStyleOverride, trainingDays, cutMode
+        case overallRankTrials, liftTiers
     }
 
     init(from decoder: Decoder) throws {
@@ -129,11 +144,15 @@ struct UserProfile: Codable, Identifiable {
         self.workoutTime = try c.decodeIfPresent(WorkoutTime.self, forKey: .workoutTime)
         self.workoutMinuteOfDay = try c.decodeIfPresent(Int.self, forKey: .workoutMinuteOfDay)
         self.exerciseStyles = try c.decodeIfPresent([ExerciseStyle].self, forKey: .exerciseStyles)
+        self.pactSignature = try c.decodeIfPresent(String.self, forKey: .pactSignature)
 
         self.trainingFeedbackMode = try c.decodeIfPresent(TrainingFeedbackMode.self, forKey: .trainingFeedbackMode)
         self.trainingStyleOverride = try c.decodeIfPresent(TrainingStyle.self, forKey: .trainingStyleOverride)
         self.trainingDays = try c.decodeIfPresent(Set<Weekday>.self, forKey: .trainingDays)
         self.cutMode = (try c.decodeIfPresent(CutMode.self, forKey: .cutMode)) ?? CutMode()
+
+        self.overallRankTrials = try c.decodeIfPresent(OverallRankTrialProgress.self, forKey: .overallRankTrials)
+        self.liftTiers = try c.decodeIfPresent([String: SkillTier].self, forKey: .liftTiers)
     }
 }
 

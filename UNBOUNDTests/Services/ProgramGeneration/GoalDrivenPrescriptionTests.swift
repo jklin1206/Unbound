@@ -36,7 +36,8 @@ final class GoalDrivenPrescriptionTests: XCTestCase {
         let rx = DeterministicProgramGenerator.prescription(
             for: .strength, state: nil, isPrimary: true,
             fallbackRPE: 8, definition: bench, input: makeInput(goal: .strength))
-        XCTAssertEqual(rx.reps, "4-6")
+        // Single-target contract: no state → the goal window's lower bound.
+        XCTAssertEqual(rx.reps, "4")
         XCTAssertEqual(rx.rpe, 0, "prescriptions no longer carry an RPE target")
     }
 
@@ -45,7 +46,8 @@ final class GoalDrivenPrescriptionTests: XCTestCase {
         let rx = DeterministicProgramGenerator.prescription(
             for: .hypertrophy, state: nil, isPrimary: true,
             fallbackRPE: 7, definition: bench, input: makeInput(goal: .hypertrophy))
-        XCTAssertEqual(rx.reps, "8-12")
+        // Single-target contract: no state → the goal window's lower bound.
+        XCTAssertEqual(rx.reps, "8")
         XCTAssertEqual(rx.rpe, 0)
     }
 }

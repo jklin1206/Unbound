@@ -9,7 +9,7 @@ struct Step_ExerciseStyle: View {
     var body: some View {
         OnboardingScaffold(
             title: "What do you actually enjoy?",
-            subtitle: "Pick everything that sounds good. We lean the plan toward what you like so you'll keep showing up.",
+            subtitle: "Pick everything that sounds good.",
             progress: progress,
             primaryTitle: "Continue",
             primaryEnabled: !flow.exerciseStyles.isEmpty,

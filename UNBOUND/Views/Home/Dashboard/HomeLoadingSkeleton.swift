@@ -40,11 +40,6 @@ struct HomeLoadingSkeleton: View {
                         skeletonRailRow()
                     }
                 }
-                .overlay(alignment: .leading) {
-                    Rectangle()
-                        .fill(Color.unbound.ember.opacity(0.55))
-                        .frame(width: 2)
-                }
 
                 skeletonPanel(height: 154, cornerRadius: 16)
                 skeletonPanel(height: 94, cornerRadius: 12)

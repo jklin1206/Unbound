@@ -31,18 +31,12 @@ indirect enum RoutineStep: Codable, Hashable, Sendable {
     case note(text: String)
 }
 
-enum MobilityReferenceVisualType: String, Hashable, Sendable {
-    case singlePose
-    case startEnd
-}
-
 struct MobilityReference: Identifiable, Hashable, Sendable {
     let id: String
     let title: String
     let targetArea: String
     let cue: String
     let aliases: [String]
-    let visualType: MobilityReferenceVisualType
     let cameraAngle: String
     let primaryPose: String
     let secondaryPose: String?
@@ -50,14 +44,6 @@ struct MobilityReference: Identifiable, Hashable, Sendable {
     var assetName: String { "mobility_reference_\(id)" }
     var startAssetName: String { "\(assetName)_start" }
     var endAssetName: String { "\(assetName)_end" }
-    var expectedAssetNames: [String] {
-        switch visualType {
-        case .singlePose:
-            return [assetName]
-        case .startEnd:
-            return [startAssetName, endAssetName]
-        }
-    }
 }
 
 enum MobilityReferenceLibrary {
@@ -427,14 +413,15 @@ enum MobilityReferenceLibrary {
             targetArea: area,
             cue: cue,
             aliases: aliases,
-            visualType: visualType(for: id),
             cameraAngle: cameraAngle(for: id),
-            primaryPose: primaryPose(from: frames, visualType: visualType(for: id)),
-            secondaryPose: secondaryPose(from: frames, visualType: visualType(for: id))
+            primaryPose: primaryPose(from: frames, isDynamic: isDynamicReference(id)),
+            secondaryPose: secondaryPose(from: frames, isDynamic: isDynamicReference(id))
         )
     }
 
-    private static func visualType(for id: String) -> MobilityReferenceVisualType {
+    /// Dynamic references (drills that move through a range) get a start/end
+    /// pose pair; static stretches get a single held pose.
+    private static func isDynamicReference(_ id: String) -> Bool {
         let dynamicIds: Set<String> = [
             "cat_cow",
             "worlds_greatest_stretch",
@@ -451,7 +438,7 @@ enum MobilityReferenceLibrary {
             "lateral_band_walk",
             "glute_bridge"
         ]
-        return dynamicIds.contains(id) ? .startEnd : .singlePose
+        return dynamicIds.contains(id)
     }
 
     private static func cameraAngle(for id: String) -> String {
@@ -469,21 +456,19 @@ enum MobilityReferenceLibrary {
 
     private static func primaryPose(
         from frames: [(String, String)],
-        visualType: MobilityReferenceVisualType
+        isDynamic: Bool
     ) -> String {
-        switch visualType {
-        case .singlePose:
+        guard isDynamic else {
             return frames.dropFirst().dropLast().last?.1 ?? frames.last?.1 ?? ""
-        case .startEnd:
-            return frames.first?.1 ?? ""
         }
+        return frames.first?.1 ?? ""
     }
 
     private static func secondaryPose(
         from frames: [(String, String)],
-        visualType: MobilityReferenceVisualType
+        isDynamic: Bool
     ) -> String? {
-        guard visualType == .startEnd else { return nil }
+        guard isDynamic else { return nil }
         return frames.dropFirst().dropLast().last?.1 ?? frames.last?.1
     }
 

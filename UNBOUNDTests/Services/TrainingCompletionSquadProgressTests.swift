@@ -34,6 +34,7 @@ private final class SpyChallengeService: FriendChallengeServiceProtocol {
         recordCalls.append((log.id, userId, sourceLogId))
     }
     func evaluateExpired() async {}
+    func consumePendingOutcome() -> FriendChallenge? { nil }
 }
 
 @MainActor

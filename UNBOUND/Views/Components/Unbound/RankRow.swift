@@ -38,13 +38,6 @@ struct RankRow: View {
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(Color.unbound.surface)
-                .overlay(
-                    // Faint tier wash so each row carries its rank's color —
-                    // the library reads as a spectrum (muted at Initiate,
-                    // richer toward Unbound) without bars or borders.
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(tint.opacity(0.08))
-                )
         )
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)

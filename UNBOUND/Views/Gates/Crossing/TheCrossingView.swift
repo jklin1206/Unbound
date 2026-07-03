@@ -13,7 +13,6 @@ struct TheCrossingView: View {
     let crossing: GateCrossing
     var dateText: String? = nil
     var definingNumber: String? = nil
-    var onShare: (() -> Void)? = nil
     var onReplay: (() -> Void)? = nil
     var onDismiss: () -> Void
 
@@ -24,6 +23,7 @@ struct TheCrossingView: View {
     @State private var kenBurns = false
     @State private var titleShown = false
     @State private var montageIndex = 0
+    @State private var shareSheetItems: [Any]? = nil
 
     private var still: String { CrossingAssetResolver.thresholdStill(for: crossing) }
     private var clipURL: URL? { CrossingAssetResolver.crossingClipURL(for: crossing) }
@@ -61,6 +61,14 @@ struct TheCrossingView: View {
         .onTapGesture { if beat == .spoils { onDismiss() } }
         .task { await run() }
         .accessibilityIdentifier("the-crossing")
+        .sheet(isPresented: Binding(
+            get: { shareSheetItems != nil },
+            set: { if !$0 { shareSheetItems = nil } }
+        )) {
+            if let items = shareSheetItems {
+                ShareSheet(items: items)
+            }
+        }
     }
 
     // MARK: Layers
@@ -162,16 +170,45 @@ struct TheCrossingView: View {
                             .foregroundStyle(Color.unbound.textSecondary)
                     }.buttonStyle(.plain)
                 }
-                Button { onShare?() } label: {
+                Button { presentShare() } label: {
                     Label("SHARE", systemImage: "square.and.arrow.up")
                         .font(Font.unbound.captionS.weight(.heavy)).tracking(1)
-                        .foregroundStyle(Color.unbound.bg)
+                        .foregroundStyle(Color.unbound.textPrimary)
                         .padding(.horizontal, 18).padding(.vertical, 10)
-                        .background(Capsule().fill(crossing.fillTint))
+                        .background(Capsule().fill(Color.unbound.surface))
+                        .overlay(Capsule().strokeBorder(crossing.tint.opacity(0.5), lineWidth: 1))
                 }.buttonStyle(.plain)
                 .accessibilityIdentifier("crossing-share")
             }
+
+            Button { onDismiss() } label: {
+                Text("CONTINUE")
+                    .font(Font.unbound.captionS.weight(.heavy)).tracking(1.5)
+                    .foregroundStyle(Color.unbound.bg)
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(Capsule().fill(crossing.fillTint))
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: 360)
+            .accessibilityIdentifier("crossing-continue")
         }
+    }
+
+    /// Renders the minted gate card into a 2:3 share image + caption. The card
+    /// stamps today's date when the presenter didn't pass one (the live pass
+    /// path presents The Crossing the moment the gate is answered).
+    private func presentShare() {
+        let mintDate = dateText ?? Date().formatted(date: .abbreviated, time: .omitted)
+        var items: [Any] = []
+        if let image = CrossingShareCardRenderer.render(
+            crossing: crossing,
+            dateText: mintDate,
+            definingNumber: definingNumber
+        ) {
+            items.append(image)
+        }
+        items.append(CrossingShareCardRenderer.caption(crossing: crossing))
+        shareSheetItems = items
     }
 
     // MARK: Beat timeline
@@ -213,4 +250,15 @@ struct TheCrossingView: View {
     private func sleep(_ seconds: Double) async {
         try? await Task.sleep(nanoseconds: UInt64(max(0, seconds) * 1_000_000_000))
     }
+}
+
+// MARK: - Share sheet bridge
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }

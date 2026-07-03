@@ -9,7 +9,7 @@ struct Step13_TargetFrequency: View {
     var body: some View {
         OnboardingScaffold(
             title: "How many days can you actually commit?",
-            subtitle: "Realistic beats ambitious. We'd rather you show up 4 days than ghost on 6.",
+            subtitle: "Realistic beats ambitious.",
             progress: progress,
             primaryTitle: "Continue",
             primaryEnabled: flow.targetFrequency != nil,

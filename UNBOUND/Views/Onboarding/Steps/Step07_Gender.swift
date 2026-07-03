@@ -9,7 +9,7 @@ struct Step07_Gender: View {
     var body: some View {
         OnboardingScaffold(
             title: "What's your gender?",
-            subtitle: "This helps set the path without pretending everyone starts from the same place.",
+            subtitle: "Sets your starting standards.",
             progress: progress,
             primaryTitle: "Continue",
             hudStep: .gender,

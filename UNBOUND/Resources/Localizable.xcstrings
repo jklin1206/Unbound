@@ -3784,7 +3784,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1–2 days"
+            "value" : "1-2 days"
           }
         }
       }
@@ -3808,7 +3808,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "3–4 days"
+            "value" : "3-4 days"
           }
         }
       }
@@ -4492,7 +4492,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Every session becomes proof, so strength, control, and consistency stop feeling invisible."
+            "value" : "Every session becomes proof."
           }
         }
       }
@@ -4876,7 +4876,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Front, side, and back — we'll guide you"
+            "value" : "Front, side, and back. We'll guide you"
           }
         }
       }
@@ -5080,7 +5080,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A small nudge when it's time to keep the streak alive."
+            "value" : "A nudge when it's time."
           }
         }
       }
@@ -5980,7 +5980,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Random workouts, invisible progress, and missed weeks make it too easy to lose the arc."
+            "value" : "Daily quests, dungeons, rank trials — a world that keeps score while you climb."
           }
         }
       }
@@ -5992,7 +5992,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show the ladder"
+            "value" : "Show me the game"
           }
         }
       }
@@ -6016,7 +6016,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "THE PAIN POINTS"
+            "value" : "THE WORLD AHEAD"
           }
         }
       }
@@ -6028,7 +6028,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You still have to decide what matters today."
+            "value" : "One mission a day, built for you."
           }
         }
       }
@@ -6040,7 +6040,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Guesswork"
+            "value" : "Daily quests"
           }
         }
       }
@@ -6052,7 +6052,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Strength changes, but the progress feels invisible."
+            "value" : "Eight gates on the climb to Unbound."
           }
         }
       }
@@ -6064,7 +6064,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No proof"
+            "value" : "Rank trials"
           }
         }
       }
@@ -6076,7 +6076,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A busy week can turn into starting over."
+            "value" : "Long runs for those who want more."
           }
         }
       }
@@ -6088,7 +6088,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restart loop"
+            "value" : "Dungeons"
           }
         }
       }
@@ -6112,7 +6112,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You shouldn't have to guess your way through training."
+            "value" : "What if training played like a game?"
           }
         }
       }
@@ -6244,7 +6244,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "UNBOUND maps the daily mission around your time, gear, and obstacles, so a rough week doesn't erase the path."
+            "value" : "Train your way. The build follows."
           }
         }
       }
@@ -6748,7 +6748,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "One sec — bringing up the front camera."
+            "value" : "One sec. Bringing up the front camera."
           }
         }
       }
@@ -6916,7 +6916,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This is the before. In 30 days, you get the first real proof of the climb."
+            "value" : "The before. Proof lands in 30 days."
           }
         }
       }
@@ -7240,7 +7240,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BETA LOG"
+            "value" : "CLIMB LOG"
           }
         }
       }
@@ -7288,7 +7288,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beta Tester"
+            "value" : "Climber"
           }
         }
       }
@@ -7336,7 +7336,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beta testers started at Day Zero and kept opening UNBOUND because the climb felt visible."
+            "value" : "They started at Day Zero. The climb kept them coming back."
           }
         }
       }
@@ -7864,7 +7864,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your first arc starts from your %@ baseline %@. Priority work is %@ — the gap between today and the version you keep picturing. With your %@ commitment, the first milestone is close enough to chase, and the climb keeps going after that."
+            "value" : "Your first arc starts from your %@ baseline %@. Priority work: %@. With your %@ commitment, the first milestone is already in reach."
           }
         }
       }
@@ -8032,7 +8032,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "See the ladder"
+            "value" : "Open your first mission"
           }
         }
       }
@@ -8260,7 +8260,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ — your arc is logged. Every session moves this forward."
+            "value" : "%@, your arc is logged. Every session moves it forward."
           }
         }
       }
@@ -8502,18 +8502,6 @@
         }
       }
     },
-    "paywall.feature.nutritionRecovery" : {
-      "comment" : "Paywall feature bullet.",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nutrition and recovery guidance"
-          }
-        }
-      }
-    },
     "paywall.feature.progressScans" : {
       "comment" : "Paywall feature bullet.",
       "extractionState" : "stale",
@@ -8522,6 +8510,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Progress tracking and re-scans"
+          }
+        }
+      }
+    },
+    "paywall.feature.recovery" : {
+      "comment" : "Paywall feature bullet.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recovery guidance"
           }
         }
       }
@@ -9473,18 +9473,6 @@
         }
       }
     },
-    "scan.payoffFlavor.fallback" : {
-      "comment" : "Deterministic scan narrative fallback text.",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your work is showing."
-          }
-        }
-      }
-    },
     "SCHEDULE" : {
       "comment" : "The text on the \"Schedule\" button in the workout date picker.",
       "isCommentAutoGenerated" : true
@@ -10052,18 +10040,6 @@
         }
       }
     },
-    "settings.support.faq.comingSoon" : {
-      "comment" : "FAQ placeholder body.",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FAQ coming soon"
-          }
-        }
-      }
-    },
     "settings.title" : {
       "comment" : "Settings navigation title.",
       "extractionState" : "stale",
@@ -10335,7 +10311,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LOWEST MONTHLY"
+            "value" : "BEST VALUE"
           }
         }
       }
@@ -10395,7 +10371,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flexible monthly access"
+            "value" : "Billed monthly"
           }
         }
       }
@@ -10431,7 +10407,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flexible weekly access"
+            "value" : "Billed weekly"
           }
         }
       }
@@ -10496,6 +10472,114 @@
         }
       }
     },
+    "subscription.package.cadence.annual" : {
+      "comment" : "Billing cadence word used in the paywall legal line.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "year"
+          }
+        }
+      }
+    },
+    "subscription.package.cadence.monthly" : {
+      "comment" : "Billing cadence word used in the paywall legal line.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "month"
+          }
+        }
+      }
+    },
+    "subscription.package.cadence.quarterly" : {
+      "comment" : "Billing cadence phrase used in the paywall legal line.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 months"
+          }
+        }
+      }
+    },
+    "subscription.package.cadence.weekly" : {
+      "comment" : "Billing cadence word used in the paywall legal line.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "week"
+          }
+        }
+      }
+    },
+    "subscription.package.legal.direct" : {
+      "comment" : "Paywall legal line for plans without a free trial. %@ = price and cadence.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. Cancel anytime."
+          }
+        }
+      }
+    },
+    "subscription.package.legal.trial" : {
+      "comment" : "Paywall legal line for plans with a free trial. %1$@ = trial length, %2$@ = price and cadence.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free for %1$@, then %2$@. Cancel anytime."
+          }
+        }
+      }
+    },
+    "subscription.package.link.privacy" : {
+      "comment" : "Privacy Policy link label on the paywall.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        }
+      }
+    },
+    "subscription.package.link.terms" : {
+      "comment" : "Terms of Use link label on the paywall.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms of Use"
+          }
+        }
+      }
+    },
+    "subscription.package.noPaymentNow" : {
+      "comment" : "Reassurance line above the CTA when the selected plan has a free trial.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No payment now"
+          }
+        }
+      }
+    },
     "subscription.package.openingCheckout" : {
       "comment" : "Purchase button title while checkout is opening.",
       "extractionState" : "stale",
@@ -10539,7 +10623,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Best value for your first block. Weekly is there if you want maximum flexibility."
+            "value" : "Best value for your first arc. Weekly is there if you want maximum flexibility."
           }
         }
       }
@@ -10652,6 +10736,30 @@
         }
       }
     },
+    "subscription.package.trial.durationFallback" : {
+      "comment" : "Compact trial duration used in the CTA when the store omits one.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7-day"
+          }
+        }
+      }
+    },
+    "subscription.package.start.trial" : {
+      "comment" : "Purchase button title when the selected package includes a free trial.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start %@ free trial"
+          }
+        }
+      }
+    },
     "subscription.package.start.quarterly" : {
       "comment" : "Purchase button title for quarterly package.",
       "extractionState" : "stale",
@@ -10701,25 +10809,37 @@
       }
     },
     "subscription.package.unavailable.body" : {
-      "comment" : "Body shown when no subscription products are available.",
+      "comment" : "Body shown when subscription plans fail to load.",
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Products are not configured for this build yet."
+            "value" : "Check your connection and try again."
+          }
+        }
+      }
+    },
+    "subscription.package.unavailable.retry" : {
+      "comment" : "Retry button when subscription plans fail to load.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
           }
         }
       }
     },
     "subscription.package.unavailable.title" : {
-      "comment" : "Title shown when no subscription products are available.",
+      "comment" : "Title shown when subscription plans fail to load.",
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Subscription unavailable"
+            "value" : "Plans didn't load"
           }
         }
       }
@@ -11142,7 +11262,7 @@
     "UNBOUND · BLOCK %@" : {
 
     },
-    "unboundapp.com" : {
+    "unboundbtr.com" : {
 
     },
     "Undo" : {
@@ -11370,7 +11490,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2–5 pm"
+            "value" : "2-5 pm"
           }
         }
       }
@@ -11394,7 +11514,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "5–7 am"
+            "value" : "5-7 am"
           }
         }
       }
@@ -11418,7 +11538,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "5–9 pm"
+            "value" : "5-9 pm"
           }
         }
       }
@@ -11442,7 +11562,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "9 pm – midnight"
+            "value" : "9 pm - midnight"
           }
         }
       }
@@ -11466,7 +11586,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "11 am – 2 pm"
+            "value" : "11 am - 2 pm"
           }
         }
       }

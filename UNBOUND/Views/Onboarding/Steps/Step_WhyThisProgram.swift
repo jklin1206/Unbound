@@ -9,7 +9,7 @@ struct Step_WhyThisProgram: View {
     var body: some View {
         OnboardingScaffold(
             title: "The path starts paying you back.",
-            subtitle: "Behind the gate is not a feed of random workouts. It is a route that keeps turning effort into visible progress.",
+            subtitle: "Every session pays out: XP, Arcs, rank.",
             progress: progress,
             primaryTitle: "Show the climb",
             primaryEnabled: true,
@@ -39,7 +39,7 @@ struct Step_WhyThisProgram: View {
                         showsCornerMark: false
                     )
                     .padding(.top, 1)
-                    Text("You get the first block, recovery targets, workout logging, monthly scans, rank movement, and the next gate only after the current one is earned.")
+                    Text("Each gate must be earned before the next opens.")
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

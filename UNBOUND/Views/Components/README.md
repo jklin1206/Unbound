@@ -6,7 +6,6 @@ Shared, screen-agnostic UI components: toasts, badges, charts, shapes, and small
 
 | File | What it is |
 |---|---|
-| `AnimatedProgressBar.swift` | `AnimatedProgressBar` — animated horizontal progress bar. |
 | `AttributeHex.swift` | `AttributeHex` radar hex + `AttributeRankBadge`. |
 | `AttributeRankUpToast.swift` | Attribute rank-up toast modifier; `.tier` accent vs `.aTier` impact styling (aTier also fires the chain-shatter cinematic). |
 | `BadgeMedallion.swift` | One cohesive rendered badge (SF-symbol glyph + rarity metal frame, locked state) — replaced the 46 PNG medallions. |
@@ -14,9 +13,6 @@ Shared, screen-agnostic UI components: toasts, badges, charts, shapes, and small
 | `ExerciseVisualView.swift` | Exercise demo visual: asset-set enums + `ExerciseVisualView`. |
 | `GradientButton.swift` | `GradientButton` — gradient CTA button. |
 | `Hexagon.swift` | Pointy-top `Hexagon` InsettableShape shared by skill-tree nodes and rank badges. |
-| `LoadingStateView.swift` | `LoadingStateView<T>` — generic loading-state wrapper view. |
-| `MuscleRadarChart.swift` | `MuscleRadarChart` + radar grid/data shapes. |
-| `PhotoCaptureOverlay.swift` | Camera capture framing overlay. |
 | `RecalibratingBanner.swift` | Thin banner shown when `unbound.isRecalibrating` (7+ days idle); cleared by `RankDecayService`. |
 | `ScoreRing.swift` | `ScoreRing` — circular score ring. |
 | `SkinUnlockToast.swift` | Skin unlock pill; listens on `.skinUnlocked`. |
@@ -27,7 +23,7 @@ Shared, screen-agnostic UI components: toasts, badges, charts, shapes, and small
 ## Where to find X
 
 - **A reward/unlock toast** → `BadgeUnlockToast.swift`, `SkinUnlockToast.swift`, `TierUnlockToast.swift`, `AttributeRankUpToast.swift`, `WeightBumpToast.swift` (full-screen cinematics in `Cinematic/`).
-- **Hex/radar attribute visuals** → `AttributeHex.swift`, `Hexagon.swift`, `MuscleRadarChart.swift`.
+- **Hex/radar attribute visuals** → `AttributeHex.swift`, `Hexagon.swift`.
 - **Badge rendering** → `BadgeMedallion.swift`.
 - **HUD-styled buttons/pickers/inputs** → `HUD/` (own README).
 - **Premium Hollow design-language components** → `Unbound/` (own README).

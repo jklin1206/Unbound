@@ -9,7 +9,7 @@ struct Step_Goals: View {
     var body: some View {
         OnboardingScaffold(
             title: "What are you building?",
-            subtitle: "Pick what actually matters to you right now. You can change it later.",
+            subtitle: "Pick what matters right now.",
             progress: progress,
             primaryTitle: "Continue",
             primaryEnabled: !flow.goals.isEmpty,

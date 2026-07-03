@@ -18,8 +18,8 @@ final class ArcGeneratorTests: XCTestCase {
             startDate: calibration.createdAt
         )
 
-        XCTAssertEqual(arcProgram.durationDays, 28)
-        XCTAssertEqual(arcProgram.days.count, 28)
+        XCTAssertEqual(arcProgram.durationDays, Arc.durationDays)
+        XCTAssertEqual(arcProgram.days.count, Arc.durationDays)
         XCTAssertEqual(arcProgram.days[0].sessionRole, .push)
         XCTAssertEqual(arcProgram.days[1].sessionRole, .pull)
         XCTAssertEqual(arcProgram.days[2].sessionRole, .legs)

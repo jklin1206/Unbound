@@ -11,6 +11,7 @@ protocol FriendChallengeServiceProtocol: Sendable {
     func decline(_ challengeId: UUID) async throws
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async
     func evaluateExpired() async
+    func consumePendingOutcome() -> FriendChallenge?
 }
 
 extension FriendChallengeServiceProtocol {
@@ -33,6 +34,13 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
     private let logger = LoggingService.shared
     private var localChallenges: [FriendChallenge] = []
     private var localProgressReceipts: Set<String> = []
+    // Settled outcomes waiting for the FriendChallengeOutcomeToast to show them.
+    // evaluateExpired runs on every foreground — often while the user is off the
+    // Squad tab, where the transient `.friendChallengeExpired` publisher has no
+    // mounted listener — so each outcome is buffered here and drained when the
+    // toast next mounts. In-memory FIFO; the win/loss reward is paid at settle
+    // (grantDuelWinArcsIfWon) independently of whether the toast is ever seen.
+    private var pendingOutcomes: [FriendChallenge] = []
 
     init(
         backend: SquadBackendProtocol = SquadBackend.shared,
@@ -334,14 +342,45 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
                     .execute()
                     .value
                 guard let settled = updated.first?.toModel() else { continue }
-                NotificationCenter.default.post(name: .friendChallengeExpired, object: settled)
+                finalizeSettledChallenge(settled)
             }
         } catch {
             logger.log("FriendChallengeService.evaluateExpired error: \(error)", level: .warning)
         }
     }
 
+    /// Pop the oldest buffered outcome for the toast to display, or nil when the
+    /// buffer is empty. FIFO so multiple settled duels are shown in order.
+    func consumePendingOutcome() -> FriendChallenge? {
+        pendingOutcomes.isEmpty ? nil : pendingOutcomes.removeFirst()
+    }
+
     // MARK: - Private helpers
+
+    /// Shared settle epilogue used by both the remote and local paths: pay the
+    /// winner (idempotent), buffer the outcome for the toast, then broadcast
+    /// `.friendChallengeExpired` so open squad surfaces refresh.
+    private func finalizeSettledChallenge(_ settled: FriendChallenge) {
+        grantDuelWinArcsIfWon(settled)
+        pendingOutcomes.append(settled)
+        NotificationCenter.default.post(name: .friendChallengeExpired, object: settled)
+    }
+
+    /// Pay the 120-Arc duel-win reward when the signed-in user is the winner of a
+    /// just-settled challenge. Idempotent: CurrencyWalletStore ledger-dedups by the
+    /// challenge's stable sourceId, so the reward pays exactly once no matter how
+    /// many foregrounds re-run the settle pass. Mirrors claimMissionReward's grant.
+    private func grantDuelWinArcsIfWon(_ settled: FriendChallenge) {
+        guard let userId = AuthService.shared.currentUserId,
+              let me = SquadUserIdentity.uuid(from: userId),
+              settled.winnerUserId == me
+        else { return }
+        CurrencyWalletStore.shared.bind(userId: userId)
+        CurrencyWalletStore.shared.grant(
+            SquadRewardPolicy.duelWinArcs,
+            sourceId: SquadRewardPolicy.duelSourceId(settled.id)
+        )
+    }
 
     private func incrementProgress(
         challengeId: UUID,
@@ -429,7 +468,7 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
             localChallenges[index].winnerUserId = challenge.challengedProgress > challenge.challengerProgress
                 ? challenge.challengedId
                 : challenge.challengerId
-            NotificationCenter.default.post(name: .friendChallengeExpired, object: localChallenges[index])
+            finalizeSettledChallenge(localChallenges[index])
         }
     }
 

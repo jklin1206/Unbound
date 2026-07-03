@@ -69,7 +69,7 @@ struct Step_RestartLoop: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.82)
 
-                    Text(L10n.onboarding("restartLoop.subtitle", defaultValue: "UNBOUND maps the daily mission around your time, gear, and obstacles, so a rough week doesn't erase the path."))
+                    Text(L10n.onboarding("restartLoop.subtitle", defaultValue: "Train your way. The build follows."))
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .multilineTextAlignment(.center)

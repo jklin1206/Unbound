@@ -82,15 +82,30 @@ final class SyncEngineTests: XCTestCase {
         XCTAssertEqual(outbox.pendingCount, 0)
     }
 
-    func test_flush_refusesEntryForDifferentAuthenticatedUser() async {
+    func test_flush_deadlettersEntryForDifferentAuthenticatedUser() async {
         enq("p1")
         auth.currentUserId = "u2"
 
         await sut.flush()
 
-        XCTAssertEqual(remote.upserts, 0)
-        XCTAssertEqual(outbox.pendingCount, 1)
-        XCTAssertEqual(outbox.peekBatch(limit: 1).first?.attempt, 0)
+        XCTAssertEqual(remote.upserts, 0)          // never sent to the wrong user's cloud
+        XCTAssertEqual(outbox.pendingCount, 0)     // no longer left to starve the queue
+        XCTAssertEqual(outbox.deadletterCount, 1)  // moved to dead-letter, not dropped
+    }
+
+    func test_flush_mismatchedEntryDoesNotBlockValidEntryBehindIt() async {
+        // Stale anonymous entry at the FIFO head; a valid post-sign-in entry
+        // queued behind it. A single flush must clear both: dead-letter the
+        // mismatch and upsert the valid one in the same pass.
+        outbox.enqueue(OutboxEntry(id: UUID(), userId: "anon", collection: "programs",
+            docId: "stale", op: .upsert, payloadJSON: Data("{}".utf8), enqueuedAt: Date(), attempt: 0))
+        enq("p1")
+
+        await sut.flush()
+
+        XCTAssertEqual(remote.upserts, 1)          // valid entry reached the remote
+        XCTAssertEqual(outbox.pendingCount, 0)     // nothing left blocking the head
+        XCTAssertEqual(outbox.deadletterCount, 1)  // only the mismatch was dead-lettered
     }
 
     func test_restore_writes_pulled_docs_local() async throws {

@@ -1,6 +1,11 @@
 import SwiftUI
 
 struct RestorePurchasesButton: View {
+    /// Fired when a restore actually recovers an active subscription — hard
+    /// gates (onboarding paywall) use it to unlock instead of leaving the
+    /// now-subscribed user staring at plan cards.
+    var onRestored: () -> Void = {}
+
     @EnvironmentObject private var services: ServiceContainer
     @State private var isRestoring = false
     @State private var restoreResult: String?
@@ -45,9 +50,12 @@ struct RestorePurchasesButton: View {
 
         do {
             _ = try await services.subscription.restorePurchases()
-            restoreResult = services.subscription.isSubscribed
-                ? L10n.string(.subscriptionRestoreSuccess, defaultValue: "Restored. Loading UNBOUND...")
-                : L10n.string(.subscriptionRestoreNoActive, defaultValue: "No active subscription found.")
+            if services.subscription.isSubscribed {
+                restoreResult = L10n.string(.subscriptionRestoreSuccess, defaultValue: "Restored. Loading UNBOUND...")
+                onRestored()
+            } else {
+                restoreResult = L10n.string(.subscriptionRestoreNoActive, defaultValue: "No active subscription found.")
+            }
         } catch {
             restoreResult = L10n.string(.subscriptionRestoreFailure, defaultValue: "Couldn't restore. Try again.")
         }

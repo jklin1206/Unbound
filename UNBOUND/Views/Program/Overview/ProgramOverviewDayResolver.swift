@@ -49,11 +49,16 @@ struct ProgramOverviewDayResolver {
 
     func generatedDay(on date: Date, in program: TrainingProgram) -> ProgramDay? {
         guard !program.days.isEmpty else { return nil }
-        let anchorDate = BlockRolloverScheduler.activeStartDate(for: program)
+        // Normalize both ends to start-of-day before counting. The program's
+        // anchor (`createdAt` / arc start) carries the time-of-day it was
+        // generated; counting whole days from an afternoon anchor to a
+        // midnight tile date truncates a day and shifts the whole strip by one.
+        let anchorDate = calendar.startOfDay(for: BlockRolloverScheduler.activeStartDate(for: program))
+        let target = calendar.startOfDay(for: date)
         let daysSinceStart = calendar.dateComponents(
             [.day],
             from: anchorDate,
-            to: date
+            to: target
         ).day ?? 0
         let index = ((daysSinceStart % program.days.count) + program.days.count) % program.days.count
         return program.days[index]

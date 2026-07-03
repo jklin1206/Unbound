@@ -92,10 +92,10 @@ extension DevBuildBootstrapper {
             core: BodyPartDelta(before: 4, after: 6),
             legs: BodyPartDelta(before: 6, after: 6),
             overall: BodyPartDelta(before: 5, after: 7),
-            narrative: "Power and control proof signals are trending up. Next block should keep pull volume stable while watching logged recovery.",
+            narrative: "Power and control proof signals are trending up. Next arc should keep pull volume stable while watching logged recovery.",
             improvements: ["power", "control"],
             laggingAreas: [],
-            recommendedFocus: "Let completed sessions, RPE, equipment, and recovery drive the next block."
+            recommendedFocus: "Let completed sessions, RPE, equipment, and recovery drive the next arc."
         )
         try? await DatabaseService.shared.create(report, collection: "scanDeltaReports", documentId: report.id)
 
@@ -168,7 +168,7 @@ extension DevBuildBootstrapper {
             if BlockRolloverScheduler.shouldRollover(program: program) {
                 return "Checkpoint due"
             }
-            return "Day \(BlockRolloverScheduler.currentDayNumber(program: program)) · legacy block"
+            return "Day \(BlockRolloverScheduler.currentDayNumber(program: program)) · legacy arc"
         }()
         let equipment = program.requiredEquipment.prefix(3).joined(separator: ", ")
         return DevProgramScanSnapshot(

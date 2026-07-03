@@ -26,6 +26,11 @@ enum TrainingPrescriptionResolver {
             return prescription
         }
 
+        // Decide BEFORE mutating the summary: uniform (non-custom) set plans
+        // follow progression; hand-tuned per-set programming is left alone.
+        let hasUniformSetPlans = prescription.setPlans?.isEmpty == false
+            && !prescription.hasCustomSetPlanValues
+
         var updated = prescription
         if state.currentWorkingWeightKg > 0, updated.suggestedWeightKg == nil {
             updated.suggestedWeightKg = suggestedWeight(for: state)
@@ -36,6 +41,22 @@ enum TrainingPrescriptionResolver {
             updated.target = resolvedTarget(current: updated.target, state: state)
         }
         updated = applyBias(to: updated, state: state)
+
+        // Materialized set plans mask the summary at session-build time
+        // (ActiveWorkoutSession reads effectiveSetPlans), so a resolved
+        // target/weight must be written through to the plans or the
+        // progression pass silently no-ops for editor-touched loadouts.
+        if hasUniformSetPlans, let plans = updated.setPlans {
+            updated.setPlans = plans.map { plan in
+                var next = plan
+                next.target = updated.target
+                next.restSeconds = updated.restSeconds
+                next.rpe = updated.rpe
+                next.loadPercentOfBodyweight = updated.loadPercentOfBodyweight
+                next.suggestedWeightKg = updated.suggestedWeightKg
+                return next
+            }
+        }
         return updated
     }
 
@@ -45,7 +66,9 @@ enum TrainingPrescriptionResolver {
     ) -> TrainingTarget {
         switch current {
         case .reps, .repsRange, .amrap:
-            return .repsRange(state.targetRepMin, state.targetRepMax)
+            // One number, not a window: the min...max range stays the engine's
+            // internal rails; the user sees only today's climbing target.
+            return .reps(state.currentTargetReps)
         case .holdSeconds, .distanceMeters, .calories, .timedSeconds:
             return current
         }

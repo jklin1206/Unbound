@@ -5,12 +5,16 @@ struct SessionEditorView: View {
         case startSession
         case planAhead
         case saveWorkout
+        /// Same save-to-library behavior as `saveWorkout`, but the chrome says
+        /// "edit" — used when the draft is an existing loadout being reworked.
+        case editWorkout
 
         var headerTitle: String {
             switch self {
             case .startSession: return "EDIT WORKOUT"
             case .planAhead: return "PLAN WORKOUT"
             case .saveWorkout: return "CREATE WORKOUT"
+            case .editWorkout: return "EDIT LOADOUT"
             }
         }
 
@@ -18,7 +22,7 @@ struct SessionEditorView: View {
             switch self {
             case .startSession: return "WORKOUT"
             case .planAhead: return "PLAN"
-            case .saveWorkout: return "WORKOUT"
+            case .saveWorkout, .editWorkout: return "WORKOUT"
             }
         }
 
@@ -26,7 +30,7 @@ struct SessionEditorView: View {
             switch self {
             case .startSession: return "TODAY"
             case .planAhead: return "PLAN"
-            case .saveWorkout: return "LIBRARY"
+            case .saveWorkout, .editWorkout: return "LIBRARY"
             }
         }
 
@@ -35,6 +39,7 @@ struct SessionEditorView: View {
             case .startSession: return "BEGIN SESSION"
             case .planAhead: return "DONE"
             case .saveWorkout: return "CREATE WORKOUT"
+            case .editWorkout: return "SAVE CHANGES"
             }
         }
 
@@ -43,6 +48,7 @@ struct SessionEditorView: View {
             case .startSession: return "play.fill"
             case .planAhead: return "checkmark"
             case .saveWorkout: return "square.and.arrow.down"
+            case .editWorkout: return "checkmark"
             }
         }
 
@@ -52,23 +58,19 @@ struct SessionEditorView: View {
                 return "A session needs at least one exercise before it can start."
             case .planAhead:
                 return "A planned workout needs at least one exercise before it can be saved."
-            case .saveWorkout:
+            case .saveWorkout, .editWorkout:
                 return "A saved workout needs at least one exercise."
             }
         }
-
-        var showsPersistenceStrip: Bool { self == .startSession }
     }
 
     @State var draft: TrainingSessionDraft
     @State var pickerRoute: PickerRoute?
     @State var customRoute: CustomRoute?
-    @State var selectedPersistence: TrainingSessionEditPersistence = .todayOnly
     @State var showEmptyWorkoutWarning = false
     @State var recentExerciseNames: Set<String> = []
     @State var preferenceStatusesByKey: [String: ExercisePreferenceStatus] = [:]
     @State var availableEquipment: [Equipment]?
-    @State var isPersistingEdits = false
 
     // Grid cell editor — shared bottom-docked keypad module (mirrors the in-workout
     // logging grid; no system keyboard). The model owns the typed buffer + pristine
@@ -82,10 +84,6 @@ struct SessionEditorView: View {
     let originalDraft: TrainingSessionDraft
     let mode: Mode
     let onStart: (TrainingSessionDraft) -> Void
-
-    var showsPersistenceControls: Bool {
-        mode.showsPersistenceStrip && originalDraft.source == .program && draft.source == .program
-    }
 
     init(draft: TrainingSessionDraft, mode: Mode = .startSession, onStart: @escaping (TrainingSessionDraft) -> Void) {
         _draft = State(initialValue: draft)
@@ -103,9 +101,6 @@ struct SessionEditorView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 16) {
                         builderHeader
-                        if showsPersistenceControls {
-                            compactPersistenceStrip
-                        }
                         blocksList
                     }
                     .padding(.horizontal, 20)
@@ -275,8 +270,8 @@ struct SessionEditorView: View {
         switch target {
         case .reps(let count):
             return "\(count)"
-        case .repsRange(let low, let high):
-            return "\(low)-\(high)"
+        case .repsRange(let low, _):
+            return "\(low)"
         case .amrap:
             return "AMRAP"
         case .holdSeconds(let seconds):
@@ -337,54 +332,6 @@ struct SessionEditorView: View {
         if let catalogExercise = MovementCatalog.catalogExercise(named: exerciseName) {
             ExercisePreferenceLookup.keys(for: catalogExercise).forEach { keys.insert($0) }
         }
-    }
-
-    func persistSelectedEditsIfNeeded() async {
-        guard selectedPersistence != .todayOnly,
-              selectedPersistence.isImplemented,
-              isPureSameSlotPreferenceEdit,
-              let userId = services.auth.currentUserId
-        else { return }
-
-        let swaps = TrainingSessionEditPreferenceBuilder.swapEdits(original: originalDraft, edited: draft)
-        guard !swaps.isEmpty else { return }
-
-        isPersistingEdits = true
-        defer { isPersistingEdits = false }
-
-        let preferences = TrainingSessionEditPreferenceBuilder.preferences(
-            for: swaps,
-            mode: selectedPersistence,
-            userId: userId
-        )
-        for preference in preferences {
-            try? await services.exercisePreference.setPreference(preference)
-        }
-
-        await loadPickerContext()
-    }
-
-    var isPureSameSlotPreferenceEdit: Bool {
-        guard originalDraft.blocks.count == draft.blocks.count else { return false }
-
-        for index in originalDraft.blocks.indices {
-            let original = originalDraft.blocks[index]
-            let edited = draft.blocks[index]
-            guard original.id == edited.id,
-                  original.kind == edited.kind,
-                  original.prescriptions.count == edited.prescriptions.count
-            else {
-                return false
-            }
-
-            let originalIds = original.prescriptions.map(\.id)
-            let editedIds = edited.prescriptions.map(\.id)
-            if Set(originalIds) == Set(editedIds), originalIds != editedIds {
-                return false
-            }
-        }
-
-        return true
     }
 
     func prescription(at target: PrescriptionTarget) -> TrainingBlockPrescription? {
@@ -499,7 +446,7 @@ struct SessionEditorView: View {
             movementId: nil,
             rankStandardMovementId: nil,
             sets: current?.sets ?? 3,
-            target: current?.target ?? .repsRange(exercise.defaultRepMin, exercise.defaultRepMax),
+            target: current?.target ?? exercise.defaultTarget,
             restSeconds: current?.restSeconds ?? defaultRest(for: exercise.classification),
             muscleGroups: muscleGroups(for: exercise.pattern),
             rpe: current?.rpe ?? 8,

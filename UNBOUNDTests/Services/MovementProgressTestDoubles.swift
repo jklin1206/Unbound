@@ -2,31 +2,6 @@ import XCTest
 import UIKit
 @testable import UNBOUND
 
-final class ScanContextUserService: UserServiceProtocol, @unchecked Sendable {
-    func createUserIfNeeded(userId: String, email: String?) async throws -> UserProfile {
-        profile(userId: userId)
-    }
-
-    func fetchProfile(userId: String) async throws -> UserProfile {
-        profile(userId: userId)
-    }
-
-    func updateProfile(userId: String, fields: [String: Any]) async throws {}
-
-    func deleteUserData(userId: String) async throws {}
-
-    private func profile(userId: String) -> UserProfile {
-        UserProfile(
-            id: userId,
-            email: nil,
-            displayName: nil,
-            createdAt: Date(timeIntervalSince1970: 0),
-            onboardingCompleted: true,
-            totalScans: 0
-        )
-    }
-}
-
 enum TestProgressionDatabaseError: Error {
     case forcedCreateFailure(collection: String)
     case notFound(collection: String, documentId: String)
@@ -130,6 +105,7 @@ final class NoOpFriendChallengeService: FriendChallengeServiceProtocol {
     func decline(_ challengeId: UUID) async throws {}
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {}
     func evaluateExpired() async {}
+    func consumePendingOutcome() -> FriendChallenge? { nil }
 }
 
 /// A WorkoutLogServiceProtocol impl that deliberately does NOT conform to

@@ -1,12 +1,26 @@
 import SwiftUI
 
+// MARK: - Step_ObstacleFix
+//
+// The confession payoff, placed between social proof and the staircase: the
+// quiz asked "what's been in the way?" and this screen answers it in the
+// SYSTEM's voice. Calm and centered - no bursts, no card grid: the user's
+// own obstacle quoted back, the system's one-line counter, then three short
+// personalized lines. If they also confessed "other fitness apps" in prior
+// attempts, a kicker names why this one is different.
+//
+// Full-bleed cinematic: no progress bar, no back (see OnboardingStep lists).
+
 struct Step_ObstacleFix: View {
     @Bindable var flow: OnboardingFlowViewModel
     var progress: Double
     let onBack: () -> Void
     let onContinue: () -> Void
 
-    @State private var hasAnimated = false
+    @State private var showsConfession = false
+    @State private var showsCounter = false
+    @State private var visibleFixes = 0
+    @State private var showsFooter = false
 
     private var primaryObstacle: Obstacle {
         let priority: [Obstacle] = [.unsure, .consistency, .plateau, .time, .motivation]
@@ -17,132 +31,127 @@ struct Step_ObstacleFix: View {
         ObstacleFixPlan.make(for: primaryObstacle, flow: flow)
     }
 
+    private var triedOtherApps: Bool {
+        flow.priorAttempts.contains(.otherApps)
+    }
+
     var body: some View {
-        OnboardingScaffold(
-            title: plan.title,
-            subtitle: plan.subtitle,
-            progress: progress,
-            primaryTitle: L10n.onboarding("obstacleFix.primary", defaultValue: "Show me my path"),
-            primaryIcon: "arrow.right",
-            hudStep: .obstacleFix,
-            onBack: onBack,
-            onPrimary: onContinue
-        ) {
-            VStack(spacing: 14) {
-                UnboundCard {
-                    HStack(alignment: .center, spacing: 14) {
-                        OnboardingAssetGlyph(
-                            assetName: assetName(for: primaryObstacle),
-                            tint: Color.unbound.rankRed,
-                            size: 54,
-                            imagePadding: 7,
-                            shape: .hexagon
-                        )
+        ZStack {
+            Color.unbound.bg.ignoresSafeArea()
+            TechGridBackground(opacity: 0.1)
+                .ignoresSafeArea()
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(L10n.onboarding("obstacleFix.youSaid", defaultValue: "YOU SAID"))
-                                .font(Font.unbound.captionS)
-                                .tracking(1.5)
-                                .foregroundStyle(Color.unbound.textTertiary)
-                            Text(primaryObstacle.displayName.uppercased())
-                                .font(Font.unbound.titleS)
-                                .foregroundStyle(Color.unbound.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+            VStack(spacing: 0) {
+                Spacer(minLength: 40)
 
-                        Spacer(minLength: 0)
-                    }
-                }
-                .opacity(hasAnimated ? 1 : 0)
-                .offset(y: hasAnimated ? 0 : 12)
+                VStack(spacing: 26) {
+                    // The confession, in their words.
+                    VStack(spacing: 12) {
+                        Text(L10n.onboarding("painCost.eyebrow", defaultValue: "[ SYSTEM ]"))
+                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                            .tracking(1.6)
+                            .foregroundStyle(Color.unbound.coachCyan)
 
-                VStack(spacing: 10) {
-                    ForEach(Array(plan.fixes.enumerated()), id: \.offset) { index, fix in
-                        fixRow(index: index + 1, fix: fix)
-                            .opacity(hasAnimated ? 1 : 0)
-                            .offset(x: hasAnimated ? 0 : 16)
-                            .animation(
-                                .spring(response: 0.45, dampingFraction: 0.84).delay(0.12 + Double(index) * 0.08),
-                                value: hasAnimated
-                            )
-                    }
-                }
+                        Text(L10n.onboarding("obstacleFix.youSaid", defaultValue: "YOU SAID"))
+                            .font(Font.unbound.monoS)
+                            .tracking(1.8)
+                            .foregroundStyle(Color.unbound.textTertiary)
 
-                HUDCallout(
-                    iconSystemName: "checkmark.seal.fill",
-                    eyebrow: L10n.onboarding("obstacleFix.systemLock", defaultValue: "SYSTEM LOCK"),
-                    message: plan.callout
-                )
-                .opacity(hasAnimated ? 1 : 0)
-                .padding(.top, 2)
-            }
-            .onAppear {
-                withAnimation(.spring(response: 0.62, dampingFraction: 0.86)) {
-                    hasAnimated = true
-                }
-            }
-        }
-    }
-
-    private func fixRow(index: Int, fix: ObstacleFix) -> some View {
-        HUDPanel(isActive: index == 1, pulse: index == 1) {
-            HStack(alignment: .top, spacing: 14) {
-                ZStack {
-                    HUDHexagon()
-                        .fill(index == 1 ? Color.unbound.accent.opacity(0.18) : Color.unbound.surface.opacity(0.9))
-                    HUDHexagon()
-                        .stroke(index == 1 ? Color.unbound.accent.opacity(0.7) : Color.unbound.borderSubtle, lineWidth: 1.2)
-                    Text(String(format: "%02d", index))
-                        .font(Font.unbound.monoS)
-                        .foregroundStyle(index == 1 ? Color.unbound.accent : Color.unbound.textTertiary)
-                }
-                .frame(width: 38, height: 34)
-
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 8) {
-                        OnboardingAssetGlyph(
-                            assetName: fix.assetName,
-                            tint: Color.unbound.accent,
-                            size: 24,
-                            imagePadding: 4,
-                            shape: .hexagon,
-                            showsCornerMark: false
-                        )
-                        Text(fix.title.uppercased())
-                            .font(Font.unbound.bodyMStrong)
-                            .tracking(0.6)
+                        Text("\u{201C}\(primaryObstacle.displayName)\u{201D}")
+                            .font(Font.unbound.displayM)
                             .foregroundStyle(Color.unbound.textPrimary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .minimumScaleFactor(0.8)
                     }
+                    .opacity(showsConfession ? 1 : 0)
+                    .offset(y: showsConfession ? 0 : 10)
 
-                    Text(fix.detail)
-                        .font(Font.unbound.bodyS)
-                        .foregroundStyle(Color.unbound.textSecondary)
+                    // The counter.
+                    Text(plan.counter)
+                        .font(Font.unbound.titleL)
+                        .foregroundStyle(Color.unbound.accent)
+                        .shadow(color: Color.unbound.accent.opacity(0.5), radius: 16)
+                        .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
-                }
+                        .opacity(showsCounter ? 1 : 0)
+                        .scaleEffect(showsCounter ? 1 : 1.08)
+                        .blur(radius: showsCounter ? 0 : 5)
 
-                Spacer(minLength: 0)
+                    // Three short lines, personalized from the quiz answers.
+                    VStack(spacing: 13) {
+                        ForEach(Array(plan.lines.enumerated()), id: \.offset) { index, line in
+                            Text(line)
+                                .font(Font.unbound.bodyL)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .opacity(visibleFixes > index ? 1 : 0)
+                                .offset(y: visibleFixes > index ? 0 : 8)
+                        }
+                    }
+                    .padding(.top, 4)
+
+                    if triedOtherApps {
+                        Text(L10n.onboarding("obstacleFix.otherApps.kicker", defaultValue: "Other apps counted streaks. This one counts proof."))
+                            .font(Font.unbound.bodyM.weight(.semibold))
+                            .foregroundStyle(Color.unbound.ember)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .opacity(showsFooter ? 1 : 0)
+                    }
+                }
+                .padding(.horizontal, 30)
+
+                Spacer(minLength: 40)
+
+                UnboundButton(
+                    title: L10n.onboarding("obstacleFix.primary", defaultValue: "Show me my path"),
+                    icon: "arrow.right",
+                    action: onContinue
+                )
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+                .opacity(showsFooter ? 1 : 0)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
         }
+        .toolbar(.hidden, for: .navigationBar)
+        .onAppear(perform: runSequence)
     }
 
-    private func assetName(for obstacle: Obstacle) -> String {
-        switch obstacle {
-        case .unsure: return "onboarding_path_protocol_dossier"
-        case .consistency: return "badge_art_consistency_loop"
-        case .plateau: return "onboarding_path_rank_gates"
-        case .time: return "badge_art_hour_glass"
-        case .motivation: return "badge_art_first_rank_up"
+    private func runSequence() {
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.85).delay(0.2)) {
+            showsConfession = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            UnboundHaptics.medium()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                showsCounter = true
+            }
+            UnboundHaptics.heavy()
+        }
+        for index in 0..<3 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8 + Double(index) * 0.16) {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.84)) {
+                    visibleFixes = index + 1
+                }
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
+            withAnimation(.easeOut(duration: 0.4)) {
+                showsFooter = true
+            }
         }
     }
 }
 
+// MARK: - Fix plans (per obstacle, personalized from flow answers)
+
 private struct ObstacleFixPlan {
-    let title: String
-    let subtitle: String
-    let fixes: [ObstacleFix]
-    let callout: String
+    let counter: String
+    let lines: [String]
 
     @MainActor
     static func make(for obstacle: Obstacle, flow: OnboardingFlowViewModel) -> ObstacleFixPlan {
@@ -154,127 +163,51 @@ private struct ObstacleFixPlan {
         switch obstacle {
         case .unsure:
             return ObstacleFixPlan(
-                title: L10n.onboarding("obstacleFix.unsure.title", defaultValue: "No more guessing."),
-                subtitle: L10n.onboarding("obstacleFix.unsure.subtitle", defaultValue: "You said you don't know what to do. UNBOUND gives the next move a shape."),
-                fixes: [
-                    .init(
-                        assetName: "onboarding_path_protocol_dossier",
-                        title: L10n.onboarding("obstacleFix.unsure.fix1.title", defaultValue: "Your next move is visible"),
-                        detail: L10n.onboardingFormat("obstacleFix.unsure.fix1.detail", defaultValue: "Every session points toward %@, not a random workout.", firstUnlock)
-                    ),
-                    .init(
-                        assetName: "badge_art_arc_week",
-                        title: L10n.onboarding("obstacleFix.unsure.fix2.title", defaultValue: "The week is already built"),
-                        detail: L10n.onboardingFormat("obstacleFix.unsure.fix2.detail", defaultValue: "%d sessions per week, %@ each, matched to your equipment and focus.", sessions, sessionLength)
-                    ),
-                    .init(
-                        assetName: "onboarding_path_rank_gates",
-                        title: L10n.onboarding("obstacleFix.unsure.fix3.title", defaultValue: "The path keeps moving"),
-                        detail: L10n.onboarding("obstacleFix.unsure.fix3.detail", defaultValue: "Finish the work, and the next target steps into view.")
-                    )
-                ],
-                callout: L10n.onboarding("obstacleFix.unsure.callout", defaultValue: "The first fix is clarity: open the app, see the target, do the next session.")
+                counter: L10n.onboarding("obstacleFix.unsure.counter", defaultValue: "The next move is always named."),
+                lines: [
+                    L10n.onboarding("obstacleFix.unsure.line1", defaultValue: "The next move is always on screen."),
+                    L10n.onboardingFormat("obstacleFix.unsure.line2", defaultValue: "%d sessions a week, already built for you.", sessions),
+                    L10n.onboardingFormat("obstacleFix.unsure.line3", defaultValue: "Finish one, and %@ steps into view.", firstUnlock)
+                ]
             )
         case .consistency:
             return ObstacleFixPlan(
-                title: L10n.onboarding("obstacleFix.consistency.title", defaultValue: "Showing up starts to matter."),
-                subtitle: L10n.onboarding("obstacleFix.consistency.subtitle", defaultValue: "You said consistency breaks. So every return needs to feel like progress."),
-                fixes: [
-                    .init(
-                        assetName: "badge_art_arc_week",
-                        title: L10n.onboarding("obstacleFix.consistency.fix1.title", defaultValue: "Your days are locked"),
-                        detail: L10n.onboarding("obstacleFix.consistency.fix1.detail", defaultValue: "Your training days become the rhythm of the arc.")
-                    ),
-                    .init(
-                        assetName: "badge_art_proof_10",
-                        title: L10n.onboarding("obstacleFix.consistency.fix2.title", defaultValue: "Every session leaves a mark"),
-                        detail: L10n.onboarding("obstacleFix.consistency.fix2.detail", defaultValue: "The card changes because you showed up.")
-                    ),
-                    .init(
-                        assetName: "badge_art_consistency_loop",
-                        title: L10n.onboarding("obstacleFix.consistency.fix3.title", defaultValue: "Small wins stack"),
-                        detail: L10n.onboarding("obstacleFix.consistency.fix3.detail", defaultValue: "Streaks and node progress make missed days feel recoverable, not like a full restart.")
-                    )
-                ],
-                callout: L10n.onboarding("obstacleFix.consistency.callout", defaultValue: "The goal is not more willpower. It is a journey you want to return to.")
+                counter: L10n.onboarding("obstacleFix.consistency.counter", defaultValue: "Streaks reset. Gates don't."),
+                lines: [
+                    L10n.onboarding("obstacleFix.consistency.line1", defaultValue: "A missed week never resets your rank."),
+                    L10n.onboardingFormat("obstacleFix.consistency.line2", defaultValue: "%d sessions a week, small on purpose.", sessions),
+                    L10n.onboarding("obstacleFix.consistency.line3", defaultValue: "Something visible moves every session.")
+                ]
             )
         case .plateau:
             return ObstacleFixPlan(
-                title: L10n.onboarding("obstacleFix.plateau.title", defaultValue: "The wall can break."),
-                subtitle: L10n.onboarding("obstacleFix.plateau.subtitle", defaultValue: "You said progress stalled. That means the next push needs to feel different."),
-                fixes: [
-                    .init(
-                        assetName: "badge_art_pr_session",
-                        title: L10n.onboarding("obstacleFix.plateau.fix1.title", defaultValue: "Effort has a target"),
-                        detail: L10n.onboarding("obstacleFix.plateau.fix1.detail", defaultValue: "Too easy, too hard, or just right stops being a guess.")
-                    ),
-                    .init(
-                        assetName: "badge_art_proof_25",
-                        title: L10n.onboarding("obstacleFix.plateau.fix2.title", defaultValue: "Progress becomes visible"),
-                        detail: L10n.onboardingFormat("obstacleFix.plateau.fix2.detail", defaultValue: "You can watch %@ move instead of hoping it is working.", focus)
-                    ),
-                    .init(
-                        assetName: "onboarding_path_rank_gates",
-                        title: L10n.onboarding("obstacleFix.plateau.fix3.title", defaultValue: "Targets climb"),
-                        detail: L10n.onboarding("obstacleFix.plateau.fix3.detail", defaultValue: "When you prove you can handle it, the next wall gets taller.")
-                    )
-                ],
-                callout: L10n.onboarding("obstacleFix.plateau.callout", defaultValue: "A plateau stops feeling permanent when the next wall is named.")
+                counter: L10n.onboarding("obstacleFix.plateau.counter", defaultValue: "Walls here are built to break."),
+                lines: [
+                    L10n.onboarding("obstacleFix.plateau.line1", defaultValue: "Every set gets a target, not a guess."),
+                    L10n.onboardingFormat("obstacleFix.plateau.line2", defaultValue: "You watch %@ move week over week.", focus),
+                    L10n.onboarding("obstacleFix.plateau.line3", defaultValue: "Prove it, and the next wall gets named.")
+                ]
             )
         case .time:
             return ObstacleFixPlan(
-                title: L10n.onboarding("obstacleFix.time.title", defaultValue: "The arc fits your life."),
-                subtitle: L10n.onboarding("obstacleFix.time.subtitle", defaultValue: "You said time gets in the way. So the first step has to fit the day you actually have."),
-                fixes: [
-                    .init(
-                        assetName: "badge_art_hour_glass",
-                        title: L10n.onboarding("obstacleFix.time.fix1.title", defaultValue: "Session length is capped"),
-                        detail: L10n.onboardingFormat("obstacleFix.time.fix1.detail", defaultValue: "Your workouts are built around %@, not an imaginary perfect day.", sessionLength)
-                    ),
-                    .init(
-                        assetName: "onboarding_path_protocol_dossier",
-                        title: L10n.onboarding("obstacleFix.time.fix2.title", defaultValue: "Priority comes first"),
-                        detail: L10n.onboardingFormat("obstacleFix.time.fix2.detail", defaultValue: "The plan puts %@ work where it matters most, then trims the noise.", focus)
-                    ),
-                    .init(
-                        assetName: "badge_art_arc_week",
-                        title: L10n.onboarding("obstacleFix.time.fix3.title", defaultValue: "Frequency stays realistic"),
-                        detail: L10n.onboardingFormat("obstacleFix.time.fix3.detail", defaultValue: "%d days per week is the pace. No fantasy schedule required.", sessions)
-                    )
-                ],
-                callout: L10n.onboarding("obstacleFix.time.callout", defaultValue: "The fix is not a bigger plan. It is a sharper one.")
+                counter: L10n.onboarding("obstacleFix.time.counter", defaultValue: "The arc fits the day you have."),
+                lines: [
+                    L10n.onboardingFormat("obstacleFix.time.line1", defaultValue: "Sessions are capped at %@.", sessionLength),
+                    L10n.onboardingFormat("obstacleFix.time.line2", defaultValue: "%d days a week. No fantasy schedule.", sessions),
+                    L10n.onboardingFormat("obstacleFix.time.line3", defaultValue: "Priority %@ work first, noise trimmed.", focus)
+                ]
             )
         case .motivation:
             return ObstacleFixPlan(
-                title: L10n.onboarding("obstacleFix.motivation.title", defaultValue: "Motivation becomes momentum."),
-                subtitle: L10n.onboarding("obstacleFix.motivation.subtitle", defaultValue: "You said motivation fades. The answer is seeing the character move forward."),
-                fixes: [
-                    .init(
-                        assetName: "badge_art_first_rank_up",
-                        title: L10n.onboarding("obstacleFix.motivation.fix1.title", defaultValue: "A concrete first unlock"),
-                        detail: L10n.onboardingFormat("obstacleFix.motivation.fix1.detail", defaultValue: "%@ becomes the first visible milestone, not a vague transformation.", firstUnlock)
-                    ),
-                    .init(
-                        assetName: "badge_art_pr_session",
-                        title: L10n.onboarding("obstacleFix.motivation.fix2.title", defaultValue: "The work pays out"),
-                        detail: L10n.onboarding("obstacleFix.motivation.fix2.detail", defaultValue: "Each session gives you something to watch, keep, and chase.")
-                    ),
-                    .init(
-                        assetName: "badge_art_first_build_identity_resolved",
-                        title: L10n.onboarding("obstacleFix.motivation.fix3.title", defaultValue: "Your card becomes the mirror"),
-                        detail: L10n.onboarding("obstacleFix.motivation.fix3.detail", defaultValue: "The Day Zero profile keeps the gap visible: where you started, where you are, and what changes next.")
-                    )
-                ],
-                callout: L10n.onboarding("obstacleFix.motivation.callout", defaultValue: "Motivation starts the arc. Visible progress keeps it alive.")
+                counter: L10n.onboarding("obstacleFix.motivation.counter", defaultValue: "Stakes replace willpower."),
+                lines: [
+                    L10n.onboardingFormat("obstacleFix.motivation.line1", defaultValue: "%@ is your first visible milestone.", firstUnlock),
+                    L10n.onboarding("obstacleFix.motivation.line2", defaultValue: "Every session pays out XP and rank."),
+                    L10n.onboarding("obstacleFix.motivation.line3", defaultValue: "Your card keeps the gap visible.")
+                ]
             )
         }
     }
-}
-
-private struct ObstacleFix {
-    let assetName: String
-    let title: String
-    let detail: String
 }
 
 #if DEBUG
@@ -282,6 +215,7 @@ private struct ObstacleFix {
     let flow: OnboardingFlowViewModel = {
         let flow = OnboardingFlowViewModel()
         flow.obstacles = [.consistency]
+        flow.priorAttempts = [.otherApps]
         flow.targetFrequency = .four
         flow.sessionLength = .fortyFive
         flow.targetAreas = [.chest]

@@ -77,6 +77,10 @@ class FakeWorld implements AccountDeletionDb, AccountDeletionStorage {
     return Promise.resolve()
   }
 
+  isAuthUser(userId: string): Promise<boolean> {
+    return Promise.resolve(this.authUsers.has(userId))
+  }
+
   deleteAuthUser(userId: string): Promise<void> {
     this.authUsers.delete(userId)
     // ON DELETE CASCADE for auth.users(id):
@@ -206,4 +210,86 @@ Deno.test("Proof B edge: a sole-member captain deleting their account removes th
   assertEquals(result.squadsReassigned, 0)
   assertEquals(w.squads.size, 0, "sole-member squad should be gone")
   assertEquals(w.members.length, 0)
+})
+
+// ---------------------------------------------------------------------------
+// PROOF C — the client-supplied legacy_user_id cannot purge another account
+// ---------------------------------------------------------------------------
+
+Deno.test("Proof C: a legacy_user_id naming another live auth user is refused — the victim's photos survive", async () => {
+  const w = new FakeWorld()
+  const attacker = "00000000-0000-0000-0000-0000000000aa"
+  const victim = "99999999-9999-9999-9999-9999999999ff"
+
+  w.userRows.add(attacker)
+  w.authUsers.add(attacker)
+  w.userRows.add(victim)
+  w.authUsers.add(victim)
+  w.storageObjects.add(`${attacker}/scan1/front.jpg`)
+  w.storageObjects.add(`${victim}/scan1/front.jpg`)
+  w.storageObjects.add(`${victim}/scan2/back.jpg`)
+
+  const result = await handleDeleteAccount(
+    { userId: attacker, legacyUserId: victim },
+    w,
+    w,
+  )
+
+  assertEquals(result.deleted, true)
+  assertEquals(result.photoRootsPurged, [attacker], "only the caller's root may be purged")
+  // The victim's account and photos are untouched.
+  assertEquals(w.authUsers.has(victim), true)
+  assertEquals(
+    [...w.storageObjects].filter((o) => o.startsWith(`${victim}/`)).length,
+    2,
+    "victim photos were deleted",
+  )
+})
+
+Deno.test("Proof C edge: a non-UUID legacy_user_id (path traversal shape) is ignored entirely", async () => {
+  const w = new FakeWorld()
+  const uid = "00000000-0000-0000-0000-0000000000aa"
+  const bystander = "12121212-1212-1212-1212-121212121212"
+
+  w.userRows.add(uid)
+  w.authUsers.add(uid)
+  w.storageObjects.add(`${uid}/scan1/front.jpg`)
+  w.storageObjects.add(`${bystander}/scan1/front.jpg`)
+
+  const result = await handleDeleteAccount(
+    { userId: uid, legacyUserId: "" },
+    w,
+    w,
+  )
+  assertEquals(result.photoRootsPurged, [uid])
+
+  const w2 = new FakeWorld()
+  w2.userRows.add(uid)
+  w2.authUsers.add(uid)
+  w2.storageObjects.add(`${bystander}/scan1/front.jpg`)
+  const result2 = await handleDeleteAccount(
+    { userId: uid, legacyUserId: bystander.slice(0, 8) },
+    w2,
+    w2,
+  )
+  assertEquals(result2.photoRootsPurged, [uid])
+  assertEquals(w2.storageObjects.size, 1, "bystander photos must survive a malformed legacy id")
+})
+
+Deno.test("Proof C edge: a genuine orphan legacy UUID (never an auth user) is still purged", async () => {
+  const w = new FakeWorld()
+  const uid = "00000000-0000-0000-0000-0000000000aa"
+  const legacy = "11111111-1111-1111-1111-1111111111bb"
+
+  w.userRows.add(uid)
+  w.authUsers.add(uid)
+  w.storageObjects.add(`${legacy}/scan0/front.jpg`)
+
+  const result = await handleDeleteAccount(
+    { userId: uid, legacyUserId: legacy },
+    w,
+    w,
+  )
+  assertEquals(result.photoRootsPurged.sort(), [uid, legacy].sort())
+  assertEquals(w.storageObjects.size, 0, "orphan legacy directory should be purged")
 })

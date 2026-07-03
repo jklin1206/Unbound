@@ -61,7 +61,7 @@ extension ProgramOverviewView {
 
         let requestedId = Self.launchArgumentValue(for: "--unbound-open-routine")
         let routine = requestedId
-            .flatMap { id in RoutineLibrary.placeholderRoutines.first { $0.id == id } }
+            .flatMap { id in RoutineLibrary.routines.first { $0.id == id } }
             ?? RoutineLibrary.routines(category: .challenge).first
             ?? RoutineLibrary.routinesSortedByDifficulty.first
 

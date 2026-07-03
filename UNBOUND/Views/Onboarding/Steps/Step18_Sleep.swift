@@ -16,10 +16,7 @@ struct Step18_Sleep: View {
             onBack: onBack,
             onPrimary: onContinue
         ) {
-            VStack(spacing: 24) {
-                LifestyleSignalAsset(kind: LifestyleSignalAsset.Kind.sleep, value: flow.sleepQuality)
-                    .padding(.top, 10)
-
+            VStack(spacing: 28) {
                 HUDSlider(
                     value: $flow.sleepQuality,
                     steps: HUDSlider.fivePointStoredSteps,
@@ -27,7 +24,14 @@ struct Step18_Sleep: View {
                     leftAnchor: "Restless",
                     rightAnchor: "Restored"
                 )
+
+                Text(L10n.onboarding("sleep.note", defaultValue: "Rough sleep weeks get lighter progression targets."))
+                    .font(Font.unbound.bodyS)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
             }
+            .frame(maxWidth: .infinity, minHeight: 420, alignment: .center)
         }
     }
 }

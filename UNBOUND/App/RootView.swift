@@ -24,6 +24,7 @@ struct RootView: View {
     var body: some View {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-rewardDemo")
+            || ProcessInfo.processInfo.arguments.contains("-rewardDemoManual")
             || ProcessInfo.processInfo.environment["REWARD_DEMO"] == "1" {
             RewardDemoView()
         } else if ProcessInfo.processInfo.arguments.contains("-rankTrialDemos")
@@ -40,6 +41,10 @@ struct RootView: View {
             VowDemoHarness()
         } else if ProcessInfo.processInfo.arguments.contains("-homeTrialsDemo") {
             HomeTrialsDemoHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("-gateDemo") {
+            // Gate journey stage harness — pick the screen with
+            // UNBOUND_GATE_STAGE=<sealed|open|hall|active|beat|verdictPass|card|verdictFail|records|crossing|flow>.
+            GateExperienceDemoView()
         } else if ProcessInfo.processInfo.arguments.contains("-treeUnlockDemo") {
             TreeUnlockRevealDemoHarness()
         } else if ProcessInfo.processInfo.arguments.contains("-rankDetailDemo") {
@@ -143,6 +148,14 @@ struct RootView: View {
                         // to seed UserSkillTierState. Idempotent — guarded by
                         // a UserDefaults flag so it only runs once per user.
                         let profile = try? await services.user.fetchProfile(userId: userId)
+                        // Restore-on-launch: seed the trial-confirmed rank + per-lift
+                        // tiers from the server profile when the local UserDefaults
+                        // stores are empty (e.g. after a reinstall). Conservative and
+                        // never-regressing, so it is safe to run every launch and can
+                        // never lower a locally-earned rank or tier.
+                        if let profile {
+                            RankProgressCloudBackup.shared.seedLocalStores(from: profile, userId: userId)
+                        }
                         let bodyweightKg = profile?.weightKg ?? 70.0
                         let logs = (try? await services.workoutLog.fetchLogs(userId: userId, programId: nil)) ?? []
                         let history = logs.flatMap { $0.exerciseEntries }

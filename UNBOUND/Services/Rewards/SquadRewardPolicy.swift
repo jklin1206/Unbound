@@ -7,11 +7,11 @@ import Foundation
 //
 // Consumers:
 //   • SquadMissionCelebrationView — CLAIM button uses missionArcs + missionSourceId
-//   • FriendChallengeOutcomeToast — 1v1 win uses duelWinArcs + duelSourceId
+//   • FriendChallengeService — settle path pays the 1v1 winner duelWinArcs + duelSourceId
 //
 // CurrencyWalletStore.grant(_:sourceId:) deduplicates by sourceId, so a member
-// can claim exactly once per mission/duel regardless of how many times the
-// celebration or toast appears.
+// is paid exactly once per mission/duel regardless of how many times the
+// celebration is claimed or the settle pass re-runs on foreground.
 
 enum SquadRewardPolicy {
     /// Arcs awarded to every squad member when a co-op mission completes.

@@ -7,6 +7,7 @@ Cross-cutting helpers: app constants, sound/haptics, SVG parsing, and the `Exten
 | File | What it is |
 |---|---|
 | `AppConstants.swift` | `AppConstants` — RevenueCat/PostHog keys, terms/privacy URLs, cloud-function endpoints, limits. |
+| `AppStoreReviewPrompt.swift` | `AppStoreReviewPrompt` — the two sanctioned rating asks (onboarding verdict reveal + one-shot after first real workout). |
 | `SVGPathParser.swift` | Minimal SVG path-data parser (M/L/H/V/C/S/Q/T/A/Z) for the body-highlighter asset paths. |
 | `UnboundSound.swift` | `SoundEffect` + `UnboundSound` — pooled reward/celebration SFX players (ambient session, pitch-rising XP tick). |
 | `Extensions/Color+Unbound.swift` | THE color namespace: `Color.unbound` Premium Hollow tokens (legacy `Color.theme` bridge is deleted). |

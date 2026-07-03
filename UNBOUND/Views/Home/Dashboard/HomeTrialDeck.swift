@@ -55,8 +55,38 @@ struct HomeTrialDeck: View {
             }
             .scrollTargetBehavior(.paging)
             .scrollPosition(id: $scrollID)
+
+            recordsRow
         }
         .onAppear { scrollID = startIndex }
+    }
+
+    /// Quiet row beneath the deck — the Home entry into the full 8-gate
+    /// records list (the deck itself only browses cleared + current gates).
+    private var recordsRow: some View {
+        Button(action: onShowRecords) {
+            HStack(spacing: 8) {
+                Image(systemName: "rosette")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.unbound.rankGold)
+                Text("TRIAL RECORDS")
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.textSecondary)
+                Spacer(minLength: 0)
+                Text("\(gates.filter { $0.state == .cleared }.count)/\(gates.count) GATES")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Color.unbound.textTertiary)
+            }
+            .padding(.horizontal, 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("home.trialRecords")
     }
 
     // The gate you're on uses real readiness; cleared/locked use a light synthesized

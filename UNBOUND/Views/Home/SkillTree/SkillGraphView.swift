@@ -21,7 +21,6 @@ struct SkillGraphView: View {
     let graph: SkillGraph
     let nodeStates: [String: NodeState]
     var nodeProgress: [String: Double] = [:]
-    var onNodeTap: (SkillNode) -> Void
 
     @State private var focusedCluster: SkillCluster?
 
@@ -43,6 +42,20 @@ struct SkillGraphView: View {
             .presentationDragIndicator(.visible)
             .presentationBackground(Color.unbound.bg)
         }
+        #if DEBUG
+        // Screenshot harness: `--unbound-open-cluster` (with `--unbound-open-skills`)
+        // lands directly on the first display tree's ClusterStaircaseView so the
+        // staircase can be verified without a tap.
+        .onAppear {
+            guard ProcessInfo.processInfo.arguments.contains("--unbound-open-cluster"),
+                  focusedCluster == nil,
+                  let cluster = SkillDisplayTree.allCases.first?.clusters.first
+            else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                focusedCluster = cluster
+            }
+        }
+        #endif
     }
 
     // MARK: - Header

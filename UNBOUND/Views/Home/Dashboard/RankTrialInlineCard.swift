@@ -6,51 +6,7 @@ import SwiftUI
 // immersive NextGateCard "world" card (placed directly on Home — ENTER drops you
 // into the trial, no detail-sheet repeat), and it also carries the all-gates-
 // cleared state (the final gate in its answered form — same card, no separate
-// milestone treatment). These are the bits around it: the locked fallback (its
-// tap is Home's only entry into the records list — otherwise records live in
-// Profile) and the vow pick strip.
-
-struct HomeRankGateLockedRow: View {
-    let detail: String
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 12) {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 15, weight: .black))
-                    .foregroundStyle(Color.unbound.textTertiary)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("RANK TRIAL")
-                        .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
-                        .tracking(1.4)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text(detail)
-                        .font(.system(size: 14, weight: .black))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.unbound.surface)
-            )
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Rank trial, \(detail)")
-    }
-}
+// milestone treatment). The vow pick strip below is the bit around it.
 
 /// The vow slot before a vow is picked — a slim prompt matching the active strip.
 struct HomeVowPickStrip: View {
@@ -216,7 +172,7 @@ struct HomeTrialsDemoHarness: View {
         return OverallRankTrialReadiness(
             status: open ? .ready : .locked, currentRank: origin, targetRank: world.destinationRank,
             definition: definition, resolvedTrial: nil,
-            blockerSummary: open ? nil : "Keep training — the gate is close.",
+            blockerSummary: open ? nil : "Keep training. The gate is close.",
             requirements: reqs, latestAttempt: nil)
     }
 

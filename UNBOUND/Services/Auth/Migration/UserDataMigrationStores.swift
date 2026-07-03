@@ -93,6 +93,90 @@ struct ProductionUserDataMigrationSessionXPStore: UserDataMigrationSessionXPStor
     }
 }
 
+/// Re-keys the trial-confirmed rank (`OverallRankTrialStore`) + per-lift tiers
+/// (`LiftTierService`) from the anonymous UID to the authenticated UID, then
+/// mirrors the merged result onto the synced `users` doc via
+/// `RankProgressCloudBackup`. The merge NEVER regresses (higher rank wins, per-
+/// lift max tier, union of passed attempts) so a target that already has rank
+/// data on this device is only ever raised. UserDefaults writes are infallible,
+/// so `.failed` is reserved for API symmetry with SessionXP and never emitted.
+struct ProductionUserDataMigrationRankProgressStore: UserDataMigrationRankProgressStoring, @unchecked Sendable {
+    private let trialStore: OverallRankTrialStore
+    private let liftTierStore: LiftTierService?
+    private let backup: any RankProgressBackuping
+
+    init(
+        trialStore: OverallRankTrialStore = .shared,
+        liftTierStore: LiftTierService? = nil,
+        backup: any RankProgressBackuping = RankProgressCloudBackup.shared
+    ) {
+        self.trialStore = trialStore
+        self.liftTierStore = liftTierStore
+        self.backup = backup
+    }
+
+    func migrate(legacyUserId: String, supabaseUserId: String) async -> RankProgressMigrationOutcome {
+        let legacyProgress = trialStore.load(userId: legacyUserId)
+        let targetProgress = trialStore.load(userId: supabaseUserId)
+
+        // Lift tiers live behind the @MainActor LiftTierService — read both users'
+        // tracked-lift tiers in one hop.
+        let injectedLiftStore = liftTierStore
+        let (legacyTiers, targetTiers) = await MainActor.run { () -> ([String: SkillTier], [String: SkillTier]) in
+            let store = injectedLiftStore ?? LiftTierService.shared
+            var legacy: [String: SkillTier] = [:]
+            var target: [String: SkillTier] = [:]
+            for key in LiftTierService.trackedLiftKeys {
+                legacy[key] = store.tier(lift: key, userId: legacyUserId)
+                target[key] = store.tier(lift: key, userId: supabaseUserId)
+            }
+            return (legacy, target)
+        }
+
+        let legacyHasData = hasData(progress: legacyProgress, tiers: legacyTiers)
+        guard legacyHasData else { return .noLegacy }
+        let targetHadData = hasData(progress: targetProgress, tiers: targetTiers)
+
+        let mergedProgress = targetProgress.mergedNeverRegressing(with: legacyProgress)
+        let mergedTiers: [String: SkillTier] = LiftTierService.trackedLiftKeys.reduce(into: [:]) { tiers, key in
+            tiers[key] = max(legacyTiers[key] ?? .initiate, targetTiers[key] ?? .initiate)
+        }
+
+        let progressChanged = mergedProgress != targetProgress
+        if progressChanged {
+            trialStore.save(mergedProgress, userId: supabaseUserId)
+        }
+
+        let raisedTiers = await MainActor.run { () -> Bool in
+            let store = injectedLiftStore ?? LiftTierService.shared
+            var raised = false
+            for key in LiftTierService.trackedLiftKeys {
+                let merged = mergedTiers[key] ?? .initiate
+                if merged > (targetTiers[key] ?? .initiate) {
+                    store.save(tier: merged, lift: key, userId: supabaseUserId)
+                    raised = true
+                }
+            }
+            return raised
+        }
+
+        // Mirror the merged result onto the synced `users` doc (outboxed, retried).
+        backup.backupTrials(mergedProgress, userId: supabaseUserId)
+        backup.backupLiftTiers(mergedTiers, userId: supabaseUserId)
+
+        if !targetHadData {
+            return .rekeyed
+        }
+        return (progressChanged || raisedTiers) ? .merged : .unchanged
+    }
+
+    private func hasData(progress: OverallRankTrialProgress, tiers: [String: SkillTier]) -> Bool {
+        !progress.attempts.isEmpty
+            || progress.highestPassedRank != .initiate
+            || tiers.values.contains { $0 > .initiate }
+    }
+}
+
 /// Persists the per-(legacy → supabase) migration-completed flag in
 /// UserDefaults. Local-only and survives relaunches, which is exactly what the
 /// resume guard needs.

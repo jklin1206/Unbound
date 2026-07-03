@@ -114,6 +114,20 @@ struct ProgressionState: Codable, Identifiable, Sendable {
 
     var targetRepRange: ClosedRange<Int> { targetRepMin...targetRepMax }
 
+    /// The single rep number shown to the user for this exercise today. The
+    /// min...max window stays the engine's internal rails; the user chases one
+    /// target that climbs it: start at the bottom, ask one more than the last
+    /// session delivered, hold at the top (a second top-hit bumps the weight),
+    /// and restart at the bottom after a weight bump. A widened accessory
+    /// window keeps climbing instead of resetting.
+    var currentTargetReps: Int {
+        guard let last = lastSessionReps else { return targetRepMin }
+        if lastSessionHitTarget == true, consecutiveSessionsAtTarget == 0, last >= targetRepMax {
+            return targetRepMin
+        }
+        return min(max(last + 1, targetRepMin), targetRepMax)
+    }
+
     /// Classification of this exercise for weight-bump increments.
     var classification: ExerciseClassification {
         ExerciseClassification.classify(exerciseKey: exerciseKey)

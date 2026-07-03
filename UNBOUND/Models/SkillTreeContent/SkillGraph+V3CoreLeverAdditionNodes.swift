@@ -167,12 +167,12 @@ extension SkillGraph {
             cluster: .pullingPower, tier: 4, type: .skill,
             target: .reps(exercise: "skin the cat", count: 3),
             prereqs: [PrerequisiteGroup("cl.german-hang")],
-            equipment: [.gymnasticRings],
+            equipment: [.gymnasticRings, .pullupBar],
             primary: [.shoulders, .core, .lats], secondary: [.arms],
-            subtitle: "Rings pass-through. Shoulder opener.",
-            description: "Controlled ring pass-through from hang to inverted hang to German hang and back. The rep proves shoulder extension tolerance, straight-arm control, and a calm reverse path.",
+            subtitle: "Rings or bar pass-through. Shoulder opener.",
+            description: "Controlled pass-through on rings or a bar from hang to inverted hang to German hang and back. The rep proves shoulder extension tolerance, straight-arm control, and a calm reverse path.",
             formCues: [
-                "Start from a quiet hang with straight arms and rings still",
+                "Start from a quiet hang with straight arms and no swing",
                 "Tuck or pike the legs overhead without yanking the elbows",
                 "Pass through slowly until the shoulders open into German hang",
                 "Pause only in a pain-free range, then reverse the same path",
@@ -192,10 +192,10 @@ extension SkillGraph {
             cluster: .pullingPower, tier: 3, type: .hold,
             target: .hold(exercise: "german hang", seconds: 10),
             prereqs: [PrerequisiteGroup("pp.dead-hang")],
-            equipment: [.gymnasticRings],
+            equipment: [.gymnasticRings, .pullupBar],
             primary: [.shoulders, .chest], secondary: [.core, .arms],
-            subtitle: "The rings position only mobile shoulders own.",
-            description: "Pain-free hold at the bottom of a skin-the-cat path. The arms are behind the body, shoulders are open, rings stay quiet, and the athlete can exit without panic.",
+            subtitle: "The hang position only mobile shoulders own.",
+            description: "Pain-free hold at the bottom of a skin-the-cat path, on rings or a bar. The arms are behind the body, shoulders are open, the hang is quiet, and the athlete can exit without panic.",
             formCues: [
                 "Enter slowly through an assisted or controlled skin-the-cat path",
                 "Keep arms straight while the shoulders open behind the torso",
@@ -207,7 +207,7 @@ extension SkillGraph {
                 "Attempting without shoulder warm-up",
                 "Bent arms — wrong skill, injury risk",
                 "Holding through shoulder pain",
-                "Dropping too deep because the rings are set too high"
+                "Dropping too deep because the rings or bar are set too high"
             ],
             timeline: "2-6 months from a calm dead hang.",
             isParallelToParent: true
@@ -218,7 +218,7 @@ extension SkillGraph {
             cluster: .pullingPower, tier: 6, type: .skill,
             target: .reps(exercise: "360 ring pull", count: 1),
             prereqs: [PrerequisiteGroup(["cl.skin-the-cat", "cl.german-hang"])],
-            equipment: [.gymnasticRings, .pullupBar],
+            equipment: [.gymnasticRings],
             primary: [.lats, .arms, .core], secondary: [.back, .shoulders],
             subtitle: "A full ring arc through front and back lever lanes.",
             description: "Controlled straight-arm ring pull through a 360-degree arc: active hang, front-lever lane, inverted hang, back-lever lane, German hang, then reverse under control. No release or re-catch.",
@@ -235,7 +235,7 @@ extension SkillGraph {
                 "Dropping into German hang or holding through shoulder pain",
                 "Owning the descent but not the reverse path"
             ],
-            timeline: "5+ years of dedicated explosive pulling. Very rare."
+            timeline: "5+ years of dedicated straight-arm strength work. Very rare."
         ),
     ]
 }

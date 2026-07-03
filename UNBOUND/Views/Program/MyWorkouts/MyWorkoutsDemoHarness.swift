@@ -27,16 +27,24 @@ struct MyWorkoutsDemoHarness: View {
             onQuickLog: { activeDraft = QuickLogDraftFactory.empty(userId: "demo") },
             onBuild: { editorDraft = SavedWorkoutDraftFactory.empty(userId: "demo") },
             onStartWorkout: { workout in activeDraft = workout.asDraft(userId: "demo") },
-            onSchedule: { _ in }
+            onEdit: { workout in editorDraft = workout.asEditingDraft(userId: "demo") }
         )
         .environmentObject(services)
         .fullScreenCover(item: $activeDraft) { d in
-            ActiveWorkoutContainerView(draft: d, services: services) { activeDraft = nil }
+            ActiveWorkoutContainerView(draft: d, services: services, onFinished: { activeDraft = nil })
                 .environmentObject(services)
         }
         .fullScreenCover(item: $editorDraft) { d in
-            SessionEditorView(draft: d, mode: .saveWorkout) { editedDraft in
-                SavedWorkoutStore.shared.save(SavedWorkout.from(editedDraft))
+            let isExistingLoadout = UUID(uuidString: d.id)
+                .map { SavedWorkoutStore.shared.get(id: $0) != nil } ?? false
+            SessionEditorView(draft: d, mode: isExistingLoadout ? .editWorkout : .saveWorkout) { editedDraft in
+                // Mirror production: the library entry is keyed off the draft id,
+                // so editing an existing loadout updates it instead of duplicating.
+                var saved = SavedWorkout.from(editedDraft)
+                if let stableId = UUID(uuidString: editedDraft.id) {
+                    saved.id = stableId
+                }
+                SavedWorkoutStore.shared.save(saved)
                 editorDraft = nil
                 savedWorkoutRevision += 1
             }

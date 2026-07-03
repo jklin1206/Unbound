@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "promo_locked_door.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

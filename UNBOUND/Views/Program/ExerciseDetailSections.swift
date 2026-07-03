@@ -80,7 +80,7 @@ struct ExerciseDetailSections: View {
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .strokeBorder(Color.unbound.border, lineWidth: 1)
                 )
-                .shadow(color: Color.black.opacity(0.35), radius: 12, x: 0, y: 4)
+                .shadow(color: Color.unbound.bg.opacity(0.35), radius: 12, x: 0, y: 4)
                 .overlay(
                     programmingColumns
                         .padding(.vertical, 20)
@@ -150,7 +150,7 @@ struct ExerciseDetailSections: View {
                     .strokeBorder(Color.unbound.border, lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .shadow(color: Color.black.opacity(0.30), radius: 10, x: 0, y: 3)
+            .shadow(color: Color.unbound.bg.opacity(0.30), radius: 10, x: 0, y: 3)
         }
     }
 
@@ -178,7 +178,7 @@ struct ExerciseDetailSections: View {
                     .strokeBorder(Color.unbound.border, lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .shadow(color: Color.black.opacity(0.30), radius: 10, x: 0, y: 3)
+            .shadow(color: Color.unbound.bg.opacity(0.30), radius: 10, x: 0, y: 3)
         }
     }
 }
@@ -219,7 +219,7 @@ private struct TargetMuscleHeatmapView: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(Color.unbound.border, lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(0.26), radius: 10, x: 0, y: 3)
+        .shadow(color: Color.unbound.bg.opacity(0.26), radius: 10, x: 0, y: 3)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Target muscle heatmap")
         .accessibilityValue(accessibilityValue)
@@ -288,7 +288,7 @@ private struct TargetMuscleBodyFigure: View {
         )
         .overlay(alignment: .topTrailing) {
             Text(side.targetMuscleShortTitle)
-                .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                .font(.system(size: 9, weight: .heavy, design: .monospaced))
                 .tracking(0.8)
                 .foregroundStyle(Color.unbound.textTertiary)
                 .padding(.horizontal, 6)

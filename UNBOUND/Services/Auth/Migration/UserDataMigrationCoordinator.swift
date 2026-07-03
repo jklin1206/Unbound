@@ -6,10 +6,11 @@ struct UserDataMigrationSummary: Equatable, Sendable {
     var skillProgress = UserDataMigrationCollectionSummary()
     var scans = UserDataMigrationCollectionSummary()
     var sessionXP = UserDataMigrationCollectionSummary()
+    var rankProgress = UserDataMigrationCollectionSummary()
 
     var migratedLocally: Int {
         workoutLogs.localWrites + workingWeights.localWrites + skillProgress.localWrites
-            + scans.localWrites + sessionXP.localWrites
+            + scans.localWrites + sessionXP.localWrites + rankProgress.localWrites
     }
 
     var remoteDeferred: Int {
@@ -25,6 +26,7 @@ struct UserDataMigrationSummary: Equatable, Sendable {
             && skillProgress.failures == 0
             && scans.failures == 0
             && sessionXP.failures == 0
+            && rankProgress.failures == 0
     }
 }
 
@@ -85,6 +87,28 @@ protocol UserDataMigrationSessionXPStoring: Sendable {
     func migrate(legacyUserId: String, supabaseUserId: String) async -> SessionXPMigrationOutcome
 }
 
+/// Outcome of re-keying the trial-confirmed rank + per-lift tiers from the
+/// anonymous UID to the authenticated UID. Mirrors `SessionXPMigrationOutcome`.
+enum RankProgressMigrationOutcome: Equatable, Sendable {
+    case noLegacy
+    case rekeyed
+    case merged
+    case unchanged
+    case failed
+}
+
+/// Carries the local rank progress (trial-confirmed rank via
+/// `OverallRankTrialStore` + per-lift tiers via `LiftTierService`) from the
+/// anonymous UID to the authenticated UID, re-keying the UserDefaults entries and
+/// mirroring the merged result onto the synced `users` doc. Both are local-only
+/// (UserDefaults) with a cloud mirror, so without this the displayed rank is
+/// orphaned on sign-in and resets to Initiate — the exact durability hole this
+/// work closes. The read-merge-write is done as one atomic operation (returning
+/// an outcome) so it can't interleave with a concurrent record on the same key.
+protocol UserDataMigrationRankProgressStoring: Sendable {
+    func migrate(legacyUserId: String, supabaseUserId: String) async -> RankProgressMigrationOutcome
+}
+
 /// Persists a per-(legacy → supabase) `migrationCompleted` flag so a migration
 /// interrupted by a crash/kill is resumed on the next launch and only treated
 /// as done once every collection has migrated cleanly (Bug #2).
@@ -99,6 +123,7 @@ struct UserDataMigrationCoordinator: Sendable {
     private let scanStore: any UserDataMigrationScanStoring
     private let photoMover: any UserDataMigrationPhotoMoving
     private let sessionXPStore: any UserDataMigrationSessionXPStoring
+    private let rankProgressStore: any UserDataMigrationRankProgressStoring
     private let flagStore: any UserDataMigrationFlagStoring
     private let logger: LoggingService
 
@@ -108,6 +133,7 @@ struct UserDataMigrationCoordinator: Sendable {
         scanStore: any UserDataMigrationScanStoring = ProductionUserDataMigrationScanStore(),
         photoMover: any UserDataMigrationPhotoMoving = StorageService.shared,
         sessionXPStore: any UserDataMigrationSessionXPStoring = ProductionUserDataMigrationSessionXPStore(),
+        rankProgressStore: any UserDataMigrationRankProgressStoring = ProductionUserDataMigrationRankProgressStore(),
         flagStore: any UserDataMigrationFlagStoring = UserDefaultsUserDataMigrationFlagStore(),
         logger: LoggingService = .shared
     ) {
@@ -116,6 +142,7 @@ struct UserDataMigrationCoordinator: Sendable {
         self.scanStore = scanStore
         self.photoMover = photoMover
         self.sessionXPStore = sessionXPStore
+        self.rankProgressStore = rankProgressStore
         self.flagStore = flagStore
         self.logger = logger
     }
@@ -169,13 +196,18 @@ struct UserDataMigrationCoordinator: Sendable {
             legacyUserId: legacyUserId,
             supabaseUserId: supabaseUserId
         )
+        let rankProgress = await migrateRankProgress(
+            legacyUserId: legacyUserId,
+            supabaseUserId: supabaseUserId
+        )
 
         let summary = UserDataMigrationSummary(
             workoutLogs: workoutLogs,
             workingWeights: workingWeights,
             skillProgress: skillProgress,
             scans: scans,
-            sessionXP: sessionXP
+            sessionXP: sessionXP,
+            rankProgress: rankProgress
         )
 
         // Only flip the persisted flag once EVERY collection migrated cleanly.
@@ -279,6 +311,45 @@ struct UserDataMigrationCoordinator: Sendable {
             summary.scanned = 1
             summary.failures = 1
             logger.log("SessionXP migration failed (corrupt legacy record or write error)", level: .error)
+        }
+        return summary
+    }
+
+    /// Carries the trial-confirmed rank + per-lift tiers from the anonymous UID
+    /// to the authenticated UID. Both live in UserDefaults with a cloud mirror, so
+    /// this is what stops the displayed rank resetting to Initiate on sign-in. A
+    /// `.failed` outcome is counted as a failure — blocking the completion flag
+    /// exactly like SessionXP — because a silently-abandoned rank migration is the
+    /// precise regression this work exists to prevent; blocking forces a retry on
+    /// the next launch instead. The cloud mirror rides the outbox (retried
+    /// independently), so `.failed` only ever reflects the local re-key.
+    private func migrateRankProgress(
+        legacyUserId: String,
+        supabaseUserId: String
+    ) async -> UserDataMigrationCollectionSummary {
+        var summary = UserDataMigrationCollectionSummary()
+
+        let outcome = await rankProgressStore.migrate(
+            legacyUserId: legacyUserId,
+            supabaseUserId: supabaseUserId
+        )
+        switch outcome {
+        case .noLegacy:
+            break
+        case .rekeyed:
+            summary.scanned = 1
+            summary.localWrites = 1
+        case .merged:
+            summary.scanned = 1
+            summary.existingTargets = 1
+            summary.localWrites = 1
+        case .unchanged:
+            summary.scanned = 1
+            summary.existingTargets = 1
+        case .failed:
+            summary.scanned = 1
+            summary.failures = 1
+            logger.log("Rank progress migration failed (corrupt legacy record or write error)", level: .error)
         }
         return summary
     }

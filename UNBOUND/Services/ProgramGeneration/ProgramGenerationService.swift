@@ -1,7 +1,7 @@
 import Foundation
 
 // Program generation is deterministic. First-time users start with Calibration
-// Week, then normal 28-day Arcs are built from scan/profile inputs plus stored
+// Week, then normal 30-day Arcs (Arc.durationDays) are built from scan/profile inputs plus stored
 // progression state. AI is intentionally excluded from this path so workouts
 // remain local, auditable, repeatable, and testable.
 
@@ -13,11 +13,16 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
     private init() {}
 
     func generateProgram(analysis: BodyAnalysis, userProfile: UserProfile) async throws -> TrainingProgram {
-        try? await database.update(
-            ["status": ScanStatus.programGenerating.rawValue],
-            collection: "scans",
-            documentId: analysis.scanId
-        )
+        await DurableWrite.attempt(
+            "Scan status → generating",
+            context: ["scanId": analysis.scanId]
+        ) {
+            try await database.update(
+                ["status": ScanStatus.programGenerating.rawValue],
+                collection: "scans",
+                documentId: analysis.scanId
+            )
+        }
 
         let buildIdentity = await AttributeService.shared.snapshot(userId: userProfile.id, asOf: Date()).buildIdentity
 
@@ -55,25 +60,45 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
                 "buildIdentity": buildIdentity.displayName,
                 "deterministicError": "\(error)"
             ])
-            try? await database.update(
-                ["status": ScanStatus.failed.rawValue],
-                collection: "scans",
-                documentId: analysis.scanId
-            )
+            await DurableWrite.attempt(
+                "Scan status → failed",
+                context: ["scanId": analysis.scanId]
+            ) {
+                try await database.update(
+                    ["status": ScanStatus.failed.rawValue],
+                    collection: "scans",
+                    documentId: analysis.scanId
+                )
+            }
             throw error
         }
 
-        try? await database.create(program, collection: "programs", documentId: program.id)
-        try? await database.update(
-            ["programId": program.id, "status": ScanStatus.complete.rawValue],
-            collection: "scans",
-            documentId: analysis.scanId
-        )
-        try? await database.update(
-            ["currentProgramId": program.id],
-            collection: "users",
-            documentId: analysis.userId
-        )
+        await DurableWrite.attempt(
+            "Persist generated program",
+            context: ["programId": program.id]
+        ) {
+            try await database.create(program, collection: "programs", documentId: program.id)
+        }
+        await DurableWrite.attempt(
+            "Scan status → complete",
+            context: ["scanId": analysis.scanId, "programId": program.id]
+        ) {
+            try await database.update(
+                ["programId": program.id, "status": ScanStatus.complete.rawValue],
+                collection: "scans",
+                documentId: analysis.scanId
+            )
+        }
+        await DurableWrite.attempt(
+            "User currentProgramId patch",
+            context: ["userId": analysis.userId, "programId": program.id]
+        ) {
+            try await database.update(
+                ["currentProgramId": program.id],
+                collection: "users",
+                documentId: analysis.userId
+            )
+        }
 
         return program
     }
@@ -206,7 +231,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         let resolvedEquipment = equipment.isEmpty
             ? [Equipment.bodyweight]
             : Equipment.allCases.filter { equipment.contains($0) }
-        let resolvedTrainingDays = resolvedTrainingDays(
+        let resolvedTrainingDays = Self.resolvedTrainingDays(
             trainingDays,
             frequency: frequency,
             startDate: Date()
@@ -217,7 +242,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             exerciseStyles: exerciseStyles
         )
         let resolvedFeedback = trainingFeedbackMode ?? TrainingFeedbackMode.default(for: resolvedExperience)
-        let resolvedSex = biologicalSex ?? biologicalSexFallback(from: gender) ?? .male
+        let resolvedSex = biologicalSex ?? Self.biologicalSexFallback(from: gender) ?? .male
         let resolvedFocus = focusAreas.isEmpty ? focusAreasFromTargets(targetAreas) : focusAreas
         let missingNutritionFields = nutritionProfileMissingFields(
             age: age,
@@ -260,7 +285,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             age: age > 0 ? age : 30,
             sex: resolvedSex,
             nutritionProfileMissingFields: missingNutritionFields,
-            blockStartDate: Date(),
+            blockStartDate: ProgramClock.now,
             exercisePreferences: preferences,
             calibration: calibrationInput(
                 calibrations: calibrations,
@@ -359,7 +384,10 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         return .hybrid
     }
 
-    private func resolvedTrainingDays(
+    /// Resolves a concrete training-day set from the user's selection, topping
+    /// up from a frequency-derived default when the selection is missing or the
+    /// wrong size. Shared so block rollover schedules days like first-run does.
+    static func resolvedTrainingDays(
         _ selectedDays: Set<Weekday>?,
         frequency: TargetFrequency,
         startDate: Date
@@ -379,7 +407,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         return Set(resolved)
     }
 
-    private func defaultTrainingDays(
+    static func defaultTrainingDays(
         frequency: TargetFrequency,
         startDate: Date
     ) -> [Weekday] {
@@ -399,14 +427,17 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         return indexes.map { ordered[$0] }
     }
 
-    private func orderedWeekdays(startingWith first: Weekday) -> [Weekday] {
+    static func orderedWeekdays(startingWith first: Weekday) -> [Weekday] {
         guard let startIndex = Weekday.allCases.firstIndex(of: first) else {
             return Weekday.allCases
         }
         return Array(Weekday.allCases[startIndex...]) + Array(Weekday.allCases[..<startIndex])
     }
 
-    private func biologicalSexFallback(from gender: Gender) -> BiologicalSex? {
+    /// Maps a self-described `Gender` to a `BiologicalSex` for generation math
+    /// (returns nil for `.unspecified`, callers fall back to `.male`). Shared so
+    /// block rollover resolves sex exactly like first-run generation does.
+    static func biologicalSexFallback(from gender: Gender) -> BiologicalSex? {
         switch gender {
         case .male:
             return .male
@@ -428,7 +459,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         if weightKg <= 0 { missing.append("weight") }
         if heightCm <= 0 { missing.append("height") }
         if age <= 0 { missing.append("age") }
-        if biologicalSex == nil && biologicalSexFallback(from: gender) == nil {
+        if biologicalSex == nil && Self.biologicalSexFallback(from: gender) == nil {
             missing.append("sex")
         }
         return missing

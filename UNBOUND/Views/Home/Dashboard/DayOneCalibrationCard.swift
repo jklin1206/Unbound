@@ -87,7 +87,7 @@ struct DayOneCalibrationCard: View {
                         .font(Font.unbound.captionS)
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.accent)
-                    Text("Lock your numbers — 4 lifts, ~12 min")
+                    Text("Lock your numbers · 4 lifts, ~12 min")
                         .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .lineLimit(1)

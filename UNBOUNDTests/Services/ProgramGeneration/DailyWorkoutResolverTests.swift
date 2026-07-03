@@ -67,7 +67,9 @@ final class DailyWorkoutResolverTests: XCTestCase {
         XCTAssertEqual(strength?.prescriptions.first { $0.exerciseName == "bench press" }?.sets, 3)
     }
 
-    func testSkillBlockStaysBeforeCooldown() {
+    /// Skill practice is precision work — it must land right after the
+    /// warmup, BEFORE main strength work (and before cooldown).
+    func testSkillBlockComesAfterWarmupBeforeMainWork() {
         let workout = Workout(
             name: "Upper",
             targetMuscleGroups: [.chest],
@@ -87,7 +89,7 @@ final class DailyWorkoutResolverTests: XCTestCase {
             scheduledSkillIds: ["pp.pullup"]
         )
 
-        XCTAssertEqual(draft.blocks.map(\.kind), [.bodyweight, .strength, .skill, .routine])
+        XCTAssertEqual(draft.blocks.map(\.kind), [.bodyweight, .skill, .strength, .routine])
     }
 
     func testSkillOnlyDraftUsesWorkoutReadySpine() {
@@ -289,7 +291,12 @@ final class DailyWorkoutResolverTests: XCTestCase {
         )
 
         let names = resolved.mainExercises.map { MovementCatalog.normalized($0.name) }
-        XCTAssertEqual(Set(names).count, names.count)
+        // The 2026-07 equipment audit moved DB/EZ-bar arm accessories out of
+        // "Bodyweight", so the distinct bands+bodyweight arm pool is smaller
+        // than this workout's three slots — duplicates are unavoidable. The
+        // engine must still diversify as far as the pool allows and never
+        // fail to substitute.
+        XCTAssertGreaterThanOrEqual(Set(names).count, 2)
         XCTAssertTrue(resolved.mainExercises.allSatisfy { exercise in
             guard let definition = MovementCatalog.canonicalExercise(named: exercise.name) else {
                 return false
@@ -490,6 +497,42 @@ final class DailyWorkoutResolverTests: XCTestCase {
         )
     }
 
+    /// User-authored days get the same fresh-first placement: the attached
+    /// skill block lands after any warmup block, BEFORE the user's main work.
+    func testAttachedSkillBlockLeadsUserDraftAfterWarmup() {
+        let base = TrainingSessionDraft(
+            userId: "u1",
+            source: .custom,
+            title: "My Pull Day",
+            estimatedMinutes: 40,
+            blocks: [
+                TrainingBlock(kind: .bodyweight, title: "Warmup", prescriptions: []),
+                TrainingBlock(
+                    kind: .strength,
+                    title: "Main Work",
+                    prescriptions: [
+                        TrainingBlockPrescription(
+                            exerciseName: "barbell row",
+                            sets: 4,
+                            target: .repsRange(8, 10),
+                            restSeconds: 90,
+                            muscleGroups: [.back]
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let resolved = DailyWorkoutResolver.composedUserDraft(
+            base,
+            userId: "u1",
+            scheduledSkillIds: ["pp.pullup"]
+        )
+
+        let kinds = resolved.blocks.map(\.kind)
+        XCTAssertEqual(Array(kinds.prefix(3)), [.bodyweight, .skill, .strength])
+    }
+
     func testExistingSkillBlockForSameFocusIsNotDuplicated() {
         let skillBlock = DailyWorkoutResolver.skillOnlyDraft(skillId: "pp.pullup", userId: "u1")?.blocks.first
         let base = TrainingSessionDraft(
@@ -554,7 +597,10 @@ final class DailyWorkoutResolverTests: XCTestCase {
         )
 
         let prescription = resolved.blocks.first?.prescriptions.first
-        XCTAssertEqual(prescription?.target, .repsRange(5, 7))
+        // Single-target contract: window 5...7 with no history resolves to
+        // the bottom of the window as today's ask.
+        XCTAssertEqual(prescription?.target, .reps(state.currentTargetReps))
+        XCTAssertEqual(prescription?.target, .reps(5))
         XCTAssertNil(prescription?.rpe, "RPE-free: resolver no longer overlays a stored targetRPE")
         XCTAssertEqual(prescription?.suggestedWeightKg, 100)
     }

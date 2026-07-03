@@ -91,7 +91,6 @@ private struct AttributeInfoSheet: View {
                             .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
-                        AttributeRankBadge(rank: value.rankTitle, size: 12)
                     }
                     .tracking(0)
                     .foregroundStyle(Color.unbound.textPrimary)
@@ -164,7 +163,7 @@ private struct AttributeInfoSheet: View {
                     insightMetric(label: "LVL", value: "\(value.level)")
                     insightMetric(label: "% TO NEXT", value: "\(Int((AttributeLevelCurve.progressFraction(forXP: value.xp) * 100).rounded()))")
                 }
-                Text("HASN'T BEEN TRAINED RECENTLY — KEEP IT SHARP")
+                Text("HASN'T BEEN TRAINED RECENTLY · KEEP IT SHARP")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .tracking(0.8)
                     .foregroundStyle(key.rewardTint.opacity(0.92))
