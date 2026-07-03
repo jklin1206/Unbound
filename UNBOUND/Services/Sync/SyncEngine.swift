@@ -36,10 +36,23 @@ final class SyncEngine {
         isFlushing = true
         defer { isFlushing = false }
 
+        // If this account previously had entries parked in the dead-letter
+        // store because a different user was signed in at flush time, bring
+        // them back first — signing back in must recover unsynced edits.
+        let resurrected = outbox.requeueDeadlettered(userId: currentUserId, maxAttempts: maxAttempts)
+        if resurrected > 0 {
+            logger.log(
+                "Outbox resurrected \(resurrected) dead-lettered entries for the signed-in user",
+                level: .info,
+                context: ["currentUserId": currentUserId]
+            )
+        }
+
         // Identity-mismatched entries (e.g. anonymous pre-sign-in writes that
-        // migration has since re-written under the new UID) are redundant and
-        // can never flush. Dead-letter them so they stop starving the FIFO head
-        // instead of `continue`-ing them back to the front every flush.
+        // migration has since re-written under the new UID, or a signed-out
+        // account's edits) can never flush under this identity. Dead-letter
+        // them so they stop starving the FIFO head; the resurrection pass
+        // above returns them if that account signs back in.
         var mismatched: [OutboxEntry] = []
 
         for entry in outbox.peekBatch(limit: 50) {

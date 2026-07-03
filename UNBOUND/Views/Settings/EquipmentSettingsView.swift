@@ -17,6 +17,11 @@ struct EquipmentSettingsView: View {
     @State private var selection: Set<Equipment> = []
     @State private var isLoaded = false
     @State private var saveError: String?
+    // Saves chain behind each other and superseded snapshots skip, so rapid
+    // toggles can never land out of order and leave the profile holding a
+    // stale equipment array while the UI shows the newer selection.
+    @State private var saveTask: Task<Void, Never>?
+    @State private var saveGeneration = 0
 
     // Toggle rows: every equipment option minus the full-gym umbrella (its own
     // toggle above), legacy `.homeWeights`, and implicit `.bodyweight` (an
@@ -170,7 +175,14 @@ struct EquipmentSettingsView: View {
         }
         selection = updated
         saveError = nil
-        Task { await persist(updated, rollbackTo: previous) }
+        saveGeneration += 1
+        let generation = saveGeneration
+        let inFlight = saveTask
+        saveTask = Task {
+            await inFlight?.value
+            guard generation == saveGeneration else { return }
+            await persist(updated, rollbackTo: previous)
+        }
     }
 
     @MainActor

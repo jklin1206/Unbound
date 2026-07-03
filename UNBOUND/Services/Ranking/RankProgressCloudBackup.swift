@@ -22,6 +22,13 @@ final class RankProgressCloudBackup: RankProgressBackuping, @unchecked Sendable 
     private let database: any DatabaseServiceProtocol
     private let logger: LoggingService
 
+    /// Serializes the patch writes: each backup call captures its snapshot
+    /// synchronously and chains behind the previous write, so two rapid rank
+    /// or tier advances can never land out of order and let a stale snapshot
+    /// overwrite a newer one (locally or via the FIFO outbox).
+    private let tailLock = NSLock()
+    private var tail: Task<Void, Never>?
+
     /// ISO-8601 dates to match both `DatabaseService` (local decode) and
     /// `UnboundSupabase.dbDecoder` (remote decode), so the nested attempt dates
     /// round-trip identically through the local store and the jsonb column.
@@ -50,12 +57,24 @@ final class RankProgressCloudBackup: RankProgressBackuping, @unchecked Sendable 
             )
             return
         }
-        Task { await patch(field: "overallRankTrials", value: encoded, userId: userId) }
+        enqueuePatch(field: "overallRankTrials", value: encoded, userId: userId)
     }
 
     func backupLiftTiers(_ tiers: [String: SkillTier], userId: String) {
         let value = tiers.mapValues { $0.rawValue }
-        Task { await patch(field: "liftTiers", value: value, userId: userId) }
+        enqueuePatch(field: "liftTiers", value: value, userId: userId)
+    }
+
+    /// Append this snapshot to the ordered write chain. The snapshot is taken
+    /// at call time; the chain guarantees write order matches call order.
+    private func enqueuePatch(field: String, value: Any, userId: String) {
+        tailLock.lock()
+        defer { tailLock.unlock() }
+        let previous = tail
+        tail = Task { [weak self] in
+            await previous?.value
+            await self?.patch(field: field, value: value, userId: userId)
+        }
     }
 
     /// Patch a single rank field onto the `users` doc. `id` travels in the

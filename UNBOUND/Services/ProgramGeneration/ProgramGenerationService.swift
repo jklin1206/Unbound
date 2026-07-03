@@ -5,6 +5,13 @@ import Foundation
 // progression state. AI is intentionally excluded from this path so workouts
 // remain local, auditable, repeatable, and testable.
 
+/// Thrown when the generated program itself could not be persisted after
+/// retries — callers must treat generation as failed rather than proceed
+/// with a program id nothing can load.
+struct ProgramGenerationPersistError: Error {
+    let programId: String
+}
+
 final class ProgramGenerationService: ProgramGenerationServiceProtocol, @unchecked Sendable {
     static let shared = ProgramGenerationService()
     private let database: any DatabaseServiceProtocol = SyncedDatabase.shared
@@ -73,11 +80,29 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             throw error
         }
 
-        await DurableWrite.attempt(
+        // The scan-complete and currentProgramId pointers must never name a
+        // program that failed to persist: a dangling pointer makes the next
+        // load treat it as authoritative, find nothing, and refuse to
+        // regenerate. On persist failure the scan is marked failed (retryable
+        // from the scan surface) and the whole generation throws.
+        let persisted = await DurableWrite.attempt(
             "Persist generated program",
             context: ["programId": program.id]
         ) {
             try await database.create(program, collection: "programs", documentId: program.id)
+        }
+        guard persisted else {
+            await DurableWrite.attempt(
+                "Scan status → failed (program persist)",
+                context: ["scanId": analysis.scanId, "programId": program.id]
+            ) {
+                try await database.update(
+                    ["status": ScanStatus.failed.rawValue],
+                    collection: "scans",
+                    documentId: analysis.scanId
+                )
+            }
+            throw ProgramGenerationPersistError(programId: program.id)
         }
         await DurableWrite.attempt(
             "Scan status → complete",
@@ -167,11 +192,16 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         // on every appearance). A detached task is independent of the caller's
         // cancellation tree, so the program reliably lands in the DB and the
         // next load short-circuits to it.
+        //
+        // The detached save is AWAITED before returning (a non-throwing
+        // Task.value completes regardless of the caller's cancellation), so a
+        // caller that modifies the returned program and re-saves it can never
+        // race this raw save landing afterward and clobbering its edits.
         let db = database
         let log = logger
         let savedProgram = program
         let savedUserId = userId
-        Task.detached(priority: .userInitiated) {
+        let persist = Task.detached(priority: .userInitiated) {
             do {
                 try await db.create(savedProgram, collection: "programs", documentId: savedProgram.id)
                 try await db.update(
@@ -187,6 +217,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
                 )
             }
         }
+        await persist.value
         return program
     }
 

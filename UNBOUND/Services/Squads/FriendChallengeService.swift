@@ -347,6 +347,40 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
         } catch {
             logger.log("FriendChallengeService.evaluateExpired error: \(error)", level: .warning)
         }
+
+        await reconcileSettledWins()
+    }
+
+    /// A duel can be settled by EITHER participant's device. When the loser
+    /// foregrounds first, its settle pass names the winner remotely but the
+    /// winner's device never runs `finalizeSettledChallenge` (the row no longer
+    /// matches the winnerless settle query) — so every settle pass also fetches
+    /// challenges this user has WON and pays/buffers any the ledger says were
+    /// never granted. `grant(_:sourceId:)` dedups on the challenge's stable
+    /// sourceId, so the reward and its outcome moment land exactly once no
+    /// matter which device settled or how many foregrounds re-run this.
+    private func reconcileSettledWins() async {
+        guard let userId = AuthService.shared.currentUserId,
+              let me = SquadUserIdentity.uuid(from: userId) else { return }
+        do {
+            let rows: [ChallengeRow] = try await db
+                .from("friend_challenges")
+                .select()
+                .eq("winner_user_id", value: me.uuidString)
+                .order("expires_at", ascending: false)
+                .limit(100)
+                .execute()
+                .value
+            for row in rows {
+                guard let settled = row.toModel() else { continue }
+                if grantDuelWinArcsIfWon(settled) {
+                    pendingOutcomes.append(settled)
+                    NotificationCenter.default.post(name: .friendChallengeExpired, object: settled)
+                }
+            }
+        } catch {
+            logger.log("FriendChallengeService.reconcileSettledWins error: \(error)", level: .warning)
+        }
     }
 
     /// Pop the oldest buffered outcome for the toast to display, or nil when the
@@ -367,16 +401,18 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
     }
 
     /// Pay the 120-Arc duel-win reward when the signed-in user is the winner of a
-    /// just-settled challenge. Idempotent: CurrencyWalletStore ledger-dedups by the
+    /// settled challenge. Idempotent: CurrencyWalletStore ledger-dedups by the
     /// challenge's stable sourceId, so the reward pays exactly once no matter how
     /// many foregrounds re-run the settle pass. Mirrors claimMissionReward's grant.
-    private func grantDuelWinArcsIfWon(_ settled: FriendChallenge) {
+    /// Returns true only when this call actually paid (a fresh, undeduped win).
+    @discardableResult
+    private func grantDuelWinArcsIfWon(_ settled: FriendChallenge) -> Bool {
         guard let userId = AuthService.shared.currentUserId,
               let me = SquadUserIdentity.uuid(from: userId),
               settled.winnerUserId == me
-        else { return }
+        else { return false }
         CurrencyWalletStore.shared.bind(userId: userId)
-        CurrencyWalletStore.shared.grant(
+        return CurrencyWalletStore.shared.grant(
             SquadRewardPolicy.duelWinArcs,
             sourceId: SquadRewardPolicy.duelSourceId(settled.id)
         )

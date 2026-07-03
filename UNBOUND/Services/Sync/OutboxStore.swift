@@ -93,6 +93,43 @@ final class OutboxStore: @unchecked Sendable {
         persist(dead, to: deadletterURL)
     }
 
+    /// Resurrect dead-lettered entries owned by `userId` back into the pending
+    /// queue. Only sub-threshold entries qualify — ones parked because a
+    /// DIFFERENT account was signed in at flush time — so an account that signs
+    /// back in recovers its unsynced edits. Entries that earned dead-letter
+    /// status by exhausting their flush attempts stay dead. When the user made
+    /// newer pending edits to the same doc since, the newer payload wins and
+    /// only the changed-field sets union (mirrors `enqueue` coalescing).
+    @MainActor
+    @discardableResult
+    func requeueDeadlettered(userId: String, maxAttempts: Int) -> Int {
+        var resurrected: [OutboxEntry] = []
+        dead.removeAll { entry in
+            guard entry.attempt < maxAttempts,
+                  entry.userId.caseInsensitiveCompare(userId) == .orderedSame else { return false }
+            resurrected.append(entry)
+            return true
+        }
+        guard !resurrected.isEmpty else { return 0 }
+
+        for entry in resurrected {
+            if let i = pending.firstIndex(where: {
+                $0.userId == entry.userId && $0.collection == entry.collection && $0.docId == entry.docId
+            }) {
+                var newer = pending[i]
+                let union = entry.changedFields + newer.changedFields
+                var seen = Set<String>()
+                newer.changedFields = union.filter { seen.insert($0).inserted }
+                pending[i] = newer
+            } else {
+                pending.append(entry)
+            }
+        }
+        persistPending()
+        persist(dead, to: deadletterURL)
+        return resurrected.count
+    }
+
     @MainActor
     func clear() {
         pending = []
