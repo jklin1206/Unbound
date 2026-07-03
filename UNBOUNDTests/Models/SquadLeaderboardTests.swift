@@ -91,17 +91,17 @@ final class SquadLeaderboardTests: XCTestCase {
         XCTAssertEqual(rewards.count, 2)
 
         let titleReward = reward("season-winner-title", in: rewards)
-        XCTAssertEqual(titleReward.title, "First Flame")
+        XCTAssertEqual(titleReward.title, "Season 1 Winner")
         XCTAssertEqual(titleReward.rewardName, "Current leader: Alpha")
         XCTAssertEqual(titleReward.kind, .individualTitle)
         XCTAssertFalse(titleReward.usesProgress)
-        XCTAssertNil(titleReward.assetName)
+        XCTAssertEqual(titleReward.assetName, "squad_reward_season_1_winner")
         XCTAssertEqual(titleReward.titleId, .squadSeasonWinner(1))
 
-        let borderReward = reward("ember-ring-border", in: rewards)
-        XCTAssertEqual(borderReward.title, "Ember Ring")
+        let borderReward = reward("season-aura-border", in: rewards)
+        XCTAssertEqual(borderReward.title, "Season Aura")
         XCTAssertEqual(borderReward.kind, .squadCosmetic)
-        XCTAssertNil(borderReward.assetName)
+        XCTAssertEqual(borderReward.assetName, "squad_reward_season_aura")
     }
 
     func testSeasonWinnerTitleDisplayUsesSeasonNumber() {
@@ -115,9 +115,9 @@ final class SquadLeaderboardTests: XCTestCase {
         )
 
         XCTAssertEqual(first.winnerTitleID, .squadSeasonWinner(1))
-        XCTAssertEqual(first.winnerTitleName, "First Flame")
-        XCTAssertNil(first.winnerTitleAssetName)
-        XCTAssertNil(first.winnerTitleID.rewardAssetName)
+        XCTAssertEqual(first.winnerTitleName, "Season 1 Winner")
+        XCTAssertEqual(first.winnerTitleAssetName, "squad_reward_season_1_winner")
+        XCTAssertEqual(first.winnerTitleID.rewardAssetName, "squad_reward_season_1_winner")
         XCTAssertEqual(TitleCatalog.displayName(for: second.winnerTitleID), "Season 2 Winner")
         XCTAssertNil(second.winnerTitleAssetName)
     }
@@ -126,7 +126,7 @@ final class SquadLeaderboardTests: XCTestCase {
         let season = SquadSeason.current(now: date("2026-08-15"), calendar: utcCalendar)
 
         XCTAssertEqual(season.title, "Season 1")
-        XCTAssertEqual(season.winnerTitleName, "First Flame")
+        XCTAssertEqual(season.winnerTitleName, "Season 1 Winner")
         XCTAssertEqual(season.start, date("2026-07-01"))
         XCTAssertEqual(season.end, date("2026-10-01"))
     }
@@ -135,7 +135,7 @@ final class SquadLeaderboardTests: XCTestCase {
         let previous = SquadSeason.previous(endingBefore: date("2026-07-10"), calendar: utcCalendar)
 
         XCTAssertEqual(previous.title, "Season 1")
-        XCTAssertEqual(previous.winnerTitleName, "First Flame")
+        XCTAssertEqual(previous.winnerTitleName, "Season 1 Winner")
         XCTAssertEqual(previous.start, date("2026-07-01"))
         XCTAssertEqual(previous.end, date("2026-10-01"))
     }
@@ -144,7 +144,7 @@ final class SquadLeaderboardTests: XCTestCase {
         let previous = SquadSeason.previous(endingBefore: date("2026-11-15"), calendar: utcCalendar)
 
         XCTAssertEqual(previous.title, "Season 1")
-        XCTAssertEqual(previous.winnerTitleName, "First Flame")
+        XCTAssertEqual(previous.winnerTitleName, "Season 1 Winner")
         XCTAssertEqual(previous.start, date("2026-07-01"))
         XCTAssertEqual(previous.end, date("2026-10-01"))
     }
@@ -162,12 +162,12 @@ final class SquadLeaderboardTests: XCTestCase {
         let award = try XCTUnwrap(SquadLeaderboardBuilder.winnerTitleAward(rows: rows, season: season))
 
         XCTAssertEqual(award.titleId, .squadSeasonWinner(1))
-        XCTAssertEqual(award.titleName, "First Flame")
+        XCTAssertEqual(award.titleName, "Season 1 Winner")
         XCTAssertEqual(award.memberUserId, beta.userId)
         XCTAssertEqual(award.profileUserId, beta.userId.uuidString)
         XCTAssertEqual(award.displayName, "Beta")
         XCTAssertEqual(award.boardScore, rows[0].boardScore)
-        XCTAssertNil(award.assetName)
+        XCTAssertEqual(award.assetName, "squad_reward_season_1_winner")
     }
 
     func testClaimableWinnerAwardRequiresEndedSeasonAndCurrentWinner() throws {
@@ -203,7 +203,7 @@ final class SquadLeaderboardTests: XCTestCase {
             now: date("2026-04-01")
         ))
         XCTAssertEqual(claim.titleId, .squadSeasonWinner(1))
-        XCTAssertNil(claim.assetName)
+        XCTAssertEqual(claim.assetName, "squad_reward_season_1_winner")
     }
 
     // The "Squad Missions" season reward was removed for the Season 1 "Ignition"

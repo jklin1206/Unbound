@@ -377,12 +377,11 @@ struct SquadSeasonRewardRow: View {
     private var goalCopy: String {
         switch reward.id {
         case "season-winner-title": return "Top the season board"
-        case "ember-ring-border": return "Hold a \(reward.target)-week crew streak"
+        case "season-aura-border": return "Hold a \(reward.target)-week crew streak"
         default: return reward.rewardName
         }
     }
 
-    /// First Flame runs gold, Ember Ring runs ember — both art-free.
     private var accent: Color {
         reward.kind == .individualTitle ? Color.unbound.rankGold : Color.unbound.ember
     }
@@ -424,38 +423,28 @@ struct SquadSeasonRewardRow: View {
         return reward.title
     }
 
-    /// Themed, procedural emblem — a glowing disc for the flame title, a drawn
-    /// ember ring for the border. No generated imagesets.
+    /// Rank-badge treatment: the emblem art carries its own frame + glow on
+    /// transparency, so we render it straight like `AttributeRankBadge`. Locked
+    /// rewards desaturate slightly. Falls back to a themed symbol if art is absent.
     @ViewBuilder
     private var emblem: some View {
-        ZStack {
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [accent.opacity(0.30), accent.opacity(0.05)],
-                        center: .center, startRadius: 1, endRadius: 24
-                    )
-                )
-            if reward.id == "ember-ring-border" {
-                Circle()
-                    .strokeBorder(
-                        AngularGradient(
-                            colors: [accent, accent.opacity(0.25), accent],
-                            center: .center
-                        ),
-                        lineWidth: 3
-                    )
-                    .frame(width: 30, height: 30)
-                    .shadow(color: accent.opacity(0.5), radius: 6)
+        Group {
+            if let assetName = reward.assetName {
+                Image(assetName)
+                    .resizable()
+                    .scaledToFit()
             } else {
-                Image(systemName: reward.iconName)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(accent)
-                    .shadow(color: accent.opacity(0.55), radius: 6)
+                ZStack {
+                    Circle().fill(accent.opacity(0.16))
+                    Image(systemName: reward.iconName)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(accent)
+                }
             }
         }
-        .frame(width: 46, height: 46)
-        .saturation(reward.isUnlocked || !reward.usesProgress ? 1 : 0.6)
+        .frame(width: 52, height: 52)
+        .saturation(reward.isUnlocked || !reward.usesProgress ? 1 : 0.5)
+        .opacity(reward.isUnlocked || !reward.usesProgress ? 1 : 0.82)
     }
 
     private var miniProgress: some View {

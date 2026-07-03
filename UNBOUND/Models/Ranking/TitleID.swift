@@ -43,9 +43,12 @@ extension TitleID {
     }
 
     var rewardAssetName: String? {
-        // Season titles carry no generated artwork — they render as a themed
-        // symbol/plate. (Season 1 "First Flame" is intentionally art-free.)
-        nil
+        switch path {
+        case .squadSeasonWinner(let seasonNumber) where max(1, seasonNumber) == 1:
+            return "squad_reward_season_1_winner"
+        default:
+            return nil
+        }
     }
 
     /// Convenience: the title earned by confirming a rank at its gate.

@@ -200,33 +200,34 @@ enum SquadSeasonRewardsBuilder {
         missionsCompleted: Int = 0
     ) -> [SquadSeasonReward] {
         let winnerAward = SquadLeaderboardBuilder.winnerTitleAward(rows: rows, season: season)
-        // Streak target for the crew's shared reward (the Ember Ring border):
-        // hold the flame for 4 weeks. Capped so short seasons stay reachable.
+        // Crew border target: hold the streak for 4 weeks. Capped so short
+        // seasons stay reachable.
         let borderStreakTarget = min(4, max(1, season.weekTarget()))
 
-        // Season 1 "Ignition" ships exactly two rewards, both art-free (themed
-        // symbol/procedural, no generated imagesets):
-        //   1. First Flame — the individual winner title (top of the board).
-        //   2. Ember Ring — a crew-earned profile border for holding the streak.
+        // Exactly two rewards, both rendered from the existing rank-badge-style
+        // emblem art (glowing anime/JRPG emblems on transparency), matching the
+        // rank badges elsewhere in the app:
+        //   1. Season Winner — the individual title (top of the board).
+        //   2. Season Aura — a crew-earned profile border (radiant ring emblem).
         return [
             SquadSeasonReward(
                 id: "season-winner-title",
                 title: season.winnerTitleName,
                 rewardName: winnerAward.map { "Current leader: \($0.displayName)" } ?? "Awarded at season end",
                 kind: .individualTitle,
-                iconName: "flame.fill",
-                assetName: nil,
+                iconName: "rosette",
+                assetName: season.winnerTitleAssetName,
                 progress: 0,
                 target: 0,
                 titleId: winnerAward?.titleId ?? season.winnerTitleID
             ),
             SquadSeasonReward(
-                id: "ember-ring-border",
-                title: "Ember Ring",
+                id: "season-aura-border",
+                title: "Season Aura",
                 rewardName: "Crew profile border",
                 kind: .squadCosmetic,
-                iconName: "flame.circle.fill",
-                assetName: nil,
+                iconName: "sparkles",
+                assetName: "squad_reward_season_aura",
                 progress: min(squad.squadStreakWeeks, borderStreakTarget),
                 target: borderStreakTarget
             )
