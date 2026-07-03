@@ -66,6 +66,8 @@ extension SquadDetailView {
         ) {
             VStack(alignment: .leading, spacing: 2) {
                 ForEach(state.roster) { member in
+                    let memberProfileId = resolvedProfileUserId(for: member)
+                    let flair = memberFlair[member.userId]
                     SquadMemberRow(
                         member: member,
                         isLive: presenceMap[member.userId] != nil,
@@ -73,6 +75,11 @@ extension SquadDetailView {
                         weeklySessionCount: weeklySessionCount(for: member.userId),
                         lastTrainedAt: lastTrainedAt(for: member.userId),
                         displayNameOverride: displayName(for: member),
+                        frameTier: flair?.frameTier
+                            ?? RankCosmetics.equippedFrameTier(userId: memberProfileId, currentTier: .initiate),
+                        borderId: flair?.borderId
+                            ?? ShopInventoryStore.equippedProfileBorder(userId: memberProfileId),
+                        avatarImage: ProfilePhotoStore.shared.image(userId: memberProfileId),
                         onTap: { memberDetailTarget = member }
                     )
                 }

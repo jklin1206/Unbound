@@ -12,6 +12,12 @@ struct SquadMemberRow: View {
     var weeklySessionCount: Int = 0
     var lastTrainedAt: Date?
     var displayNameOverride: String?
+    /// Cosmetic frame tier + equipped border (from the member's flair, resolved
+    /// by the caller). Drives the avatar's frame + border so crewmates show the
+    /// cosmetics they've equipped.
+    var frameTier: RankTitle = .initiate
+    var borderId: ShopProfileBorderID?
+    var avatarImage: UIImage?
     let onTap: () -> Void
 
     private static let relativeFormatter: RelativeDateTimeFormatter = {
@@ -75,13 +81,13 @@ struct SquadMemberRow: View {
 
     private var avatar: some View {
         ZStack(alignment: .bottomTrailing) {
-            ZStack {
-                Circle().fill(identityTint.opacity(0.18))
-                Text(initials)
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .foregroundStyle(identityTint)
-            }
-            .frame(width: 38, height: 38)
+            CosmeticAvatar(
+                tier: frameTier,
+                size: 38,
+                image: avatarImage,
+                letterFallback: initials,
+                shopBorder: borderId
+            )
 
             if isLive {
                 Circle()
