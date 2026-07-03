@@ -14,7 +14,8 @@ enum TitleCatalog {
         case .shop(let shopTitleId):
             return ShopTitleCatalog.displayName(for: shopTitleId)
         case .squadSeasonWinner(let seasonNumber):
-            return "Season \(max(1, seasonNumber)) Winner"
+            // Season 1 is the "Ignition" season — its winner title is "First Flame".
+            return max(1, seasonNumber) == 1 ? "First Flame" : "Season \(max(1, seasonNumber)) Winner"
         // Rank titles — one per gate-confirmed rank.
         case .rank(let tier):
             return rankTitleName(tier)

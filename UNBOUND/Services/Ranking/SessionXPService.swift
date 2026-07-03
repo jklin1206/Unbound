@@ -225,24 +225,12 @@ final class SessionXPService: SessionXPServiceProtocol {
         catalog: AttributeCatalogProtocol,
         squadService: SquadServiceProtocol
     ) async -> SessionXPDelta {
-        // 1. Record the base session (streak, counters, .sessionXPUpdated).
-        let delta = await recordSession(userId: userId, at: date)
-
-        // 2. Check squad affinity.
-        //    baseXP proxy: fixed 10 units per session for bonus computation.
-        //    +10% of base = 1 unit, +20% of base = 2 units, net max = 2 (non-stacking).
-        let baseXP = 10
-
-        let squadState = squadService.state(userId: userId)
-        if let squad = squadState.currentSquad,
-           let affinityAxis = squad.affinityAxis,
-           let dominant = AttributeIngest.dominantAxis(for: log, catalog: catalog),
-           affinityAxis == dominant {
-            let affinityBonus = Int(Double(baseXP) * 0.10)
-            await addBonus(userId: userId, amount: affinityBonus, reason: "affinity")
-        }
-
-        return delta
+        // Affinity is the crew's monthly focus signal — NOT an XP bonus. It grants
+        // no session XP (product decision); training the affinity axis simply
+        // advances the crew's "affinity tenure" squad titles. So this records the
+        // base session only. `log`/`catalog`/`squadService` are retained for
+        // signature compatibility with the completion flow.
+        return await recordSession(userId: userId, at: date)
     }
 
     // MARK: Bonus
@@ -393,19 +381,8 @@ final class MockSessionXPService: SessionXPServiceProtocol {
         catalog: AttributeCatalogProtocol,
         squadService: SquadServiceProtocol
     ) async -> SessionXPDelta {
-        let delta = await recordSession(userId: userId, at: date)
-        let baseXP = 10
-        let squadState = squadService.state(userId: userId)
-        // In tests, use the stubbed dominant axis rather than computing from log.
-        let dominant = stubbedDominantAxis ?? AttributeIngest.dominantAxis(for: log, catalog: catalog)
-        if let squad = squadState.currentSquad,
-           let affinityAxis = squad.affinityAxis,
-           let dominant = dominant,
-           affinityAxis == dominant {
-            let bonus = Int(Double(baseXP) * 0.10)
-            await addBonus(userId: userId, amount: bonus, reason: "affinity")
-        }
-        return delta
+        // Affinity grants no XP bonus (see real impl); record the base session only.
+        return await recordSession(userId: userId, at: date)
     }
 }
 

@@ -1,10 +1,44 @@
 // UNBOUND/Views/Squads/SquadLeaderboardViews.swift
 //
-// Season-board surfaces as tinted section cards: the squad streak (ember),
-// the leaderboard with gold/silver/bronze ranks, and the season rewards with
-// plain-language goals. The viewer's own board row highlights full-width
-// without shifting text.
+// Season surfaces, dialed up: a glowing ember streak hero (with the crew's
+// monthly focus), an elevated gold SEASON BOARD with a top-3 podium + medals,
+// and the two-item season rewards (First Flame title + Ember Ring border) as
+// themed, art-free emblems. Rule/explainer copy lives behind an (i) button so
+// the surface stays clean. Self-row highlights full-width (no indent).
 import SwiftUI
+
+// MARK: - Info disclosure ((i) button that reveals help copy inline)
+
+/// A small circled-(i) toggle. Callers pair it with `SquadInfoText` gated on the
+/// same @State so rule copy stays hidden until asked for.
+struct SquadInfoButton: View {
+    @Binding var isOn: Bool
+    var tint: Color = Color.unbound.textTertiary
+
+    var body: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.18)) { isOn.toggle() }
+        } label: {
+            Image(systemName: isOn ? "info.circle.fill" : "info.circle")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(isOn ? tint.opacity(0.95) : tint.opacity(0.6))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isOn ? "Hide details" : "Show details")
+    }
+}
+
+struct SquadInfoText: View {
+    let text: String
+    var body: some View {
+        Text(text)
+            .font(Font.unbound.bodyS)
+            .foregroundStyle(Color.unbound.textTertiary)
+            .fixedSize(horizontal: false, vertical: true)
+            .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+}
 
 // MARK: - Squad streak (CREW tab)
 
@@ -17,33 +51,87 @@ struct SquadStreakHeroView: View {
         rows.filter { $0.weeklySessions > 0 }.count
     }
 
+    private var isLive: Bool { squad.squadStreakWeeks > 0 }
+
     var body: some View {
         SquadSectionCard(
             title: "SQUAD STREAK",
             icon: "flame.fill",
             tint: Color.unbound.ember
         ) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("\(squad.squadStreakWeeks)")
-                        .font(Font.unbound.monoL)
-                        .foregroundStyle(squad.squadStreakWeeks > 0 ? Color.unbound.ember : Color.unbound.textPrimary)
-                        .monospacedDigit()
-                    Text(squad.squadStreakWeeks == 1 ? "week" : "weeks")
-                        .font(Font.unbound.bodyS)
-                        .foregroundStyle(Color.unbound.textSecondary)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .center, spacing: 14) {
+                    emberMedallion
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text("\(squad.squadStreakWeeks)")
+                                .font(Font.unbound.displayM)
+                                .foregroundStyle(isLive ? Color.unbound.ember : Color.unbound.textPrimary)
+                                .monospacedDigit()
+                                .shadow(color: Color.unbound.ember.opacity(isLive ? 0.5 : 0), radius: 12)
+                            Text(squad.squadStreakWeeks == 1 ? "week streak" : "week streak")
+                                .font(Font.unbound.bodyS)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                        }
+                        MetaLine([
+                            "\(weeklySupportCount)/\(max(rows.count, 1)) trained this week"
+                        ])
+                    }
+                    Spacer(minLength: 0)
+                    if let axis = squad.affinityAxis {
+                        focusChip(axis)
+                    }
                 }
 
                 weeklyCoverageBar
 
-                MetaLine([
-                    "\(weeklySupportCount)/\(max(rows.count, 1)) trained this week",
-                    "everyone logs a session to extend it"
-                ])
+                Text(isLive ? "Everyone logs a session this week to extend it."
+                            : "Everyone logs a session this week to light it.")
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textTertiary)
             }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Squad streak \(squad.squadStreakWeeks) weeks")
+    }
+
+    /// Glowing ember disc with a flame — the streak's hero mark.
+    private var emberMedallion: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [Color.unbound.ember.opacity(isLive ? 0.35 : 0.14), Color.unbound.ember.opacity(0.04)],
+                        center: .center, startRadius: 2, endRadius: 30
+                    )
+                )
+            Circle()
+                .strokeBorder(Color.unbound.ember.opacity(isLive ? 0.55 : 0.25), lineWidth: 1.5)
+            Image(systemName: "flame.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Color.unbound.ember)
+                .shadow(color: Color.unbound.ember.opacity(isLive ? 0.6 : 0), radius: 8)
+        }
+        .frame(width: 54, height: 54)
+    }
+
+    /// The crew's monthly affinity focus, surfaced as a small chip.
+    private func focusChip(_ axis: AttributeKey) -> some View {
+        VStack(alignment: .trailing, spacing: 2) {
+            Text("FOCUS")
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1)
+                .foregroundStyle(Color.unbound.textTertiary)
+            Text(axis.displayName)
+                .font(Font.unbound.bodyS.weight(.semibold))
+                .foregroundStyle(Color.unbound.coachCyan)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.unbound.coachCyan.opacity(0.12))
+        )
     }
 
     /// One segment per member — filled ember when they trained this week.
@@ -52,14 +140,14 @@ struct SquadStreakHeroView: View {
             ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                 Capsule()
                     .fill(row.weeklySessions > 0 ? Color.unbound.ember : Color.unbound.border)
-                    .frame(height: 5)
+                    .frame(height: 6)
+                    .shadow(color: row.weeklySessions > 0 ? Color.unbound.ember.opacity(0.5) : .clear, radius: 4)
             }
         }
-        .padding(.vertical, 2)
     }
 }
 
-// MARK: - Season board (SEASON tab)
+// MARK: - Season board (SEASON tab) — elevated gold hero + podium
 
 struct SquadBoardView: View {
     let rows: [SquadBoardRow]
@@ -67,6 +155,8 @@ struct SquadBoardView: View {
     let capacity: Int
     var inviteURL: URL? = nil
     var currentMemberUserId: UUID?
+
+    @State private var showRules = false
 
     private var seasonRangeText: String {
         let formatter = DateFormatter()
@@ -77,42 +167,89 @@ struct SquadBoardView: View {
     }
 
     var body: some View {
-        SquadSectionCard(
-            title: "SEASON BOARD",
-            icon: "trophy.fill",
-            tint: Color.unbound.rankGold,
-            trailing: "\(season.title) · \(seasonRangeText) · \(season.daysRemaining())d left"
-        ) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Points all season: 10 per training day, 15 per duel win, 10 per PR. Top of the board when it ends wins the season title.")
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.bottom, 8)
+        VStack(alignment: .leading, spacing: 14) {
+            header
 
-                if rows.isEmpty {
-                    Text("No crew on the board yet.")
-                        .font(Font.unbound.bodyM)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .padding(.vertical, 4)
-                } else {
+            if showRules {
+                SquadInfoText(text: "10 pts per training day · 15 per duel win · 10 per PR. Whoever tops the board when the season ends earns the season title.")
+            }
+
+            if rows.isEmpty {
+                Text("No crew on the board yet.")
+                    .font(Font.unbound.bodyM)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .padding(.vertical, 4)
+            } else {
+                VStack(spacing: 2) {
                     ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                         SquadBoardRowView(
                             rank: index + 1,
                             row: row,
+                            topScore: rows.first?.boardScore ?? 0,
                             isSelf: row.member.userId == currentMemberUserId
                         )
                     }
                 }
             }
         }
+        .padding(18)
+        .background(boardBackground)
+    }
+
+    private var header: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle().fill(Color.unbound.rankGold.opacity(0.18))
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color.unbound.rankGold)
+                    .shadow(color: Color.unbound.rankGold.opacity(0.5), radius: 6)
+            }
+            .frame(width: 34, height: 34)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("SEASON BOARD")
+                    .font(Font.unbound.bodyS.weight(.semibold).weight(.heavy))
+                    .tracking(1.5)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                Text("\(season.title) · \(seasonRangeText) · \(season.daysRemaining())d left")
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.rankGold.opacity(0.85))
+            }
+
+            Spacer(minLength: 0)
+            SquadInfoButton(isOn: $showRules, tint: Color.unbound.rankGold)
+        }
+    }
+
+    /// Elevated, gold-touched card so the board reads as the marquee section.
+    private var boardBackground: some View {
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
+            .fill(Color.unbound.surfaceElevated)
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.unbound.rankGold.opacity(0.10), .clear],
+                            startPoint: .top, endPoint: .center
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(Color.unbound.rankGold.opacity(0.28), lineWidth: 1)
+            )
+            .shadow(color: Color.unbound.rankGold.opacity(0.12), radius: 18, y: 6)
     }
 }
 
 struct SquadBoardRowView: View {
     let rank: Int
     let row: SquadBoardRow
+    var topScore: Int = 0
     var isSelf: Bool = false
+
+    private var isPodium: Bool { rank <= 3 }
 
     private var rankColor: Color {
         switch rank {
@@ -123,34 +260,28 @@ struct SquadBoardRowView: View {
         }
     }
 
+    private var scoreFraction: Double {
+        guard topScore > 0 else { return 0 }
+        return min(1, Double(row.boardScore) / Double(topScore))
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                Circle().fill(rankColor.opacity(row.boardScore > 0 ? 0.16 : 0.08))
-                Text("\(rank)")
-                    .font(Font.unbound.monoM)
-                    .foregroundStyle(row.boardScore > 0 ? rankColor : Color.unbound.textTertiary)
-                    .monospacedDigit()
-            }
-            .frame(width: 34, height: 34)
+            medal
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(row.displayName)
                     .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
-                MetaLine([
-                    row.seasonWorkoutDays == 1 ? "1 day" : "\(row.seasonWorkoutDays) days",
-                    row.seasonChallengeWins == 1 ? "1 win" : "\(row.seasonChallengeWins) wins",
-                    row.seasonPRs == 1 ? "1 PR" : "\(row.seasonPRs) PRs"
-                ])
+                scoreBar
             }
 
             Spacer(minLength: 12)
 
             VStack(alignment: .trailing, spacing: 0) {
                 Text("\(row.boardScore)")
-                    .font(Font.unbound.monoM)
+                    .font(isPodium ? Font.unbound.monoL : Font.unbound.monoM)
                     .foregroundStyle(row.boardScore > 0 ? Color.unbound.textPrimary : Color.unbound.textTertiary)
                     .monospacedDigit()
                 Text("pts")
@@ -163,22 +294,67 @@ struct SquadBoardRowView: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Rank \(rank), \(row.displayName), \(row.boardScore) points")
     }
+
+    /// Podium ranks get a glowing medal (crown for #1); the rest a lean numeral.
+    private var medal: some View {
+        ZStack {
+            Circle()
+                .fill(rankColor.opacity(isPodium ? 0.20 : 0.10))
+            if isPodium {
+                Circle().strokeBorder(rankColor.opacity(0.55), lineWidth: 1.5)
+            }
+            if rank == 1 {
+                Image(systemName: "crown.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(rankColor)
+                    .shadow(color: rankColor.opacity(0.6), radius: 6)
+            } else {
+                Text("\(rank)")
+                    .font(Font.unbound.monoM)
+                    .foregroundStyle(row.boardScore > 0 ? rankColor : Color.unbound.textTertiary)
+                    .monospacedDigit()
+            }
+        }
+        .frame(width: isPodium ? 38 : 34, height: isPodium ? 38 : 34)
+    }
+
+    /// Thin score bar so relative standing reads at a glance (no pills).
+    private var scoreBar: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.unbound.border.opacity(0.7))
+                Capsule()
+                    .fill(rankColor.opacity(isPodium ? 0.9 : 0.5))
+                    .frame(width: max(proxy.size.width * scoreFraction, row.boardScore > 0 ? 6 : 0))
+            }
+        }
+        .frame(height: 4)
+    }
 }
 
-// MARK: - Season rewards (SEASON tab)
+// MARK: - Season rewards (SEASON tab) — two themed, art-free emblems
 
 struct SquadSeasonRewardsView: View {
     let rewards: [SquadSeasonReward]
     let season: SquadSeason
     var showsHeader: Bool = true
 
+    @State private var showInfo = false
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("Crew goals for \(season.title). Clear them together to unlock squad badges and cosmetics; the board leader takes the season title.")
-                .font(Font.unbound.bodyS)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.bottom, 8)
+        VStack(alignment: .leading, spacing: 10) {
+            if showsHeader {
+                HStack(spacing: 8) {
+                    Text("Two to earn this season")
+                        .font(Font.unbound.bodyS.weight(.semibold))
+                        .foregroundStyle(Color.unbound.textSecondary)
+                    Spacer(minLength: 0)
+                    SquadInfoButton(isOn: $showInfo, tint: Color.unbound.impact)
+                }
+            }
+            if showInfo {
+                SquadInfoText(text: "The board leader takes the season title. Hold the crew streak together to unlock the border.")
+            }
 
             ForEach(rewards) { reward in
                 SquadSeasonRewardRow(reward: reward)
@@ -192,26 +368,28 @@ struct SquadSeasonRewardRow: View {
 
     private var kindLabel: String {
         switch reward.kind {
-        case .individualTitle: return "title"
-        case .squadBadge: return "squad badge"
-        case .squadCosmetic: return "cosmetic"
+        case .individualTitle: return "Title"
+        case .squadBadge: return "Squad badge"
+        case .squadCosmetic: return "Border"
         }
     }
 
     private var goalCopy: String {
         switch reward.id {
-        case "streak-crest": return "Hold a \(reward.target)-week squad streak"
-        case "rival-banner": return "Win \(reward.target) duels as a crew"
-        case "pr-relic": return "\(reward.target) PRs across the crew"
-        case "season-aura": return "Streak for \(reward.target) straight weeks"
-        case "squad-missions": return "Clear \(reward.target) weekly missions"
+        case "season-winner-title": return "Top the season board"
+        case "ember-ring-border": return "Hold a \(reward.target)-week crew streak"
         default: return reward.rewardName
         }
     }
 
+    /// First Flame runs gold, Ember Ring runs ember — both art-free.
+    private var accent: Color {
+        reward.kind == .individualTitle ? Color.unbound.rankGold : Color.unbound.ember
+    }
+
     var body: some View {
-        HStack(spacing: 12) {
-            artwork
+        HStack(spacing: 14) {
+            emblem
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(reward.title)
@@ -228,14 +406,14 @@ struct SquadSeasonRewardRow: View {
             Spacer(minLength: 12)
 
             if reward.isUnlocked {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 16, weight: .semibold))
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(Color.unbound.success)
             } else if reward.usesProgress {
                 miniProgress
             }
         }
-        .padding(.vertical, 9)
+        .padding(.vertical, 10)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
     }
@@ -246,25 +424,38 @@ struct SquadSeasonRewardRow: View {
         return reward.title
     }
 
+    /// Themed, procedural emblem — a glowing disc for the flame title, a drawn
+    /// ember ring for the border. No generated imagesets.
     @ViewBuilder
-    private var artwork: some View {
-        if let assetName = reward.assetName {
-            Image(assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 40, height: 40)
-                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-                .saturation(reward.isUnlocked || !reward.usesProgress ? 1 : 0.5)
-                .opacity(reward.isUnlocked || !reward.usesProgress ? 1 : 0.8)
-        } else {
-            ZStack {
-                Circle().fill(Color.unbound.impact.opacity(0.16))
+    private var emblem: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [accent.opacity(0.30), accent.opacity(0.05)],
+                        center: .center, startRadius: 1, endRadius: 24
+                    )
+                )
+            if reward.id == "ember-ring-border" {
+                Circle()
+                    .strokeBorder(
+                        AngularGradient(
+                            colors: [accent, accent.opacity(0.25), accent],
+                            center: .center
+                        ),
+                        lineWidth: 3
+                    )
+                    .frame(width: 30, height: 30)
+                    .shadow(color: accent.opacity(0.5), radius: 6)
+            } else {
                 Image(systemName: reward.iconName)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.unbound.impact)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(accent)
+                    .shadow(color: accent.opacity(0.55), radius: 6)
             }
-            .frame(width: 40, height: 40)
         }
+        .frame(width: 46, height: 46)
+        .saturation(reward.isUnlocked || !reward.usesProgress ? 1 : 0.6)
     }
 
     private var miniProgress: some View {
@@ -272,11 +463,11 @@ struct SquadSeasonRewardRow: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.unbound.border)
                 Capsule()
-                    .fill(Color.unbound.impact)
+                    .fill(accent)
                     .frame(width: max(proxy.size.width * reward.progressFraction, reward.progress > 0 ? 4 : 0))
             }
         }
-        .frame(width: 44, height: 4)
+        .frame(width: 48, height: 5)
     }
 }
 
@@ -311,11 +502,15 @@ struct SquadSeasonRewardRow: View {
     return ScrollView {
         VStack(alignment: .leading, spacing: 16) {
             SquadStreakHeroView(
-                squad: Squad(id: squadId, name: "Night Crew", captainId: me, affinityAxis: nil, affinitySetAt: nil, inviteCode: "ABC123", maxSize: 10, squadStreakWeeks: 6, createdAt: .now),
+                squad: Squad(id: squadId, name: "Night Crew", captainId: me, affinityAxis: .power, affinitySetAt: .now, inviteCode: "ABC123", maxSize: 10, squadStreakWeeks: 6, createdAt: .now),
                 rows: rows,
                 season: .current()
             )
             SquadBoardView(rows: rows, season: .current(), capacity: 10, currentMemberUserId: me)
+            SquadSeasonRewardsView(
+                rewards: SquadSeasonRewardsBuilder.makeRewards(squad: Squad(id: squadId, name: "Night Crew", captainId: me, affinityAxis: .power, affinitySetAt: .now, inviteCode: "ABC123", maxSize: 10, squadStreakWeeks: 6, createdAt: .now), rows: rows, season: .current()),
+                season: .current()
+            )
         }
         .padding(20)
     }

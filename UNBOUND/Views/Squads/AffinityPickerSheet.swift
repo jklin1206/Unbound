@@ -15,7 +15,7 @@ struct AffinityPickerSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Pick the crew's focus for this month. Sessions that train it earn a squad bonus.")
+                    Text("Pick the crew's focus for this month — the axis you're all rallying to train. Holding a focus advances your crew's affinity titles.")
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

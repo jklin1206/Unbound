@@ -95,9 +95,10 @@ extension SquadDetailView {
             } else {
                 ZStack {
                     Circle().fill(Color.unbound.rankGold.opacity(0.16))
-                    Image(systemName: "rosette")
-                        .font(.system(size: 14, weight: .semibold))
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Color.unbound.rankGold)
+                        .shadow(color: Color.unbound.rankGold.opacity(0.5), radius: 5)
                 }
                 .frame(width: 40, height: 40)
             }
