@@ -13,12 +13,14 @@ protocol SquadServiceProtocol: AnyObject {
     func leaveSquad(userId: String) async throws
     func setAffinity(_ axis: AttributeKey?, userId: String) async throws
     func setLogo(_ logoId: String, userId: String) async throws
+    func renameSquad(name: String, userId: String) async throws
     func state(userId: String) -> SquadState
     func aggregateBuildHexValues(userId: String) -> [AttributeKey: Double]
 }
 
 extension SquadServiceProtocol {
     func setLogo(_ logoId: String, userId: String) async throws {}
+    func renameSquad(name: String, userId: String) async throws {}
 }
 
 // MARK: - SquadError

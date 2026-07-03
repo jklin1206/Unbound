@@ -215,6 +215,34 @@ final class SquadService: SquadServiceProtocol {
         NotificationCenter.default.post(name: .squadStateChanged, object: nil)
     }
 
+    func renameSquad(name: String, userId: String) async throws {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, trimmed.count <= 30 else {
+            throw SquadError.invalidName
+        }
+        let current = store.load(userId: userId)
+        guard let squad = current.currentSquad else {
+            throw SquadError.notInSquad
+        }
+        guard let userUUID = SquadUserIdentity.uuid(from: userId), squad.captainId == userUUID else {
+            throw SquadError.notCaptain
+        }
+
+        if SquadUserIdentity.usesLocalOnlySquad(for: userId) {
+            localDirectory.updateName(squadId: squad.id, name: trimmed)
+        } else {
+            try await backend.updateName(squadId: squad.id, name: trimmed)
+        }
+
+        var state = store.load(userId: userId)
+        if var currentSquad = state.currentSquad {
+            currentSquad = currentSquad.replacingName(trimmed)
+            state.currentSquad = currentSquad
+        }
+        store.save(state, userId: userId)
+        NotificationCenter.default.post(name: .squadStateChanged, object: nil)
+    }
+
     // MARK: - state
 
     func state(userId: String) -> SquadState {

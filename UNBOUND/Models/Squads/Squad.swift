@@ -132,6 +132,21 @@ extension Squad {
         )
     }
 
+    func replacingName(_ name: String) -> Squad {
+        Squad(
+            id: id,
+            name: name,
+            captainId: captainId,
+            affinityAxis: affinityAxis,
+            affinitySetAt: affinitySetAt,
+            inviteCode: inviteCode,
+            maxSize: maxSize,
+            squadStreakWeeks: squadStreakWeeks,
+            createdAt: createdAt,
+            logoId: logoId
+        )
+    }
+
     var resolvedLogoId: String {
         SquadLogoCatalog.resolvedId(logoId)
     }

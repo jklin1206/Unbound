@@ -35,6 +35,7 @@ protocol SquadBackendProtocol: Sendable {
 
     /// Update the selected squad logo preset. Captains only via RLS.
     func updateLogo(squadId: UUID, logoId: String) async throws
+    func updateName(squadId: UUID, name: String) async throws
 
     // MARK: Member operations
 

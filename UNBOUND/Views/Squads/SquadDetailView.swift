@@ -13,6 +13,7 @@ struct SquadDetailView: View {
     @State var memberDetailTarget: SquadMember?
     @State var showLeaveConfirm = false
     @State var showLogoEditor = false
+    @State var showRename = false
     @State var showAffinityPicker = false
     @State var leaveError: String?
     @State var showChallengeCreate = false
@@ -118,6 +119,13 @@ struct SquadDetailView: View {
             if let squad = state.currentSquad {
                 SquadLogoEditSheet(initialLogoId: squad.logoId) { logoId in
                     Task { await setSquadLogo(logoId) }
+                }
+            }
+        }
+        .sheet(isPresented: $showRename) {
+            if let squad = state.currentSquad {
+                RenameSquadSheet(initialName: squad.name) { newName in
+                    Task { await renameSquad(newName) }
                 }
             }
         }
@@ -239,6 +247,11 @@ struct SquadDetailView: View {
 
             Menu {
                 if canEditSquad(squad) {
+                    Button {
+                        showRename = true
+                    } label: {
+                        Label("Rename Squad", systemImage: "pencil")
+                    }
                     Button {
                         showLogoEditor = true
                     } label: {

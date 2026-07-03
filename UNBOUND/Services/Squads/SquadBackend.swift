@@ -142,6 +142,15 @@ final class SquadBackend: SquadBackendProtocol, @unchecked Sendable {
             .execute()
     }
 
+    func updateName(squadId: UUID, name: String) async throws {
+        struct Patch: Encodable { let name: String }
+        try await db
+            .from("squads")
+            .update(Patch(name: name))
+            .eq("id", value: squadId.uuidString)
+            .execute()
+    }
+
     func fetchMembers(squadId: UUID) async throws -> [SquadMember] {
         // Member names live in public.users, which is owner-only by RLS — a
         // co-member can't read them directly. The squad_members_enriched RPC

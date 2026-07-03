@@ -364,6 +364,17 @@ extension SquadDetailView {
     }
 
     @MainActor
+    func renameSquad(_ name: String) async {
+        guard let userId = services.auth.currentUserId else { return }
+        do {
+            try await services.squads.renameSquad(name: name, userId: userId)
+            state = services.squads.state(userId: userId)
+        } catch {
+            services.logging.log("SquadDetailView.renameSquad failed: \(error)", level: .warning)
+        }
+    }
+
+    @MainActor
     func saveRoutineDrop(_ drop: SquadRoutineDrop) {
         let saved = drop.savedWorkoutCopy()
         SavedWorkoutStore.shared.save(saved)

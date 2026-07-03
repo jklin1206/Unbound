@@ -29,6 +29,7 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
     var captainPromotions: [(squadId: UUID, newCaptainId: UUID)] = []
     var affinityUpdates: [(squadId: UUID, axis: AttributeKey?, setAt: Date?)] = []
     var logoUpdates: [(squadId: UUID, logoId: String)] = []
+    var nameUpdates: [(squadId: UUID, name: String)] = []
     var missionProgressIncrements: [(squadId: UUID, delta: Int, sourceLogId: String)] = []
 
     // MARK: Error injection
@@ -99,6 +100,12 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
         let resolved = SquadLogoCatalog.resolvedId(logoId)
         squads[squadId] = existing.replacingLogo(resolved)
         logoUpdates.append((squadId: squadId, logoId: resolved))
+    }
+
+    func updateName(squadId: UUID, name: String) async throws {
+        guard let existing = squads[squadId] else { throw SquadError.backendUnavailable }
+        squads[squadId] = existing.replacingName(name)
+        nameUpdates.append((squadId: squadId, name: name))
     }
 
     func fetchMembers(squadId: UUID) async throws -> [SquadMember] {
