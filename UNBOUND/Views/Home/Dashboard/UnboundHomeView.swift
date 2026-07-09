@@ -56,7 +56,6 @@ struct UnboundHomeView: View {
     // Ambient animation state
     @State var rankGlowRadius: CGFloat = 6
     @State var xpShimmerPhase: CGFloat = -1
-    @State var statsRendered = false
 
     // Daily Quest — launches the same canonical routine completion path as
     // the routine library. Rotation service lands later; fixed entry for now.
@@ -79,7 +78,7 @@ struct UnboundHomeView: View {
     }
 
     static let defaultDailyQuestRoutine: RoutineDef = {
-        RoutineLibrary.placeholderRoutines.first { $0.id == "daily-quest" }
+        RoutineLibrary.routines.first { $0.id == "daily-quest" }
             ?? RoutineDef(
                 id: "daily-quest",
                 title: "Daily Quest",
@@ -374,9 +373,6 @@ struct UnboundHomeView: View {
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .requestOpenRankInfo)) { _ in
-            showRankInfo = true
         }
         .fullScreenCover(isPresented: $showScanCaptureFlow, onDismiss: {
             // Refresh cadence after a scan completes

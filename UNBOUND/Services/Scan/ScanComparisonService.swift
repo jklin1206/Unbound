@@ -88,7 +88,7 @@ final class ScanComparisonService: @unchecked Sendable {
             if let region = current.completedCheckpointSignals?.weakRegions.first {
                 return "Watch \(region.displayName.lowercased()) only if logged performance agrees."
             }
-            return "Let completed sessions, RPE, equipment, and recovery drive the next block."
+            return "Let completed sessions, RPE, equipment, and recovery drive the next arc."
         }()
 
         let neutral = BodyPartDelta(before: 5, after: 5)

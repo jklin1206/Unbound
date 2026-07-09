@@ -7,8 +7,8 @@ import SwiftUI
 //   PROGRAM  — current-week strip + selected-day card (workout preview,
 //              exercise list, BEGIN button for today).
 //   ROUTINES — curated library of off-day / variety routines
-//              (cardio, mobility, challenges, alt circuits). Placeholder
-//              content until a real RoutineLibrary service ships.
+//              (cardio, mobility, challenges, alt circuits), shipped in
+//              RoutineLibrary.routines.
 //   RANKS    — current skill and exercise rank library.
 //
 // Taps on day tiles open DayDetailView as a preview (always preview-first,
@@ -33,7 +33,7 @@ struct ProgramOverviewView: View {
     @State var savedWorkoutEditorDraft: TrainingSessionDraft?
     @State var planningWorkoutDraft: TrainingSessionDraft?
     @State var savedWorkoutLibraryRevision = 0
-    @State var schedulingWorkout: SavedWorkout?
+    @State var dayLoadoutPickerRequest: DayLoadoutPickerRequest?
 
     @State var showMonthPlanner = false
     @State var showExerciseStarterLibrary = false
@@ -46,8 +46,9 @@ struct ProgramOverviewView: View {
     // Program Focus detail launcher state.
     @State var pushedSkillNode: SkillNode?
 
-    // V3 — schedule editor sheets.
-    @State var showScheduleEditor: Bool = false
+    // Training-schedule editor (which days, session length, time of day).
+    // Seeded async on open so the sheet always shows the user's real schedule.
+    @State var scheduleEditorSeed: TrainingScheduleSeed?
     @State var focusSwitchPresentation: ProgramFocusSwitchPresentation?
     @State var isSwitchingProgramFocus = false
     @State var focusSwitchErrorMessage: String?
@@ -80,10 +81,13 @@ struct ProgramOverviewView: View {
     @State var showCheckpointFlow: Bool = false
     @State var rolloverDeltaReport: ScanDeltaReport?
     @State var rolloverProposal: BlockRolloverService.ProgramBlockProposal?
-    @State var showProgressReveal: Bool = false
     @State var nextBlockNumberPreview: Int = 2
     @State var currentBlockNumberPreview: Int = 1
     @State var dismissedCheckpointPromptProgramId: String?
+    // Auto-build: once a block (Calibration Week or an Arc) elapses, generate the
+    // next Arc automatically after a brief "complete" beat instead of dead-ending
+    // on a manual tap. Guards the auto-trigger to fire once per block-complete.
+    @State var hasAutoTriggeredRollover = false
 
     // Resume draft affordance.
     @State var resumeDraft: ActiveWorkoutSession?
@@ -192,8 +196,8 @@ struct ProgramOverviewView: View {
                             onStartWorkout: { workout in
                                 startSavedWorkout(workout)
                             },
-                            onSchedule: { workout in
-                                schedulingWorkout = workout
+                            onEdit: { workout in
+                                savedWorkoutEditorDraft = workout.asEditingDraft(userId: services.auth.currentUserId ?? "")
                             }
                         )
                     case .routines: routinesTab
@@ -230,10 +234,11 @@ struct ProgramOverviewView: View {
             #if DEBUG
             openRoutineForProofIfRequested()
             openWorkoutsTabIfRequested()
+            openScheduleEditorIfRequested()
             #endif
         }
         .sheet(isPresented: $showPaywall) {
-            PaywallPlaceholderView()
+            HardGatePaywallView()
                 .environmentObject(services)
         }
         .sheet(isPresented: $showRationale) {
@@ -247,6 +252,8 @@ struct ProgramOverviewView: View {
                 workouts: SavedWorkoutStore.shared.all(),
                 initialDate: selectedDayDate,
                 occurrences: monthPlannerOccurrences(),
+                splitSummary: monthPlannerSplitSummary(),
+                dayInfo: { date in monthPlannerDayInfo(for: date) },
                 onPlace: { workout, date in
                     placeSavedWorkoutOnCalendar(workout, date: date)
                 },
@@ -285,14 +292,22 @@ struct ProgramOverviewView: View {
             )
             .environmentObject(services)
         }
-        .sheet(item: $schedulingWorkout) { workout in
-            ScheduleWorkoutDateSheet(
-                workout: workout,
-                today: programToday,
-                onSchedule: { date in
-                    scheduleSavedWorkout(workout, on: date)
+        .sheet(item: $dayLoadoutPickerRequest) { request in
+            DayLoadoutPickerSheet(
+                date: request.date,
+                workouts: SavedWorkoutStore.shared.all(),
+                onSelect: { workout in
+                    dayLoadoutPickerRequest = nil
+                    applySavedWorkout(workout, to: request.date, allowExtraSession: false)
+                    UnboundHaptics.success()
                 },
-                onDismiss: { schedulingWorkout = nil }
+                onCreateNew: {
+                    dayLoadoutPickerRequest = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                        openCreateWorkoutEditor(date: request.date)
+                    }
+                },
+                onDismiss: { dayLoadoutPickerRequest = nil }
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
@@ -306,11 +321,11 @@ struct ProgramOverviewView: View {
             applySavedWorkout(workout, to: programToday, allowExtraSession: true)
         }
         .fullScreenCover(item: $activeWorkoutDraft) { draft in
-            ActiveWorkoutContainerView(draft: draft, services: services) {
+            ActiveWorkoutContainerView(draft: draft, services: services, onFinished: {
                 UserDefaults.standard.set(0, forKey: "unbound.shortSessionDate")
                 activeWorkoutDraft = nil
                 Task { await viewModel.refreshCompletionState(asOf: selectedDayDate) }
-            }
+            })
             .environmentObject(services)
         }
         .fullScreenCover(item: $sessionEditorDraft) { draft in
@@ -323,7 +338,9 @@ struct ProgramOverviewView: View {
             .environmentObject(services)
         }
         .fullScreenCover(item: $savedWorkoutEditorDraft) { draft in
-            SessionEditorView(draft: draft, mode: .saveWorkout) { editedDraft in
+            let isExistingLoadout = UUID(uuidString: draft.id)
+                .map { SavedWorkoutStore.shared.get(id: $0) != nil } ?? false
+            SessionEditorView(draft: draft, mode: isExistingLoadout ? .editWorkout : .saveWorkout) { editedDraft in
                 saveWorkoutToLibrary(editedDraft)
             }
             .environmentObject(services)
@@ -360,11 +377,17 @@ struct ProgramOverviewView: View {
                 )
             }
         }
-        .sheet(isPresented: $showScheduleEditor) {
-            WeeklyScheduleEditorSheet()
-                .environmentObject(services)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+        .sheet(item: $scheduleEditorSeed) { seed in
+            TrainingScheduleEditorSheet(
+                initialTrainingDays: seed.trainingDays,
+                initialSessionLength: seed.sessionLength,
+                initialWorkoutMinuteOfDay: seed.workoutMinuteOfDay,
+                onApply: { days, length, minute in
+                    await applyScheduleChange(trainingDays: days, sessionLength: length, workoutMinuteOfDay: minute)
+                }
+            )
+            .presentationDetents([.fraction(0.6), .large])
+            .presentationDragIndicator(.visible)
         }
         .sheet(item: $focusSwitchPresentation) { presentation in
             ProgramFocusSwitchSheet(

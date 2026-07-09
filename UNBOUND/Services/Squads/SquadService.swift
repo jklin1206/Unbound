@@ -89,8 +89,7 @@ final class SquadService: SquadServiceProtocol {
         }
 
         var squad: Squad?
-        var lastError: Error?
-        for _ in 0..<10 {
+        for attempt in 0..<10 {
             let code = Self.makeInviteCode()
             do {
                 let s = try await backend.insertSquad(
@@ -102,13 +101,16 @@ final class SquadService: SquadServiceProtocol {
                 )
                 squad = s
                 break
-            } catch {
-                lastError = error
+            } catch SquadError.inviteCodeCollision where attempt < 9 {
+                // Only an invite-code collision earns a retry. Retrying other
+                // failures (network, decode) re-inserts squads the server may
+                // already have committed — one bad create would strand up to
+                // ten orphan squads with this user auto-joined as captain.
                 continue
             }
         }
         guard let created = squad else {
-            throw lastError ?? SquadError.backendUnavailable
+            throw SquadError.backendUnavailable
         }
 
         await loadCurrentSquad(userId: userId)
@@ -155,11 +157,10 @@ final class SquadService: SquadServiceProtocol {
         guard let squad = current.currentSquad else {
             throw SquadError.notInSquad
         }
-        guard let userUUID = SquadUserIdentity.uuid(from: userId) else {
-            throw SquadError.notInSquad
-        }
 
-        try await leaveRemoteSquad(squad: squad, userUUID: userUUID)
+        // Captain succession and last-member disband happen inside the
+        // leave_squad_atomic RPC — the client can't do either under RLS.
+        try await backend.leaveSquad(squadId: squad.id)
         clearState(userId: userId)
     }
 
@@ -208,6 +209,34 @@ final class SquadService: SquadServiceProtocol {
         var state = store.load(userId: userId)
         if var currentSquad = state.currentSquad {
             currentSquad = currentSquad.replacingLogo(resolvedLogoId)
+            state.currentSquad = currentSquad
+        }
+        store.save(state, userId: userId)
+        NotificationCenter.default.post(name: .squadStateChanged, object: nil)
+    }
+
+    func renameSquad(name: String, userId: String) async throws {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, trimmed.count <= 30 else {
+            throw SquadError.invalidName
+        }
+        let current = store.load(userId: userId)
+        guard let squad = current.currentSquad else {
+            throw SquadError.notInSquad
+        }
+        guard let userUUID = SquadUserIdentity.uuid(from: userId), squad.captainId == userUUID else {
+            throw SquadError.notCaptain
+        }
+
+        if SquadUserIdentity.usesLocalOnlySquad(for: userId) {
+            localDirectory.updateName(squadId: squad.id, name: trimmed)
+        } else {
+            try await backend.updateName(squadId: squad.id, name: trimmed)
+        }
+
+        var state = store.load(userId: userId)
+        if var currentSquad = state.currentSquad {
+            currentSquad = currentSquad.replacingName(trimmed)
             state.currentSquad = currentSquad
         }
         store.save(state, userId: userId)
@@ -323,20 +352,9 @@ final class SquadService: SquadServiceProtocol {
     }
 
     private func leaveRemoteSquad(squad: Squad, userUUID: UUID) async throws {
-        guard squad.captainId == userUUID else {
-            try await backend.deleteMember(squadId: squad.id, userId: userUUID)
-            return
-        }
-
-        let remainingMembers = try await backend.fetchMembers(squadId: squad.id)
-            .filter { $0.userId != userUUID }
-        guard let newCaptain = remainingMembers.first else {
-            try await backend.deleteSquad(squadId: squad.id)
-            return
-        }
-
-        try await backend.updateCaptain(squadId: squad.id, newCaptainId: newCaptain.userId)
-        try await backend.deleteMember(squadId: squad.id, userId: userUUID)
+        // Captain succession and last-member disband happen inside the
+        // leave_squad_atomic RPC — the client can't do either under RLS.
+        try await backend.leaveSquad(squadId: squad.id)
     }
 
     private func createLocalOnlySquad(name: String, userId: String, userUUID: UUID) throws -> Squad {

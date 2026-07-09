@@ -37,7 +37,7 @@ struct WhyThisProgramView: View {
     private var hero: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text("NEXT BLOCK")
+                Text("NEXT ARC")
                     .font(Font.unbound.captionS.weight(.bold))
                     .tracking(1.6)
                     .foregroundStyle(Color.unbound.accent)

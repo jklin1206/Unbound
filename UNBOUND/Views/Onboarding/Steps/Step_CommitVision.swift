@@ -190,12 +190,16 @@ struct Step_CommitVision: View {
         }
     }
 
+    // In-text over the staircase art — no card. Readability comes from the
+    // bottom scrim in `staircaseVignette` plus per-line shadows, so the climb
+    // stays visible behind the words instead of being dimmed by a panel.
     private var staircaseStoryPanel: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(L10n.onboarding("commitVision.staircase.eyebrow", defaultValue: "THE WHOLE LADDER"))
                 .font(.system(size: 11, weight: .black, design: .monospaced))
                 .tracking(2.4)
                 .foregroundStyle(Color.unbound.accent)
+                .shadow(color: .black.opacity(0.9), radius: 3)
 
             Text(L10n.onboarding("commitVision.staircase.title", defaultValue: "You are standing at the bottom."))
                 .font(.system(size: 31, weight: .black, design: .rounded))
@@ -203,29 +207,16 @@ struct Step_CommitVision: View {
                 .lineLimit(2)
                 .minimumScaleFactor(0.72)
                 .fixedSize(horizontal: false, vertical: true)
+                .shadow(color: .black.opacity(0.85), radius: 4, y: 1)
 
             Text(L10n.onboarding("commitVision.staircase.body", defaultValue: "The first step is small on purpose. Log the work, clear the sessions, and the staircase starts revealing the version above you."))
                 .font(Font.unbound.bodyS)
-                .foregroundStyle(Color.unbound.textPrimary.opacity(0.86))
+                .foregroundStyle(Color.unbound.textPrimary.opacity(0.92))
                 .fixedSize(horizontal: false, vertical: true)
+                .shadow(color: .black.opacity(0.9), radius: 3, y: 1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.76),
-                    Color.black.opacity(0.44)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.accent.opacity(0.3), lineWidth: 1)
-        )
+        .padding(.horizontal, 4)
     }
 
     private var staircaseRevealGlow: some View {
@@ -259,12 +250,17 @@ struct Step_CommitVision: View {
 
             Spacer()
 
+            // Bottom scrim carries the story text's readability (no card box).
             LinearGradient(
-                colors: [Color.clear, Color.black.opacity(0.12), Color.clear],
+                stops: [
+                    .init(color: Color.clear, location: 0),
+                    .init(color: Color.black.opacity(0.42), location: 0.42),
+                    .init(color: Color.black.opacity(0.86), location: 1)
+                ],
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(height: 350)
+            .frame(height: 400)
         }
         .ignoresSafeArea()
     }
@@ -342,7 +338,7 @@ struct Step_CommitVision: View {
     private var bodyCopy: String {
         switch slide {
         case .day30:
-            return "For the next four weeks, UNBOUND gives you the route: \(sessionsPerWeek)x/week training, recovery targets, check-ins, and visible proof that you are not stuck at Day Zero."
+            return "For the next 30 days, UNBOUND gives you the route: \(sessionsPerWeek)x/week training, recovery targets, check-ins, and visible proof that you are not stuck at Day Zero."
         case .day90:
             return "The ladder is not decoration. Your logged sessions, skill progress, and rank movement keep turning into the next visible step."
         case .today:

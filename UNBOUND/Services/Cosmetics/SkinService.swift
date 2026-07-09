@@ -35,23 +35,28 @@ enum SkinServiceError: LocalizedError {
 
 // MARK: - SkinService
 
+/// Global (not per-user) persistence keys. File-scope so the nonisolated
+/// cloud-backup accessor below can share them with the MainActor service.
+private let skinCurrentDefaultsKey = "unbound.skin.current"
+private let skinUnlockedDefaultsKey = "unbound.skin.unlocked"
+
 @MainActor
 final class SkinService: SkinServiceProtocol, ObservableObject {
     static let shared = SkinService()
 
-    private let currentKey = "unbound.skin.current"
-    private let unlockedKey = "unbound.skin.unlocked"
     private let logger = LoggingService.shared
+    private let defaults: UserDefaults
 
     @Published private(set) var currentSkin: SkillTreeSkin
     @Published private(set) var unlockedSkins: [SkillTreeSkin]
 
-    private init() {
-        let current = UserDefaults.standard.string(forKey: currentKey)
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        let current = defaults.string(forKey: skinCurrentDefaultsKey)
             .flatMap(SkillTreeSkin.init(rawValue:)) ?? .violet
         self.currentSkin = current
 
-        let stored = UserDefaults.standard.stringArray(forKey: unlockedKey) ?? []
+        let stored = defaults.stringArray(forKey: skinUnlockedDefaultsKey) ?? []
         var unlocked = stored.compactMap(SkillTreeSkin.init(rawValue:))
         if !unlocked.contains(.violet) { unlocked.insert(.violet, at: 0) }
         if !unlocked.contains(.graphite) { unlocked.append(.graphite) }
@@ -59,12 +64,20 @@ final class SkinService: SkinServiceProtocol, ObservableObject {
         self.unlockedSkins = unlocked
     }
 
+    /// Raw persisted skin selection for `RewardsCloudBackup` — nil when the
+    /// user never chose a skin (the restore adopts the cloud pick only then).
+    /// Only the CURRENT selection is mirrored; unlocked skins are recomputed
+    /// from rank (`evaluateUnlocks`) plus restored shop purchases.
+    nonisolated static func persistedCurrentSkinRawValue(defaults: UserDefaults = .standard) -> String? {
+        defaults.string(forKey: skinCurrentDefaultsKey)
+    }
+
     func setCurrent(_ skin: SkillTreeSkin) throws {
         guard unlockedSkins.contains(skin) else {
             throw SkinServiceError.skinLocked(skin)
         }
         currentSkin = skin
-        UserDefaults.standard.set(skin.rawValue, forKey: currentKey)
+        defaults.set(skin.rawValue, forKey: skinCurrentDefaultsKey)
         NotificationCenter.default.post(name: .skinChanged, object: nil, userInfo: ["skin": skin])
         logger.log("Skin switched to \(skin.rawValue)", level: .info)
     }
@@ -104,7 +117,7 @@ final class SkinService: SkinServiceProtocol, ObservableObject {
     }
 
     private func persistUnlocked() {
-        UserDefaults.standard.set(unlockedSkins.map(\.rawValue), forKey: unlockedKey)
+        defaults.set(unlockedSkins.map(\.rawValue), forKey: skinUnlockedDefaultsKey)
     }
 
     #if DEBUG
@@ -117,7 +130,7 @@ final class SkinService: SkinServiceProtocol, ObservableObject {
     func debugResetToFreshDefaults() {
         currentSkin = .violet
         unlockedSkins = [.violet, .graphite]
-        UserDefaults.standard.set(currentSkin.rawValue, forKey: currentKey)
+        defaults.set(currentSkin.rawValue, forKey: skinCurrentDefaultsKey)
         persistUnlocked()
         NotificationCenter.default.post(name: .skinChanged, object: nil, userInfo: ["skin": currentSkin])
     }

@@ -1,6 +1,6 @@
 // UNBOUND/Views/Squads/SquadTabView.swift
 //
-// Universal Links: https://unboundapp.com/squad/<code>
+// Universal Links: https://unboundbtr.com/squad/<code>
 //
 // AASA file deployment is a marketing-site concern (not in this PR). Required content:
 // {
@@ -10,7 +10,7 @@
 //     ]
 //   }
 // }
-// AASA must be served at https://unboundapp.com/.well-known/apple-app-site-association
+// AASA must be served at https://unboundbtr.com/.well-known/apple-app-site-association
 
 import SwiftUI
 
@@ -34,6 +34,7 @@ struct SquadTabView: View {
         }
         .id(loadedUserId ?? userId)
         .linkedSessionToast()
+        .friendChallengeOutcomeToast()
         .task(id: userId) {
             await reloadState(for: userId)
         }

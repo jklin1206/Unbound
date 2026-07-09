@@ -87,6 +87,9 @@ final class SquadLeaderboardTests: XCTestCase {
             season: season
         )
 
+        // Season 1 "Ignition" ships exactly two art-free rewards.
+        XCTAssertEqual(rewards.count, 2)
+
         let titleReward = reward("season-winner-title", in: rewards)
         XCTAssertEqual(titleReward.title, "Season 1 Winner")
         XCTAssertEqual(titleReward.rewardName, "Current leader: Alpha")
@@ -95,11 +98,10 @@ final class SquadLeaderboardTests: XCTestCase {
         XCTAssertEqual(titleReward.assetName, "squad_reward_season_1_winner")
         XCTAssertEqual(titleReward.titleId, .squadSeasonWinner(1))
 
-        XCTAssertTrue(reward("streak-crest", in: rewards).isUnlocked)
-        XCTAssertTrue(reward("rival-banner", in: rewards).isUnlocked)
-        XCTAssertTrue(reward("pr-relic", in: rewards).isUnlocked)
-        XCTAssertEqual(reward("season-aura", in: rewards).target, 12)
-        XCTAssertFalse(reward("season-aura", in: rewards).isUnlocked)
+        let borderReward = reward("season-aura-border", in: rewards)
+        XCTAssertEqual(borderReward.title, "Season Aura")
+        XCTAssertEqual(borderReward.kind, .squadCosmetic)
+        XCTAssertEqual(borderReward.assetName, "squad_reward_season_aura")
     }
 
     func testSeasonWinnerTitleDisplayUsesSeasonNumber() {
@@ -121,30 +123,30 @@ final class SquadLeaderboardTests: XCTestCase {
     }
 
     func testCurrentSeasonUsesLaunchAnchor() {
-        let season = SquadSeason.current(now: date("2026-06-28"), calendar: utcCalendar)
+        let season = SquadSeason.current(now: date("2026-08-15"), calendar: utcCalendar)
 
         XCTAssertEqual(season.title, "Season 1")
         XCTAssertEqual(season.winnerTitleName, "Season 1 Winner")
-        XCTAssertEqual(season.start, date("2026-04-01"))
-        XCTAssertEqual(season.end, date("2026-07-01"))
+        XCTAssertEqual(season.start, date("2026-07-01"))
+        XCTAssertEqual(season.end, date("2026-10-01"))
     }
 
     func testPreviousSeasonClampsBeforeSeasonTwo() {
-        let previous = SquadSeason.previous(endingBefore: date("2026-06-07"), calendar: utcCalendar)
+        let previous = SquadSeason.previous(endingBefore: date("2026-07-10"), calendar: utcCalendar)
 
         XCTAssertEqual(previous.title, "Season 1")
         XCTAssertEqual(previous.winnerTitleName, "Season 1 Winner")
-        XCTAssertEqual(previous.start, date("2026-04-01"))
-        XCTAssertEqual(previous.end, date("2026-07-01"))
+        XCTAssertEqual(previous.start, date("2026-07-01"))
+        XCTAssertEqual(previous.end, date("2026-10-01"))
     }
 
     func testPreviousSeasonUsesLaunchAnchoredSeasonBeforeCurrent() {
-        let previous = SquadSeason.previous(endingBefore: date("2026-07-15"), calendar: utcCalendar)
+        let previous = SquadSeason.previous(endingBefore: date("2026-11-15"), calendar: utcCalendar)
 
         XCTAssertEqual(previous.title, "Season 1")
         XCTAssertEqual(previous.winnerTitleName, "Season 1 Winner")
-        XCTAssertEqual(previous.start, date("2026-04-01"))
-        XCTAssertEqual(previous.end, date("2026-07-01"))
+        XCTAssertEqual(previous.start, date("2026-07-01"))
+        XCTAssertEqual(previous.end, date("2026-10-01"))
     }
 
     func testWinnerTitleAwardUsesTopLeaderboardRow() throws {
@@ -204,61 +206,9 @@ final class SquadLeaderboardTests: XCTestCase {
         XCTAssertEqual(claim.assetName, "squad_reward_season_1_winner")
     }
 
-    func testSquadMissionsRewardRowLockedBelow4() {
-        let season = makeSeason()
-        let squadId = UUID()
-        let alpha = makeMember(name: "Alpha", squadId: squadId)
-        let squad = makeSquad(id: squadId, captainId: alpha.userId, streakWeeks: 0)
-
-        let rewards3 = SquadSeasonRewardsBuilder.makeRewards(
-            squad: squad, rows: [], season: season, missionsCompleted: 3
-        )
-        let row3 = rewards3.first { $0.id == "squad-missions" }!
-        XCTAssertEqual(row3.progress, 3)
-        XCTAssertEqual(row3.target, 4)
-        XCTAssertFalse(row3.isUnlocked)
-    }
-
-    func testSquadMissionsRewardRowUnlockedAt4() {
-        let season = makeSeason()
-        let squadId = UUID()
-        let alpha = makeMember(name: "Alpha", squadId: squadId)
-        let squad = makeSquad(id: squadId, captainId: alpha.userId, streakWeeks: 0)
-
-        let rewards4 = SquadSeasonRewardsBuilder.makeRewards(
-            squad: squad, rows: [], season: season, missionsCompleted: 4
-        )
-        let row4 = rewards4.first { $0.id == "squad-missions" }!
-        XCTAssertTrue(row4.isUnlocked)
-        XCTAssertEqual(row4.progress, 4)
-    }
-
-    func testSquadMissionsRewardRowClampsAbove4() {
-        let season = makeSeason()
-        let squadId = UUID()
-        let alpha = makeMember(name: "Alpha", squadId: squadId)
-        let squad = makeSquad(id: squadId, captainId: alpha.userId, streakWeeks: 0)
-
-        let rewardsOver = SquadSeasonRewardsBuilder.makeRewards(
-            squad: squad, rows: [], season: season, missionsCompleted: 10
-        )
-        let rowOver = rewardsOver.first { $0.id == "squad-missions" }!
-        XCTAssertEqual(rowOver.progress, 4)
-        XCTAssertTrue(rowOver.isUnlocked)
-    }
-
-    func testExistingCallSiteCompilesWith0Default() {
-        // makeRewards without missionsCompleted must compile and return the row with 0
-        let season = makeSeason()
-        let squadId = UUID()
-        let alpha = makeMember(name: "Alpha", squadId: squadId)
-        let squad = makeSquad(id: squadId, captainId: alpha.userId, streakWeeks: 0)
-
-        let rewards = SquadSeasonRewardsBuilder.makeRewards(squad: squad, rows: [], season: season)
-        let row = rewards.first { $0.id == "squad-missions" }!
-        XCTAssertEqual(row.progress, 0)
-        XCTAssertFalse(row.isUnlocked)
-    }
+    // The "Squad Missions" season reward was removed for the Season 1 "Ignition"
+    // two-reward set (First Flame title + Ember Ring border), so its per-count
+    // reward-row tests were dropped with it.
 
     private func makeSeason() -> SquadSeason {
         SquadSeason(

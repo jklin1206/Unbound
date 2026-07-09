@@ -43,13 +43,16 @@ struct Step_ScanLive: View {
                 fallbackBackground
             }
 
-            // Dimming scrim — keeps overlays legible against bright backgrounds
+            // Light dimming only at the very top/bottom to keep the chrome legible
+            // — the header, instruction, and shutter already carry their own
+            // backgrounds, so a heavy full-frame scrim just read as a filter over
+            // the camera.
             LinearGradient(
                 colors: [
-                    Color.unbound.bg.opacity(0.55),
+                    Color.unbound.bg.opacity(0.35),
                     Color.clear,
                     Color.clear,
-                    Color.unbound.bg.opacity(0.78)
+                    Color.unbound.bg.opacity(0.5)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -71,7 +74,6 @@ struct Step_ScanLive: View {
                 Spacer()
 
                 if sessionStatus == .running {
-                    instructionBlock
                     captureButton
                         .padding(.top, 20)
                         .padding(.bottom, 36)
@@ -142,11 +144,8 @@ struct Step_ScanLive: View {
     private var entryHeader: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                Image("badge_art_first_scan")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 17, height: 17)
-                    .shadow(color: Color.unbound.accent.opacity(0.36), radius: 5)
+                Image(systemName: "camera.viewfinder")
+                    .font(.system(size: 12, weight: .semibold))
                 Text(L10n.onboarding("scanLive.entry.eyebrow", defaultValue: "DAY ZERO ENTRY"))
                     .font(Font.unbound.monoS)
                     .tracking(2.0)
@@ -250,47 +249,6 @@ struct Step_ScanLive: View {
         .rotationEffect(.degrees(rotation))
     }
 
-    // MARK: - Instruction block
-
-    private var instructionBlock: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Image("badge_art_first_photo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 18, height: 18)
-                    .shadow(color: Color.unbound.accent.opacity(0.36), radius: 5)
-                Text(L10n.onboarding("scanLive.instruction.eyebrow", defaultValue: "MONTH ONE STARTS HERE"))
-                    .font(Font.unbound.captionS)
-                    .tracking(1.6)
-            }
-            .foregroundStyle(Color.unbound.accent)
-
-            Text(L10n.onboarding("scanLive.instruction.title", defaultValue: "Set the before."))
-                .font(Font.unbound.titleM)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .multilineTextAlignment(.center)
-
-            Text(L10n.onboarding("scanLive.instruction.subtitle", defaultValue: "This is the first page of the climb."))
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.bg.opacity(0.62))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(Color.unbound.accent.opacity(0.24), lineWidth: 1)
-                )
-                .shadow(color: Color.unbound.accent.opacity(0.16), radius: 18)
-        )
-        .padding(.horizontal, 20)
-        .padding(.bottom, 8)
-    }
-
     private var captureButton: some View {
         VStack(spacing: 12) {
             Button(action: capture) {
@@ -320,10 +278,9 @@ struct Step_ScanLive: View {
                         .scaleEffect(isCapturing ? 0.82 : 1.0)
                         .animation(.spring(response: 0.28, dampingFraction: 0.72), value: isCapturing)
 
-                    Image("badge_art_first_scan")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 36, height: 36)
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(Color.unbound.bg)
                         .shadow(color: Color.unbound.bg.opacity(0.42), radius: 8)
                 }
             }
@@ -354,6 +311,15 @@ struct Step_ScanLive: View {
         }
     }
     #endif
+
+    /// Camera refused or broken: move on with no photo. Jumps straight to
+    /// the analyzing beat (nothing to review), which already no-ops its
+    /// photo work when `capturedPhotos[.front]` is nil.
+    private func skipWithoutPhoto() {
+        UnboundHaptics.soft()
+        flow.capturedPhotos[.front] = nil
+        flow.jump(to: .scanAnalyzing)
+    }
 
     private func capture() {
         guard !isCapturing else { return }
@@ -402,13 +368,10 @@ struct Step_ScanLive: View {
     @ViewBuilder
     private var fallbackPanel: some View {
         VStack(spacing: 16) {
-            OnboardingAssetGlyph(
-                assetName: fallbackAssetName,
-                tint: Color.unbound.accent,
-                size: 76,
-                imagePadding: 10,
-                shape: .hexagon
-            )
+            Image(systemName: fallbackSymbolName)
+                .font(.system(size: 40, weight: .semibold))
+                .foregroundStyle(Color.unbound.accent)
+                .frame(height: 56)
 
             Text(fallbackTitle)
                 .font(Font.unbound.titleM)
@@ -437,6 +400,21 @@ struct Step_ScanLive: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.top, 8)
+            }
+
+            // A denied camera must never dead-end the funnel one screen group
+            // before the paywall. The scan is a ceremonial Day Zero marker -
+            // nothing downstream needs the photo (verdict falls back to the
+            // baseline silhouette) — so a refusal gets a quiet way through.
+            if sessionStatus == .denied || sessionStatus == .unavailable {
+                Button(action: skipWithoutPhoto) {
+                    Text(L10n.onboarding("scanLive.skipWithoutPhoto", defaultValue: "Continue without Day Zero"))
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 2)
             }
 
             #if targetEnvironment(simulator)
@@ -469,12 +447,12 @@ struct Step_ScanLive: View {
         .padding(.horizontal, 24)
     }
 
-    private var fallbackAssetName: String {
+    private var fallbackSymbolName: String {
         switch sessionStatus {
-        case .starting:    return "badge_art_first_scan"
-        case .denied:      return "badge_art_first_photo"
-        case .unavailable: return "badge_art_hour_glass"
-        case .running:     return "badge_art_first_scan"
+        case .starting:    return "camera.fill"
+        case .denied:      return "camera.on.rectangle"
+        case .unavailable: return "camera.metering.unknown"
+        case .running:     return "camera.fill"
         }
     }
 
@@ -490,7 +468,7 @@ struct Step_ScanLive: View {
     private var fallbackBody: String {
         switch sessionStatus {
         case .starting:
-            return L10n.onboarding("scanLive.fallback.starting.body", defaultValue: "One sec — bringing up the front camera.")
+            return L10n.onboarding("scanLive.fallback.starting.body", defaultValue: "One sec. Bringing up the front camera.")
         case .denied:
             return L10n.onboarding("scanLive.fallback.denied.body", defaultValue: "Open Settings → UNBOUND → Camera and turn it on. Then come back and retry.")
         case .unavailable:

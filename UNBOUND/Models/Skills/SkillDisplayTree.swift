@@ -83,6 +83,22 @@ enum SkillDisplayTree: String, CaseIterable, Identifiable, Sendable {
         case .planche:     return "figure.highintensity.intervaltraining"
         }
     }
+
+    /// The fixed signature skill whose artwork represents this tree on the
+    /// landing card. Chosen so the thumbnail is STABLE — it reads as the
+    /// tree's headline movement regardless of the user's progress (the card
+    /// previously borrowed the farthest-proven node's art, so the image
+    /// drifted as you advanced).
+    var signatureSkillId: String {
+        switch self {
+        case .pull:        return "pp.pullup"
+        case .push:        return "cal.pushup"
+        case .legs:        return "ld.pistol-squat"
+        case .coreLevers:  return "cl.crunch"
+        case .handstand:   return "hs.freestanding-hs-30"
+        case .planche:     return "pl.full-planche"
+        }
+    }
 }
 
 // MARK: - Cluster → Display tree lookup
@@ -169,7 +185,7 @@ extension SkillDisplayTree {
     }
 
     /// The node the user has flagged as their TARGET in this tree, if any.
-    func targetNode(in graph: SkillGraph, targetIds: Set<String>) -> SkillNode? {
-        allNodes(in: graph).first { targetIds.contains($0.id) }
+    func trainingNode(in graph: SkillGraph, focusIds: Set<String>) -> SkillNode? {
+        allNodes(in: graph).first { focusIds.contains($0.id) }
     }
 }

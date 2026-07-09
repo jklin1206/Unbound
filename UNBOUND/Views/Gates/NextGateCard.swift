@@ -91,13 +91,21 @@ struct NextGateCard: View {
     private var questLog: some View {
         VStack(alignment: .leading, spacing: 7) {
             ForEach(model.questItems) { item in
-                Label {
-                    Text(item.label).font(Font.unbound.captionS.weight(.semibold))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                } icon: {
+                HStack(spacing: 6) {
                     Image(systemName: item.isMet ? "checkmark.circle.fill" : "circle")
                         .foregroundStyle(item.isMet ? Color.unbound.success : world.tint.opacity(0.7))
+                    Text(item.label).font(Font.unbound.captionS.weight(.semibold))
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    if let detail = item.detail {
+                        Spacer(minLength: 8)
+                        Text(detail)
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundStyle(item.isMet ? Color.unbound.textTertiary : world.tint)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

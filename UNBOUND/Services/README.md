@@ -1,6 +1,6 @@
 # Services
 
-Service layer for UNBOUND. Each subdirectory is one service domain; `ServiceContainer.swift` at this root is the `@MainActor` DI container that holds the protocol-typed instances (`auth`, `database`, `analytics`, `subscription`, `paywall`, `user`, `storage`, `network`, `logging`, `bodyAnalysis`, ...) injected into the view layer.
+Service layer for UNBOUND. Each subdirectory is one service domain; `ServiceContainer.swift` at this root is the `@MainActor` DI container that holds the protocol-typed instances (`auth`, `database`, `analytics`, `subscription`, `user`, `storage`, `logging`, ...) injected into the view layer.
 
 ## Subdirectories
 
@@ -8,7 +8,7 @@ Service layer for UNBOUND. Each subdirectory is one service domain; `ServiceCont
 - **Attributes/** — user attribute profile system: catalog, ingest, drift projection, and persistence; `AttributeService.snapshot(userId:asOf:)` is the pure read surface every consumer uses.
 - **Auth/** — Supabase-backed Sign in with Apple (`AuthService`), plus the one-time legacy local-UUID → Supabase account migration (`LocalToSupabaseMigration`).
 - **Badges/** — badge catalog evaluation and unlock state (`BadgeService`); evaluating a trigger returns only NEW unlocks.
-- **BodyAnalysis/** — `BodyAnalysisService` produces build-identity flavor copy (delegates to `ScanPayoffFlavorService`); local insights + mock variants.
+- **BodyAnalysis/** — `LocalBodyInsightsService`: on-device Vision-based body-shape inference.
 - **Calibration/** — persists `CalibrationBaseline` records to the database and tracks the calibration-completed flag.
 - **CardioLog/** — cardio session logging and range queries (`CardioLogService`).
 - **Claude/** — Anthropic Messages API client (text + vision, forced tool use for structured JSON), proxied through the `anthropic_proxy` Edge Function; `JSONValue` helper.
@@ -18,12 +18,10 @@ Service layer for UNBOUND. Each subdirectory is one service domain; `ServiceCont
 - **Entitlement/** — `EntitlementService` is the single source of truth for app unlock: real subscription OR DEBUG-only dev override (`DevFlags`). Views gate on this, never on `SubscriptionService` directly.
 - **ExercisePreference/** — per-user exercise preferences and custom exercises, persisted through `SyncedDatabase`.
 - **Health/** — HealthKit integration: `HealthRecoverySnapshot` (steps, walking/running distance, sleep) via `HealthKitService`.
-- **ImageCapture/** — AVFoundation camera session for scan photo capture (`ImageCaptureService`) plus `BodyAlignmentDetector`.
+- **ImageCapture/** — AVFoundation camera session for scan photo capture (`ImageCaptureService`).
 - **Logging/** — `os.Logger`-backed logging facade (`LoggingService`), the Crashlytics replacement; swap only this when a real crash reporter returns.
-- **Network/** — `URLSession` wrapper (`NetworkService`) over declarative `APIEndpoint` definitions.
 - **Notifications/** — local-notification stack: `NotificationCoordinator` owns scheduling, with preferences store, schedule descriptors/schedulers, content catalog, milestone notifier — and `NotificationService`, the compatibility facade older call sites still use.
 - **Onboarding/** — `PendingOnboardingProfile`: stashes pre-auth onboarding answers in UserDefaults so they replay onto the real account the instant the user authenticates.
-- **Paywall/** — `PaywallService` paywall-trigger surface behind `PaywallServiceProtocol` (currently tracks the analytics event and returns `.dismissed`).
 - **Photo/** — local-only profile photo store: one downscaled JPEG per userId, `revision` counter for live SwiftUI refresh.
 - **Program/** — `ProgramStore` is the single on-device owner of the active `TrainingProgram` (local-first; cloud push via the sync outbox), plus schedule/arc/wave-adjustment/training-context stores.
 - **ProgramGeneration/** — `DeterministicProgramGenerator`: pure-function program generation from a `ProgramGeneratorInput` bundle (no IO); plus `DailyWorkoutResolver`, arc generation, block rollover, refresh rules.
@@ -53,6 +51,6 @@ Service layer for UNBOUND. Each subdirectory is one service domain; `ServiceCont
 - **Rank computation** → `Ranking/RankService.swift` (per-lift RankTier) and `Ranking/TierCriterionEvaluator.swift`; RPE progression is `Progression/ProgressionEngine.swift`.
 - **Sync** → `Sync/SyncEngine.swift` (outbox drain) + `Sync/OutboxStore.swift`; local store is `Database/DatabaseService.swift`, synced facade is `Sync/SyncedDatabase.swift`.
 - **Supabase client** → `Supabase/SupabaseClient.swift` (the one shared instance; never instantiate another).
-- **Entitlements / paywall** → `Entitlement/EntitlementService.swift` (gate on this), `Subscription/SubscriptionService.swift` (RevenueCat), `Paywall/PaywallService.swift`.
+- **Entitlements / paywall** → `Entitlement/EntitlementService.swift` (gate on this), `Subscription/SubscriptionService.swift` (RevenueCat).
 - **Training completion** → `TrainingCompletion/TrainingCompletionService.swift` — the once-per-log cascade into squad missions + friend challenges.
 - **Notifications** → `Notifications/NotificationCoordinator.swift` (real scheduling); `Notifications/NotificationService.swift` is the legacy facade.

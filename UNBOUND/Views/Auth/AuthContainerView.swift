@@ -31,27 +31,66 @@ private struct AuthContainerContentView: View {
     var body: some View {
         ZStack {
             Color.unbound.bg.ignoresSafeArea()
+            // Reuse the onboarding atmosphere (god-ray glow + drifting embers +
+            // vignette) so this screen — the tail of the onboarding → first-use
+            // flow — feels alive and continuous with the steps before it rather
+            // than a flat black wall. Slightly elevated intensity to match the
+            // late-onboarding dial.
+            OnboardingAtmosphere(intensity: 1.15)
 
             ScrollView {
                 VStack(spacing: 0) {
-                    // Logo / title area
-                    VStack(spacing: 8) {
-                        Text(L10n.string(.appName, defaultValue: "UNBOUND"))
-                            .font(.headline(40))
-                            .foregroundColor(Color.unbound.textPrimary)
-                            .tracking(4)
+                    // "Protect your progress" moment — a shield motif over the
+                    // headline + supporting line. The user reaches this right
+                    // after the paywall, so the framing is about safeguarding the
+                    // training they just committed to, not a generic login wall.
+                    VStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.unbound.accent.opacity(0.12))
+                                .frame(width: 84, height: 84)
+                            Image(systemName: "checkmark.shield.fill")
+                                .font(.system(size: 38, weight: .semibold))
+                                .foregroundStyle(Color.unbound.accent)
+                                .shadow(color: Color.unbound.accent.opacity(0.4), radius: 14)
+                        }
 
-                        Text(L10n.string(.authSignInSubtitle, defaultValue: "Sign in to back up your progress"))
-                            .font(.bodyMedium(16))
-                            .foregroundColor(Color.unbound.textSecondary)
+                        VStack(spacing: 8) {
+                            Text(L10n.string(.authProtectTitle, defaultValue: "Protect your progress"))
+                                .font(.headline(28))
+                                .foregroundColor(Color.unbound.textPrimary)
+                                .multilineTextAlignment(.center)
+
+                            Text(L10n.string(.authProtectBody, defaultValue: "Save your training to your account so it's backed up and follows you to any device."))
+                                .font(.bodyMedium(15))
+                                .foregroundColor(Color.unbound.textSecondary)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
-                    .padding(.top, 72)
-                    .padding(.bottom, 48)
+                    .padding(.top, 64)
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 40)
 
-                    VStack(spacing: 16) {
-                        // Apple Sign-In
+                    VStack(spacing: 12) {
+                        // Apple first (Apple's guideline 4.8 requires it to be at
+                        // least as prominent as other sign-in options).
                         AppleSignInButton {
                             Task { await viewModel.signInWithApple() }
+                        }
+
+                        // Google
+                        GoogleSignInButton {
+                            Task { await viewModel.signInWithGoogle() }
+                        }
+
+                        if let errorMessage = viewModel.errorMessage {
+                            Text(errorMessage)
+                                .font(.caption(13))
+                                .foregroundColor(Color.unbound.alert)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.top, 2)
                         }
 
                         // Divider
@@ -69,6 +108,7 @@ private struct AuthContainerContentView: View {
                                 .fill(Color.unbound.surfaceElevated)
                                 .frame(height: 1)
                         }
+                        .padding(.top, 4)
 
                         // Email auth
                         EmailAuthView(viewModel: viewModel)

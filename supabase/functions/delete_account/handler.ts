@@ -53,6 +53,15 @@ export interface AccountDeletionDb {
   deleteUserRow(userId: string): Promise<void>
   /** Delete the auth.users row (hard delete, no soft-delete tombstone). */
   deleteAuthUser(userId: string): Promise<void>
+  /**
+   * Whether the id belongs to an existing auth.users row. Used to gate the
+   * client-supplied legacy_user_id: a genuine pre-migration local UUID never
+   * existed in auth.users, while every live account's photo root IS its auth
+   * UUID — so an id that resolves to an auth user must never be purged.
+   * Implementations must fail SAFE: return true when existence can't be
+   * determined (skips the optional legacy purge rather than risk one).
+   */
+  isAuthUser(userId: string): Promise<boolean>
 }
 
 /**
@@ -101,12 +110,30 @@ export interface DeleteAccountResult {
  *
  * @throws if any DB/storage step fails — the caller maps this to HTTP 500.
  */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function handleDeleteAccount(
   input: DeleteAccountInput,
   db: AccountDeletionDb,
   storage: AccountDeletionStorage,
 ): Promise<DeleteAccountResult> {
   const { userId } = input
+
+  // --- Step 0: gate the client-supplied legacy root ------------------------
+  // legacy_user_id is arbitrary client input running under the service role,
+  // so it must never name another account's storage. Resolved up front, while
+  // every auth row still exists: it has to be UUID-shaped (no path segments,
+  // no bucket-root listing) and must NOT belong to any auth user — genuine
+  // pre-migration ids are local-only UUIDs that never reached auth.users.
+  let legacyRoot: string | null = null
+  if (
+    input.legacyUserId &&
+    input.legacyUserId !== userId &&
+    UUID_RE.test(input.legacyUserId) &&
+    !(await db.isAuthUser(input.legacyUserId))
+  ) {
+    legacyRoot = input.legacyUserId
+  }
 
   // --- Step 1: captain survival -------------------------------------------
   let squadsReassigned = 0
@@ -141,8 +168,8 @@ export async function handleDeleteAccount(
   // --- Step 4: Storage photo roots ----------------------------------------
   const purged: string[] = []
   const roots = new Set<string>([userId])
-  if (input.legacyUserId && input.legacyUserId !== userId) {
-    roots.add(input.legacyUserId)
+  if (legacyRoot) {
+    roots.add(legacyRoot)
   }
   for (const root of roots) {
     await storage.deletePhotoRoot(root)

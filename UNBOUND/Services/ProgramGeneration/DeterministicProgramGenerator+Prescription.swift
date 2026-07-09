@@ -70,12 +70,14 @@ extension DeterministicProgramGenerator {
         }
 
         let classification = ExerciseClassification.classify(exerciseKey: definition.displayName)
-        let range = state.map { $0.targetRepMin...$0.targetRepMax }
-            ?? classification.defaultRepRange(for: goal)
-        let reps = "\(range.lowerBound)-\(range.upperBound)"
+        // One number, not a window: the range is the engine's internal rails;
+        // the plan shows today's climbing target (bottom of the window when
+        // there is no history yet).
+        let reps = state.map { "\($0.currentTargetReps)" }
+            ?? "\(classification.defaultRepRange(for: goal).lowerBound)"
 
         // rpe: 0 → `toExercise` nils it → no RPE shown anywhere. Fully RPE-free:
-        // intensity is the rep range + the note.
+        // intensity is the rep target + the note.
         switch goal {
         case .strength:
             return (
@@ -83,7 +85,7 @@ extension DeterministicProgramGenerator {
                 reps: reps,
                 restSeconds: isPrimary ? 180 : 90,
                 rpe: 0,
-                note: "Strength. Heavy, clean reps — leave ~1 in reserve; add weight when the top of the range feels solid."
+                note: "Strength. Heavy, clean reps — leave ~1 in reserve. Hit the target and it climbs; keep hitting it and the weight does."
             )
         case .hypertrophy:
             return (
@@ -91,7 +93,7 @@ extension DeterministicProgramGenerator {
                 reps: reps,
                 restSeconds: isPrimary ? 120 : 75,
                 rpe: 0,
-                note: "Build. Push near the top of the rep range (~1–2 in reserve), then add weight."
+                note: "Build. Hit the target with ~1–2 in reserve. The target climbs first, then the weight."
             )
         case .skill:
             return (
@@ -127,7 +129,7 @@ extension DeterministicProgramGenerator {
         if definition.defaultMetric == .holdSeconds || definition.defaultMetric == .durationSeconds {
             return (
                 sets: isPrimary ? 4 : 3,
-                reps: "15-25s",
+                reps: "20s",
                 restSeconds: isPrimary ? 105 : 75,
                 rpe: 0,
                 note: "Accumulate clean time. End the set when shape, shoulder position, or breathing breaks; progress the variation before adding time."
@@ -136,15 +138,15 @@ extension DeterministicProgramGenerator {
 
         // REP track (clean reps). Range from progression state, else the goal default.
         let classification = ExerciseClassification.classify(exerciseKey: definition.displayName)
-        let range = state.map { $0.targetRepMin...$0.targetRepMax }
-            ?? classification.defaultRepRange(for: goal)
-        let reps = "\(range.lowerBound)-\(range.upperBound) clean"
+        let repTarget = state.map { $0.currentTargetReps }
+            ?? classification.defaultRepRange(for: goal).lowerBound
+        let reps = "\(repTarget) clean"
         return (
             sets: isPrimary ? 4 : 3,
             reps: reps,
             restSeconds: isPrimary ? 120 : 90,
             rpe: 0,
-            note: "Strict reps only. Progress the variation once range and tempo stay honest at the top of the range."
+            note: "Strict reps only. Progress the variation once range and tempo stay honest at the target."
         )
     }
 

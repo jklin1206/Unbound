@@ -2,31 +2,6 @@ import XCTest
 import UIKit
 @testable import UNBOUND
 
-final class ScanContextUserService: UserServiceProtocol, @unchecked Sendable {
-    func createUserIfNeeded(userId: String, email: String?) async throws -> UserProfile {
-        profile(userId: userId)
-    }
-
-    func fetchProfile(userId: String) async throws -> UserProfile {
-        profile(userId: userId)
-    }
-
-    func updateProfile(userId: String, fields: [String: Any]) async throws {}
-
-    func deleteUserData(userId: String) async throws {}
-
-    private func profile(userId: String) -> UserProfile {
-        UserProfile(
-            id: userId,
-            email: nil,
-            displayName: nil,
-            createdAt: Date(timeIntervalSince1970: 0),
-            onboardingCompleted: true,
-            totalScans: 0
-        )
-    }
-}
-
 enum TestProgressionDatabaseError: Error {
     case forcedCreateFailure(collection: String)
     case notFound(collection: String, documentId: String)
@@ -34,6 +9,7 @@ enum TestProgressionDatabaseError: Error {
 
 actor TestProgressionDatabase: DatabaseServiceProtocol {
     private var store: [String: [String: Any]] = [:]
+    private var updateCallCounts: [String: Int] = [:]
     private let delayMissingCompletionRecordReads: Bool
     private let failingCreateCollections: Set<String>
     private var failingCreateAttempts: [String: Int]
@@ -77,6 +53,7 @@ actor TestProgressionDatabase: DatabaseServiceProtocol {
 
     func update(_ fields: [String: Any], collection: String, documentId: String) async throws {
         let key = key(collection: collection, documentId: documentId)
+        updateCallCounts[key, default: 0] += 1
         var existing = store[key] ?? [:]
         for (field, value) in fields {
             existing[field] = value
@@ -96,11 +73,47 @@ actor TestProgressionDatabase: DatabaseServiceProtocol {
         descending: Bool,
         limit: Int?
     ) async throws -> [T] {
-        []
+        let prefix = "\(collection)/"
+        var matches = store
+            .filter { $0.key.hasPrefix(prefix) }
+            .map(\.value)
+            .filter { document in
+                guard let stored = document[field] as? NSObject else { return false }
+                return stored.isEqual(value)
+            }
+        if let orderBy {
+            matches.sort { lhs, rhs in
+                let ascending: Bool
+                switch (lhs[orderBy], rhs[orderBy]) {
+                case let (l as NSNumber, r as NSNumber):
+                    ascending = l.compare(r) == .orderedAscending
+                case let (l as String, r as String):
+                    ascending = l < r
+                default:
+                    ascending = true
+                }
+                return descending ? !ascending : ascending
+            }
+        }
+        let limited = limit.map { Array(matches.prefix($0)) } ?? matches
+        return try limited.map { document in
+            let data = try JSONSerialization.data(withJSONObject: document)
+            return try JSONDecoder().decode(T.self, from: data)
+        }
     }
 
     func countKeys(prefix: String) -> Int {
         store.keys.filter { $0.hasPrefix(prefix) }.count
+    }
+
+    /// Raw stored JSON dict, for asserting which keys a write actually
+    /// serialized (e.g. that a snapshot omitted ledger fields).
+    func rawDocument(collection: String, documentId: String) -> [String: Any]? {
+        store[key(collection: collection, documentId: documentId)]
+    }
+
+    func updateCount(collection: String, documentId: String) -> Int {
+        updateCallCounts[key(collection: collection, documentId: documentId)] ?? 0
     }
 
     private func key(collection: String, documentId: String) -> String {
@@ -127,8 +140,10 @@ final class NoOpFriendChallengeService: FriendChallengeServiceProtocol {
     func activeChallenges(userId: UUID) async -> [FriendChallenge] { [] }
     func challengeStats(squadId: UUID) async -> [UUID: FriendChallengeStats] { [:] }
     func accept(_ challengeId: UUID) async throws {}
+    func decline(_ challengeId: UUID) async throws {}
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {}
     func evaluateExpired() async {}
+    func consumePendingOutcome() -> FriendChallenge? { nil }
 }
 
 /// A WorkoutLogServiceProtocol impl that deliberately does NOT conform to

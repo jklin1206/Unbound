@@ -72,6 +72,40 @@ final class FriendChallengeServiceTests: XCTestCase {
         }
     }
 
+    func testDeclineRemovesLocalChallengeAndPostsNotification() async throws {
+        // Dev (non-UUID) auth id keeps decline + activeChallenges on the local
+        // path, so removal is observable without a backend.
+        let challengedUserId = "dev-challenge-decline"
+        let me = try XCTUnwrap(SquadUserIdentity.uuid(from: challengedUserId))
+        AuthService.shared.activateDevUser(id: challengedUserId)
+
+        let service = FriendChallengeService(remoteBackendEnabled: true)
+        let challenge = FriendChallenge(
+            id: UUID(),
+            challengerId: UUID(),
+            challengedId: me,
+            squadId: UUID(),
+            kind: .mostSessions,
+            exerciseName: nil,
+            startedAt: Date(),
+            expiresAt: Date().addingTimeInterval(6 * 86_400),
+            acceptedAt: nil,
+            challengerProgress: 0,
+            challengedProgress: 0,
+            winnerUserId: nil
+        )
+        service._seedLocalChallengeForTesting(challenge)
+        let seeded = await service.activeChallenges(userId: me)
+        XCTAssertEqual(seeded.map(\.id), [challenge.id])
+
+        let declined = expectation(forNotification: .friendChallengeDeclined, object: nil)
+        try await service.decline(challenge.id)
+
+        await fulfillment(of: [declined], timeout: 1)
+        let remaining = await service.activeChallenges(userId: me)
+        XCTAssertFalse(remaining.contains { $0.id == challenge.id })
+    }
+
     func testActiveChallengesReturnsEmpty() async {
         let service = FriendChallengeService(remoteBackendEnabled: false)
         let challenges = await service.activeChallenges(userId: UUID())
@@ -280,6 +314,108 @@ final class FriendChallengeServiceTests: XCTestCase {
         try await Task.sleep(nanoseconds: 100_000_000)
 
         XCTAssertEqual(postCount, 1, "Second settle must be a no-op")
+    }
+
+    // The 120-Arc duel-win reward is paid in the service settle path (not the
+    // toast, which may never mount). evaluateExpired runs on every foreground, so
+    // the wallet's sourceId ledger must keep the payout exactly-once.
+    func testSettleGrantsDuelWinArcsToWinnerExactlyOnce() async throws {
+        let challengerUserId = "dev-duel-grant-\(UUID().uuidString)"
+        AuthService.shared.activateDevUser(id: challengerUserId)
+        let challengerId = try XCTUnwrap(SquadUserIdentity.uuid(from: challengerUserId))
+        let challengedId = try XCTUnwrap(SquadUserIdentity.uuid(from: "dev-duel-grant-loser"))
+
+        let wallet = CurrencyWalletStore.shared
+        wallet.bind(userId: challengerUserId)
+        let before = wallet.balance
+
+        let service = FriendChallengeService(remoteBackendEnabled: true)
+        service._seedLocalChallengeForTesting(FriendChallenge(
+            id: UUID(),
+            challengerId: challengerId,
+            challengedId: challengedId,
+            squadId: UUID(),
+            kind: .mostSessions,
+            exerciseName: nil,
+            startedAt: .now.addingTimeInterval(-8 * 24 * 3600),
+            expiresAt: .now.addingTimeInterval(-1),
+            acceptedAt: .now.addingTimeInterval(-7 * 24 * 3600),
+            challengerProgress: 5,   // challenger (the signed-in user) wins
+            challengedProgress: 2,
+            winnerUserId: nil
+        ))
+
+        // Two rapid foregrounds must pay the winner exactly once.
+        await service.evaluateExpired()
+        await service.evaluateExpired()
+
+        wallet.bind(userId: challengerUserId)   // re-read persisted balance
+        XCTAssertEqual(wallet.balance, before + SquadRewardPolicy.duelWinArcs)
+    }
+
+    func testSettleDoesNotPayArcsToLoser() async throws {
+        let challengerUserId = "dev-duel-loss-\(UUID().uuidString)"
+        AuthService.shared.activateDevUser(id: challengerUserId)
+        let challengerId = try XCTUnwrap(SquadUserIdentity.uuid(from: challengerUserId))
+        let challengedId = try XCTUnwrap(SquadUserIdentity.uuid(from: "dev-duel-loss-winner"))
+
+        let wallet = CurrencyWalletStore.shared
+        wallet.bind(userId: challengerUserId)
+        let before = wallet.balance
+
+        let service = FriendChallengeService(remoteBackendEnabled: true)
+        service._seedLocalChallengeForTesting(FriendChallenge(
+            id: UUID(),
+            challengerId: challengerId,
+            challengedId: challengedId,
+            squadId: UUID(),
+            kind: .mostSessions,
+            exerciseName: nil,
+            startedAt: .now.addingTimeInterval(-8 * 24 * 3600),
+            expiresAt: .now.addingTimeInterval(-1),
+            acceptedAt: .now.addingTimeInterval(-7 * 24 * 3600),
+            challengerProgress: 1,   // challenger (the signed-in user) loses
+            challengedProgress: 4,
+            winnerUserId: nil
+        ))
+
+        await service.evaluateExpired()
+
+        wallet.bind(userId: challengerUserId)
+        XCTAssertEqual(wallet.balance, before, "A loser is never paid the duel-win reward")
+    }
+
+    // Outcomes are buffered at settle so an off-tab foreground settle survives
+    // until the toast mounts. Draining is FIFO and one-shot.
+    func testSettleBuffersOutcomeDrainedExactlyOnce() async throws {
+        let challengerUserId = "dev-duel-buffer-\(UUID().uuidString)"
+        AuthService.shared.activateDevUser(id: challengerUserId)
+        let challengerId = try XCTUnwrap(SquadUserIdentity.uuid(from: challengerUserId))
+        let challengedId = try XCTUnwrap(SquadUserIdentity.uuid(from: "dev-duel-buffer-opp"))
+
+        let service = FriendChallengeService(remoteBackendEnabled: true)
+        let id = UUID()
+        service._seedLocalChallengeForTesting(FriendChallenge(
+            id: id,
+            challengerId: challengerId,
+            challengedId: challengedId,
+            squadId: UUID(),
+            kind: .mostSessions,
+            exerciseName: nil,
+            startedAt: .now.addingTimeInterval(-8 * 24 * 3600),
+            expiresAt: .now.addingTimeInterval(-1),
+            acceptedAt: .now.addingTimeInterval(-7 * 24 * 3600),
+            challengerProgress: 5,
+            challengedProgress: 2,
+            winnerUserId: nil
+        ))
+
+        await service.evaluateExpired()
+
+        let drained = service.consumePendingOutcome()
+        XCTAssertEqual(drained?.id, id)
+        XCTAssertEqual(drained?.winnerUserId, challengerId, "Settled outcome carries the winner")
+        XCTAssertNil(service.consumePendingOutcome(), "Buffer is drained exactly once")
     }
 
     func testEvaluateExpiredPicksHigherProgressAsWinner() {

@@ -12,23 +12,12 @@ struct BodyAnalysis: Codable, Identifiable {
     /// Snapshot of the user's BuildIdentity.displayName at scan time.
     var buildIdentitySnapshot: String?
     var overallScore: Int
-    var muscleAssessments: [MuscleGroupAssessment]
     var proportions: ProportionData
     var estimatedBodyFatPercentage: Double?
-    var estimatedMuscleMassCategory: MuscleMassCategory
     var focusAreas: [FocusArea]
     var summary: String
     var strengths: [String]
     var weaknesses: [String]
-}
-
-struct MuscleGroupAssessment: Codable {
-    let muscleGroup: MuscleGroup
-    var currentScore: Int
-    var targetScore: Int
-    var gap: Int
-    var assessment: String
-    var recommendation: String
 }
 
 struct ProportionData: Codable {
@@ -38,10 +27,6 @@ struct ProportionData: Codable {
     var upperToLowerBodyBalance: Double?
     var leftRightSymmetry: Double?
     var overallProportionScore: Int
-}
-
-enum MuscleMassCategory: String, Codable {
-    case low, belowAverage, average, aboveAverage, high
 }
 
 struct FocusArea: Codable, Equatable {

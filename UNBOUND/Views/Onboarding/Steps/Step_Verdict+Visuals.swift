@@ -374,7 +374,7 @@ extension Step_Verdict {
         if flow.displayHandle.isEmpty {
             return L10n.onboarding("verdict.snapshot.body.anonymous", defaultValue: "Your arc is logged. Every session moves this forward.")
         }
-        return L10n.onboardingFormat("verdict.snapshot.body.named", defaultValue: "%@ — your arc is logged. Every session moves this forward.", flow.displayHandle)
+        return L10n.onboardingFormat("verdict.snapshot.body.named", defaultValue: "%@, your arc is logged. Every session moves it forward.", flow.displayHandle)
     }
 
     // MARK: Scan insight — one honest, specific fact from the Vision analysis

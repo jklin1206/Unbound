@@ -14,8 +14,6 @@ struct GateHallView: View {
     var onBegin: (TrialLoadout) -> Void
     var onClose: (() -> Void)? = nil
 
-    @State private var ceremonyComplete = false
-
     private var previewStations: [ResolvedTrialStation] {
         resolveStations?(loadout) ?? resolvedTrial?.stations ?? []
     }
@@ -56,7 +54,7 @@ struct GateHallView: View {
             .clipped()
             .overlay(RadialGradient(colors: [Color.black.opacity(0.1), Color.black.opacity(0.72)],
                 center: .center, startRadius: 40, endRadius: 260))
-            .overlay(GateEntryCeremony(world: world, onComplete: { ceremonyComplete = true }))
+            .overlay(GateEntryCeremony(world: world, onComplete: {}))
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 

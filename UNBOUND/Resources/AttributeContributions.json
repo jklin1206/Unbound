@@ -65,6 +65,10 @@
       "power": 0.15,
       "endurance": 0.6
     },
+    "band face pull": {
+      "control": 0.7857,
+      "power": 0.2143
+    },
     "band lat pull": {
       "control": 0.7857,
       "power": 0.2143

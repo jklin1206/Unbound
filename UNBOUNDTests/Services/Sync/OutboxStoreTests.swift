@@ -65,5 +65,60 @@ final class OutboxStoreTests: XCTestCase {
         let e = entry("a"); s.enqueue(e)
         s.moveToDeadletter(e.id)
         XCTAssertEqual(s.pendingCount, 0)
+        XCTAssertEqual(s.deadletterCount, 1)
+    }
+
+    func test_deadletter_persists_across_relaunch() {
+        let s1 = OutboxStore(directory: dir)
+        let e = entry("a"); s1.enqueue(e)
+        s1.moveToDeadletter(e.id)
+        let s2 = OutboxStore(directory: dir)
+        XCTAssertEqual(s2.deadletterCount, 1)
+        XCTAssertEqual(s2.pendingCount, 0)
+    }
+
+    func test_load_recoversEmpty_onCorruptFile() throws {
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data("this is not json".utf8).write(to: dir.appendingPathComponent("outbox.json"))
+        let s = OutboxStore(directory: dir)
+        XCTAssertEqual(s.pendingCount, 0)
+    }
+
+    func test_requeueDeadlettered_resurrectsOnlyThatUsersEntries() {
+        let s = OutboxStore(directory: dir)
+        let e = entry("a", userId: "u1"); s.enqueue(e)
+        s.moveToDeadletter(e.id)
+        XCTAssertEqual(s.requeueDeadlettered(userId: "u2", maxAttempts: 5), 0,
+                       "another user's sign-in must not resurrect u1's entries")
+        XCTAssertEqual(s.deadletterCount, 1)
+        XCTAssertEqual(s.requeueDeadlettered(userId: "U1", maxAttempts: 5), 1,
+                       "uid match is case-insensitive, mirroring canFlush")
+        XCTAssertEqual(s.pendingCount, 1)
+        XCTAssertEqual(s.deadletterCount, 0)
+    }
+
+    func test_requeueDeadlettered_leavesAttemptExhaustedEntriesDead() {
+        let s = OutboxStore(directory: dir)
+        var e = entry("a", userId: "u1")
+        e.attempt = 5
+        s.enqueue(e)
+        s.moveToDeadletter(e.id)
+        XCTAssertEqual(s.requeueDeadlettered(userId: "u1", maxAttempts: 5), 0,
+                       "entries dead-lettered for exhausting flush attempts stay dead")
+        XCTAssertEqual(s.deadletterCount, 1)
+        XCTAssertEqual(s.pendingCount, 0)
+    }
+
+    func test_requeueDeadlettered_newerPendingEditWins() {
+        let s = OutboxStore(directory: dir)
+        let old = entry("a", userId: "u1"); s.enqueue(old)
+        s.moveToDeadletter(old.id)
+        let newer = entry("a", userId: "u1"); s.enqueue(newer)
+        XCTAssertEqual(s.requeueDeadlettered(userId: "u1", maxAttempts: 5), 1)
+        XCTAssertEqual(s.pendingCount, 1,
+                       "resurrected entry merges into the newer pending edit for the same doc")
+        XCTAssertEqual(s.peekBatch(limit: 1).first?.id, newer.id,
+                       "the newer payload wins; only changed-field sets union")
+        XCTAssertEqual(s.deadletterCount, 0)
     }
 }

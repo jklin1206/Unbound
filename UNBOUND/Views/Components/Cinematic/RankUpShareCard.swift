@@ -10,7 +10,7 @@ import SwiftUI
 //   - Giant rank badge + named rank title
 //   - Exercise name
 //   - Build identity tagline beneath
-//   - Footer: unboundapp.com + identity pill
+//   - Footer: unboundbtr.com + identity pill
 //
 // Background: base dark + diagonal gradient + grid + ember particles.
 
@@ -128,7 +128,7 @@ struct RankUpShareCard: View {
                 .padding(.horizontal, 24)
 
             HStack(spacing: 14) {
-                Text("unboundapp.com")
+                Text("unboundbtr.com")
                     .font(.system(size: 20, weight: .semibold, design: .monospaced))
                     .tracking(1.2)
                     .foregroundStyle(Color.unbound.textTertiary)

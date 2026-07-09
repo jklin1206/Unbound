@@ -4,7 +4,7 @@ extension SessionEditorView {
     var bottomStartBar: some View {
         VStack(spacing: 9) {
             HStack(spacing: 8) {
-                Text(showsPersistenceControls ? selectedPersistence.displayName.uppercased() : mode.footerLabel)
+                Text(mode.footerLabel)
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(1.1)
                     .foregroundStyle(Color.unbound.textSecondary)
@@ -33,17 +33,12 @@ extension SessionEditorView {
                 return
             }
             UnboundHaptics.heavy()
-            Task {
-                if showsPersistenceControls {
-                    await persistSelectedEditsIfNeeded()
-                }
-                onStart(draft)
-            }
+            onStart(draft)
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: isPersistingEdits ? "arrow.triangle.2.circlepath" : mode.primaryIcon)
+                Image(systemName: mode.primaryIcon)
                     .font(.system(size: 13, weight: .bold))
-                Text(isPersistingEdits ? "SAVING EDITS" : mode.primaryTitle)
+                Text(mode.primaryTitle)
                     .font(Font.unbound.bodyMStrong)
                     .tracking(1.5)
             }
@@ -57,7 +52,6 @@ extension SessionEditorView {
             .shadow(color: Color.unbound.accent.opacity(0.35), radius: 14, y: 2)
         }
         .buttonStyle(.plain)
-        .disabled(isPersistingEdits)
         .accessibilityLabel(mode.primaryTitle.capitalized)
         .accessibilityIdentifier("sessionEditor.start")
     }

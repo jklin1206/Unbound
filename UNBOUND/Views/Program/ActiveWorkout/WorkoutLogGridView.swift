@@ -10,6 +10,10 @@ struct WorkoutLogGridView: View {
     let onConfirmAsPlanned: (Int, Int) -> Void
     let onToggleQualityFlag: (Int, Int, PerformanceQualityFlag) -> Void
     let onAddSet: (Int) -> Void
+    /// Rehearsal (onboarding) opens with the first exercise's detail dropdown
+    /// already expanded, so the equipment strip + muscle heatmap are seen once
+    /// without the user having to discover the chevron.
+    var startsFirstExerciseExpanded: Bool = false
 
     @State private var expanded: Set<String> = []
     @State private var revealedDeckExerciseId: String?
@@ -35,7 +39,12 @@ struct WorkoutLogGridView: View {
             .padding(16)
         }
         .background(Color.unbound.bg.ignoresSafeArea())
-        .onAppear(perform: syncDeckReveal)
+        .onAppear {
+            syncDeckReveal()
+            if startsFirstExerciseExpanded, let first = session.exercises.first {
+                expanded.insert(first.id)
+            }
+        }
         .onChange(of: session.currentExerciseIndex) { _, _ in
             syncDeckReveal()
         }

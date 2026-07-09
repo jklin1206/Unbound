@@ -9,7 +9,7 @@ struct Step_TargetAreas: View {
     var body: some View {
         OnboardingScaffold(
             title: "Where do you want to focus?",
-            subtitle: "Pick a few. We'll prioritize these in every session.",
+            subtitle: "Pick a few.",
             progress: progress,
             primaryTitle: "Continue",
             primaryEnabled: !flow.targetAreas.isEmpty,
@@ -30,8 +30,12 @@ struct Step_TargetAreas: View {
 private struct OnboardingTargetAreaHeatmap: View {
     @Binding var selection: Set<TargetArea>
 
+    private var isFullBody: Bool {
+        selection.contains(.fullBody)
+    }
+
     private var activeAreas: Set<TargetArea> {
-        if selection.contains(.fullBody) {
+        if isFullBody {
             return Set(TargetArea.bodyPartCases)
         }
         return Set(selection.filter { $0 != .fullBody })
@@ -41,92 +45,24 @@ private struct OnboardingTargetAreaHeatmap: View {
         Set(activeAreas.flatMap { $0.bodyRegions })
     }
 
-    private var summary: String {
-        if selection.contains(.fullBody) {
-            return "FULL BODY"
-        }
-
-        let selectedNames = TargetArea.bodyPartCases
-            .filter { selection.contains($0) }
-            .map { $0.displayName.uppercased() }
-
-        guard !selectedNames.isEmpty else {
-            return "TAP REGIONS OR PICKS"
-        }
-
-        if selectedNames.count > 3 {
-            return selectedNames.prefix(3).joined(separator: " + ") + " +\(selectedNames.count - 3)"
-        }
-        return selectedNames.joined(separator: " + ")
-    }
-
+    // Just the two figures — no header, counter, or legend chrome. The map IS
+    // the feedback. Full body lights the whole figure in ember so "everything"
+    // reads at a glance.
     var body: some View {
-        HUDPanel(isActive: !selection.isEmpty, pulse: false) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("TARGET MAP")
-                            .font(Font.unbound.captionS.weight(.black))
-                            .tracking(1.8)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                        Text(summary)
-                            .font(.system(size: 17, weight: .black, design: .monospaced))
-                            .tracking(0.6)
-                            .foregroundStyle(selection.isEmpty ? Color.unbound.textSecondary : Color.unbound.accent)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.72)
-                    }
-
-                    Spacer(minLength: 8)
-
-                    Text("\(selectionCount)")
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .frame(width: 30, height: 28)
-                        .background(
-                            HUDHexagon()
-                                .fill(selection.isEmpty ? Color.unbound.surfaceElevated : Color.unbound.accent.opacity(0.86))
-                        )
-                        .overlay(
-                            HUDHexagon()
-                                .stroke(Color.unbound.accent.opacity(selection.isEmpty ? 0.22 : 0.7), lineWidth: 1)
-                        )
-                }
-
-                HStack(alignment: .top, spacing: 10) {
-                    OnboardingTargetBodyFigure(
-                        side: .front,
-                        selectedRegions: selectedRegions,
-                        onRegionTap: toggleArea(for:)
-                    )
-                    OnboardingTargetBodyFigure(
-                        side: .back,
-                        selectedRegions: selectedRegions,
-                        onRegionTap: toggleArea(for:)
-                    )
-                }
-
-                HStack(spacing: 6) {
-                    ForEach(OnboardingTargetHeatLegendItem.allCases) { item in
-                        RoundedRectangle(cornerRadius: 3, style: .continuous)
-                            .fill(item.color)
-                            .frame(width: 16, height: 6)
-                    }
-                    Text("SELECTED MUSCLE REGIONS")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .tracking(0.6)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                }
-            }
-            .padding(14)
+        HStack(alignment: .top, spacing: 10) {
+            OnboardingTargetBodyFigure(
+                side: .front,
+                selectedRegions: selectedRegions,
+                isFullBody: isFullBody,
+                onRegionTap: toggleArea(for:)
+            )
+            OnboardingTargetBodyFigure(
+                side: .back,
+                selectedRegions: selectedRegions,
+                isFullBody: isFullBody,
+                onRegionTap: toggleArea(for:)
+            )
         }
-    }
-
-    private var selectionCount: Int {
-        if selection.contains(.fullBody) {
-            return TargetArea.bodyPartCases.count
-        }
-        return selection.filter { $0 != .fullBody }.count
     }
 
     private func toggleArea(for region: BodyRegion) {
@@ -153,12 +89,14 @@ private struct OnboardingTargetAreaHeatmap: View {
 private struct OnboardingTargetBodyFigure: View {
     let side: BodyMapSide
     let selectedRegions: Set<BodyRegion>
+    let isFullBody: Bool
     let onRegionTap: (BodyRegion) -> Void
 
     var body: some View {
         OnboardingTargetBodyCanvas(
             side: side,
             selectedRegions: selectedRegions,
+            isFullBody: isFullBody,
             onRegionTap: onRegionTap
         )
         .overlay(alignment: .topTrailing) {
@@ -181,6 +119,7 @@ private struct OnboardingTargetBodyFigure: View {
 private struct OnboardingTargetBodyCanvas: View {
     let side: BodyMapSide
     let selectedRegions: Set<BodyRegion>
+    let isFullBody: Bool
     let onRegionTap: (BodyRegion) -> Void
 
     var body: some View {
@@ -190,41 +129,46 @@ private struct OnboardingTargetBodyCanvas: View {
             let separatorWidth = max(0.75, min(1.6, drawRect.width / 260))
 
             ZStack {
-                if let baseImage = BodyLoadImageAsset.image(for: side) {
-                    Image(uiImage: baseImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: drawRect.width, height: drawRect.height)
-                        .position(x: drawRect.midX, y: drawRect.midY)
-                        .opacity(0.82)
+                // Drawing flattened to one Metal layer (no per-path shadow
+                // stacks) — this is what made the screen lag when many
+                // regions lit up. Hit-testing stays on separate clear paths.
+                ZStack {
+                    if let baseImage = BodyLoadImageAsset.image(for: side) {
+                        Image(uiImage: baseImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: drawRect.width, height: drawRect.height)
+                            .position(x: drawRect.midX, y: drawRect.midY)
+                            .opacity(0.82)
+                    }
+
+                    ForEach(BodyLoadSVGRegionAsset.paths(for: side)) { spec in
+                        let isSelected = selectedRegions.contains(spec.region)
+
+                        spec.path(in: drawRect, viewBox: viewBox)
+                            .fill(
+                                OnboardingTargetHeatmapColor.fill(
+                                    isSelected: isSelected,
+                                    isFullBody: isFullBody,
+                                    kind: spec.kind
+                                ),
+                                style: FillStyle(eoFill: spec.usesEvenOdd)
+                            )
+
+                        spec.path(in: drawRect, viewBox: viewBox)
+                            .stroke(
+                                OnboardingTargetHeatmapColor.separator(isSelected: isSelected, isFullBody: isFullBody),
+                                style: StrokeStyle(
+                                    lineWidth: isSelected ? separatorWidth + 0.65 : separatorWidth,
+                                    lineCap: .round,
+                                    lineJoin: .round
+                                )
+                            )
+                    }
                 }
+                .drawingGroup()
 
                 ForEach(BodyLoadSVGRegionAsset.paths(for: side)) { spec in
-                    let isSelected = selectedRegions.contains(spec.region)
-
-                    spec.path(in: drawRect, viewBox: viewBox)
-                        .fill(
-                            OnboardingTargetHeatmapColor.fill(
-                                isSelected: isSelected,
-                                kind: spec.kind
-                            ),
-                            style: FillStyle(eoFill: spec.usesEvenOdd)
-                        )
-
-                    spec.path(in: drawRect, viewBox: viewBox)
-                        .stroke(
-                            OnboardingTargetHeatmapColor.separator(isSelected: isSelected),
-                            style: StrokeStyle(
-                                lineWidth: isSelected ? separatorWidth + 0.65 : separatorWidth,
-                                lineCap: .round,
-                                lineJoin: .round
-                            )
-                        )
-                        .shadow(
-                            color: isSelected ? Color.unbound.accent.opacity(0.34) : .clear,
-                            radius: isSelected ? 5 : 0
-                        )
-
                     spec.path(in: drawRect, viewBox: viewBox)
                         .fill(Color.white.opacity(0.001), style: FillStyle(eoFill: spec.usesEvenOdd))
                         .onTapGesture {
@@ -371,43 +315,26 @@ private struct TargetAreaChip: View {
     }
 }
 
-private enum OnboardingTargetHeatLegendItem: CaseIterable, Identifiable {
-    case idle
-    case selected
-    case active
-
-    var id: Self { self }
-
-    var color: Color {
-        switch self {
-        case .idle:
-            return Color.white.opacity(0.12)
-        case .selected:
-            return Color.unbound.accent.opacity(0.52)
-        case .active:
-            return Color.unbound.accent
-        }
-    }
-}
-
 private enum OnboardingTargetHeatmapColor {
-    static func fill(isSelected: Bool, kind: BodyLoadPathKind) -> Color {
+    /// Full body burns ember-orange so "everything selected" reads at a
+    /// glance; individual picks stay accent-violet.
+    static func fill(isSelected: Bool, isFullBody: Bool, kind: BodyLoadPathKind) -> Color {
         guard isSelected else {
             return kind == .stroke ? Color.white.opacity(0.03) : Color.clear
         }
 
+        let tint = isFullBody ? Color.unbound.ember : Color.unbound.accent
         switch kind {
         case .fill:
-            return Color.unbound.accent.opacity(0.52)
+            return tint.opacity(0.52)
         case .stroke:
-            return Color.unbound.accent.opacity(0.86)
+            return tint.opacity(0.86)
         }
     }
 
-    static func separator(isSelected: Bool) -> Color {
-        isSelected
-            ? Color.unbound.accent.opacity(0.88)
-            : Color.black.opacity(0.36)
+    static func separator(isSelected: Bool, isFullBody: Bool) -> Color {
+        guard isSelected else { return Color.black.opacity(0.36) }
+        return (isFullBody ? Color.unbound.ember : Color.unbound.accent).opacity(0.88)
     }
 }
 

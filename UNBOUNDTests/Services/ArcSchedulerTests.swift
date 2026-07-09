@@ -13,7 +13,7 @@ final class ArcSchedulerTests: XCTestCase {
         let context = try XCTUnwrap(ArcScheduler.context(for: program, asOf: date, calendar: .fixedGMT))
 
         XCTAssertEqual(context.dayNumber, 17)
-        XCTAssertEqual(context.daysRemaining, 11)
+        XCTAssertEqual(context.daysRemaining, Arc.durationDays - 17)
     }
 
     func testNextArcChainsSourceArc() throws {
@@ -37,7 +37,7 @@ final class ArcSchedulerTests: XCTestCase {
             createdAt: Date(timeIntervalSince1970: 0),
             withArc: true
         )
-        let date = Calendar.fixedGMT.date(byAdding: .day, value: 28, to: program.createdAt)!
+        let date = Calendar.fixedGMT.date(byAdding: .day, value: Arc.durationDays, to: program.createdAt)!
 
         XCTAssertTrue(ArcScheduler.shouldOfferCheckpoint(program: program, asOf: date, calendar: .fixedGMT))
     }

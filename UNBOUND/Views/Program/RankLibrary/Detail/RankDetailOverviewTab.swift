@@ -80,24 +80,30 @@ struct RankDetailOverviewTab: View {
         // panel, so an outer card would read as a box-in-a-box. The header + tabs
         // stay within the page margins; each segment owns its own framing (Form is
         // edge-to-edge, the text layers card themselves).
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             sectionHeader(title: "SKILL GUIDE", subtitle: segments.count > 1 ? "One layer at a time" : nil)
-            if segments.count > 1 {
-                SegmentedFilterBar(
-                    items: segments,
-                    title: { $0.label },
-                    selection: $selectedGuideSegment
-                )
-            }
-            Group {
-                switch active {
-                case .form:   formContent
-                case .assist: guideTextCard { assistContent }
-                case .tips:   guideTextCard { tipsContent }
-                case .fixes:  guideTextCard { mistakesContent }
+            // Bar + active layer share a tight group so the form image sits close
+            // under the Form / Assist / Tips / Fixes switch instead of floating far
+            // below it.
+            VStack(alignment: .leading, spacing: 6) {
+                if segments.count > 1 {
+                    SegmentedFilterBar(
+                        items: segments,
+                        title: { $0.label },
+                        selection: $selectedGuideSegment,
+                        fillEqually: true
+                    )
                 }
+                Group {
+                    switch active {
+                    case .form:   formContent
+                    case .assist: guideTextCard { assistContent }
+                    case .tips:   guideTextCard { tipsContent }
+                    case .fixes:  guideTextCard { mistakesContent }
+                    }
+                }
+                .animation(.easeOut(duration: 0.18), value: active)
             }
-            .animation(.easeOut(duration: 0.18), value: active)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

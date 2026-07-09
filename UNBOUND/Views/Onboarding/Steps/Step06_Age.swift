@@ -9,7 +9,7 @@ struct Step06_Age: View {
     var body: some View {
         OnboardingScaffold(
             title: "How old are you?",
-            subtitle: "Recovery, volume, and pace all shift with age. We'll tune it right.",
+            subtitle: nil,
             progress: progress,
             primaryTitle: "Continue",
             hudStep: .age,
@@ -26,6 +26,7 @@ struct Step06_Age: View {
                 )
                 Spacer().frame(height: 12)
             }
+            .frame(maxWidth: .infinity, minHeight: 430, alignment: .top)
         }
     }
 }

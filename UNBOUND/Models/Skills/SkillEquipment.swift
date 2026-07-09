@@ -52,27 +52,3 @@ enum SkillEquipment: String, Codable, CaseIterable, Sendable, Identifiable {
         }
     }
 }
-
-// MARK: - UserSkillEquipmentProfile
-//
-// Lightweight user-settable profile of what equipment they have access
-// to. Feeds the recommender; never blocks node visibility.
-
-struct UserSkillEquipmentProfile: Codable, Sendable {
-    var hasFullGym: Bool
-    var available: Set<SkillEquipment>
-
-    static let `default` = UserSkillEquipmentProfile(
-        hasFullGym: false,
-        available: [.bodyweight]
-    )
-
-    func has(_ e: SkillEquipment) -> Bool {
-        hasFullGym || available.contains(e) || e == .bodyweight
-    }
-
-    /// True if every required equipment for a node is available to the user.
-    func covers(_ required: [SkillEquipment]) -> Bool {
-        required.allSatisfy { has($0) }
-    }
-}

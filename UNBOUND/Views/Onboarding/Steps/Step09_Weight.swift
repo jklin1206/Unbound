@@ -47,6 +47,7 @@ struct Step09_Weight: View {
                 }
             }
             .padding(.top, 8)
+            .frame(maxWidth: .infinity, minHeight: 430, alignment: .top)
         }
         .onAppear(perform: syncTrainingWeightUnit)
         .onChange(of: flow.useMetricWeight) { _, _ in syncTrainingWeightUnit() }

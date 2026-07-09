@@ -33,7 +33,7 @@ final class SavedWorkoutModelTests: XCTestCase {
         XCTAssertEqual(saved.blocks.count, 1)
         XCTAssertEqual(saved.blocks.first?.prescriptions.first?.exerciseName, "Pull-Up")
         XCTAssertEqual(saved.blocks.first?.prescriptions.first?.sets, 3)
-        XCTAssertEqual(saved.blocks.first?.prescriptions.first?.target.displayText, "6-8 reps")
+        XCTAssertEqual(saved.blocks.first?.prescriptions.first?.target.displayText, "6 reps")
         XCTAssertEqual(saved.blocks.first?.prescriptions.first?.rpe, 8)
     }
 

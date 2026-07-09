@@ -97,12 +97,34 @@ final class AttributeService: AttributeServiceProtocol {
     private let catalog: AttributeCatalogProtocol
     private let store: AttributeProfileStoreProtocol
     private let database: any DatabaseServiceProtocol
+    private let buildClassStore: BuildClassStore
     private let logger = LoggingService.shared
 
-    init(catalog: AttributeCatalogProtocol, store: AttributeProfileStoreProtocol, database: any DatabaseServiceProtocol = DatabaseService.shared) {
+    init(
+        catalog: AttributeCatalogProtocol,
+        store: AttributeProfileStoreProtocol,
+        database: any DatabaseServiceProtocol = DatabaseService.shared,
+        buildClassStore: BuildClassStore = .shared
+    ) {
         self.catalog = catalog
         self.store = store
         self.database = database
+        self.buildClassStore = buildClassStore
+    }
+
+    /// Single persist choke point: every profile save also advances the
+    /// class hold, since ingest is the only time the hex moves.
+    private func persist(_ profile: AttributeProfile, at date: Date) {
+        store.save(profile)
+        buildClassStore.observe(profile.buildIdentity, userId: profile.userId, at: date)
+    }
+
+    /// Fresh crown-band crossings earn the axis's class-name title (Titan,
+    /// Monk, …), announced. Already-unlocked titles no-op inside unlockTitle.
+    private func grantAxisTitles(for events: [AttributeRankUpEvent], userId: String) {
+        for event in events where event.toTitle >= TitleGrants.axisTitleBar {
+            WeeklyVowsService.shared.unlockTitle(.axis(event.axis), userId: userId)
+        }
     }
 
     func profile(userId: String) -> AttributeProfile {
@@ -122,10 +144,11 @@ final class AttributeService: AttributeServiceProtocol {
         let deltas = AttributeIngest.deltas(for: session, catalog: catalog)
         let crossings = AttributeIngest.applyDeltas(&profile, deltas: deltas, at: finishedAt)
         profile.computedAt = finishedAt
-        store.save(profile)
+        persist(profile, at: finishedAt)
         for event in crossings {
             NotificationCenter.default.post(name: .attributeRankUp, object: event)
         }
+        grantAxisTitles(for: crossings, userId: userId)
         // First-resolved badge: fires once when buildIdentity escapes
         // .balancedAthlete. Subsequent shape transitions are silent.
         let afterShape = profile.buildIdentity.shape
@@ -174,11 +197,12 @@ final class AttributeService: AttributeServiceProtocol {
                 profileAfter: AttributeProfileSnapshot(profile)
             )
         )
-        store.save(profile)
+        persist(profile, at: date)
 
         for event in applied.rankUpEvents {
             NotificationCenter.default.post(name: .attributeRankUp, object: event)
         }
+        grantAxisTitles(for: applied.rankUpEvents, userId: userId)
 
         let afterShape = profile.buildIdentity.shape
         if beforeShape == .balancedAthlete && afterShape != .balancedAthlete {
@@ -226,11 +250,12 @@ final class AttributeService: AttributeServiceProtocol {
                 profileAfter: AttributeProfileSnapshot(profile)
             )
         )
-        store.save(profile)
+        persist(profile, at: date)
 
         for event in applied.rankUpEvents {
             NotificationCenter.default.post(name: .attributeRankUp, object: event)
         }
+        grantAxisTitles(for: applied.rankUpEvents, userId: userId)
 
         let afterShape = profile.buildIdentity.shape
         if beforeShape == .balancedAthlete && afterShape != .balancedAthlete {
@@ -257,7 +282,7 @@ final class AttributeService: AttributeServiceProtocol {
             profile.set(key, AttributeValue(xp: 0, lastContributionAt: now))
         }
         profile.computedAt = now
-        store.save(profile)
+        persist(profile, at: now)
     }
 
     func snapshotForScan(scanId: String, userId: String) async {
@@ -305,7 +330,7 @@ final class AttributeService: AttributeServiceProtocol {
         value.lastContributionAt = now
         prof.set(axis, value)
         prof.computedAt = now
-        store.save(prof)
+        persist(prof, at: now)
         // Fire rank-up notification if the tier crossed.
         let afterTitle = value.rankTitle
         if afterTitle > beforeTitle {
@@ -318,6 +343,7 @@ final class AttributeService: AttributeServiceProtocol {
                 timestamp: now
             )
             NotificationCenter.default.post(name: .attributeRankUp, object: event)
+            grantAxisTitles(for: [event], userId: userId)
         }
     }
 }

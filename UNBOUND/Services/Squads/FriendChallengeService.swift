@@ -8,8 +8,10 @@ protocol FriendChallengeServiceProtocol: Sendable {
     func challengeStats(squadId: UUID) async -> [UUID: FriendChallengeStats]
     func challengeStats(squadId: UUID, season: SquadSeason) async -> [UUID: FriendChallengeStats]
     func accept(_ challengeId: UUID) async throws
+    func decline(_ challengeId: UUID) async throws
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async
     func evaluateExpired() async
+    func consumePendingOutcome() -> FriendChallenge?
 }
 
 extension FriendChallengeServiceProtocol {
@@ -32,6 +34,13 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
     private let logger = LoggingService.shared
     private var localChallenges: [FriendChallenge] = []
     private var localProgressReceipts: Set<String> = []
+    // Settled outcomes waiting for the FriendChallengeOutcomeToast to show them.
+    // evaluateExpired runs on every foreground — often while the user is off the
+    // Squad tab, where the transient `.friendChallengeExpired` publisher has no
+    // mounted listener — so each outcome is buffered here and drained when the
+    // toast next mounts. In-memory FIFO; the win/loss reward is paid at settle
+    // (grantDuelWinArcsIfWon) independently of whether the toast is ever seen.
+    private var pendingOutcomes: [FriendChallenge] = []
 
     init(
         backend: SquadBackendProtocol = SquadBackend.shared,
@@ -42,36 +51,40 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
     }
 
     // MARK: - Private Codable row
+    //
+    // Properties are camelCase: UnboundSupabase.dbDecoder converts the
+    // snake_case JSON keys before matching, so a snake_case property never
+    // matches and every fetch throws keyNotFound.
 
     private struct ChallengeRow: Codable {
         let id: UUID
-        let challenger_id: UUID
-        let challenged_id: UUID
-        let squad_id: UUID
-        let challenge_kind: String
-        let exercise_name: String?
-        let started_at: Date
-        let expires_at: Date
-        let winner_user_id: UUID?
-        let accepted_at: Date?
-        let challenger_progress: Int
-        let challenged_progress: Int
+        let challengerId: UUID
+        let challengedId: UUID
+        let squadId: UUID
+        let challengeKind: String
+        let exerciseName: String?
+        let startedAt: Date
+        let expiresAt: Date
+        let winnerUserId: UUID?
+        let acceptedAt: Date?
+        let challengerProgress: Int
+        let challengedProgress: Int
 
         func toModel() -> FriendChallenge? {
-            guard let kind = FriendChallenge.Kind(rawValue: challenge_kind) else { return nil }
+            guard let kind = FriendChallenge.Kind(rawValue: challengeKind) else { return nil }
             return FriendChallenge(
                 id: id,
-                challengerId: challenger_id,
-                challengedId: challenged_id,
-                squadId: squad_id,
+                challengerId: challengerId,
+                challengedId: challengedId,
+                squadId: squadId,
                 kind: kind,
-                exerciseName: exercise_name,
-                startedAt: started_at,
-                expiresAt: expires_at,
-                acceptedAt: accepted_at,
-                challengerProgress: challenger_progress,
-                challengedProgress: challenged_progress,
-                winnerUserId: winner_user_id
+                exerciseName: exerciseName,
+                startedAt: startedAt,
+                expiresAt: expiresAt,
+                acceptedAt: acceptedAt,
+                challengerProgress: challengerProgress,
+                challengedProgress: challengedProgress,
+                winnerUserId: winnerUserId
             )
         }
     }
@@ -266,6 +279,26 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
         NotificationCenter.default.post(name: .friendChallengeAccepted, object: challengeId)
     }
 
+    /// Decline a pending challenge (as the challenged user) or withdraw one
+    /// (as the challenger). RLS only permits the DELETE while the challenge is
+    /// unaccepted and unsettled, so an accepted duel can't be abandoned.
+    func decline(_ challengeId: UUID) async throws {
+        if let index = localChallenges.firstIndex(where: { $0.id == challengeId }) {
+            localChallenges.remove(at: index)
+            NotificationCenter.default.post(name: .friendChallengeDeclined, object: challengeId)
+            return
+        }
+        guard remoteBackendEnabled else {
+            throw SquadError.backendUnavailable
+        }
+        try await db
+            .from("friend_challenges")
+            .delete()
+            .eq("id", value: challengeId.uuidString)
+            .execute()
+        NotificationCenter.default.post(name: .friendChallengeDeclined, object: challengeId)
+    }
+
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {
         guard let uid = UUID(uuidString: userId) ?? SquadUserIdentity.uuid(from: userId) else { return }
         let active = await activeChallenges(userId: uid)
@@ -309,14 +342,81 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
                     .execute()
                     .value
                 guard let settled = updated.first?.toModel() else { continue }
-                NotificationCenter.default.post(name: .friendChallengeExpired, object: settled)
+                finalizeSettledChallenge(settled)
             }
         } catch {
             logger.log("FriendChallengeService.evaluateExpired error: \(error)", level: .warning)
         }
+
+        await reconcileSettledWins()
+    }
+
+    /// A duel can be settled by EITHER participant's device. When the loser
+    /// foregrounds first, its settle pass names the winner remotely but the
+    /// winner's device never runs `finalizeSettledChallenge` (the row no longer
+    /// matches the winnerless settle query) — so every settle pass also fetches
+    /// challenges this user has WON and pays/buffers any the ledger says were
+    /// never granted. `grant(_:sourceId:)` dedups on the challenge's stable
+    /// sourceId, so the reward and its outcome moment land exactly once no
+    /// matter which device settled or how many foregrounds re-run this.
+    private func reconcileSettledWins() async {
+        guard let userId = AuthService.shared.currentUserId,
+              let me = SquadUserIdentity.uuid(from: userId) else { return }
+        do {
+            let rows: [ChallengeRow] = try await db
+                .from("friend_challenges")
+                .select()
+                .eq("winner_user_id", value: me.uuidString)
+                .order("expires_at", ascending: false)
+                .limit(100)
+                .execute()
+                .value
+            for row in rows {
+                guard let settled = row.toModel() else { continue }
+                if grantDuelWinArcsIfWon(settled) {
+                    pendingOutcomes.append(settled)
+                    NotificationCenter.default.post(name: .friendChallengeExpired, object: settled)
+                }
+            }
+        } catch {
+            logger.log("FriendChallengeService.reconcileSettledWins error: \(error)", level: .warning)
+        }
+    }
+
+    /// Pop the oldest buffered outcome for the toast to display, or nil when the
+    /// buffer is empty. FIFO so multiple settled duels are shown in order.
+    func consumePendingOutcome() -> FriendChallenge? {
+        pendingOutcomes.isEmpty ? nil : pendingOutcomes.removeFirst()
     }
 
     // MARK: - Private helpers
+
+    /// Shared settle epilogue used by both the remote and local paths: pay the
+    /// winner (idempotent), buffer the outcome for the toast, then broadcast
+    /// `.friendChallengeExpired` so open squad surfaces refresh.
+    private func finalizeSettledChallenge(_ settled: FriendChallenge) {
+        grantDuelWinArcsIfWon(settled)
+        pendingOutcomes.append(settled)
+        NotificationCenter.default.post(name: .friendChallengeExpired, object: settled)
+    }
+
+    /// Pay the 120-Arc duel-win reward when the signed-in user is the winner of a
+    /// settled challenge. Idempotent: CurrencyWalletStore ledger-dedups by the
+    /// challenge's stable sourceId, so the reward pays exactly once no matter how
+    /// many foregrounds re-run the settle pass. Mirrors claimMissionReward's grant.
+    /// Returns true only when this call actually paid (a fresh, undeduped win).
+    @discardableResult
+    private func grantDuelWinArcsIfWon(_ settled: FriendChallenge) -> Bool {
+        guard let userId = AuthService.shared.currentUserId,
+              let me = SquadUserIdentity.uuid(from: userId),
+              settled.winnerUserId == me
+        else { return false }
+        CurrencyWalletStore.shared.bind(userId: userId)
+        return CurrencyWalletStore.shared.grant(
+            SquadRewardPolicy.duelWinArcs,
+            sourceId: SquadRewardPolicy.duelSourceId(settled.id)
+        )
+    }
 
     private func incrementProgress(
         challengeId: UUID,
@@ -404,7 +504,7 @@ final class FriendChallengeService: FriendChallengeServiceProtocol {
             localChallenges[index].winnerUserId = challenge.challengedProgress > challenge.challengerProgress
                 ? challenge.challengedId
                 : challenge.challengerId
-            NotificationCenter.default.post(name: .friendChallengeExpired, object: localChallenges[index])
+            finalizeSettledChallenge(localChallenges[index])
         }
     }
 

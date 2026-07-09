@@ -83,7 +83,7 @@ extension TrainingPrescription {
     var targetDescription: String {
         switch target {
         case .reps(let r):                            return "\(r) reps"
-        case .repsRange(let lo, let hi):              return "\(lo)–\(hi) reps"
+        case .repsRange(let lo, _):                   return "\(lo) reps"
         case .amrap:                                  return "AMRAP"
         case .hold(let s):                            return "\(s)s hold"
         case .tempo(let r, let e, let h, let c):      return "\(r) reps @ \(e)-\(h)-\(c)"

@@ -147,7 +147,7 @@ final class UNBOUNDSmokeTest: XCTestCase {
     }
 
     func testRoutineAdapterTurnsAuthoredChallengeStepsIntoMovementProgression() {
-        let routine = RoutineLibrary.placeholderRoutines.first { $0.id == "100-pushup" }!
+        let routine = RoutineLibrary.routines.first { $0.id == "100-pushup" }!
         let record = RoutineCompletionRecord(
             id: "routine-record-1",
             routineId: routine.id,
@@ -288,24 +288,35 @@ final class UNBOUNDSmokeTest: XCTestCase {
         let power = sequence.attributeDeltas.first
         XCTAssertEqual(power?.key, .power)
         XCTAssertEqual(power?.xpGained ?? 0, 200, accuracy: 0.001)
-        XCTAssertEqual(sequence.attributePreviousLevels[.power], 10)
-        XCTAssertEqual(sequence.attributeLevels[.power], 10)
-        XCTAssertEqual(sequence.attributePreviousLevels.count, AttributeKey.allCases.count)
-        XCTAssertEqual(sequence.attributeLevels.count, AttributeKey.allCases.count)
-        XCTAssertEqual(sequence.attributeTiers[.power], profileAfter.levelRankTitles[.power])
+        XCTAssertEqual(power?.previousLevel, 10)
+        XCTAssertEqual(power?.currentLevel, 10)
+        XCTAssertEqual(power?.currentTier, profileAfter.levelRankTitles[.power])
+        XCTAssertEqual(power?.previousProgress ?? 0, AttributeLevelCurve.progressFraction(forXP: l10XP), accuracy: 0.001)
+        XCTAssertEqual(power?.currentProgress ?? 0, AttributeLevelCurve.progressFraction(forXP: l10XP + 200), accuracy: 0.001)
+
+        // Radar maps ride the honest continuous scale and only move forward.
         XCTAssertEqual(sequence.attributePreviousHexValues.count, AttributeKey.allCases.count)
         XCTAssertEqual(sequence.attributeCurrentHexValues.count, AttributeKey.allCases.count)
-        // Untouched axis: hex unchanged.
+        XCTAssertEqual(
+            sequence.attributePreviousHexValues[.power] ?? -1,
+            AttributeLevelCurve.continuousHexFill(forXP: l10XP) * 100,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            sequence.attributeCurrentHexValues[.power] ?? -1,
+            AttributeLevelCurve.continuousHexFill(forXP: l10XP + 200) * 100,
+            accuracy: 0.001
+        )
+        XCTAssertGreaterThan(
+            sequence.attributeCurrentHexValues[.power] ?? -1,
+            sequence.attributePreviousHexValues[.power] ?? -1
+        )
+        // Untouched axis: shape unchanged.
         XCTAssertEqual(
             sequence.attributePreviousHexValues[.mobility] ?? -1,
             sequence.attributeCurrentHexValues[.mobility] ?? -2,
             accuracy: 0.001
         )
-        // hexFill is linear level/max — both at L10 → equal (xp gain stayed in-level).
-        XCTAssertEqual(power?.previousProgress ?? 0, AttributeLevelCurve.progressFraction(forXP: l10XP), accuracy: 0.001)
-        XCTAssertEqual(power?.currentProgress ?? 0, AttributeLevelCurve.progressFraction(forXP: l10XP + 200), accuracy: 0.001)
-        XCTAssertEqual(power?.previousHexChartValue ?? 0, AttributeLevelCurve.hexFill(forLevel: 10) * 100, accuracy: 0.001)
-        XCTAssertEqual(power?.currentHexChartValue ?? 0, AttributeLevelCurve.hexFill(forLevel: 10) * 100, accuracy: 0.001)
     }
 
     func testHexFillIsLinearLevelOverMaxWithCleanMax() {

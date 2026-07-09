@@ -184,11 +184,12 @@ struct ProofRewardRow: View {
     }
 }
 
+/// Eases the reward radar between its before/after shapes with a single
+/// forward push. Both maps are on the profile hex's honest cumulative scale
+/// (already bracket-scaled by the caller) — no wrap, no reset.
 struct AnimatedRewardAttributeHex: View, Animatable {
     let previous: [AttributeKey: Double]
     let current: [AttributeKey: Double]
-    let levels: [AttributeKey: Int]?
-    let tiers: [AttributeKey: RankTitle]?
     var progress: Double
     let radius: CGFloat
 
@@ -198,23 +199,14 @@ struct AnimatedRewardAttributeHex: View, Animatable {
     }
 
     var body: some View {
-        AttributeHex(
-            current: interpolated(from: previous, to: current),
-            levels: levels,
-            tiers: tiers,
-            showLabels: false,
-            radius: radius
-        )
+        AttributeHex(current: interpolated(), showLabels: false, radius: radius)
     }
 
-    private func interpolated(
-        from start: [AttributeKey: Double],
-        to end: [AttributeKey: Double]
-    ) -> [AttributeKey: Double] {
+    private func interpolated() -> [AttributeKey: Double] {
         let clamped = min(1, max(0, progress))
         return Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
-            let from = start[key] ?? 0
-            let to = end[key] ?? from
+            let from = previous[key] ?? 0
+            let to = current[key] ?? from
             return (key, from + (to - from) * clamped)
         })
     }
@@ -415,6 +407,17 @@ private struct RankStandardCopy: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
             }
+
+            // The hero replaces this movement's list card, so it carries the
+            // card's micro detail (next target, PB) instead of dropping it.
+            let microDetail = [reward.nextThresholdText, reward.personalBestText].compactMap { $0 }
+            if !microDetail.isEmpty {
+                Text(microDetail.joined(separator: " · "))
+                    .font(Font.unbound.captionS)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.74)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(revealed ? 1 : 0.35)
@@ -474,14 +477,18 @@ struct LevelProgressHero: View {
                         .minimumScaleFactor(0.56)
                         .allowsTightening(true)
                         .multilineTextAlignment(.trailing)
-                    Text(leveledUp ? "LVL \(levelBefore) -> \(levelAfter)" : "LVL \(levelAfter)")
-                        .font(Font.unbound.captionS.weight(.heavy))
-                        .tracking(1.3)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.66)
-                        .allowsTightening(true)
-                        .multilineTextAlignment(.trailing)
+                    // The big LVL number on the left already states the level —
+                    // this caption earns its place only when the level moved.
+                    if leveledUp {
+                        Text("LVL \(levelBefore) -> \(levelAfter)")
+                            .font(Font.unbound.captionS.weight(.heavy))
+                            .tracking(1.3)
+                            .foregroundStyle(Color.unbound.textTertiary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.66)
+                            .allowsTightening(true)
+                            .multilineTextAlignment(.trailing)
+                    }
                 }
             }
 

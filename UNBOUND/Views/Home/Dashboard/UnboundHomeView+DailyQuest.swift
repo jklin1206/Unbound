@@ -183,10 +183,5 @@ extension UnboundHomeView {
         withAnimation(.linear(duration: 2.6).repeatForever(autoreverses: false)) {
             xpShimmerPhase = 1.2
         }
-
-        // Stat bars sweep from 0 → value on load.
-        withAnimation(.easeOut(duration: 1.0)) {
-            statsRendered = true
-        }
     }
 }

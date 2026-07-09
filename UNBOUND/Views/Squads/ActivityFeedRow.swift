@@ -1,4 +1,9 @@
 // UNBOUND/Views/Squads/ActivityFeedRow.swift
+//
+// One line of squad activity ("Mara trained Push Day · 2h ago") in the
+// calm-list language: flat on the page background, initials avatar in
+// neutral tones, metadata as a MetaLine. Rendered by SquadCrewTab's RECENT
+// section. Violet appears only on the streak milestone readout.
 import SwiftUI
 
 struct ActivityFeedRow: View {
@@ -11,18 +16,24 @@ struct ActivityFeedRow: View {
         return f
     }()
 
+    /// "now" for anything under a minute — the formatter would otherwise say
+    /// "in 0s" for entries created this second.
+    private var relativeTime: String {
+        if abs(entry.createdAt.timeIntervalSinceNow) < 60 { return "now" }
+        return Self.relativeFormatter.localizedString(for: entry.createdAt, relativeTo: .now)
+    }
+
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .center, spacing: 12) {
             avatarView
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 rowContent
-                Text(Self.relativeFormatter.localizedString(for: entry.createdAt, relativeTo: .now))
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(2)
+                MetaLine([relativeTime])
             }
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 9)
     }
 
     // MARK: - Avatar
@@ -31,29 +42,30 @@ struct ActivityFeedRow: View {
     private var avatarView: some View {
         switch entry.payload {
         case .squadStreakExtended:
-            // System event — squad icon
-            ZStack {
-                Circle().fill(Color.unbound.accent.opacity(0.15))
-                Image(systemName: "figure.2")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.unbound.accent)
-            }
-            .frame(width: 34, height: 34)
-
-        case .linkedSession(let participantIds, _):
-            // Stacked initials for first two participants
-            ZStack(alignment: .leading) {
-                initialsCircle(for: participantIds.first, offset: 0)
-                if participantIds.count > 1 {
-                    initialsCircle(for: participantIds.dropFirst().first, offset: 14)
-                }
-            }
-            .frame(width: 48, height: 34)
-
+            symbolCircle("flame.fill", tint: Color.unbound.ember)
+        case .linkedSession:
+            symbolCircle("person.2.fill", tint: Color.unbound.coachCyan)
+        case .memberJoined:
+            symbolCircle("person.badge.plus", tint: Color.unbound.success)
+        case .workoutCompleted:
+            symbolCircle("checkmark.seal.fill", tint: Color.unbound.success)
+        case .trialCompleted:
+            symbolCircle("seal.fill", tint: Color.unbound.impact)
+        case .titleUnlocked:
+            symbolCircle("medal.fill", tint: Color.unbound.rankGold)
         default:
-            initialsCircle(for: entry.userId, offset: 0)
-                .frame(width: 34, height: 34)
+            initialsCircle(for: entry.userId)
         }
+    }
+
+    private func symbolCircle(_ systemName: String, tint: Color) -> some View {
+        ZStack {
+            Circle().fill(tint.opacity(0.16))
+            Image(systemName: systemName)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(tint)
+        }
+        .frame(width: 34, height: 34)
     }
 
     // MARK: - Row content
@@ -61,65 +73,37 @@ struct ActivityFeedRow: View {
     @ViewBuilder
     private var rowContent: some View {
         switch entry.payload {
+        case .workoutCompleted(let title, let exerciseCount, let durationMinutes):
+            let detail = [
+                title,
+                exerciseCount > 0 ? "\(exerciseCount) exercises" : nil,
+                durationMinutes.map { "\($0)m" }
+            ]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+            actorLine(name: displayName(for: entry.userId), action: " trained \(detail)")
+
         case .trialCompleted(let trialName, _):
-            Group {
-                Text(displayName(for: entry.userId))
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                + Text(" crushed \(trialName)")
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textSecondary)
-            }
+            actorLine(name: displayName(for: entry.userId), action: " completed \(trialName)")
 
         case .titleUnlocked(let titleId):
             HStack(spacing: 6) {
-                Group {
-                    Text(displayName(for: entry.userId))
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    + Text(" earned")
-                        .font(Font.unbound.bodyM)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                }
+                actorLine(name: displayName(for: entry.userId), action: " earned")
                 TitleBadge(titleId: titleId, compact: true)
             }
 
         case .linkedSession(let participantIds, let durationMinutes):
-            HStack(spacing: 6) {
-                Image(systemName: "person.2.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.unbound.accent)
-                let countLabel = participantIds.count > 1
-                    ? "\(participantIds.count) members"
-                    : displayName(for: participantIds.first)
-                Text("Trained together · \(durationMinutes)m")
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                + Text(" (\(countLabel))")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
+            let names = participantIds
+                .map { displayName(for: $0) }
+                .prefix(2)
+                .joined(separator: " & ")
+            actorLine(name: names, action: " trained together · \(durationMinutes)m")
 
         case .memberJoined(let memberDisplayName):
-            Group {
-                Text(memberDisplayName)
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                + Text(" joined the squad")
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textSecondary)
-            }
+            actorLine(name: memberDisplayName, action: " joined the squad")
 
         case .affinityChanged(let newAxis, let byDisplayName):
-            let axisName = newAxis?.displayName ?? "None"
-            Group {
-                Text(byDisplayName)
-                    .font(Font.unbound.bodyMStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                + Text(" set affinity to \(axisName)")
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textSecondary)
-            }
+            actorLine(name: byDisplayName, action: " set affinity to \(newAxis?.displayName ?? "None")")
 
         case .squadStreakExtended(let weeks):
             Group {
@@ -133,15 +117,22 @@ struct ActivityFeedRow: View {
         }
     }
 
+    private func actorLine(name: String, action: String) -> some View {
+        Group {
+            Text(name)
+                .font(Font.unbound.bodyMStrong)
+                .foregroundStyle(Color.unbound.textPrimary)
+            + Text(action)
+                .font(Font.unbound.bodyM)
+                .foregroundStyle(Color.unbound.textSecondary)
+        }
+    }
+
     // MARK: - Helpers
 
     private func displayName(for userId: UUID?) -> String {
         guard let userId else { return "Squad" }
-        return roster.first { $0.userId == userId }?.displayName ?? "Someone"
-    }
-
-    private func displayName(for userId: UUID) -> String {
-        roster.first { $0.userId == userId }?.displayName ?? "Someone"
+        return roster.first { $0.userId == userId }?.displayName ?? "Crewmate"
     }
 
     private func initials(for userId: UUID?) -> String {
@@ -158,16 +149,15 @@ struct ActivityFeedRow: View {
             .uppercased()
     }
 
-    @ViewBuilder
-    private func initialsCircle(for userId: UUID?, offset: CGFloat) -> some View {
-        ZStack {
-            Circle().fill(Color.unbound.accent.opacity(0.2))
+    private func initialsCircle(for userId: UUID?) -> some View {
+        let tint = userId.map { SquadMemberPalette.tint(for: $0) } ?? Color.unbound.textSecondary
+        return ZStack {
+            Circle().fill(tint.opacity(0.16))
             Text(initials(for: userId))
-                .font(.system(size: 11, weight: .heavy))
-                .foregroundStyle(Color.unbound.accent)
+                .font(Font.unbound.captionS.weight(.heavy))
+                .foregroundStyle(tint)
         }
         .frame(width: 34, height: 34)
-        .offset(x: offset)
     }
 }
 
@@ -182,29 +172,24 @@ struct ActivityFeedRow: View {
 
     ScrollView {
         LazyVStack(spacing: 0) {
-            Divider()
             ActivityFeedRow(
-                entry: SquadActivityEntry(id: UUID(), squadId: squadId, userId: userId1, kind: .trialCompleted, payload: .trialCompleted(trialName: "Endurance Push", theme: .axis(.endurance)), createdAt: Date().addingTimeInterval(-7200)),
+                entry: SquadActivityEntry(id: UUID(), squadId: squadId, userId: userId1, kind: .workoutCompleted, payload: .workoutCompleted(title: "Push Day", exerciseCount: 6, durationMinutes: 52), createdAt: Date().addingTimeInterval(-1200)),
                 roster: roster
             )
-            Divider()
             ActivityFeedRow(
                 entry: SquadActivityEntry(id: UUID(), squadId: squadId, userId: userId2, kind: .titleUnlocked, payload: .titleUnlocked(titleId: TitleID(path: .axis(.power), tier: .gold)), createdAt: Date().addingTimeInterval(-3600)),
                 roster: roster
             )
-            Divider()
             ActivityFeedRow(
                 entry: SquadActivityEntry(id: UUID(), squadId: squadId, userId: nil, kind: .squadStreakExtended, payload: .squadStreakExtended(weeks: 4), createdAt: Date().addingTimeInterval(-600)),
                 roster: roster
             )
-            Divider()
             ActivityFeedRow(
                 entry: SquadActivityEntry(id: UUID(), squadId: squadId, userId: userId1, kind: .linkedSession, payload: .linkedSession(participantUserIds: [userId1, userId2], durationMinutes: 45), createdAt: Date().addingTimeInterval(-1800)),
                 roster: roster
             )
-            Divider()
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 20)
     }
     .background(Color.unbound.bg)
 }

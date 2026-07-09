@@ -1,6 +1,11 @@
+// UNBOUND/Views/Squads/SquadRoutineDropViews.swift
+//
+// A routine a crewmate shared, as a calm list row: title, author + facts as
+// a MetaLine, and two quiet text actions (Save / Today). No cards-in-cards,
+// no tinted panels.
 import SwiftUI
 
-struct SquadRoutineDropCard: View {
+struct SquadRoutineDropRow: View {
     let drop: SquadRoutineDrop
     let authorName: String
     let isMine: Bool
@@ -13,229 +18,109 @@ struct SquadRoutineDropCard: View {
         return formatter
     }()
 
+    /// "now" under a minute — the formatter says "in 0s" for just-shared drops.
+    private var relativeTime: String {
+        if abs(drop.createdAt.timeIntervalSinceNow) < 60 { return "now" }
+        return Self.relativeFormatter.localizedString(for: drop.createdAt, relativeTo: .now)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.unbound.warnOrange.opacity(0.14))
-                    Image(systemName: "square.and.arrow.up.fill")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(Color.unbound.warnOrange)
-                }
-                .frame(width: 44, height: 44)
+        HStack(alignment: .center, spacing: 12) {
+            ZStack {
+                Circle().fill(Color.unbound.warnOrange.opacity(0.16))
+                Image(systemName: "square.and.arrow.down")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.unbound.warnOrange)
+            }
+            .frame(width: 34, height: 34)
 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(drop.title)
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(2)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(drop.title)
+                    .font(Font.unbound.bodyMStrong)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(1)
 
-                    Text("\(isMine ? "You" : authorName) dropped this \(Self.relativeFormatter.localizedString(for: drop.createdAt, relativeTo: .now))")
-                        .font(Font.unbound.captionS)
+                MetaLine([
+                    isMine ? "You" : authorName,
+                    relativeTime,
+                    drop.exerciseCount > 0 ? "\(drop.exerciseCount) exercises" : nil,
+                    drop.estimatedMinutes > 0 ? "\(drop.estimatedMinutes)m" : nil
+                ])
+
+                if let note = drop.note, !note.isEmpty {
+                    Text(note)
+                        .font(Font.unbound.bodyS)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .lineLimit(2)
+                        .padding(.top, 2)
                 }
-
-                Spacer(minLength: 0)
             }
 
-            if let note = drop.note {
-                Text(note)
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            Spacer(minLength: 8)
 
-            HStack(spacing: 8) {
-                metaPill(icon: "list.bullet", value: "\(drop.exerciseCount) EX")
-                metaPill(icon: "clock.fill", value: "\(drop.estimatedMinutes)M")
-                Spacer(minLength: 0)
-            }
-
-            HStack(spacing: 10) {
-                Button(action: onSave) {
-                    Label("Save", systemImage: "tray.and.arrow.down.fill")
-                        .frame(maxWidth: .infinity)
+            if !isMine {
+                HStack(spacing: 4) {
+                    quietAction("Save", action: onSave)
+                    quietAction("Today", emphasized: true, action: onUseToday)
                 }
-                .buttonStyle(SquadRoutineDropButtonStyle(tint: Color.unbound.accent))
-
-                Button(action: onUseToday) {
-                    Label("Today", systemImage: "arrow.triangle.2.circlepath")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(SquadRoutineDropButtonStyle(tint: Color.unbound.warnOrange))
             }
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.unbound.warnOrange.opacity(0.09),
-                            Color.unbound.surface.opacity(0.90),
-                            Color.unbound.bg.opacity(0.60)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+        .padding(.vertical, 9)
+    }
+
+    private func quietAction(_ label: String, emphasized: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(Font.unbound.captionS.weight(.semibold))
+                .foregroundStyle(emphasized ? Color.unbound.accent : Color.unbound.textSecondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color.unbound.surfaceElevated)
                 )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color.unbound.warnOrange.opacity(0.24), lineWidth: 1)
-        )
-    }
-
-    private func metaPill(icon: String, value: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 9, weight: .bold))
-            Text(value)
-                .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                .tracking(0.8)
         }
-        .foregroundStyle(Color.unbound.textTertiary)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 6)
-        .background(Capsule().fill(Color.unbound.surfaceElevated.opacity(0.82)))
-    }
-}
-
-struct SquadRoutineDropButtonStyle: ButtonStyle {
-    let tint: Color
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 11, weight: .heavy, design: .monospaced))
-            .tracking(0.8)
-            .foregroundStyle(tint)
-            .frame(height: 38)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(tint.opacity(configuration.isPressed ? 0.18 : 0.11))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(tint.opacity(0.28), lineWidth: 1)
-            )
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-    }
-}
-
-struct SquadConsoleBackground: View {
-    let tint: Color
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.unbound.surfaceElevated,
-                            Color.unbound.surface,
-                            Color.unbound.bg.opacity(0.96)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-
-            SquadSignalLines()
-                .stroke(Color.white.opacity(0.035), lineWidth: 1)
-
-            SquadDiagonalAccentShape()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            tint.opacity(0.30),
-                            tint.opacity(0.08),
-                            .clear
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 218)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-        }
-    }
-}
-
-struct SquadDiagonalAccentShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.width * 0.34, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.closeSubpath()
-        return path
-    }
-}
-
-struct SquadSignalLines: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let spacing: CGFloat = 34
-        var x = -rect.height
-        while x < rect.width + rect.height {
-            path.move(to: CGPoint(x: x, y: rect.maxY))
-            path.addLine(to: CGPoint(x: x + rect.height, y: rect.minY))
-            x += spacing
-        }
-        return path
-    }
-}
-
-struct SquadPanelStyle: ViewModifier {
-    let cornerRadius: CGFloat
-    let tint: Color
-
-    func body(content: Content) -> some View {
-        content
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.unbound.surfaceElevated.opacity(0.92),
-                                Color.unbound.surface.opacity(0.86),
-                                Color.unbound.bg.opacity(0.64)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.10),
-                                tint.opacity(0.24),
-                                Color.unbound.borderSubtle
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-            )
-    }
-}
-
-extension View {
-    func squadPanel(cornerRadius: CGFloat = 18, tint: Color = Color.unbound.accent) -> some View {
-        modifier(SquadPanelStyle(cornerRadius: cornerRadius, tint: tint))
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(label) \(drop.title)")
     }
 }
 
 #Preview {
-    NavigationStack {
-        SquadDetailView()
-            .environmentObject(ServiceContainer.mock)
+    let squadId = UUID()
+    let workout = SavedWorkout(title: "Pull Density 30", blocks: [])
+    VStack(spacing: 0) {
+        SquadRoutineDropRow(
+            drop: SquadRoutineDrop(
+                squadId: squadId,
+                authorUserId: UUID(),
+                authorDisplayName: "Mara",
+                title: "Pull Density 30",
+                note: "Strict rest. Stop one rep before form breaks.",
+                workout: workout,
+                createdAt: Date().addingTimeInterval(-5400)
+            ),
+            authorName: "Mara",
+            isMine: false,
+            onSave: {},
+            onUseToday: {}
+        )
+        SquadRoutineDropRow(
+            drop: SquadRoutineDrop(
+                squadId: squadId,
+                authorUserId: UUID(),
+                authorDisplayName: "You",
+                title: "Hotel Upper",
+                note: nil,
+                workout: workout,
+                createdAt: Date().addingTimeInterval(-86400)
+            ),
+            authorName: "You",
+            isMine: true,
+            onSave: {},
+            onUseToday: {}
+        )
     }
+    .padding(20)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(Color.unbound.bg)
 }

@@ -67,16 +67,6 @@ struct ExerciseLogCard: View {
 
             targetSummary(calm: calm)
 
-            if let movementDefinition,
-               !ExerciseEquipmentAssetStrip.items(for: movementDefinition).isEmpty {
-                ExerciseEquipmentAssetStrip(
-                    definition: movementDefinition,
-                    maxItems: rankTrialStyle ? 4 : 3,
-                    itemSize: calm ? 28 : 30
-                )
-                .padding(.bottom, isExpanded ? 0 : 2)
-            }
-
             if isUnmatched {
                 unmatchedWarning
             }
@@ -129,6 +119,18 @@ struct ExerciseLogCard: View {
             .layoutPriority(1)
 
             if allowsProtocolEditing {
+                Button {
+                    UnboundHaptics.soft()
+                    onIntent(.swapExercise)
+                } label: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.unbound.accent)
+                        .frame(width: 40, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Swap exercise")
                 ExerciseOverflowMenu(isWarmup: isWarmupCurrent, onIntent: onIntent)
             }
         }
@@ -175,7 +177,10 @@ struct ExerciseLogCard: View {
 
     @ViewBuilder
     private var expandedDetail: some View {
-        Divider().overlay(Color.unbound.borderSubtle).padding(.vertical, 8)
+        Divider().overlay(Color.unbound.borderSubtle).padding(.vertical, 6)
+        // The dropdown is the muscle heatmap plus what the movement needs -
+        // the prescription already lives in the meta line and the set grid;
+        // programming / cues stay on the full exercise detail screen.
         ExerciseDetailSections(
             muscleGroups: muscleGroups,
             bodyRegions: movementDefinition?.bodyRegions ?? [],
@@ -184,10 +189,10 @@ struct ExerciseLogCard: View {
             sets: plannedSets,
             reps: plannedReps,
             restSeconds: restSeconds,
-            formCues: formCues,
-            substitution: substitution
+            formCues: nil,
+            substitution: nil
         )
-        .padding(.bottom, 14)
+        .padding(.bottom, 8)
     }
 
     @ViewBuilder
@@ -195,7 +200,8 @@ struct ExerciseLogCard: View {
         HStack(spacing: 8) {
             Text("SET").frame(width: 26, alignment: .leading)
             Text("PREV").frame(maxWidth: .infinity)
-            Text(weightHeader).frame(maxWidth: .infinity)
+            WeightUnitHeaderLabel(prefix: blockKind == .carry || tracksHold ? "LOAD" : "WEIGHT")
+                .frame(maxWidth: .infinity)
             Text(metricHeader).frame(maxWidth: .infinity)
             Spacer().frame(width: 40)
         }
@@ -356,11 +362,6 @@ struct ExerciseLogCard: View {
         case .distanceMeters: return "DIST"
         case .calories: return "CAL"
         }
-    }
-
-    private var weightHeader: String {
-        let unit = TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
-        return (blockKind == .carry || tracksHold ? "LOAD" : "WEIGHT") + " " + unit.shortLabel.uppercased()
     }
 
     private static func mmss(_ s: Int) -> String {

@@ -109,7 +109,6 @@ enum L10n {
         case scanNarrativeEvolutionPrimaryWithSecondary = "scan.narrative.evolution.primaryWithSecondary"
         case scanNarrativeEvolutionPrimaryOnly = "scan.narrative.evolution.primaryOnly"
         case scanNarrativeEvolutionMoved = "scan.narrative.evolution.moved"
-        case scanPayoffFlavorFallback = "scan.payoffFlavor.fallback"
 
         case subscriptionLockedTitle = "subscription.locked.title"
         case subscriptionLockedSubtitle = "subscription.locked.subtitle"
@@ -127,7 +126,19 @@ enum L10n {
         case subscriptionPackagePitchDefaultBody = "subscription.package.pitch.default.body"
         case subscriptionPackageUnavailableTitle = "subscription.package.unavailable.title"
         case subscriptionPackageUnavailableBody = "subscription.package.unavailable.body"
+        case subscriptionPackageRetry = "subscription.package.unavailable.retry"
         case subscriptionPackageOpeningCheckout = "subscription.package.openingCheckout"
+        case subscriptionPackageStartTrial = "subscription.package.start.trial"
+        case subscriptionPackageNoPaymentNow = "subscription.package.noPaymentNow"
+        case subscriptionPackageLegalTrial = "subscription.package.legal.trial"
+        case subscriptionPackageLegalDirect = "subscription.package.legal.direct"
+        case subscriptionPackageCadenceQuarterly = "subscription.package.cadence.quarterly"
+        case subscriptionPackageCadenceWeekly = "subscription.package.cadence.weekly"
+        case subscriptionPackageCadenceAnnual = "subscription.package.cadence.annual"
+        case subscriptionPackageCadenceMonthly = "subscription.package.cadence.monthly"
+        case subscriptionPackageTermsLink = "subscription.package.link.terms"
+        case subscriptionPackagePrivacyLink = "subscription.package.link.privacy"
+        case subscriptionPackageTrialDurationFallback = "subscription.package.trial.durationFallback"
         case subscriptionPackageStartQuarterly = "subscription.package.start.quarterly"
         case subscriptionPackageStartWeekly = "subscription.package.start.weekly"
         case subscriptionPackageStartAnnual = "subscription.package.start.annual"
@@ -158,8 +169,8 @@ enum L10n {
         case paywallUnlockTitle = "paywall.unlock.title"
         case paywallUnlockSubtitle = "paywall.unlock.subtitle"
         case paywallFeatureCustomProgram = "paywall.feature.customProgram"
-        case paywallFeatureNutritionRecovery = "paywall.feature.nutritionRecovery"
         case paywallFeatureProgressScans = "paywall.feature.progressScans"
+        case paywallFeatureRecovery = "paywall.feature.recovery"
         case paywallFeatureSkillTree = "paywall.feature.skillTree"
         case paywallFeatureSquadsVowsUnlocks = "paywall.feature.squadsVowsUnlocks"
         case paywallSubscribeToUnlock = "paywall.cta.subscribeToUnlock"
@@ -169,7 +180,10 @@ enum L10n {
         case legalPrivacyPolicy = "legal.privacyPolicy"
 
         case authSignInSubtitle = "auth.signIn.subtitle"
+        case authProtectTitle = "auth.protect.title"
+        case authProtectBody = "auth.protect.body"
         case authAppleSignIn = "auth.apple.signIn"
+        case authGoogleSignIn = "auth.google.signIn"
         case authEmailDivider = "auth.email.divider"
         case authLegalPrefix = "auth.legal.prefix"
         case authLegalAnd = "auth.legal.and"
@@ -209,7 +223,6 @@ enum L10n {
         case settingsAppearanceFooter = "settings.appearance.footer"
         case settingsContactUs = "settings.support.contactUs"
         case settingsFAQ = "settings.support.faq"
-        case settingsFAQComingSoon = "settings.support.faq.comingSoon"
         case settingsDeleteAccount = "settings.danger.deleteAccount"
         case settingsAlertError = "settings.alert.error"
         case settingsAlertOK = "settings.alert.ok"
@@ -301,6 +314,15 @@ enum L10n {
 
     static func format(
         _ key: Key,
+        defaultValue: String,
+        _ arguments: CVarArg...
+    ) -> String {
+        let localizedFormat = string(key, defaultValue: defaultValue)
+        return String(format: localizedFormat, locale: Locale.current, arguments: arguments)
+    }
+
+    static func format(
+        _ key: String,
         defaultValue: String,
         _ arguments: CVarArg...
     ) -> String {

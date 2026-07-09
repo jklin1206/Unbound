@@ -17,14 +17,19 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
     var squads: [UUID: Squad] = [:]
     var members: [UUID: [SquadMember]] = [:]   // squadId → members
 
+    /// The auth identity `leaveSquad` acts as — the real RPC resolves
+    /// auth.uid() server-side, so tests set this before calling leave.
+    var currentAuthUserId: UUID?
+
     // MARK: Call log (for assertion in tests)
 
     var insertedSquads: [Squad] = []
-    var captainUpdates: [(squadId: UUID, newCaptainId: UUID)] = []
+    var leaveCalls: [UUID] = []
     var deletedSquads: [UUID] = []
-    var deletedMembers: [(squadId: UUID, userId: UUID)] = []
+    var captainPromotions: [(squadId: UUID, newCaptainId: UUID)] = []
     var affinityUpdates: [(squadId: UUID, axis: AttributeKey?, setAt: Date?)] = []
     var logoUpdates: [(squadId: UUID, logoId: String)] = []
+    var nameUpdates: [(squadId: UUID, name: String)] = []
     var missionProgressIncrements: [(squadId: UUID, delta: Int, sourceLogId: String)] = []
 
     // MARK: Error injection
@@ -84,18 +89,6 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
         squads.values.first { $0.inviteCode == code }
     }
 
-    func deleteSquad(squadId: UUID) async throws {
-        squads.removeValue(forKey: squadId)
-        members.removeValue(forKey: squadId)
-        deletedSquads.append(squadId)
-    }
-
-    func updateCaptain(squadId: UUID, newCaptainId: UUID) async throws {
-        guard let existing = squads[squadId] else { throw SquadError.backendUnavailable }
-        squads[squadId] = existing.replacingCaptain(newCaptainId)
-        captainUpdates.append((squadId: squadId, newCaptainId: newCaptainId))
-    }
-
     func updateAffinity(squadId: UUID, axis: AttributeKey?, setAt: Date?) async throws {
         guard let existing = squads[squadId] else { throw SquadError.backendUnavailable }
         squads[squadId] = existing.replacingAffinity(axis: axis, setAt: setAt)
@@ -109,13 +102,55 @@ final class MockSquadBackend: SquadBackendProtocol, @unchecked Sendable {
         logoUpdates.append((squadId: squadId, logoId: resolved))
     }
 
+    func updateName(squadId: UUID, name: String) async throws {
+        guard let existing = squads[squadId] else { throw SquadError.backendUnavailable }
+        squads[squadId] = existing.replacingName(name)
+        nameUpdates.append((squadId: squadId, name: name))
+    }
+
     func fetchMembers(squadId: UUID) async throws -> [SquadMember] {
         (members[squadId] ?? []).sorted { $0.joinedAt < $1.joinedAt }
     }
 
-    func deleteMember(squadId: UUID, userId: UUID) async throws {
+    /// Mirrors leave_squad_atomic: removes the caller's membership, promotes
+    /// the earliest-joined remaining member if the captain left, deletes the
+    /// squad when nobody remains.
+    func leaveSquad(squadId: UUID) async throws {
+        guard let userId = currentAuthUserId else { throw SquadError.notInSquad }
+        guard let squad = squads[squadId] else { throw SquadError.notInSquad }
+        guard (members[squadId] ?? []).contains(where: { $0.userId == userId }) else {
+            throw SquadError.notInSquad
+        }
+        leaveCalls.append(squadId)
         members[squadId]?.removeAll { $0.userId == userId }
-        deletedMembers.append((squadId: squadId, userId: userId))
+
+        guard squad.captainId == userId else { return }
+        let remaining = (members[squadId] ?? []).sorted { $0.joinedAt < $1.joinedAt }
+        if let successor = remaining.first {
+            squads[squadId] = squad.replacingCaptain(successor.userId)
+            captainPromotions.append((squadId: squadId, newCaptainId: successor.userId))
+        } else {
+            squads.removeValue(forKey: squadId)
+            members.removeValue(forKey: squadId)
+            deletedSquads.append(squadId)
+        }
+    }
+
+    var memberWorkoutLogs: [UUID: [WorkoutLog]] = [:]   // memberUserId → logs
+
+    func fetchMemberWorkoutLogs(
+        squadId: UUID,
+        since: Date,
+        perMemberLimit: Int
+    ) async throws -> [UUID: [WorkoutLog]] {
+        memberWorkoutLogs.mapValues { logs in
+            Array(
+                logs
+                    .filter { ($0.completedAt ?? $0.startedAt) >= since }
+                    .sorted { ($0.completedAt ?? $0.startedAt) > ($1.completedAt ?? $1.startedAt) }
+                    .prefix(perMemberLimit)
+            )
+        }
     }
 
     func invokeJoinSquadEdgeFunction(inviteCode: String, userId: UUID) async throws -> Squad {

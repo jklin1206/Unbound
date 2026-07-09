@@ -2,661 +2,360 @@ import SwiftUI
 
 // MARK: - Step_Paywall
 //
-// Hard paywall. Blurred full-protocol preview behind, unlock CTA in front.
-//
-// Two pricing tiers: weekly (highlighted) + annual (best value). The app no
-// longer offers limited access after onboarding; users subscribe or remain on
-// the locked paywall surface.
+// Hard paywall in the trial-timeline shape (Blinkist-style), dressed in the
+// world the previous 38 screens built: the open-gate art bleeds in from the
+// top, the header names the user's handle and the arc they just configured,
+// and the pact they signed one screen group ago is what the gate "answered".
+// Below that: a three-step "how the free trial works" timeline (today /
+// reminder / billing date), then the RevenueCat-driven
+// `SubscriptionPackagePicker` plus a restore link (App Review 3.1.1).
+// Packages + pricing come from RevenueCat Offerings, so edits and A/B
+// experiments are dashboard-configured with no app release. The trial
+// headline, timeline, and billing date all track the plan selected in the
+// picker: a no-trial plan (weekly) drops the free-trial claim and the
+// timeline for honest billing-starts-today copy, so this screen never
+// promises a trial the selected plan does not carry (App Review 2.3.1/3.1.2).
 
 struct Step_Paywall: View {
     @Bindable var flow: OnboardingFlowViewModel
     let onUnlock: () -> Void
 
     @State private var hasAnimated = false
-    @State private var pulse = false
+    @State private var glow = false
+    @State private var showPromo = false
+    /// The plan currently highlighted in the picker. Drives the trial copy so
+    /// the headline, timeline, and billing date never claim a free trial the
+    /// selected plan does not carry.
+    @State private var selectedPackage: SubscriptionPackage?
     @EnvironmentObject var services: ServiceContainer
 
     var body: some View {
-        GeometryReader { proxy in
-            ZStack {
-                paywallBackground
+        ZStack {
+            background
 
-                VStack(spacing: 10) {
-                    header
-                    includedFeatureList
+            // RevenueCat-template anatomy: hero and features read as one
+            // continuous block from the top; the purchase cluster (plans, CTA,
+            // legal) anchors to the bottom. Exactly one flexible gap between
+            // them — two symmetric voids read broken, one reads intentional.
+            // Scrollable so the purchase cluster (plans, CTA, legal disclosure,
+            // Terms/Privacy, Restore) is never clipped on shorter devices, while
+            // minHeight keeps the flexible-gap distribution on tall screens.
+            GeometryReader { geo in
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        header
+                            .padding(.top, 52)
 
-                    Spacer(minLength: 4)
+                        // Equal flexible gaps float the timeline in the space between
+                        // the hero and the purchase cluster, so leftover height reads
+                        // as even breathing room instead of one dead band.
+                        Spacer(minLength: 24)
 
-                    ctaSection
+                        if showsTrialCopy {
+                            trialTimeline
+                                .padding(.horizontal, 4)
+                        }
+
+                        Spacer(minLength: 24)
+
+                        ctaSection
+                            .padding(.bottom, 6)
+                    }
+                    .padding(.horizontal, 20)
+                    .frame(minHeight: geo.size.height)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, max(12, proxy.safeAreaInsets.top + 10))
-                .padding(.bottom, max(12, proxy.safeAreaInsets.bottom + 10))
+                .scrollBounceBehavior(.basedOnSize)
             }
+
+            // Exit lives top-right, out of the sell. On a hard gate "close"
+            // routes to the exit promo — the discount is the answer to leaving.
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        UnboundHaptics.soft()
+                        showPromo = true
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(Color.unbound.textSecondary)
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(Color.unbound.surface.opacity(0.85)))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(L10n.onboarding("paywall.close", defaultValue: "Maybe later"))
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 30)
         }
         .toolbar(.hidden, for: .navigationBar)
         .opacity(hasAnimated ? 1 : 0)
         .onAppear {
             services.analytics.track(.paywallViewed(placement: AppConstants.Paywall.hardGate))
             withAnimation(.easeOut(duration: 0.4)) { hasAnimated = true }
-            pulse = true
+            glow = true
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--paywall-show-promo") {
+                showPromo = true
+            }
+            #endif
+        }
+        .fullScreenCover(isPresented: $showPromo) {
+            PromoExitSheet(onUnlock: onUnlock)
+                .environmentObject(services)
         }
     }
 
-    private var paywallBackground: some View {
-        ZStack {
-            Color.unbound.bg.ignoresSafeArea()
+    // MARK: Background
 
-            Image("onboarding_path_open_gate")
-                .resizable()
-                .scaledToFill()
-                .opacity(0.32)
-                .blur(radius: 2)
+    // The open-gate art (chapterPath's payoff frame) bleeds in from the top
+    // and dissolves into the base color before the plan cards, so the money
+    // screen reads as the same world as the pact — not a template swap.
+    private var background: some View {
+        ZStack(alignment: .top) {
+            Color.unbound.bg.ignoresSafeArea()
+            TechGridBackground(opacity: 0.14)
                 .ignoresSafeArea()
 
-            LinearGradient(
-                colors: [
-                    Color.unbound.bg.opacity(0.72),
-                    Color.unbound.bg.opacity(0.9),
-                    Color.black.opacity(0.98)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            Color.clear
+                .frame(height: 330)
+                .frame(maxWidth: .infinity)
+                .overlay(
+                    Image("onboarding_path_open_gate")
+                        .resizable()
+                        .scaledToFill()
+                )
+                .clipped()
+                .overlay(
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.52),
+                            Color.unbound.bg.opacity(0.5),
+                            Color.unbound.bg
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .ignoresSafeArea(edges: .top)
 
             RadialGradient(
-                colors: [
-                    Color.unbound.accent.opacity(pulse ? 0.22 : 0.12),
-                    Color.clear
-                ],
+                colors: [Color.unbound.accent.opacity(glow ? 0.16 : 0.08), Color.clear],
                 center: .top,
-                startRadius: 28,
-                endRadius: 420
+                startRadius: 24,
+                endRadius: 440
             )
             .ignoresSafeArea()
-            .animation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true), value: pulse)
+            .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: glow)
         }
     }
 
     // MARK: Header
 
+    // Personalized close: the gate the user signed open, their handle, the
+    // arc shape they chose — then the trial promise.
     private var header: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 8) {
-                OnboardingAssetGlyph(
-                    assetName: "rank_title_ascendant",
-                    tint: Color.unbound.impact,
-                    size: 21,
-                    imagePadding: 2,
-                    shape: .hexagon,
-                    showsCornerMark: false
-                )
-                Text(L10n.onboarding("paywall.clean.kicker", defaultValue: "UNBOUND PRO"))
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.6)
-            }
-            .foregroundStyle(Color.unbound.impact)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(Capsule().fill(Color.unbound.impact.opacity(0.12)))
-            .overlay(Capsule().strokeBorder(Color.unbound.impact.opacity(0.35), lineWidth: 1))
+        VStack(spacing: 9) {
+            // Impact violet, not base accent: small purple text over the
+            // bright gate art needs the lighter tone plus a hard dark shadow
+            // to stay AA-readable.
+            Text(L10n.onboarding("paywall.eyebrow", defaultValue: "THE GATE IS OPEN"))
+                .font(Font.unbound.monoS)
+                .tracking(2.4)
+                .foregroundStyle(Color.unbound.impact)
+                .shadow(color: Color.black.opacity(0.85), radius: 3, y: 1)
+                .shadow(color: Color.unbound.accent.opacity(0.5), radius: 10)
 
-            Text(L10n.onboarding("paywall.clean.title", defaultValue: "Unlock your first arc."))
-                .font(.system(size: 31, weight: .black, design: .rounded))
+            Text(headlineText)
+                .font(Font.unbound.titleL)
                 .foregroundStyle(Color.unbound.textPrimary)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .minimumScaleFactor(0.82)
-                .shadow(color: Color.unbound.accent.opacity(0.42), radius: 18)
+                .fixedSize(horizontal: false, vertical: true)
+                .shadow(color: Color.black.opacity(0.6), radius: 6, y: 1)
 
-            Text(L10n.onboarding("paywall.clean.subtitle", defaultValue: "Weekly training, adaptive logs, streaks, and progress scans from your Day Zero setup."))
-                .font(Font.unbound.bodyS)
-                .foregroundStyle(Color.unbound.textPrimary.opacity(0.82))
-                .multilineTextAlignment(.center)
-                .lineLimit(3)
-                .minimumScaleFactor(0.86)
-                .padding(.horizontal, 8)
-        }
-        .padding(.horizontal, 4)
-    }
+            Text(accessLineText)
+                .font(Font.unbound.bodyL.weight(.semibold))
+                .foregroundStyle(Color.unbound.textPrimary.opacity(0.92))
+                .shadow(color: Color.black.opacity(0.5), radius: 4)
 
-    private var includedFeatureList: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(L10n.onboarding("paywall.features.title", defaultValue: "INCLUDED"))
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.7)
-                    .foregroundStyle(Color.unbound.impact)
-                Spacer()
-                Text(L10n.onboarding("paywall.features.badge", defaultValue: "DAY ZERO"))
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .tracking(1.1)
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-
-            VStack(spacing: 0) {
-                featureListRow(
-                    assetName: "onboarding_path_protocol_dossier",
-                    title: L10n.onboarding("paywall.feature.plan.title", defaultValue: "Weekly training arc"),
-                    detail: L10n.onboarding("paywall.feature.plan.detail", defaultValue: "\(sessionsPerWeek) sessions fit to your schedule")
-                )
-                listDivider
-                featureListRow(
-                    assetName: "badge_art_first_session",
-                    title: L10n.onboarding("paywall.feature.logs.title", defaultValue: "Editable workout logs"),
-                    detail: L10n.onboarding("paywall.feature.logs.detail", defaultValue: "Sets, reps, RPE, swaps, and finishes")
-                )
-                listDivider
-                featureListRow(
-                    assetName: "badge_art_consistency_loop",
-                    title: L10n.onboarding("paywall.feature.streak.title", defaultValue: "Streak and reminder loop"),
-                    detail: L10n.onboarding("paywall.feature.streak.detail", defaultValue: "Keep the habit alive between sessions")
-                )
-                listDivider
-                featureListRow(
-                    assetName: "badge_art_proof_10",
-                    title: L10n.onboarding("paywall.feature.progress.title", defaultValue: "Progress profile"),
-                    detail: L10n.onboarding("paywall.feature.progress.detail", defaultValue: "Ranks, milestones, and visible proof")
-                )
-                listDivider
-                featureListRow(
-                    assetName: "badge_art_first_scan",
-                    title: L10n.onboarding("paywall.feature.scans.title", defaultValue: "Monthly scan check-ins"),
-                    detail: L10n.onboarding("paywall.feature.scans.detail", defaultValue: "Compare changes and tune the next arc")
-                )
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.78))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(Color.unbound.accent.opacity(0.22), lineWidth: 1)
-        )
-    }
-
-    private var listDivider: some View {
-        Rectangle()
-            .fill(Color.white.opacity(0.07))
-            .frame(height: 1)
-            .padding(.leading, 35)
-    }
-
-    private func featureListRow(assetName: String, title: String, detail: String) -> some View {
-        HStack(spacing: 10) {
-            OnboardingAssetGlyph(
-                assetName: assetName,
-                tint: Color.unbound.impact,
-                size: 27,
-                imagePadding: 4,
-                shape: .hexagon,
-                showsCornerMark: false
-            )
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-                Text(detail)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+            if let arcMeta = arcMetaText {
+                Text(arcMeta)
+                    .font(Font.unbound.monoS)
+                    .tracking(1.6)
                     .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.76)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .frame(height: 38)
-    }
-
-    private var unlockBoxGrid: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 8) {
-                unlockBox(
-                    assetName: "onboarding_path_protocol_dossier",
-                    title: L10n.onboarding("paywall.box.plan.title", defaultValue: "Plan"),
-                    detail: L10n.onboarding("paywall.box.plan.detail", defaultValue: "\(sessionsPerWeek)x weekly arc")
-                )
-                unlockBox(
-                    assetName: "badge_art_first_session",
-                    title: L10n.onboarding("paywall.box.log.title", defaultValue: "Log"),
-                    detail: L10n.onboarding("paywall.box.log.detail", defaultValue: "Sets, RPE, swaps")
-                )
-            }
-
-            HStack(spacing: 8) {
-                unlockBox(
-                    assetName: "badge_art_consistency_loop",
-                    title: L10n.onboarding("paywall.box.streak.title", defaultValue: "Streak"),
-                    detail: L10n.onboarding("paywall.box.streak.detail", defaultValue: "Keep it alive")
-                )
-                unlockBox(
-                    assetName: "badge_art_first_scan",
-                    title: L10n.onboarding("paywall.box.scan.title", defaultValue: "Scans"),
-                    detail: L10n.onboarding("paywall.box.scan.detail", defaultValue: "Track changes")
-                )
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func unlockBox(assetName: String, title: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            OnboardingAssetGlyph(
-                assetName: assetName,
-                tint: Color.unbound.impact,
-                size: 32,
-                imagePadding: 5,
-                shape: .hexagon
-            )
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title.uppercased())
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                Text(detail)
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.76)
+                    .padding(.top, 2)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 104, alignment: .topLeading)
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.82))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(Color.unbound.accent.opacity(0.22), lineWidth: 1)
-        )
+        .padding(.horizontal, 12)
     }
 
-    // MARK: Transformation
+    private var headlineText: String {
+        let handle = flow.displayHandle.trimmingCharacters(in: .whitespaces)
+        if handle.isEmpty {
+            return L10n.onboarding("paywall.headline", defaultValue: "Your first arc is loaded.")
+        }
+        return L10n.onboardingFormat("paywall.headline.named", defaultValue: "Your first arc is loaded, @%@.", handle)
+    }
 
-    private var transformationPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 12) {
-                paywallSeal
+    // "3 DAYS / WEEK · 45 MINUTES" — the plan they configured, echoed on the
+    // screen where they decide whether to keep it.
+    private var arcMetaText: String? {
+        guard let frequency = flow.targetFrequency?.numericCount,
+              let length = flow.sessionLength?.displayName else { return nil }
+        let days = L10n.onboardingFormat("paywall.meta.days", defaultValue: "%d DAYS / WEEK", frequency)
+        return "\(days) · \(length.uppercased())"
+    }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(L10n.onboarding("paywall.panel.title", defaultValue: "Your arc is waiting beyond the gate."))
-                        .font(Font.unbound.titleM)
-                        .foregroundStyle(Color.unbound.textPrimary)
+    // MARK: Trial copy
 
-                    Text(L10n.onboarding("paywall.panel.subtitle", defaultValue: "Start with a four-week block tuned to your schedule, equipment, focus areas, and Day Zero scan."))
-                        .font(Font.unbound.bodyS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+    // Trial copy only when the selected plan actually carries a free trial.
+    // `nil` (packages still loading) defaults to the trial copy because the
+    // picker's default selection is a trial plan; the honest swap happens the
+    // moment a no-trial plan (weekly) is highlighted.
+    private var showsTrialCopy: Bool {
+        selectedPackage?.hasFreeTrial ?? true
+    }
+
+    // The sub-headline under the hero: the trial promise when the selected
+    // plan has one, an honest immediate-billing line when it does not.
+    private var accessLineText: String {
+        if showsTrialCopy {
+            return L10n.onboardingFormat("paywall.trialLine", defaultValue: "First %d days free.", trialDays)
+        }
+        return L10n.onboarding("paywall.noTrialLine", defaultValue: "Billing starts today. Cancel anytime.")
+    }
+
+    /// Trial length in days for the selected plan. `SubscriptionPackage` only
+    /// exposes the store's display string ("7 Days"), so parse it when it is
+    /// day-denominated. Every live UNBOUND trial is 7 days, so 7 is the
+    /// fallback for any other shape rather than a guess at all period units;
+    /// revisit if a non-7-day trial ships.
+    private var trialDays: Int {
+        guard let duration = selectedPackage?.freeTrialDuration?.lowercased(),
+              duration.contains("day"),
+              let days = Int(duration.split(separator: " ").first ?? ""),
+              days > 0 else { return 7 }
+        return days
+    }
+
+    /// The reminder lands two days before billing, clamped for short trials.
+    private var reminderDay: Int { max(1, trialDays - 2) }
+
+    // MARK: Trial timeline
+
+    // "How the free trial works" as three milestones down a rail: unlock
+    // today, reminder before it ends, billing on a concrete date. The dated
+    // last step is what makes the trial feel safe to start. Only rendered
+    // when the selected plan carries a trial (see `showsTrialCopy`).
+    private var trialTimeline: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            timelineRow(
+                icon: "lock.open.fill",
+                title: "Today",
+                detail: "Everything unlocks: your program, the skill tree, rank gates, vows.",
+                isLast: false
+            )
+            timelineRow(
+                icon: "bell.fill",
+                title: "Day \(reminderDay): Reminder",
+                detail: "We'll remind you that your trial is ending soon.",
+                isLast: false
+            )
+            timelineRow(
+                icon: "crown.fill",
+                title: "Day \(trialDays): Billing starts",
+                detail: "You'll be charged on \(billingDateText). Cancel anytime before.",
+                isLast: true
+            )
+        }
+    }
+
+    private func timelineRow(icon: String, title: String, detail: String, isLast: Bool) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            VStack(spacing: 0) {
+                ZStack {
+                    Circle()
+                        .fill(Color.unbound.accent)
+                        .frame(width: 38, height: 38)
+                        .shadow(color: Color.unbound.accent.opacity(0.35), radius: 8)
+                    Image(systemName: icon)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+
+                if isLast {
+                    // The rail runs past the last node and fades out, so the
+                    // track reads as one continuous piece (reference detail).
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.unbound.accent.opacity(0.45), Color.clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 4, height: 30)
+                } else {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.unbound.accent.opacity(0.75), Color.unbound.accent.opacity(0.3)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 4)
+                        .frame(maxHeight: .infinity)
                 }
             }
+            .frame(width: 38)
 
-            HStack(spacing: 8) {
-                compactUnlock(assetName: "badge_art_arc_week", text: "4-week opening arc")
-                compactUnlock(assetName: "badge_art_hour_glass", text: "Recovery targets")
-                compactUnlock(assetName: "badge_art_proof_10", text: "Rank proof")
-            }
-        }
-        .padding(15)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.unbound.surface.opacity(0.92))
-                LinearGradient(
-                    colors: [
-                        Color.unbound.accent.opacity(0.22),
-                        Color.unbound.impact.opacity(0.1),
-                        Color.black.opacity(0.18)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.unbound.accent.opacity(0.35), lineWidth: 1)
-        )
-    }
-
-    private var paywallSeal: some View {
-        OnboardingAssetGlyph(
-            assetName: "rank_title_ascendant",
-            tint: Color.unbound.impact,
-            size: 58,
-            imagePadding: 5,
-            shape: .hexagon
-        )
-    }
-
-    private func compactUnlock(assetName: String, text: String) -> some View {
-        HStack(spacing: 9) {
-            OnboardingAssetGlyph(
-                assetName: assetName,
-                tint: Color.unbound.impact,
-                size: 22,
-                imagePadding: 4,
-                shape: .hexagon,
-                showsCornerMark: false
-            )
-            Text(text)
-                .font(Font.unbound.captionS.weight(.semibold))
-                .foregroundStyle(Color.unbound.textPrimary.opacity(0.92))
-                .lineLimit(2)
-                .minimumScaleFactor(0.72)
-        }
-        .frame(maxWidth: .infinity, minHeight: 44)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.black.opacity(0.24))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-        )
-    }
-
-    // MARK: Feature unlocks
-
-    private var featureUnlocks: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(L10n.onboarding("paywall.unlocks.title", defaultValue: "What unlocks now"))
-                .font(Font.unbound.captionS.weight(.heavy))
-                .tracking(1.7)
-                .foregroundStyle(Color.unbound.impact)
-
-            ForEach(unlocks) { unlock in
-                featureRow(unlock)
-            }
-        }
-    }
-
-    private var unlocks: [PaywallUnlock] {
-        [
-            PaywallUnlock(
-                assetName: "onboarding_path_protocol_dossier",
-                title: L10n.onboarding("paywall.unlock.program.title", defaultValue: "The opening arc"),
-                detail: L10n.onboarding("paywall.unlock.program.detail", defaultValue: "A 4-week route built from your goals, equipment, training days, and starting point.")
-            ),
-            PaywallUnlock(
-                assetName: "badge_art_first_session",
-                title: L10n.onboarding("paywall.unlock.sessions.title", defaultValue: "Sessions that feed the next gate"),
-                detail: L10n.onboarding("paywall.unlock.sessions.detail", defaultValue: "Log sets, RPE, swaps, and finishes so your plan keeps adapting instead of going stale.")
-            ),
-            PaywallUnlock(
-                assetName: "badge_art_proof_10",
-                title: L10n.onboarding("paywall.unlock.profile.title", defaultValue: "A character card that changes"),
-                detail: L10n.onboarding("paywall.unlock.profile.detail", defaultValue: "Your Build Hex, milestones, streaks, and rank path start moving from Day Zero.")
-            ),
-            PaywallUnlock(
-                assetName: "badge_art_first_scan",
-                title: L10n.onboarding("paywall.unlock.scan.title", defaultValue: "Monthly evolution scans"),
-                detail: L10n.onboarding("paywall.unlock.scan.detail", defaultValue: "Return to the scanner, compare the work, and make the next arc more specific.")
-            )
-        ]
-    }
-
-    private func featureRow(_ unlock: PaywallUnlock) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            OnboardingAssetGlyph(
-                assetName: unlock.assetName,
-                tint: Color.unbound.impact,
-                size: 32,
-                imagePadding: 5,
-                shape: .hexagon
-            )
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(unlock.title)
-                    .font(Font.unbound.bodyMStrong)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(Font.unbound.bodyL.weight(.bold))
                     .foregroundStyle(Color.unbound.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(unlock.detail)
-                    .font(Font.unbound.bodyS)
+                Text(detail)
+                    .font(Font.unbound.bodyM)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-
-            Spacer(minLength: 0)
+            .padding(.top, 4)
+            .padding(.bottom, isLast ? 0 : 26)
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.black.opacity(0.48))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.accent.opacity(0.18), lineWidth: 1)
-        )
+        .fixedSize(horizontal: false, vertical: true)
     }
 
-    private var climberProof: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(L10n.onboarding("paywall.climbers.title", defaultValue: "OTHERS CLIMBED"))
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.7)
-                    .foregroundStyle(Color.unbound.accent)
-                Spacer()
-                Text(L10n.onboarding("paywall.climbers.beta", defaultValue: "BETA LOGS"))
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-
-            HStack(spacing: 9) {
-                climberStat(name: "KAI", move: "INIT -> MAS", detail: "28 sessions")
-                climberStat(name: "MASON", move: "INIT -> VET", detail: "21d streak")
-                climberStat(name: "JALEN", move: "INIT -> FORG", detail: "Arc 1 clear")
-            }
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.black.opacity(0.42))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.accent.opacity(0.22), lineWidth: 1)
-        )
-    }
-
-    private func climberStat(name: String, move: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(name)
-                .font(.system(size: 9, weight: .black, design: .monospaced))
-                .tracking(1.0)
-                .foregroundStyle(Color.unbound.textTertiary)
-            Text(move)
-                .font(.system(size: 12, weight: .black, design: .monospaced))
-                .foregroundStyle(Color.unbound.impact)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-            Text(detail.uppercased())
-                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                .tracking(0.6)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-        }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.74))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-        )
-    }
-
-    private var pathPreview: some View {
-        ZStack(alignment: .bottomLeading) {
-            Image("onboarding_path_protocol_dossier")
-                .resizable()
-                .scaledToFill()
-                .frame(height: 174)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(
-                    LinearGradient(
-                        colors: [Color.clear, Color.black.opacity(0.72)],
-                        startPoint: .center,
-                        endPoint: .bottom
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                )
-
-            VStack(alignment: .leading, spacing: 5) {
-                Text(L10n.onboarding("paywall.pathPreview.eyebrow", defaultValue: "BEHIND THE PAYWALL"))
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.accent)
-                Text(L10n.onboarding("paywall.pathPreview.title", defaultValue: "Your calibration week unlocks first."))
-                    .font(Font.unbound.bodyLStrong)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(14)
-        }
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.unbound.accent.opacity(0.24), lineWidth: 1)
-        )
-        .shadow(color: Color.unbound.accent.opacity(0.18), radius: 16)
+    private var billingDateText: String {
+        let date = Calendar.current.date(byAdding: .day, value: trialDays, to: Date()) ?? Date()
+        return date.formatted(.dateTime.month(.abbreviated).day())
     }
 
     // MARK: CTA
 
-    private var bottomPurchaseTray: some View {
-        VStack(spacing: 10) {
-            ctaSection
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 26)
-        .padding(.bottom, 14)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color.clear,
-                    Color.black.opacity(0.9),
-                    Color.black.opacity(0.98)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-        )
-        .overlay(alignment: .top) {
-            LinearGradient(
-                colors: [
-                    Color.unbound.accent.opacity(0.26),
-                    Color.clear
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 1)
-        }
-    }
-
+    // The picker renders the selected plan's own legal line; restore lives
+    // right below it - a reinstalling subscriber's only pre-purchase surface
+    // is this hard gate, and App Review expects a restore path here too.
     private var ctaSection: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
             SubscriptionPackagePicker(
                 placement: AppConstants.Paywall.hardGate,
-                ctaTitle: L10n.onboarding("paywall.subscribeCTA", defaultValue: "Start my first arc"),
+                ctaTitle: "Start my first arc",
                 showsPitch: false,
                 maxVisiblePackages: 2,
-                onPurchased: onUnlock
+                onPurchased: onUnlock,
+                onSelectedPackageChange: { package in
+                    withAnimation(.easeInOut(duration: 0.2)) { selectedPackage = package }
+                }
             )
 
-            Text(L10n.onboarding("paywall.disclaimer", defaultValue: "Start today. Cancel anytime. Checkout is handled securely by Apple."))
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .multilineTextAlignment(.center)
-
-            RestorePurchasesButton()
-                .padding(.top, 8)
-
-            #if DEBUG
-            Button {
-                DevFlags.shared.unlockAllFeatures = true
-                onUnlock()
-            } label: {
-                Text(L10n.onboarding("paywall.devUnlock", defaultValue: "DEV · Unlock simulator"))
-                    .font(Font.unbound.monoS)
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.impact)
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 8)
-            #endif
+            RestorePurchasesButton(onRestored: onUnlock)
         }
     }
 
-    private var sessionsPerWeek: Int {
-        switch flow.targetFrequency {
-        case .three: return 3
-        case .four: return 4
-        case .five: return 5
-        case .six: return 6
-        case nil: return 4
-        }
-    }
-}
-
-private struct PaywallUnlock: Identifiable {
-    let id = UUID()
-    let assetName: String
-    let title: String
-    let detail: String
-}
-
-// MARK: - ProtocolPreviewBackdrop
-//
-// The blurred content behind the paywall — renders a fake protocol preview
-// so the paywall feels like it's blocking a real thing.
-
-private struct ProtocolPreviewBackdrop: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            ForEach(0..<5, id: \.self) { i in
-                HStack {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(L10n.onboardingFormat("paywall.preview.week", defaultValue: "WEEK %d", i + 1))
-                            .font(Font.unbound.captionS)
-                            .tracking(1.4)
-                            .foregroundStyle(Color.unbound.textTertiary)
-                        Text(L10n.onboardingFormat("paywall.preview.workout", defaultValue: "Upper body · %d min", 45 + i * 5))
-                            .font(Font.unbound.bodyLStrong)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                        Text(L10n.onboarding("paywall.preview.exercises", defaultValue: "Bench · Row · Press · Curl · Core"))
-                            .font(Font.unbound.bodyS)
-                            .foregroundStyle(Color.unbound.textSecondary)
-                    }
-                    Spacer()
-                }
-                .padding(18)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color.unbound.surface)
-                )
-            }
-        }
-        .padding(20)
-    }
 }

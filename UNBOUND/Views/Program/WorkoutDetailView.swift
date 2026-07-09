@@ -147,11 +147,15 @@ struct WorkoutDetailView: View {
 
     private var readyDraft: TrainingSessionDraft? {
         guard let userId = services.auth.currentUserId else { return nil }
+        // The resolver no longer reads app state itself; layer the live
+        // Short-mode flag here, the launch boundary.
+        let modifierContext = DailyWorkoutModifierContext.empty.applyingAppState(on: Date())
         if let day = programViewModel?.program?.days.first(where: { $0.dayNumber == dayNumber }),
            let draft = DailyWorkoutResolver.programDraft(
                 from: day,
                 userId: userId,
-                programId: programId.isEmpty ? nil : programId
+                programId: programId.isEmpty ? nil : programId,
+                modifierContext: modifierContext
            ) {
             return draft
         }
@@ -159,7 +163,8 @@ struct WorkoutDetailView: View {
             from: liveWorkout,
             userId: userId,
             programId: programId.isEmpty ? nil : programId,
-            dayNumber: dayNumber
+            dayNumber: dayNumber,
+            modifierContext: modifierContext
         )
     }
 

@@ -1,4 +1,8 @@
 // UNBOUND/Views/Squads/SquadCrewTab.swift
+//
+// CREW tab: who's live, the squad streak, the roster, recent shared
+// activity, and shared routines — each as its own tinted section card
+// (streak = ember, crew = cyan, recent = violet, routines = orange).
 import SwiftUI
 
 extension SquadDetailView {
@@ -7,6 +11,7 @@ extension SquadDetailView {
         liveNowRow
         squadStreakSection(squad: squad)
         crewSection
+        recentActivitySection
         routineDropsSection
     }
 
@@ -19,7 +24,7 @@ extension SquadDetailView {
             } label: {
                 HStack(spacing: 12) {
                     Circle()
-                        .fill(Color.unbound.accent)
+                        .fill(Color.unbound.success)
                         .frame(width: 8, height: 8)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(displayName(for: live.userId)) is training now")
@@ -31,16 +36,17 @@ extension SquadDetailView {
                     }
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .black))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.unbound.textTertiary)
                 }
-                .padding(14)
-                .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color.unbound.surfaceElevated)
-                )
+                .padding(16)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color.unbound.success.opacity(0.10))
+            )
         }
     }
 
@@ -49,100 +55,117 @@ extension SquadDetailView {
     }
 
     var crewSection: some View {
-        let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
         let presenceMap = Dictionary(uniqueKeysWithValues: state.activeRosterPresence.map { ($0.userId, $0) })
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                sectionHeader("CREW RANKS")
-                Spacer()
-                if !state.activeRosterPresence.isEmpty {
-                    Text("\(state.activeRosterPresence.count) LIVE")
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .tracking(1.2)
-                        .foregroundStyle(Color.unbound.accent)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 5)
-                        .background(Capsule().fill(Color.unbound.accent.opacity(0.12)))
-                }
-            }
-
-            LazyVGrid(columns: columns, spacing: 10) {
+        let liveCount = state.activeRosterPresence.count
+        return SquadSectionCard(
+            title: "CREW",
+            icon: "person.2.fill",
+            tint: Color.unbound.coachCyan,
+            trailing: liveCount > 0 ? "\(liveCount) live" : "\(state.roster.count)/\(state.currentSquad?.maxSize ?? 10)",
+            trailingTint: liveCount > 0 ? Color.unbound.success : nil
+        ) {
+            VStack(alignment: .leading, spacing: 2) {
                 ForEach(state.roster) { member in
-                    SquadMemberCard(
+                    let memberProfileId = resolvedProfileUserId(for: member)
+                    let flair = memberFlair[member.userId]
+                    SquadMemberRow(
                         member: member,
-                        presence: presenceMap[member.userId],
+                        isLive: presenceMap[member.userId] != nil,
+                        isSelf: member.userId == currentUserId,
                         weeklySessionCount: weeklySessionCount(for: member.userId),
-                        accountabilityBadge: accountabilityBadge(for: member.userId),
+                        lastTrainedAt: lastTrainedAt(for: member.userId),
                         displayNameOverride: displayName(for: member),
-                        profileUserId: resolvedProfileUserId(for: member),
-                        cosmeticTier: frameTier(for: member),
+                        frameTier: flair?.frameTier
+                            ?? RankCosmetics.equippedFrameTier(userId: memberProfileId, currentTier: .initiate),
+                        borderId: flair?.borderId
+                            ?? ShopInventoryStore.equippedProfileBorder(userId: memberProfileId),
+                        avatarImage: ProfilePhotoStore.shared.image(userId: memberProfileId),
                         onTap: { memberDetailTarget = member }
                     )
+                }
+
+                if state.roster.count < (state.currentSquad?.maxSize ?? 10),
+                   let inviteURL = state.currentSquad?.inviteURL {
+                    ShareLink(item: inviteURL) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Color.unbound.coachCyan)
+                                .frame(width: 36, height: 36)
+                                .background(
+                                    Circle()
+                                        .strokeBorder(Color.unbound.coachCyan.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                                )
+                            Text("Invite a crewmate")
+                                .font(Font.unbound.bodyM)
+                                .foregroundStyle(Color.unbound.textSecondary)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
+                    }
+                }
+            }
+        }
+    }
+
+    func lastTrainedAt(for userId: UUID) -> Date? {
+        memberWorkoutLogs[userId]?
+            .compactMap { $0.completedAt ?? $0.startedAt }
+            .max()
+    }
+
+    @ViewBuilder
+    var recentActivitySection: some View {
+        if !state.recentActivity.isEmpty {
+            SquadSectionCard(
+                title: "RECENT",
+                icon: "sparkles",
+                tint: Color.unbound.accent
+            ) {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(state.recentActivity.prefix(6)) { entry in
+                        ActivityFeedRow(entry: entry, roster: state.roster)
+                    }
                 }
             }
         }
     }
 
     var routineDropsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                sectionHeader("ROUTINE DROPS")
-                Spacer()
-                Text("\(routineDrops.count)")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .foregroundStyle(Color.unbound.warnOrange)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
-                    .background(Capsule().fill(Color.unbound.warnOrange.opacity(0.12)))
-            }
-
-            if let routineDropStatus {
-                Text(routineDropStatus)
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.accent)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if routineDrops.isEmpty {
-                emptySlab("No routines shared yet. Drop a Saved Workout from the Program tab.", icon: "square.and.arrow.up.fill")
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(alignment: .top, spacing: 12) {
-                        ForEach(routineDrops) { drop in
-                            SquadRoutineDropCard(
-                                drop: drop,
-                                authorName: displayName(for: drop.authorUserId),
-                                isMine: drop.authorUserId == currentUserId,
-                                onSave: { saveRoutineDrop(drop) },
-                                onUseToday: { useRoutineDropToday(drop) }
-                            )
-                            .frame(width: 306)
-                        }
-                    }
-                    .padding(.vertical, 2)
+        SquadSectionCard(
+            title: "SHARED ROUTINES",
+            icon: "square.and.arrow.down.fill",
+            tint: Color.unbound.warnOrange,
+            trailing: routineDrops.isEmpty ? nil : "\(routineDrops.count)"
+        ) {
+            VStack(alignment: .leading, spacing: 2) {
+                if let routineDropStatus {
+                    Text(routineDropStatus)
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.success)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, 4)
                 }
-                .scrollClipDisabled()
+
+                if routineDrops.isEmpty {
+                    Text("No routines shared yet. Share a Saved Workout from the Program tab.")
+                        .font(Font.unbound.bodyM)
+                        .foregroundStyle(Color.unbound.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, 4)
+                } else {
+                    ForEach(routineDrops.prefix(6)) { drop in
+                        SquadRoutineDropRow(
+                            drop: drop,
+                            authorName: displayName(for: drop.authorUserId),
+                            isMine: drop.authorUserId == currentUserId,
+                            onSave: { saveRoutineDrop(drop) },
+                            onUseToday: { useRoutineDropToday(drop) }
+                        )
+                    }
+                }
             }
         }
     }
-
-    func emptySlab(_ copy: String, icon: String) -> some View {
-        HStack(alignment: .top, spacing: 11) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(Color.unbound.textTertiary)
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(Color.unbound.surfaceElevated.opacity(0.78)))
-
-            Text(copy)
-                .font(Font.unbound.bodyM)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Spacer(minLength: 0)
-        }
-        .padding(14)
-        .squadPanel(cornerRadius: 18, tint: Color.unbound.textTertiary)
-    }
-
 }

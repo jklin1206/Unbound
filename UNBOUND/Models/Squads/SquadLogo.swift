@@ -23,24 +23,38 @@ struct SquadLogoPreset: Identifiable, Equatable, Sendable {
 }
 
 enum SquadLogoCatalog {
-    static let defaultId = "forge"
+    static let defaultId = "monk"
 
+    // Titles are VoiceOver descriptions only; the UI shows just the mark.
     static let presets: [SquadLogoPreset] = [
-        SquadLogoPreset(id: "forge", title: "Strawhat Blades", assetName: "squad_logo_forge", palette: .forge),
-        SquadLogoPreset(id: "ember", title: "Golden Charge", assetName: "squad_logo_ember", palette: .ember),
-        SquadLogoPreset(id: "volt", title: "Bald Cape", assetName: "squad_logo_volt", palette: .volt),
-        SquadLogoPreset(id: "crown", title: "Shadow Monarchs", assetName: "squad_logo_crown", palette: .nova),
-        SquadLogoPreset(id: "pulse", title: "Cursed Blade", assetName: "squad_logo_pulse", palette: .signal),
-        SquadLogoPreset(id: "barbell", title: "Slayer Breath", assetName: "squad_logo_barbell", palette: .prism),
-        SquadLogoPreset(id: "nova", title: "Hero Spark", assetName: "squad_logo_nova", palette: .neon),
-        SquadLogoPreset(id: "glacier", title: "Stand Rush", assetName: "squad_logo_glacier", palette: .nova),
-        SquadLogoPreset(id: "focus", title: "Soul Reaper", assetName: "squad_logo_focus", palette: .ember)
+        SquadLogoPreset(id: "monk", title: "Meditating monk", assetName: "squad_logo_monk", palette: .nova),
+        SquadLogoPreset(id: "fighter", title: "Scarred fighter", assetName: "squad_logo_fighter", palette: .signal),
+        SquadLogoPreset(id: "fist", title: "Wrapped fist and rising sun", assetName: "squad_logo_fist", palette: .ember),
+        SquadLogoPreset(id: "surge", title: "Energy surge", assetName: "squad_logo_surge", palette: .forge),
+        SquadLogoPreset(id: "spotlight", title: "Spotlit hero", assetName: "squad_logo_spotlight", palette: .crown),
+        SquadLogoPreset(id: "awakening", title: "Awakening statue", assetName: "squad_logo_awakening", palette: .steel),
+        SquadLogoPreset(id: "wingfoot", title: "Crossed-out winged shoe", assetName: "squad_logo_wingfoot", palette: .prism),
+        SquadLogoPreset(id: "drumstick", title: "Torso on chicken legs", assetName: "squad_logo_drumstick", palette: .crown),
+        SquadLogoPreset(id: "crownbar", title: "Crowned barbell", assetName: "squad_logo_crownbar", palette: .pulse),
+        SquadLogoPreset(id: "rat", title: "Gym rat", assetName: "squad_logo_rat", palette: .prism),
+        SquadLogoPreset(id: "shadow", title: "Shadowed villain", assetName: "squad_logo_shadow", palette: .dusk),
+        SquadLogoPreset(id: "goblin", title: "Shaker goblin", assetName: "squad_logo_goblin", palette: .neon),
+        SquadLogoPreset(id: "moai", title: "Moai with barbell", assetName: "squad_logo_moai", palette: .glacier)
     ]
 
     private static let retiredIdAliases: [String: String] = [
-        "prism": "crown",
-        "eclipse": "ember",
-        "signal": "focus"
+        "forge": "monk",
+        "ember": "fist",
+        "volt": "spotlight",
+        "crown": "shadow",
+        "pulse": "rat",
+        "barbell": "crownbar",
+        "nova": "surge",
+        "glacier": "wingfoot",
+        "focus": "fighter",
+        "prism": "shadow",
+        "eclipse": "fist",
+        "signal": "fighter"
     ]
 
     static func preset(for id: String?) -> SquadLogoPreset {

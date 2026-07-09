@@ -520,8 +520,9 @@ struct SetLoggerSheet: View {
         switch target {
         case .reps(let n):
             reps = n
-        case .repsRange(let lo, let hi):
-            reps = (lo + hi) / 2
+        case .repsRange(let lo, _):
+            // Prefill matches the displayed single target (bottom of the window).
+            reps = lo
         case .amrap:
             reps = 0
         case .hold:

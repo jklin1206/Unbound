@@ -6,15 +6,17 @@ The PROGRAM tab's main surface: week strip + selected-day card + command dock, p
 
 | File | What it is |
 |---|---|
-| `ProgramBlockCompleteView.swift` | `ProgramBlockCompleteView` — end-of-block completion screen. |
+| `DayLoadoutPickerSheet.swift` | `DayLoadoutPickerRequest` + `DayLoadoutPickerSheet` — day-side loadout picker: swap one of the user's saved loadouts onto the selected day. |
+| `ProgramBlockCompleteView.swift` | `ProgramBlockCompleteView` — compact end-of-block card shown in the day-card slot while the next block builds. |
 | `ProgramBlockRolloverCoordinator.swift` | `ProgramBlockRolloverContext` + `ProgramBlockRolloverCoordinator` — logic for rolling a finished block into the next one. |
-| `ProgramCommandDock.swift` | `ProgramCommandDock` bottom action dock + `ProgramMonthPlannerView` month planner. |
+| `ProgramCommandDock.swift` | `ProgramCommandDock` bottom action dock (Plan + Setup tiles). |
 | `ProgramDayActionRow.swift` | `ProgramDayActionRow` — the action row rendered for a day. |
 | `ProgramDayPreviewResolver.swift` | `ProgramDayPreviewResolver` — derives day-preview content. |
 | `ProgramDayPreviewViews.swift` | Day-preview subviews: `ProgramModifierSummaryRail`, `ProgramWaveAdjustmentPanel`, `ProgramWorkoutExerciseList`. |
 | `ProgramDevSimulationViews.swift` | DEBUG-only day simulator / dynamic-scenario rail cards. |
 | `ProgramFocusSwitchCoordinator.swift` | `ProgramFocusSwitchCoordinator` — logic for switching program focus. |
 | `ProgramMidBlockProposalCard.swift` | `ProgramMidBlockProposalCard` — mid-block change proposal card. |
+| `ProgramMonthPlannerView.swift` | `ProgramMonthPlannerView` — the Plan calendar: month grid with per-day split tags (`ProgramPlannerDayInfo`) + day workout picker. |
 | `ProgramOverviewChrome.swift` | Screen chrome: top bar, tab selector, loading / no-program / error states, subscription banner, recovery-completion overlay. |
 | `ProgramOverviewDayActionResolver.swift` | Pure resolver mapping day input → primary-action state (`ProgramOverviewDayActionInput/State/Resolver`). |
 | `ProgramOverviewDayResolver.swift` | `ProgramOverviewDayResolver` (@MainActor) — resolves which day is selected/shown. |

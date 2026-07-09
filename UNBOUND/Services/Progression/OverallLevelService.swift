@@ -1,13 +1,22 @@
 import Foundation
 
 final class OverallLevelService {
-    static let shared = OverallLevelService()
+    static let shared = OverallLevelService(backup: OverallLevelCloudBackup.shared)
 
     #if DEBUG
-    static func makeForTesting() -> OverallLevelService { OverallLevelService() }
+    static func makeForTesting(
+        backup: (any OverallLevelBackuping)? = nil
+    ) -> OverallLevelService { OverallLevelService(backup: backup) }
     #endif
 
-    private init() {}
+    /// Optional cloud mirror. The production `.shared` service wires the real
+    /// backup; test-constructed services get `nil` so unit tests never touch
+    /// the outbox / SyncedDatabase. Local remains the source of truth.
+    private let backup: (any OverallLevelBackuping)?
+
+    private init(backup: (any OverallLevelBackuping)? = nil) {
+        self.backup = backup
+    }
 
     /// Last-known persisted progress per user, kept in memory so the reward
     /// preview can baseline the overall-level bar correctly (instead of from 0)
@@ -396,8 +405,13 @@ final class OverallLevelService {
                     level: .warning,
                     context: ["documentId": progress.id]
                 )
+                return
             }
         }
+        // Mirror the freshly persisted ledger onto the synced `users` doc so a
+        // reinstall restores the level. Fire-and-forget through the outbox;
+        // failures are logged, never silenced. Local remains authoritative.
+        backup?.backup(progress, userId: progress.userId)
     }
 
     private func loadProgress(

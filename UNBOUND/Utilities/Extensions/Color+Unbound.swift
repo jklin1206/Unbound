@@ -62,6 +62,8 @@ struct UnboundColors {
     let rankAmber = Color.unboundHex("EAB308")        // moderate
     let rankGreen = Color.unboundHex("22C55E")        // solid
     let rankGold = Color.unboundHex("FFC857")         // elite
+    let rankSilver = Color.unboundHex("B9C2CE")       // 2nd place / steel
+    let rankBronze = Color.unboundHex("CC8B52")       // 3rd place
 }
 
 // Self-contained hex helper so this file has no cross-file dependency.

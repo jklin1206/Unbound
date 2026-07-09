@@ -57,7 +57,7 @@ extension SessionXPServiceProtocol {
 // A lightweight ledger entry written for each out-of-band XP bonus.
 // Stored per-user under "unbound.sessionxpbonus.<userId>".
 
-struct SessionXPBonusEntry: Codable, Sendable {
+struct SessionXPBonusEntry: Codable, Sendable, Equatable {
     let amount: Int
     let reason: String
     let date: Date
@@ -67,10 +67,15 @@ struct SessionXPBonusEntry: Codable, Sendable {
 
 @MainActor
 final class SessionXPService: SessionXPServiceProtocol {
-    static let shared = SessionXPService()
+    static let shared = SessionXPService(backup: SessionXPCloudBackup.shared)
 
     private let logger = LoggingService.shared
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
+    /// Optional cloud mirror. The production `.shared` service wires the real
+    /// backup; test-constructed services get `nil` so unit tests never touch
+    /// the outbox / SyncedDatabase. Local UserDefaults stays the source of
+    /// truth.
+    private let backup: (any SessionXPBackuping)?
     private let bonusKeyPrefix = "unbound.sessionxpbonus."
     private let streakResetKey = "unbound.streakResetDays"
 
@@ -82,7 +87,9 @@ final class SessionXPService: SessionXPServiceProtocol {
         "unbound.sessionxp." + userId
     }
 
-    private init() {
+    init(defaults: UserDefaults = .standard, backup: (any SessionXPBackuping)? = nil) {
+        self.defaults = defaults
+        self.backup = backup
         // Default streak-reset window (days). 14 = "life happens, don't punish."
         if defaults.object(forKey: streakResetKey) == nil {
             defaults.set(14, forKey: streakResetKey)
@@ -196,6 +203,10 @@ final class SessionXPService: SessionXPServiceProtocol {
         )
 
         persist(current)
+        // Mirror the freshly persisted record onto the synced `users` doc so a
+        // reinstall restores the streak. Fire-and-forget through the outbox;
+        // failures are logged, never silenced. Local remains authoritative.
+        backup?.backup(record: current, bonuses: loadBonusLedger(userId: userId), userId: userId)
 
         let delta = SessionXPDelta(
             previous: previous,
@@ -225,24 +236,12 @@ final class SessionXPService: SessionXPServiceProtocol {
         catalog: AttributeCatalogProtocol,
         squadService: SquadServiceProtocol
     ) async -> SessionXPDelta {
-        // 1. Record the base session (streak, counters, .sessionXPUpdated).
-        let delta = await recordSession(userId: userId, at: date)
-
-        // 2. Check squad affinity.
-        //    baseXP proxy: fixed 10 units per session for bonus computation.
-        //    +10% of base = 1 unit, +20% of base = 2 units, net max = 2 (non-stacking).
-        let baseXP = 10
-
-        let squadState = squadService.state(userId: userId)
-        if let squad = squadState.currentSquad,
-           let affinityAxis = squad.affinityAxis,
-           let dominant = AttributeIngest.dominantAxis(for: log, catalog: catalog),
-           affinityAxis == dominant {
-            let affinityBonus = Int(Double(baseXP) * 0.10)
-            await addBonus(userId: userId, amount: affinityBonus, reason: "affinity")
-        }
-
-        return delta
+        // Affinity is the crew's monthly focus signal — NOT an XP bonus. It grants
+        // no session XP (product decision); training the affinity axis simply
+        // advances the crew's "affinity tenure" squad titles. So this records the
+        // base session only. `log`/`catalog`/`squadService` are retained for
+        // signature compatibility with the completion flow.
+        return await recordSession(userId: userId, at: date)
     }
 
     // MARK: Bonus
@@ -253,6 +252,9 @@ final class SessionXPService: SessionXPServiceProtocol {
         var ledger = loadBonusLedger(userId: userId)
         ledger.append(entry)
         persistBonusLedger(ledger, userId: userId)
+        // Reload rather than reuse `ledger` so the mirrored copy carries the
+        // exact capped ledger that was persisted.
+        backup?.backup(record: record(userId: userId), bonuses: loadBonusLedger(userId: userId), userId: userId)
         NotificationCenter.default.post(
             name: .sessionXPBonusAdded,
             object: nil,
@@ -267,6 +269,33 @@ final class SessionXPService: SessionXPServiceProtocol {
     func affinityBonusForLatestSession(userId: String) async -> Int {
         let ledger = loadBonusLedger(userId: userId)
         return ledger.last(where: { $0.reason == "affinity" })?.amount ?? 0
+    }
+
+    // MARK: Cloud restore (SessionXPCloudBackup)
+
+    /// The stored record, or nil when this device has never persisted one.
+    /// `record(userId:)` can't make that distinction (it substitutes an empty
+    /// record), and the restore path needs it to choose between wholesale
+    /// adoption and the never-regressing merge.
+    func storedRecord(userId: String) -> SessionXPRecord? {
+        load(userId: userId)
+    }
+
+    /// Persist a cloud-restored record without session side effects — no
+    /// notification, no receipt, no cloud echo. Restore is a data move, not a
+    /// logged session.
+    func restore(_ record: SessionXPRecord) {
+        persist(record)
+    }
+
+    func storedBonusLedger(userId: String) -> [SessionXPBonusEntry] {
+        loadBonusLedger(userId: userId)
+    }
+
+    /// Adopt a cloud bonus ledger; the caller guarantees the local ledger is
+    /// empty (bonuses are display history — local always wins otherwise).
+    func restoreBonusLedger(_ ledger: [SessionXPBonusEntry], userId: String) {
+        persistBonusLedger(ledger, userId: userId)
     }
 
     // MARK: Persistence
@@ -393,19 +422,8 @@ final class MockSessionXPService: SessionXPServiceProtocol {
         catalog: AttributeCatalogProtocol,
         squadService: SquadServiceProtocol
     ) async -> SessionXPDelta {
-        let delta = await recordSession(userId: userId, at: date)
-        let baseXP = 10
-        let squadState = squadService.state(userId: userId)
-        // In tests, use the stubbed dominant axis rather than computing from log.
-        let dominant = stubbedDominantAxis ?? AttributeIngest.dominantAxis(for: log, catalog: catalog)
-        if let squad = squadState.currentSquad,
-           let affinityAxis = squad.affinityAxis,
-           let dominant = dominant,
-           affinityAxis == dominant {
-            let bonus = Int(Double(baseXP) * 0.10)
-            await addBonus(userId: userId, amount: bonus, reason: "affinity")
-        }
-        return delta
+        // Affinity grants no XP bonus (see real impl); record the base session only.
+        return await recordSession(userId: userId, at: date)
     }
 }
 

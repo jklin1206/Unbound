@@ -17,7 +17,7 @@ struct Step_TrainingDays: View {
     var body: some View {
         OnboardingScaffold(
             title: L10n.onboarding("trainingDays.title", defaultValue: "Training calendar"),
-            subtitle: nil,
+            subtitle: L10n.onboardingFormat("trainingDays.subtitle", defaultValue: "Pick your %d days.", requiredCount),
             progress: progress,
             primaryTitle: L10n.onboarding("common.continue", defaultValue: "Continue"),
             primaryEnabled: isValid,
@@ -25,24 +25,23 @@ struct Step_TrainingDays: View {
             onBack: onBack,
             onPrimary: onContinue
         ) {
-            WeekCalendarSelector(
+            WeekFlameSelector(
                 requiredCount: requiredCount,
                 selection: $flow.trainingDays
             )
-            .padding(.top, 4)
+            .padding(.top, 12)
         }
     }
 }
 
-private struct WeekCalendarSelector: View {
+// De-boxed week picker: seven flame tokens (the same day-flame language as
+// the Home streak strip) and one status line underneath. Selected days
+// ignite; the rest stay unlit. No planner board, no nested cards.
+private struct WeekFlameSelector: View {
     let requiredCount: Int
     @Binding var selection: Set<Weekday>
 
     private let days = Weekday.allCases
-    private let columns = Array(
-        repeating: GridItem(.flexible(minimum: 34, maximum: 56), spacing: 5),
-        count: 7
-    )
 
     private var isValid: Bool {
         selection.count == requiredCount
@@ -50,70 +49,20 @@ private struct WeekCalendarSelector: View {
 
     private var statusText: String {
         if isValid {
-            return "LOCKED"
+            let picked = days.filter(selection.contains)
+                .map { $0.short.uppercased() }
+                .joined(separator: " · ")
+            return L10n.onboardingFormat("trainingDays.locked", defaultValue: "YOUR WEEK · %@", picked)
         }
         let remaining = max(0, requiredCount - selection.count)
-        return remaining == 1 ? "PICK 1" : "PICK \(remaining)"
+        return L10n.onboardingFormat("trainingDays.remaining", defaultValue: "PICK %d MORE", remaining)
     }
 
     var body: some View {
-        VStack(spacing: 14) {
-            plannerBoard
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var plannerBoard: some View {
-        VStack(spacing: 14) {
-            calendarHeader
-
-            VStack(spacing: 12) {
-                weekTokenRow
-
-                scheduleRail
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.unbound.bg.opacity(0.32))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.unbound.borderSubtle.opacity(0.86), lineWidth: 1)
-            )
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.surface.opacity(0.74))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(isValid ? Color.unbound.accent.opacity(0.48) : Color.unbound.borderSubtle, lineWidth: 1)
-        )
-        .shadow(color: Color.unbound.accent.opacity(isValid ? 0.13 : 0), radius: 18, y: 10)
-    }
-
-    private var weekTokenRow: some View {
-        LazyVGrid(columns: columns, spacing: 0) {
-            ForEach(Array(days.enumerated()), id: \.element) { index, day in
-                CalendarDateToken(
-                    day: day,
-                    dateNumber: index + 1,
-                    isSelected: selection.contains(day)
-                ) {
-                    toggle(day)
-                }
-            }
-        }
-    }
-
-    private var scheduleRail: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 5) {
+        VStack(spacing: 26) {
+            HStack(spacing: 6) {
                 ForEach(days) { day in
-                    PlannerSlotColumn(
+                    FlameDayToken(
                         day: day,
                         isSelected: selection.contains(day)
                     ) {
@@ -122,51 +71,25 @@ private struct WeekCalendarSelector: View {
                 }
             }
 
-            HStack(spacing: 5) {
-                ForEach(days) { day in
-                    Capsule()
-                        .fill(selection.contains(day) ? Color.unbound.accent : Color.unbound.borderSubtle)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 3)
-                        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: selection)
-                }
-            }
-        }
-        .padding(.top, 2)
-    }
+            Text(statusText)
+                .font(Font.unbound.monoS)
+                .tracking(1.4)
+                .foregroundStyle(isValid ? Color.unbound.accent : Color.unbound.textTertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .animation(.easeInOut(duration: 0.2), value: statusText)
 
-    private var calendarHeader: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("WEEK PLAN")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .tracking(1.0)
+            if !isValid {
+                Text(L10n.onboarding("trainingDays.hint", defaultValue: "Rest days are part of the plan. The system builds around them."))
+                    .font(Font.unbound.bodyS)
                     .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(1)
-
-                Text(statusText)
-                    .font(.system(size: 17, weight: .black, design: .rounded))
-                    .foregroundStyle(isValid ? Color.unbound.accent : Color.unbound.textPrimary)
-                    .lineLimit(1)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+                    .transition(.opacity)
             }
-
-            Spacer(minLength: 0)
-
-            Text("\(selection.count)/\(requiredCount)")
-                .font(.system(size: 22, weight: .black, design: .monospaced))
-                .foregroundStyle(isValid ? Color.unbound.accent : Color.unbound.textPrimary)
-                .monospacedDigit()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.surfaceElevated.opacity(0.62))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle.opacity(0.92), lineWidth: 1)
-        )
+        .frame(maxWidth: .infinity)
+        .animation(.spring(response: 0.32, dampingFraction: 0.84), value: isValid)
     }
 
     private func toggle(_ day: Weekday) {
@@ -185,95 +108,45 @@ private struct WeekCalendarSelector: View {
     }
 }
 
-private struct CalendarDateToken: View {
+private struct FlameDayToken: View {
     let day: Weekday
-    let dateNumber: Int
     let isSelected: Bool
     let onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 7) {
+            VStack(spacing: 10) {
                 Text(day.short.uppercased())
-                    .font(.system(size: 8, weight: .black, design: .monospaced))
-                    .tracking(0.5)
-                    .foregroundStyle(isSelected ? Color.unbound.textPrimary.opacity(0.74) : Color.unbound.textTertiary)
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .tracking(0.6)
+                    .foregroundStyle(isSelected ? Color.unbound.textPrimary : Color.unbound.textTertiary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.62)
 
                 ZStack {
                     Circle()
-                        .fill(isSelected ? Color.unbound.accent : Color.unbound.surfaceElevated.opacity(0.78))
-                        .overlay(
-                            Circle()
-                                .strokeBorder(isSelected ? Color.white.opacity(0.32) : Color.unbound.borderSubtle, lineWidth: 1)
+                        .fill(isSelected ? Color.unbound.accent.opacity(0.18) : Color.unbound.surface.opacity(0.6))
+                    Circle()
+                        .strokeBorder(
+                            isSelected ? Color.unbound.accent : Color.unbound.borderSubtle,
+                            lineWidth: isSelected ? 1.5 : 1
                         )
 
-                    Text("\(dateNumber)")
-                        .font(.system(size: 17, weight: .black, design: .rounded))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .monospacedDigit()
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(isSelected ? Color.unbound.accent : Color.unbound.textTertiary.opacity(0.55))
+                        .scaleEffect(isSelected ? 1 : 0.86)
                 }
-                .frame(width: 38, height: 38)
-
-                Capsule()
-                    .fill(isSelected ? Color.unbound.accent : Color.unbound.borderSubtle)
-                    .frame(width: isSelected ? 20 : 5, height: 4)
-                    .animation(.spring(response: 0.28, dampingFraction: 0.82), value: isSelected)
+                .frame(width: 46, height: 46)
+                .shadow(color: isSelected ? Color.unbound.accent.opacity(0.4) : .clear, radius: 10)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 78)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isSelected)
         .accessibilityLabel(day.short)
-    }
-}
-
-private struct PlannerSlotColumn: View {
-    let day: Weekday
-    let isSelected: Bool
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 7) {
-                Spacer(minLength: 0)
-
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(isSelected ? Color.unbound.accent.opacity(0.16) : Color.unbound.surfaceElevated.opacity(0.36))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 34)
-                    .overlay {
-                        if isSelected {
-                            Text("TRAIN")
-                                .font(.system(size: 7, weight: .black, design: .monospaced))
-                                .tracking(0.3)
-                                .foregroundStyle(Color.unbound.textPrimary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.56)
-                        } else {
-                            Capsule()
-                                .fill(Color.unbound.borderSubtle)
-                                .frame(width: 18, height: 3)
-                        }
-                    }
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 3, style: .continuous)
-                            .strokeBorder(isSelected ? Color.unbound.accent.opacity(0.38) : Color.unbound.borderSubtle.opacity(0.78), lineWidth: 1)
-                    )
-
-                Circle()
-                    .fill(isSelected ? Color.unbound.accent : Color.unbound.border)
-                    .frame(width: 5, height: 5)
-            }
-            .padding(.horizontal, 2)
-            .frame(maxWidth: .infinity)
-            .frame(height: 58)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(day.short)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

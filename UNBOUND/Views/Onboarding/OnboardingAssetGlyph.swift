@@ -12,7 +12,9 @@ struct OnboardingAssetGlyph: View {
     var size: CGFloat = 36
     var imagePadding: CGFloat = 5
     var shape: OnboardingAssetGlyphShape = .chamfered
-    var showsCornerMark = true
+    // Kept for call-site compatibility; the floating corner mini-hex is gone
+    // for good — the "double hex" read as visual noise, never as meaning.
+    var showsCornerMark = false
 
     var body: some View {
         ZStack {
@@ -23,13 +25,6 @@ struct OnboardingAssetGlyph: View {
                 .scaledToFit()
                 .padding(imagePadding)
                 .shadow(color: tint.opacity(0.36), radius: max(3, size * 0.16))
-
-            if showsCornerMark {
-                HUDHexagon()
-                    .stroke(tint.opacity(0.72), lineWidth: 0.8)
-                    .frame(width: max(8, size * 0.34), height: max(8, size * 0.34))
-                    .offset(x: size * 0.35, y: -size * 0.35)
-            }
         }
         .frame(width: size, height: size)
         .accessibilityHidden(true)

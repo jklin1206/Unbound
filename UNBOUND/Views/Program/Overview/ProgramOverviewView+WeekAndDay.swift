@@ -23,7 +23,7 @@ extension ProgramOverviewView {
     func weekStrip(program: TrainingProgram) -> some View {
         let presentation = weekPresenter.presentation(
             for: program,
-            isCompleted: isCompletedProgramDay
+            isCompleted: { day, date in isCompletedProgramDay(day, on: date) }
         )
 
         return ProgramWeekStrip(
@@ -31,7 +31,8 @@ extension ProgramOverviewView {
             tiles: presentation.tiles,
             onPreviousWeek: { shift(weeks: -1) },
             onNextWeek: { shift(weeks: 1) },
-            onSelectDate: selectWeekDate
+            onSelectDate: selectWeekDate,
+            onEditSchedule: { openScheduleEditor() }
         )
     }
 
@@ -66,7 +67,7 @@ extension ProgramOverviewView {
             day: day,
             date: selectedDayDate,
             isToday: isToday,
-            isCompleted: isCompletedProgramDay(day),
+            isCompleted: isCompletedProgramDay(day, on: selectedDayDate),
             workout: workout,
             skillNodes: skillNodes
         )
@@ -81,10 +82,6 @@ extension ProgramOverviewView {
             metrics: [],
             skillNodes: []
         ) {
-            if let day {
-                ProgramFuelTargetBand(plan: program.nutritionPlan, day: day)
-            }
-
             if let day, !day.isRestDay, let workout {
                 ProgramModifierSummaryRail(summary: programModifierSummary(for: day))
                 ProgramWorkoutExerciseList(exercises: workout.mainExercises)
@@ -95,7 +92,7 @@ extension ProgramOverviewView {
     }
 
     func dayActionRow(day: ProgramDay?, isToday: Bool) -> some View {
-        let isCompleted = isCompletedProgramDay(day)
+        let isCompleted = isCompletedProgramDay(day, on: selectedDayDate)
         let actionState = ProgramOverviewDayActionResolver.resolve(
             ProgramOverviewDayActionInput(
                 hasDay: day != nil,
@@ -127,6 +124,10 @@ extension ProgramOverviewView {
                     return
                 }
                 launchSessionEditor(for: day, date: selectedDayDate)
+            },
+            onUseLoadout: {
+                UnboundHaptics.soft()
+                dayLoadoutPickerRequest = DayLoadoutPickerRequest(date: selectedDayDate)
             }
         )
     }

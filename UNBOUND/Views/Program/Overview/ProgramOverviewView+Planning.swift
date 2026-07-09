@@ -52,18 +52,6 @@ extension ProgramOverviewView {
         applySavedWorkout(workout, to: date, allowExtraSession: false)
     }
 
-    /// Schedule flow from the Workouts tab: the user picked an explicit date,
-    /// so place the workout there and jump to that day on the PROGRAM tab so
-    /// the result is visible immediately.
-    func scheduleSavedWorkout(_ workout: SavedWorkout, on date: Date) {
-        let normalized = Calendar.current.startOfDay(for: date)
-        applySavedWorkout(workout, to: normalized, allowExtraSession: false)
-        schedulingWorkout = nil
-        UnboundHaptics.success()
-        selectedTab = .program
-        alignWeekOffset(to: normalized)
-    }
-
     /// Point the week strip at the week containing `date` (Monday-start weeks,
     /// matching ProgramWeekPresenter).
     func alignWeekOffset(to date: Date) {
@@ -86,11 +74,18 @@ extension ProgramOverviewView {
             return
         }
 
-        activeWorkoutDraft = workout.asDraft(
+        // Ad-hoc starts get the same progression pass as scheduled days —
+        // climbing rep targets + suggested weights — so a loadout never
+        // replays stale template numbers.
+        let draft = workout.asDraft(
             userId: userId,
             date: programToday,
             programId: nil,
             dayNumber: nil
+        )
+        activeWorkoutDraft = TrainingPrescriptionResolver.resolve(
+            draft: draft,
+            progressionStates: viewModel.progressionStates
         )
     }
 
@@ -113,6 +108,73 @@ extension ProgramOverviewView {
         return ProgramScheduleStore.shared.all(
             userId: userId,
             programId: viewModel.program?.id
+        )
+    }
+
+    /// One line for the Plan calendar header naming the split and its weekly
+    /// rhythm, e.g. "Push · Pull · Legs — 5 days/week".
+    func monthPlannerSplitSummary() -> String? {
+        guard let program = viewModel.program, !program.days.isEmpty else { return nil }
+        let trainingDays = program.days.filter { !$0.isRestDay }
+        guard !trainingDays.isEmpty else { return nil }
+
+        var seen = Set<String>()
+        var names: [String] = []
+        for day in trainingDays {
+            let name: String
+            if case .custom("unspecified") = day.sessionRole {
+                name = day.label.split(separator: " ").first.map { String($0).capitalized } ?? "Train"
+            } else {
+                name = day.sessionRole.compactLabel.capitalized
+            }
+            if seen.insert(name).inserted { names.append(name) }
+        }
+
+        var split = names.prefix(4).joined(separator: " · ")
+        if names.count > 4 { split += " +\(names.count - 4)" }
+        if program.days.count == 7 {
+            return "\(split) — \(trainingDays.count) days/week"
+        }
+        return "\(split) — \(trainingDays.count) of \(program.days.count) days training"
+    }
+
+    /// Resolves one calendar date into what the Plan sheet paints on its cell:
+    /// generated split day, user-placed loadout, travel override, rest, done.
+    func monthPlannerDayInfo(for date: Date) -> ProgramPlannerDayInfo? {
+        guard let program = viewModel.program,
+              let day = programDay(for: date, in: program)
+        else { return nil }
+
+        let isPlannedByUser: Bool
+        if let userId = services.auth.currentUserId {
+            isPlannedByUser = ProgramScheduleStore.shared.primaryOccurrence(
+                on: date,
+                userId: userId,
+                programId: program.id
+            ) != nil
+        } else {
+            isPlannedByUser = false
+        }
+
+        let role = day.sessionRole
+        // Untagged days (travel overrides and older programs land on
+        // .custom("unspecified")) read their tag from the day label instead —
+        // "TRAVEL · PUSH" → "TRAVEL".
+        let label: String?
+        if day.isRestDay {
+            label = nil
+        } else if case .custom("unspecified") = role {
+            label = day.label.split(separator: " ").first.map { String($0.prefix(6)).uppercased() }
+        } else {
+            label = role.compactLabel
+        }
+
+        return ProgramPlannerDayInfo(
+            label: label,
+            accent: role.accentColor,
+            isRest: day.isRestDay,
+            isPlannedByUser: isPlannedByUser,
+            isCompleted: isCompletedProgramDay(day, on: date)
         )
     }
 
@@ -310,13 +372,15 @@ extension ProgramOverviewView {
         case .calories:
             return .calories(30)
         case .reps, .none:
+            // Single ask, matching the one-number prescription language; the
+            // progression window comes from state once the exercise is logged.
             switch definition?.blockKind {
             case .bodyweight:
-                return .repsRange(5, 10)
+                return .reps(5)
             case .skill:
-                return .repsRange(3, 5)
+                return .reps(3)
             default:
-                return .repsRange(8, 12)
+                return .reps(8)
             }
         }
     }

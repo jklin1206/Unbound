@@ -16,6 +16,7 @@ import SwiftUI
 struct CoachActionsRow: View {
     let program: TrainingProgram?
     let todayDay: ProgramDay?
+    var onTravelPlanAccepted: () -> Void = {}
     @EnvironmentObject var services: ServiceContainer
 
     @State private var sheet: Sheet?
@@ -41,7 +42,11 @@ struct CoachActionsRow: View {
             case .deload:
                 DeloadConfirmSheet(services: services) { sheet = nil }
             case .travel:
-                TravelAdjustSheet(program: program, services: services) { sheet = nil }
+                TravelAdjustSheet(
+                    program: program,
+                    services: services,
+                    onPlanAccepted: onTravelPlanAccepted
+                ) { sheet = nil }
             case .shortSession:
                 ShortSessionConfirmSheet(todayDay: todayDay) { sheet = nil }
             }
@@ -126,139 +131,6 @@ struct CoachActionsRow: View {
     }
 }
 
-// MARK: - Swap Exercise Picker Sheet
-//
-// Step 1: user picks WHICH exercise in today's session to swap.
-// Step 2: hands off to the existing `ExerciseSwapSheet` with alternatives.
-
-private struct SwapExercisePickerSheet: View {
-    let day: ProgramDay
-    let services: ServiceContainer
-    let onDismiss: () -> Void
-
-    @State private var picked: Exercise?
-    @State private var alternatives: [CatalogExercise] = []
-    @State private var preferences: [ExercisePreference] = []
-
-    var body: some View {
-        ZStack {
-            Color.unbound.bg.ignoresSafeArea()
-
-            VStack(alignment: .leading, spacing: 16) {
-                header
-
-                if let workout = day.workout {
-                    if let target = picked {
-                        ExerciseSwapSheet(
-                            currentExerciseName: target.name,
-                            alternatives: alternatives,
-                            onSelect: { alt in
-                                Task { await applySwap(from: target.name, to: alt.name) }
-                            },
-                            onCreateCustom: {
-                                // Custom exercise creation is handled elsewhere;
-                                // dismiss and let the user navigate there.
-                                onDismiss()
-                            }
-                        )
-                    } else {
-                        exerciseList(workout: workout)
-                    }
-                } else {
-                    Spacer()
-                    Text("No workout scheduled today.")
-                        .font(Font.unbound.bodyS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                    Spacer()
-                }
-            }
-            .padding(20)
-        }
-        .task {
-            if let userId = services.auth.currentUserId {
-                preferences = (try? await services.exercisePreference.fetchPreferences(userId: userId)) ?? []
-            }
-        }
-    }
-
-    private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("SWAP EXERCISE")
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.8)
-                    .foregroundStyle(Color.unbound.accent)
-                Text(picked == nil ? "Pick what to swap" : "Pick a replacement")
-                    .font(Font.unbound.titleS)
-                    .tracking(0.4)
-                    .foregroundStyle(Color.unbound.textPrimary)
-            }
-            Spacer()
-            Button("Done", action: onDismiss)
-                .foregroundStyle(Color.unbound.textSecondary)
-        }
-    }
-
-    private func exerciseList(workout: Workout) -> some View {
-        ScrollView {
-            VStack(spacing: 8) {
-                ForEach(Array(workout.mainExercises.enumerated()), id: \.offset) { _, ex in
-                    Button {
-                        UnboundHaptics.soft()
-                        picked = ex
-                        alternatives = alternativesFor(name: ex.name)
-                    } label: {
-                        HStack(spacing: 10) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(ex.name.uppercased())
-                                    .font(Font.unbound.bodyMStrong)
-                                    .tracking(0.4)
-                                    .foregroundStyle(Color.unbound.textPrimary)
-                                Text("\(ex.sets) × \(ex.reps)")
-                                    .font(Font.unbound.monoS)
-                                    .foregroundStyle(Color.unbound.textTertiary)
-                            }
-                            Spacer()
-                            Image(systemName: "arrow.left.arrow.right")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Color.unbound.accent)
-                        }
-                        .padding(14)
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.unbound.surface)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    private func alternativesFor(name: String) -> [CatalogExercise] {
-        // Return movement-catalog substitutions in the same slot, filtered
-        // by any AVOID preferences the user has set.
-        guard MovementCatalog.canonicalExercise(named: name) != nil else { return [] }
-        let avoided = Set(preferences.filter { $0.status == .avoid }.map(\.exerciseName))
-        return MovementCatalog.catalogAlternatives(to: name)
-            .filter { !avoided.contains($0.name) }
-    }
-
-    @MainActor
-    private func applySwap(from: String, to: String) async {
-        let userId = services.auth.currentUserId ?? "anonymous"
-        let action = CoachAction.swapExercise(
-            from: from,
-            to: to,
-            scope: .session
-        )
-        try? await CoachActionExecutor.shared.apply(action, userId: userId)
-        UnboundHaptics.success()
-        onDismiss()
-    }
-}
-
 // MARK: - Deload Confirm Sheet
 
 private struct DeloadConfirmSheet: View {
@@ -284,7 +156,7 @@ private struct DeloadConfirmSheet: View {
                     .tracking(0.3)
                     .foregroundStyle(Color.unbound.textPrimary)
 
-                Text("Your next block's loads drop ~10% and volume drops a set per lift. Rank progression pauses. Rebuild momentum for the following block.")
+                Text("Your next arc's loads drop ~10% and volume drops a set per lift. Rank progression pauses. Rebuild momentum for the following arc.")
                     .font(Font.unbound.bodyM)
                     .foregroundStyle(Color.unbound.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -333,6 +205,7 @@ private struct DeloadConfirmSheet: View {
 private struct TravelAdjustSheet: View {
     let program: TrainingProgram?
     let services: ServiceContainer
+    var onPlanAccepted: () -> Void = {}
     let onDismiss: () -> Void
 
     @State private var days: Int = 7
@@ -551,7 +424,9 @@ private struct TravelAdjustSheet: View {
     @MainActor
     private func persistPlan(_ plan: TravelPlan) async {
         let userId = services.auth.currentUserId ?? "anonymous"
-        let startDate = Calendar.current.startOfDay(for: Date())
+        // Program clock, not wall clock: under the DEBUG day simulator the
+        // travel window must start on the day the user is looking at.
+        let startDate = ProgramClock.today
         guard let endDate = Calendar.current.date(byAdding: .day, value: max(0, days - 1), to: startDate) else {
             onDismiss()
             return
@@ -573,6 +448,7 @@ private struct TravelAdjustSheet: View {
             days: overrideDays
         )
         await TravelOverrideStore.shared.save(override)
+        onPlanAccepted()
         onDismiss()
     }
 
@@ -600,7 +476,7 @@ private struct TravelAdjustSheet: View {
         }
         let equipmentLabel = selected.map(\.displayName).sorted().joined(separator: " + ")
         return TravelPlan(
-            summary: "\(days)-day travel block loaded for \(equipmentLabel). Normal arc resumes when the window ends.",
+            summary: "\(days)-day travel plan loaded for \(equipmentLabel). Normal arc resumes when the window ends.",
             days: planDays
         )
     }
@@ -707,7 +583,9 @@ private struct ShortSessionConfirmSheet: View {
 
                 Button {
                     UnboundHaptics.medium()
-                    shortSessionDate = Calendar.current.startOfDay(for: Date()).timeIntervalSince1970
+                    // Program clock, not wall clock: under the DEBUG day
+                    // simulator the flag must land on the day being viewed.
+                    shortSessionDate = ProgramClock.today.timeIntervalSince1970
                     onDismiss()
                 } label: {
                     HStack(spacing: 10) {

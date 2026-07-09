@@ -38,6 +38,6 @@ final class SquadTests: XCTestCase {
             inviteCode: "A3F7K9", maxSize: 8, squadStreakWeeks: 0,
             createdAt: .now
         )
-        XCTAssertEqual(squad.inviteURL?.absoluteString, "https://unboundapp.com/squad/A3F7K9")
+        XCTAssertEqual(squad.inviteURL?.absoluteString, "https://unboundbtr.com/squad/A3F7K9")
     }
 }

@@ -27,6 +27,20 @@ enum AttributeLevelCurve {
         Double(min(max(0, level), maxLevel)) / Double(maxLevel)
     }
 
+    /// `hexFill` extended with fractional progress toward the next level, on
+    /// the same `level / maxLevel` scale. Strictly forward in XP — crossing a
+    /// level boundary continues the same climb (no wrap), which is what the
+    /// reward radar animates between its before/after shapes.
+    static func continuousHexFill(forXP xp: Double) -> Double {
+        continuousHexFill(level: level(forXP: xp), progress: progressFraction(forXP: xp))
+    }
+
+    static func continuousHexFill(level: Int, progress: Double) -> Double {
+        let clampedLevel = Double(min(max(0, level), maxLevel))
+        let clampedProgress = min(1, max(0, progress))
+        return min(1, (clampedLevel + clampedProgress) / Double(maxLevel))
+    }
+
     /// Fractional progress through the current level toward the next.
     static func progressFraction(forXP xp: Double) -> Double {
         let level = level(forXP: xp)

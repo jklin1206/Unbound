@@ -29,9 +29,6 @@ struct AttributeRankUpEvent: Equatable, Sendable {
 extension Notification.Name {
     static let attributeRankUp = Notification.Name("unbound.attributeRankUp")
     static let requestNavigateToProfileTab = Notification.Name("unbound.requestNavigateToProfileTab")
-    /// Opens the rank-trial info sheet on the HOME tab (it lived on the
-    /// profile behind an ⓘ before; the gate details are Home's concern now).
-    static let requestOpenRankInfo = Notification.Name("unbound.requestOpenRankInfo")
     static let requestNavigateToProgramTab = Notification.Name("unbound.requestNavigateToProgramTab")
     static let trialCapstoneCompleted = Notification.Name("unbound.trialCapstoneCompleted")
     static let trialExpired = Notification.Name("unbound.trialExpired")
@@ -48,6 +45,7 @@ extension Notification.Name {
     static let weeklyHonorReceived     = Notification.Name("unbound.weeklyHonorReceived")
     static let friendChallengeExpired  = Notification.Name("unbound.friendChallengeExpired")
     static let friendChallengeAccepted = Notification.Name("unbound.friendChallengeAccepted")
+    static let friendChallengeDeclined = Notification.Name("unbound.friendChallengeDeclined")
     static let squadRoutineDropShared  = Notification.Name("unbound.squadRoutineDropShared")
     static let savedWorkoutScheduleTodayRequested = Notification.Name("unbound.savedWorkoutScheduleTodayRequested")
 }

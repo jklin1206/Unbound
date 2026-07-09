@@ -7,7 +7,7 @@ Everything social: squad membership/state, the activity feed, presence, weekly m
 | File | Purpose |
 | --- | --- |
 | `FriendChallengeProgressPolicy.swift` | Pure policy: how much a `WorkoutLog` advances each `FriendChallenge.Kind` (sessions, early-riser hour window, etc.). |
-| `FriendChallengeService.swift` | `FriendChallengeServiceProtocol` + live service: create/accept challenges, record progress from logs, stats per squad/season, expiry evaluation. |
+| `FriendChallengeService.swift` | `FriendChallengeServiceProtocol` + live service: create/accept challenges, record progress from logs, stats per squad/season, expiry evaluation that settles duels (pays the winner duelWinArcs, ledger-idempotent) and buffers outcomes for the toast. |
 | `LinkedSessionEvaluator.swift` | Applies the +20% XP linked-session bonus (non-stacking with the +10% affinity bonus) when a partner's session overlaps the user's. |
 | `LocalSquadDirectory.swift` | UserDefaults-backed local squad+members record (debug/local-only squad support). |
 | `MockSquadActivityBackend.swift` | In-memory `SquadActivityBackendProtocol` for tests. |
@@ -18,6 +18,7 @@ Everything social: squad membership/state, the activity feed, presence, weekly m
 | `SquadActivityServiceProtocol.swift` | `@MainActor` protocol for the activity service. |
 | `SquadBackend.swift` | Production Supabase wrapper for all squad-table operations (`UnboundSupabase.client`). |
 | `SquadBackendProtocol.swift` | Protocol for squad-table operations; also defines `LinkedSession`. |
+| `SquadFlairService.swift` | Publishes the user's `SquadMemberFlair` to `squad_member_flair` and reads squadmates' flair via the gated `squad_member_flair_for_squad` RPC. |
 | `SquadHonorsService.swift` | Weekly honors: `currentHonors(squadId:)` / `recordHonor(_:)` over the squad backend. |
 | `SquadLoopReconciler.swift` | Closes the loops with no production trigger: consumes `linked_sessions` rows (once each, persisted dedup) to drive the +20% bonus and advance squadStreak/linkedSessions title counters. |
 | `SquadLoopStore.swift` | UserDefaults persistence for the reconciler's dedup set + counter state (one entry-group per userId). |

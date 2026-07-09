@@ -13,12 +13,14 @@ protocol SquadServiceProtocol: AnyObject {
     func leaveSquad(userId: String) async throws
     func setAffinity(_ axis: AttributeKey?, userId: String) async throws
     func setLogo(_ logoId: String, userId: String) async throws
+    func renameSquad(name: String, userId: String) async throws
     func state(userId: String) -> SquadState
     func aggregateBuildHexValues(userId: String) -> [AttributeKey: Double]
 }
 
 extension SquadServiceProtocol {
     func setLogo(_ logoId: String, userId: String) async throws {}
+    func renameSquad(name: String, userId: String) async throws {}
 }
 
 // MARK: - SquadError
@@ -28,6 +30,9 @@ enum SquadError: Error, Equatable {
     case alreadyInSquad
     case squadFull
     case invalidInviteCode
+    /// The generated invite code collided with an existing squad (unique
+    /// violation on insert) — the only insertSquad failure worth retrying.
+    case inviteCodeCollision
     case notInSquad
     case notCaptain
     case backendUnavailable

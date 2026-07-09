@@ -35,11 +35,18 @@ enum RewardPayloadBuilder {
             guard let top = standards.max(by: { $0.tier < $1.tier }) else { continue }
 
             let proofs = result.achievedProofs.filter { $0.skillId == skillId }
-            let peakReps = proofs.filter { $0.unit == .reps }.map { Int($0.magnitude.rounded()) }.max() ?? 0
-            let peakSeconds = proofs.filter { $0.unit == .seconds }.map { Int($0.magnitude.rounded()) }.max() ?? 0
+            let peakRepProof = proofs.filter { $0.unit == .reps }.max { $0.magnitude < $1.magnitude }
+            let peakHoldProof = proofs.filter { $0.unit == .seconds }.max { $0.magnitude < $1.magnitude }
+            let peakReps = peakRepProof.map { Int($0.magnitude.rounded()) } ?? 0
+            let peakSeconds = peakHoldProof.map { Int($0.magnitude.rounded()) } ?? 0
+            // The movement the peak was actually logged as — nodeProgress
+            // name-gates authored variant ladders with it, so the progress bar
+            // and micro-target never point into a rung that names a different
+            // variant (1 nordic curl is not the one-leg Unbound rung).
+            let loggedKey = peakRepProof?.exerciseName ?? peakHoldProof?.exerciseName
 
-            let prog = SkillStandards.nodeProgress(skillId: skillId, peakReps: peakReps, peakSeconds: peakSeconds)
-            let nextText = SkillStandards.nodeNextThresholdText(skillId: skillId, peakReps: peakReps, peakSeconds: peakSeconds)
+            let prog = SkillStandards.nodeProgress(skillId: skillId, exerciseKey: loggedKey, peakReps: peakReps, peakSeconds: peakSeconds)
+            let nextText = SkillStandards.nodeNextThresholdText(skillId: skillId, exerciseKey: loggedKey, peakReps: peakReps, peakSeconds: peakSeconds)
             let fromTier = result.multiRankEvent?.skillId == skillId ? result.multiRankEvent?.fromTier : nil
 
             cards.append(

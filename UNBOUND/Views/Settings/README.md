@@ -6,11 +6,10 @@ Settings screens: account, notifications, equipment, exercise preferences, cosme
 
 | File | What it is |
 |---|---|
-| `SettingsView.swift` | `SettingsView` root + `NotificationSettingsView`. |
+| `SettingsView.swift` | `SettingsView` root + `NotificationSettingsView`; Support FAQ links out to unboundbtr.com/faq. |
 | `AccountDeletionView.swift` | Account deletion confirmation screen. |
-| `EquipmentSettingsView.swift` | Declares available equipment (informational — never hides Skill Map nodes); feeds the recommender + adaptive program gen; persisted via `EquipmentProfileStore` (UserDefaults). |
-| `ExercisePreferencesView.swift` | YES/SUB/NO exercise library picker — rows cycle unset → available → substitute → avoid, grouped by movement pattern. |
-| `ProfileCosmeticsView.swift` | Equip profile cosmetics (borders/banners). |
+| `EquipmentSettingsView.swift` | Declares available equipment (informational — never hides Skill Map nodes); feeds the recommender + adaptive program gen; reads/writes `UserProfile.equipment` through `UserService.updateProfile`. |
+| `ProfileCosmeticsView.swift` | The Profile Kit hub: IDENTITY surface (hosts `ProfileIdentityForm`) plus border/banner equipping. |
 | `SkinPickerView.swift` | Lists every `SkillTreeSkin` with lock states + live tree-map swatch; switches `SkinService`. |
 | `DevPlayerToolsView.swift` | DEBUG tools screen + `DevBuildBootstrapper` (@MainActor enum) for seeding dev builds. |
 | `DevBuildBootstrapper+ProgramScenarios.swift` | Bootstrapper extension: program scenario seeding. |
@@ -21,7 +20,6 @@ Settings screens: account, notifications, equipment, exercise preferences, cosme
 ## Where to find X
 
 - **Add a settings row** → `SettingsView.swift`.
-- **Equipment availability logic/persistence** → `EquipmentSettingsView.swift` (`EquipmentProfileStore`).
-- **Exercise avoid/substitute preferences** → `ExercisePreferencesView.swift`.
+- **Equipment availability logic/persistence** → `EquipmentSettingsView.swift` (writes `UserProfile.equipment` via `UserService.updateProfile`).
 - **Seed a dev state (program / proof / rewards)** → `DevBuildBootstrapper` in `DevPlayerToolsView.swift` + its `+` extensions.
 - **Skin or cosmetic equipping** → `SkinPickerView.swift` / `ProfileCosmeticsView.swift`.

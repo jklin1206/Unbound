@@ -160,6 +160,15 @@ final class LocalSquadDirectory {
         save(records)
     }
 
+    func updateName(squadId: UUID, name: String) {
+        var records = records()
+        guard let pair = records.first(where: { $0.value.squad.id == squadId }) else { return }
+        var record = pair.value
+        record.squad = record.squad.replacingName(name)
+        records[pair.key] = record
+        save(records)
+    }
+
     func updateStreakWeeks(squadId: UUID, weeks: Int) {
         var records = records()
         guard let pair = records.first(where: { $0.value.squad.id == squadId }) else { return }

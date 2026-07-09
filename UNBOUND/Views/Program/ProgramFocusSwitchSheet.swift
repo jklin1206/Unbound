@@ -157,9 +157,9 @@ struct ProgramFocusSwitchSheet: View {
         case .thisWeek:
             return "APPLY WEEK"
         case .nextBlock:
-            return "QUEUE NEXT BLOCK"
+            return "QUEUE NEXT ARC"
         case .ongoing:
-            return "REBUILD ACTIVE BLOCK"
+            return "REBUILD ACTIVE ARC"
         }
     }
 }

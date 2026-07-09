@@ -306,7 +306,9 @@ struct OnboardingScaffold<Content: View>: View {
                 }
 
                 HUDProgressBar(
-                    currentStep: step.rawValue + 1,
+                    // Position in the real flow, not the enum's raw value — archived
+                    // cases make rawValue diverge from flow order (and overflow 100%).
+                    currentStep: (OnboardingStep.flowOrder.firstIndex(of: step) ?? step.rawValue) + 1,
                     totalSteps: OnboardingStep.total,
                     category: step.category
                 )

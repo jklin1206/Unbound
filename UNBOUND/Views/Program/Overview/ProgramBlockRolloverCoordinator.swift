@@ -51,16 +51,6 @@ enum ProgramBlockRolloverCoordinator {
         )
     }
 
-    static func arcLabel(for blockNumber: Int) -> String {
-        let arc = ((max(blockNumber, 1) - 1) % 3) + 1
-        switch arc {
-        case 1: return "accumulation"
-        case 2: return "intensification"
-        case 3: return "realization"
-        default: return "accumulation"
-        }
-    }
-
     private static func latestDeltaReport(
         userId: String,
         database: any DatabaseServiceProtocol

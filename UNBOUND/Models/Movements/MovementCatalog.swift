@@ -343,7 +343,17 @@ enum MovementCatalog {
         }
 
         let capabilities = movementCapabilities(for: equipment)
-        return required.isSubset(of: capabilities)
+
+        // When a movement lists both rings and a pull-up bar they are
+        // alternatives (hang-family skills work from either), not a stack
+        // of requirements — having one of the pair satisfies both.
+        let hangAlternatives: Set<MovementEquipment> = [.rings, .pullupBar]
+        var remaining = required
+        if hangAlternatives.isSubset(of: remaining) {
+            guard !capabilities.isDisjoint(with: hangAlternatives) else { return false }
+            remaining.subtract(hangAlternatives)
+        }
+        return remaining.isSubset(of: capabilities)
     }
 
     static func programCandidateDefinitions(for style: TrainingStyle) -> [MovementDefinition] {

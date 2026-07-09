@@ -140,7 +140,7 @@ final class BlockRolloverServiceTests: XCTestCase {
         XCTAssertEqual(proposal.midBlockPatchPolicy, .nextBlockOnly)
         XCTAssertEqual(
             proposal.midBlockPatchPolicy.detail,
-            "This checkpoint can inform the next-block review, but it will not rewrite today's workout or body-grade the athlete."
+            "This checkpoint can inform the next-arc review, but it will not rewrite today's workout or body-grade the athlete."
         )
         XCTAssertTrue(proposal.focusAreas.isEmpty)
         XCTAssertTrue(proposal.lines.contains { $0.kind == .scan })

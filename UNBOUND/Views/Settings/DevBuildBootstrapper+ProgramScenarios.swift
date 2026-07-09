@@ -124,7 +124,7 @@ extension DevBuildBootstrapper {
             userId: userId,
             createdAt: startDate,
             name: "Dev Ascension Block",
-            description: "Seeded 28-day debug Arc with strength, skill, recovery, scan, and nutrition surfaces populated.",
+            description: "Seeded \(Arc.durationDays)-day debug Arc with strength, skill, recovery, scan, and nutrition surfaces populated.",
             durationDays: Arc.durationDays,
             days: days,
             nutritionPlan: NutritionPlan(

@@ -6,6 +6,8 @@ struct ProgramWeekStrip: View {
     let onPreviousWeek: () -> Void
     let onNextWeek: () -> Void
     let onSelectDate: (Date) -> Void
+    /// Opens the training-schedule editor (which days / length / time of day).
+    var onEditSchedule: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 8) {
@@ -20,10 +22,7 @@ struct ProgramWeekStrip: View {
 
                 Spacer()
 
-                Text(rangeLabel)
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.4)
-                    .foregroundStyle(Color.unbound.textPrimary.opacity(0.72))
+                rangeHeader
 
                 Spacer()
 
@@ -41,6 +40,39 @@ struct ProgramWeekStrip: View {
                     dayTile(tile)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var rangeHeader: some View {
+        if let onEditSchedule {
+            Button(action: onEditSchedule) {
+                HStack(spacing: 5) {
+                    Text(rangeLabel)
+                        .font(Font.unbound.captionS.weight(.bold))
+                        .tracking(1.4)
+                        .foregroundStyle(Color.unbound.textPrimary.opacity(0.72))
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color.unbound.accent)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule().fill(Color.unbound.surface)
+                )
+                .overlay(
+                    Capsule().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
+                )
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Edit training schedule")
+        } else {
+            Text(rangeLabel)
+                .font(Font.unbound.captionS.weight(.bold))
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textPrimary.opacity(0.72))
         }
     }
 

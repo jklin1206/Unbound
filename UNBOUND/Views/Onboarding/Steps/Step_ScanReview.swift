@@ -17,7 +17,7 @@ struct Step_ScanReview: View {
     var body: some View {
         OnboardingScaffold(
             title: L10n.onboarding("scanReview.title", defaultValue: "Day Zero locked?"),
-            subtitle: L10n.onboarding("scanReview.subtitle", defaultValue: "This is the before. In 30 days, you get the first real proof of the climb."),
+            subtitle: L10n.onboarding("scanReview.subtitle", defaultValue: "The before. Proof lands in 30 days."),
             progress: progress,
             primaryTitle: L10n.onboarding("scanReview.primary", defaultValue: "Enter the arc"),
             primaryIcon: "flame.fill",

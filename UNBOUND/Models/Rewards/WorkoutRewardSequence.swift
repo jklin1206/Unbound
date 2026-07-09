@@ -19,12 +19,11 @@ struct WorkoutRewardSequenceSummary: Identifiable {
     var xp: XPReward
     var liftProgress: [LiftProgressReward]
     var attributeDeltas: [AttributeDeltaReward]
+    /// Before/after radar shapes on the profile hex's honest cumulative scale
+    /// (`AttributeLevelCurve.continuousHexFill × 100`). Forward-only by
+    /// construction — the reward radar eases between them, never wraps.
     var attributePreviousHexValues: [AttributeKey: Double] = [:]
     var attributeCurrentHexValues: [AttributeKey: Double] = [:]
-    var attributePreviousLevels: [AttributeKey: Int] = [:]
-    var attributeLevels: [AttributeKey: Int] = [:]
-    var attributePreviousTiers: [AttributeKey: RankTitle] = [:]
-    var attributeTiers: [AttributeKey: RankTitle] = [:]
     var personalRecords: [PersonalRecordReward]
     var badges: [BadgeUnlock]
     var arcProgress: ArcProgressReward
@@ -32,7 +31,6 @@ struct WorkoutRewardSequenceSummary: Identifiable {
     var arcsEarned: Int = 0
     var cosmeticUnlock: CosmeticUnlockReward?
     var progression: ProgressionReceipt? = nil
-    var weeklyVowCallout: WeeklyVowRewardCallout? = nil
     var rankTrialCallout: RankTrialRewardCallout? = nil
     var beats: [RewardBeat] = []
     var tally: RewardTally = .empty
@@ -58,15 +56,6 @@ struct WorkoutRewardSequenceSummary: Identifiable {
     /// Cosmetics unlocked this session (skill-tree skins, profile frames…) so the
     /// reward flow surfaces them instead of a silent toast later.
     var cosmeticUnlocks: [CosmeticUnlockReward] = []
-
-    var hasShareableMoment: Bool {
-        weeklyVowCallout?.completionBonus?.shareCard != nil
-            || !personalRecords.isEmpty
-            || !badges.isEmpty
-            || liftProgress.contains(where: \.didAdvanceTier)
-            || arcProgress.didCompleteArc
-            || emblemIgnition
-    }
 }
 
 struct XPReward {
@@ -207,15 +196,6 @@ struct AttributeDeltaReward: Identifiable {
     var xpNeededForCurrentLevel: Double { max(1, nextLevelXP - levelFloorXP) }
     var xpRemainingInLevel: Double { max(0, nextLevelXP - currentXP) }
     var levelProgressStart: Double { didIncreaseLevel ? 0 : previousProgress }
-
-    /// Reward hex fill on the component's 0...100 axis (`hexFill × 100`).
-    var previousHexChartValue: Double {
-        AttributeLevelCurve.hexFill(forLevel: previousLevel) * 100
-    }
-
-    var currentHexChartValue: Double {
-        AttributeLevelCurve.hexFill(forLevel: currentLevel) * 100
-    }
 }
 
 struct PersonalRecordReward: Identifiable {
@@ -251,25 +231,21 @@ struct CosmeticUnlockReward {
 struct WeeklyVowCompletionBonus: Codable, Equatable, Sendable {
     var overallLevelXP: Int
     var badgeProgress: WeeklyVowProgressDescriptor
-    var shareCard: WeeklyVowShareCardDescriptor?
     var penaltyAppliedXP: Int?
 
     init(
         overallLevelXP: Int,
         badgeProgress: WeeklyVowProgressDescriptor,
-        shareCard: WeeklyVowShareCardDescriptor? = nil,
         penaltyAppliedXP: Int? = nil
     ) {
         self.overallLevelXP = overallLevelXP
         self.badgeProgress = badgeProgress
-        self.shareCard = shareCard
         self.penaltyAppliedXP = penaltyAppliedXP
     }
 
     private enum CodingKeys: String, CodingKey {
         case overallLevelXP
         case badgeProgress
-        case shareCard
         case penaltyAppliedXP
     }
 
@@ -277,7 +253,6 @@ struct WeeklyVowCompletionBonus: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         overallLevelXP = try container.decode(Int.self, forKey: .overallLevelXP)
         badgeProgress = try container.decode(WeeklyVowProgressDescriptor.self, forKey: .badgeProgress)
-        shareCard = try container.decodeIfPresent(WeeklyVowShareCardDescriptor.self, forKey: .shareCard)
         penaltyAppliedXP = try container.decodeIfPresent(Int.self, forKey: .penaltyAppliedXP)
     }
 }
@@ -290,28 +265,6 @@ struct WeeklyVowProgressDescriptor: Codable, Equatable, Sendable {
     var displayText: String {
         "\(title) \(current)/\(target)"
     }
-}
-
-struct WeeklyVowShareCardDescriptor: Codable, Equatable, Sendable {
-    var id: String
-    var title: String
-    var subtitle: String
-    var metadata: [String: String]
-}
-
-struct WeeklyVowRewardCallout: Identifiable, Equatable, Sendable {
-    let id: String
-    var vowId: String
-    var performanceLogId: String
-    var lane: VowLane
-    var bet: VowBet
-    var title: String
-    var subtitle: String
-    var receiptLine: String
-    var shareTitle: String
-    var shareSubtitle: String
-    var completedAt: Date
-    var completionBonus: WeeklyVowCompletionBonus? = nil
 }
 
 struct RankTrialRewardCallout: Identifiable, Equatable, Sendable {

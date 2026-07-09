@@ -25,17 +25,14 @@ import Foundation
 // id / squad_id / user_ids / started_at / ended_at — NO workout-log id and NO
 // base-XP column. The true per-session base XP therefore cannot be recovered
 // from the row, and SessionXPRecord stores only cumulative counters (not
-// per-session XP). We use the SAME fixed base-XP proxy the affinity bonus path
-// already uses (`SquadXPBonusBaseline.baseSessionXP`, see
-// SessionXPService.recordSessionWithAffinity). This keeps the linked (+20%) and
-// affinity (+10%) bonuses consistent and non-stacking; it does not fabricate a
-// per-session value. A fully exact bonus requires the Edge Function to persist
-// the originating log id (or its session XP) on the linked_sessions row.
+// per-session XP). We use a fixed base-XP proxy (`SquadXPBonusBaseline.baseSessionXP`)
+// for the linked (+20%) bonus; it does not fabricate a per-session value. A fully
+// exact bonus requires the Edge Function to persist the originating log id (or its
+// session XP) on the linked_sessions row.
 
 enum SquadXPBonusBaseline {
-    /// Base session XP used for out-of-band squad XP bonuses (affinity +10%,
-    /// linked +20%). Matches the constant in SessionXPService /
-    /// MockSessionXPService so the two bonuses stay consistent + non-stacking.
+    /// Base session XP used for the linked-session (+20%) bonus. (Affinity grants
+    /// no XP bonus — it is a crew focus signal only.)
     static let baseSessionXP = 10
 }
 

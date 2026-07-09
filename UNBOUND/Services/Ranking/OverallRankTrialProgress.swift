@@ -14,6 +14,25 @@ struct OverallRankTrialProgress: Codable, Equatable, Sendable {
             .sorted { $0.completedAt > $1.completedAt }
             .first
     }
+
+    /// Conservative union used by the cloud restore + sign-in migration paths.
+    /// NEVER regresses: the higher `highestPassedRank` wins and attempts are
+    /// unioned by id (self wins on an id collision), so a stale server copy can
+    /// never lower a local rank or drop a locally-recorded attempt. Trimmed to
+    /// the same 50-attempt tail the store keeps.
+    func mergedNeverRegressing(with other: OverallRankTrialProgress) -> OverallRankTrialProgress {
+        var byId: [String: OverallRankTrialAttempt] = [:]
+        for attempt in other.attempts { byId[attempt.id] = attempt }
+        for attempt in attempts { byId[attempt.id] = attempt }
+        let mergedAttempts = byId.values.sorted { $0.completedAt < $1.completedAt }
+        let higherRank = highestPassedRank.overallRankTrialOrder >= other.highestPassedRank.overallRankTrialOrder
+            ? highestPassedRank
+            : other.highestPassedRank
+        return OverallRankTrialProgress(
+            highestPassedRank: higherRank,
+            attempts: Array(mergedAttempts.suffix(50))
+        )
+    }
 }
 
 extension OverallRankTrialDefinition {
@@ -69,13 +88,18 @@ struct OverallRankTrialAttempt: Identifiable, Codable, Equatable, Sendable {
 }
 
 final class OverallRankTrialStore {
-    static let shared = OverallRankTrialStore()
+    static let shared = OverallRankTrialStore(backup: RankProgressCloudBackup.shared)
 
     private let defaults: UserDefaults
     private let keyPrefix = "unbound.overallRankTrials."
+    /// Optional cloud mirror. The production `.shared` store wires the real
+    /// backup; test-constructed stores get `nil` so unit tests never touch the
+    /// outbox / SyncedDatabase. Local UserDefaults stays the source of truth.
+    private let backup: (any RankProgressBackuping)?
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, backup: (any RankProgressBackuping)? = nil) {
         self.defaults = defaults
+        self.backup = backup
     }
 
     func load(userId: String) -> OverallRankTrialProgress {
@@ -114,6 +138,10 @@ final class OverallRankTrialStore {
         }
 
         save(progress, userId: userId)
+        // Mirror the freshly recorded progress onto the synced `users` doc so a
+        // reinstall restores the real rank. Fire-and-forget through the outbox;
+        // failures are logged, never silenced. Local remains authoritative.
+        backup?.backupTrials(progress, userId: userId)
         return OverallRankTrialRecordResult(
             progress: progress,
             attempt: attempt,
@@ -157,6 +185,9 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
     let aggregateRank: RankTier
     let equipment: Set<MovementEquipment>
     let clearedGateKeys: Set<String>
+    /// Movement-tier pool behind the `movementsAtRank` key, used for progress
+    /// copy ("3 of 5"); empty when the caller didn't compute it.
+    let gateKeyMovementTiers: [RankTier]
     let attempts: [OverallRankTrialAttempt]
 
     init(
@@ -166,6 +197,7 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
         aggregateRank: RankTier,
         equipment: Set<MovementEquipment> = [.bodyweight],
         clearedGateKeys: Set<String>,
+        gateKeyMovementTiers: [RankTier] = [],
         attempts: [OverallRankTrialAttempt] = []
     ) {
         self.userId = userId
@@ -174,6 +206,7 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
         self.aggregateRank = aggregateRank
         self.equipment = equipment
         self.clearedGateKeys = clearedGateKeys
+        self.gateKeyMovementTiers = gateKeyMovementTiers
         self.attempts = attempts
     }
 }

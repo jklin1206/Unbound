@@ -67,18 +67,19 @@ struct GateExperienceDemoView: View {
                     TheCrossingView(crossing: GateCrossingCatalog.crossing(for: format),
                                     dateText: "Jun 13, 2026",
                                     definingNumber: "\(resolvedStations.count)/\(resolvedStations.count)",
-                                    onShare: {}, onReplay: {}, onDismiss: { showCrossing = false })
+                                    onReplay: {}, onDismiss: { showCrossing = false })
                 }
         case .crossing:
             TheCrossingView(crossing: GateCrossingCatalog.crossing(for: format),
                             dateText: "Jun 13, 2026",
                             definingNumber: "\(resolvedStations.count)/\(resolvedStations.count)",
-                            onShare: {}, onReplay: {}, onDismiss: {})
+                            onReplay: {}, onDismiss: {})
         case .card:
             scrolled { GateCardView(world: world, dateText: "Jun 13, 2026",
                                     definingNumber: "\(resolvedStations.count)/\(resolvedStations.count)", stamped: true) }
         case .verdictFail:
-            GateVerdictView(evaluation: fixtureEvaluation(passed: false), world: world)
+            GateVerdictView(evaluation: fixtureEvaluation(passed: false), world: world,
+                            spoilsLine: "+120 XP · +90 ARCS BANKED")
         case .records:
             TrialRecordsShelf(progress: fixtureProgress())
         case .flow:
@@ -120,12 +121,13 @@ struct GateExperienceDemoView: View {
             }
         case .failed:
             GateVerdictView(evaluation: fixtureEvaluation(passed: false), world: world,
+                            spoilsLine: "+120 XP · +90 ARCS BANKED",
                             onRematch: { advance(.hall) })
         case .crossing:
             TheCrossingView(crossing: GateCrossingCatalog.crossing(for: format),
                             dateText: "Jun 13, 2026",
                             definingNumber: "\(resolvedStations.count)/\(resolvedStations.count)",
-                            onShare: {}, onReplay: {}, onDismiss: { advance(.discovery) })
+                            onReplay: {}, onDismiss: { advance(.discovery) })
         }
     }
 

@@ -3,16 +3,19 @@ import XCTest
 
 @MainActor
 final class ShopInventoryStoreTests: XCTestCase {
-    func testStarterGrantOnlyAppliesOncePerUser() {
+    func testNewWalletStartsEmptyAndArcsAreEarnOnly() {
         let defaults = isolatedDefaults()
         let wallet = CurrencyWalletStore(defaults: defaults)
 
+        // Arcs are earn-only: a brand-new wallet has no starter grant.
         wallet.bind(userId: "shop-test-user")
-        XCTAssertEqual(wallet.balance, 1_500)
+        XCTAssertEqual(wallet.balance, 0)
 
+        // Earned Arcs persist across re-bind; nothing is ever credited for free.
+        wallet.grant(500)
         XCTAssertTrue(wallet.spend(200))
         wallet.bind(userId: "shop-test-user")
-        XCTAssertEqual(wallet.balance, 1_300)
+        XCTAssertEqual(wallet.balance, 300)
     }
 
     func testDevWalletHasUnlimitedCreditsAndDoesNotSpendDown() {
@@ -40,9 +43,10 @@ final class ShopInventoryStoreTests: XCTestCase {
 
         wallet.bind(userId: "shop-test-user")
         inventory.bind(userId: "shop-test-user")
+        wallet.grant(item.price + 200) // earn enough to afford it, with change to spare
 
         XCTAssertEqual(inventory.purchase(item, wallet: wallet), .purchased)
-        XCTAssertEqual(wallet.balance, 1_200)
+        XCTAssertEqual(wallet.balance, 200)
         XCTAssertTrue(inventory.isPurchased(item))
         XCTAssertTrue(
             ShopInventoryStore
@@ -134,8 +138,9 @@ final class ShopInventoryStoreTests: XCTestCase {
         wallet.bind(userId: "shop-test-user")
         inventory.bind(userId: "shop-test-user")
 
-        XCTAssertEqual(inventory.purchase(item, wallet: wallet), .insufficientFunds(shortfall: 350))
-        XCTAssertEqual(wallet.balance, 1_500)
+        // New wallets are empty, so the whole price is the shortfall.
+        XCTAssertEqual(inventory.purchase(item, wallet: wallet), .insufficientFunds(shortfall: item.price))
+        XCTAssertEqual(wallet.balance, 0)
         XCTAssertFalse(inventory.isPurchased(item))
     }
 

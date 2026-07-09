@@ -1,65 +1,70 @@
 // UNBOUND/Services/Trials/TitleCatalog.swift
 import Foundation
 
-/// Maps TitleID → human-readable display name.
-/// Naming is the spec-locked authoring scaffold; brand polish can tune later.
+/// Maps TitleID → human-readable display name. The single naming source —
+/// `TitleID.displayName` delegates here.
 enum TitleCatalog {
 
     static func displayName(for id: TitleID) -> String {
-        switch (id.path, id.tier) {
-        // Badge titles are named by the badge itself (not the axis/tier grid).
-        case (.badge(let badgeId), _):
+        switch id.path {
+        // Badge titles are named by the badge itself.
+        case .badge(let badgeId):
             return BadgeCatalog.all.first { $0.id == badgeId }?.displayName ?? "Badge"
         // Shop titles are named by the shop-only cosmetic title catalog.
-        case (.shop(let shopTitleId), _):
+        case .shop(let shopTitleId):
             return ShopTitleCatalog.displayName(for: shopTitleId)
-        case (.squadSeasonWinner(let seasonNumber), _):
+        case .squadSeasonWinner(let seasonNumber):
             return "Season \(max(1, seasonNumber)) Winner"
-        // Axis Titles
-        case (.axis(.power), .bronze):           return "Power Initiate"
-        case (.axis(.power), .silver):           return "Power Sovereign"
-        case (.axis(.power), .gold):             return "Power Ascendant"
-        case (.axis(.vitality), .bronze):         return "Vitality Initiate"
-        case (.axis(.vitality), .silver):         return "Vitality Warden"
-        case (.axis(.vitality), .gold):           return "Vitality Ascendant"
-        case (.axis(.control), .bronze):         return "Control Initiate"
-        case (.axis(.control), .silver):         return "Control Master"
-        case (.axis(.control), .gold):           return "Control Ascendant"
-        case (.axis(.endurance), .bronze):       return "Endurance Initiate"
-        case (.axis(.endurance), .silver):       return "Endurance Pacer"
-        case (.axis(.endurance), .gold):         return "Endurance Ascendant"
-        case (.axis(.mobility), .bronze):        return "Mobility Initiate"
-        case (.axis(.mobility), .silver):        return "Mobility Warden"
-        case (.axis(.mobility), .gold):          return "Mobility Ascendant"
-        case (.axis(.explosiveness), .bronze):   return "Explosiveness Initiate"
-        case (.axis(.explosiveness), .silver):   return "Explosiveness Striker"
-        case (.axis(.explosiveness), .gold):     return "Explosiveness Ascendant"
-        // Binding Vow kind Titles
-        case (.cardKind(.ember), .bronze):       return "Steady Keeper"
-        case (.cardKind(.ember), .silver):       return "Recovery Anchor"
-        case (.cardKind(.ember), .gold):         return "Still Standard"
-        case (.cardKind(.overdrive), .bronze):   return "Final Set"
-        case (.cardKind(.overdrive), .silver):   return "Pressure Finisher"
-        case (.cardKind(.overdrive), .gold):     return "Closer"
-        case (.cardKind(.apex), .bronze):        return "Limit Tested"
-        case (.cardKind(.apex), .silver):        return "Limit Breaker"
-        case (.cardKind(.apex), .gold):          return "Limit Standard"
+        // Rank titles — one per gate-confirmed rank.
+        case .rank(let tier):
+            return rankTitleName(tier)
+        // Axis titles — proving an axis earns its class name, so the strings
+        // stay one source with the BuildClass vocabulary.
+        case .axis(let key):
+            return BuildClass.specialist(for: key).displayName
+        // Legacy Binding Vows v1 names, kept only so persisted titles render.
+        case .cardKind(let kind):
+            return legacyCardKindName(kind, tier: id.tier)
         }
     }
 
-    /// Baseline vow TitleIDs in deterministic order.
+    static func rankTitleName(_ tier: RankTier) -> String {
+        L10n.string("titleRank.\(tier.token)", defaultValue: defaultRankTitleName(tier))
+    }
+
+    private static func defaultRankTitleName(_ tier: RankTier) -> String {
+        switch tier {
+        case .initiate:   return "The Unwritten"
+        case .novice:     return "Dawnseeker"
+        case .apprentice: return "The Counted"
+        case .forged:     return "Emberborn"
+        case .veteran:    return "Reckoner"
+        case .master:     return "Summitborn"
+        case .vessel:     return "Sealbearer"
+        case .ascendant:  return "Skysworn"
+        case .unbound:    return "Gatebreaker"
+        }
+    }
+
+    private static func legacyCardKindName(_ kind: WeeklyVowKind, tier: TitleID.Tier) -> String {
+        switch (kind, tier) {
+        case (.ember, .bronze):     return "Steady Keeper"
+        case (.ember, .silver):     return "Recovery Anchor"
+        case (.ember, .gold):       return "Still Standard"
+        case (.overdrive, .bronze): return "Final Set"
+        case (.overdrive, .silver): return "Pressure Finisher"
+        case (.overdrive, .gold):   return "Closer"
+        case (.apex, .bronze):      return "Limit Tested"
+        case (.apex, .silver):      return "Limit Breaker"
+        case (.apex, .gold):        return "Limit Standard"
+        }
+    }
+
+    /// Every earnable title in display order: the nine rank titles, then the
+    /// six axis class titles. Legacy cardKind/tiered-axis titles are not
+    /// earnable and only surface if already persisted.
     static let all: [TitleID] = {
-        var result: [TitleID] = []
-        for axis in AttributeKey.allCases {
-            for tier in TitleID.Tier.allCases {
-                result.append(TitleID(path: .axis(axis), tier: tier))
-            }
-        }
-        for kind in WeeklyVowKind.allCases {
-            for tier in TitleID.Tier.allCases {
-                result.append(TitleID(path: .cardKind(kind), tier: tier))
-            }
-        }
-        return result
+        RankTier.allCases.map { TitleID.rank($0) }
+            + AttributeKey.allCases.map { TitleID.axis($0) }
     }()
 }

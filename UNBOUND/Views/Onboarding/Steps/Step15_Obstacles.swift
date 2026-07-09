@@ -9,7 +9,7 @@ struct Step15_Obstacles: View {
     var body: some View {
         OnboardingScaffold(
             title: "What's been in the way?",
-            subtitle: "Be honest with yourself. This is the stuff we'll actually solve for you.",
+            subtitle: "Be honest.",
             progress: progress,
             primaryTitle: "Continue",
             primaryEnabled: !flow.obstacles.isEmpty,

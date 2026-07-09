@@ -1,128 +1,99 @@
 // UNBOUND/Views/Squads/AffinityPickerSheet.swift
+//
+// Captain-only sheet for the squad's monthly affinity axis. Calm single-select
+// rows with a radio; the selected row raises on a fill-only surface. Reached
+// from the squad options menu.
 import SwiftUI
 
 struct AffinityPickerSheet: View {
-    let currentAxis: AttributeKey?
+    let initialAxis: AttributeKey?
+    let onConfirm: (AttributeKey?) -> Void
     @Environment(\.dismiss) var dismiss
     @State private var selected: AttributeKey?
-    @State private var isSubmitting = false
-    @State private var error: String?
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
-                    Text("Pick the crew's vibe for this month.")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Pick the crew's focus for this month — the axis you're all rallying to train. Holding a focus advances your crew's affinity titles.")
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, 16)
 
-                    VStack(spacing: 10) {
-                        ForEach(AttributeKey.allCases, id: \.self) { axis in
-                            axisCard(axis)
-                        }
+                    ForEach(AttributeKey.allCases, id: \.self) { axis in
+                        axisRow(axis)
                     }
-                    .padding(.horizontal)
-
-                    if let error {
-                        Text(error)
-                            .font(Font.unbound.bodyM)
-                            .foregroundStyle(Color.unbound.alert)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    }
-
-                    Button {
-                        Task { await submit() }
-                    } label: {
-                        Text(isSubmitting ? "Saving…" : "Confirm")
-                            .font(Font.unbound.bodyMStrong)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(selected == nil || isSubmitting)
-                    .padding(.horizontal)
-                    .padding(.top, 8)
                 }
-                .padding(.vertical, 20)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 24)
             }
             .background(Color.unbound.bg.ignoresSafeArea())
+            .safeAreaInset(edge: .bottom) {
+                UnboundButton(title: "Confirm", isEnabled: selected != nil) {
+                    onConfirm(selected)
+                    dismiss()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+                .padding(.bottom, 6)
+                .background(Color.unbound.bg.opacity(0.94))
+            }
             .navigationTitle("Squad Affinity")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                }
-            }
-        }
-        .onAppear { selected = currentAxis }
-    }
-
-    // MARK: - Axis card
-
-    private func axisCard(_ axis: AttributeKey) -> some View {
-        let isSelected = selected == axis
-        return Button { selected = axis } label: {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(axis.displayName)
-                        .font(Font.unbound.bodyMStrong)
-                        .foregroundStyle(
-                            isSelected ? Color.unbound.accent : Color.unbound.textPrimary
-                        )
-                    Text(axis.trainsCopy)
-                        .font(.system(size: 12))
                         .foregroundStyle(Color.unbound.textSecondary)
                 }
-                Spacer()
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(Color.unbound.accent)
-                } else {
-                    Image(systemName: "circle")
-                        .font(.system(size: 20))
-                        .foregroundStyle(Color.unbound.border)
-                }
             }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected
-                        ? Color.unbound.accent.opacity(0.12)
-                        : Color.unbound.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(
-                        isSelected ? Color.unbound.accent : Color.clear,
-                        lineWidth: 1.5
-                    )
-            )
         }
-        .buttonStyle(.plain)
+        .preferredColorScheme(.dark)
+        .onAppear { selected = initialAxis }
     }
 
-    // MARK: - Submit
-
-    @MainActor
-    private func submit() async {
-        guard let selected, let userId = AuthService.shared.currentUserId else { return }
-        isSubmitting = true
-        defer { isSubmitting = false }
-        do {
-            try await SquadService.shared.setAffinity(selected, userId: userId)
-            dismiss()
-        } catch SquadError.notCaptain {
-            error = "Only the captain can change affinity."
-        } catch {
-            self.error = "Couldn't update affinity. Try again."
+    private func axisRow(_ axis: AttributeKey) -> some View {
+        let isSelected = selected == axis
+        return Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                selected = axis
+            }
+        } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(axis.displayName)
+                        .font(Font.unbound.bodyMStrong)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                    Text(axis.trainsCopy)
+                        .font(Font.unbound.bodyS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(2)
+                }
+                Spacer(minLength: 8)
+                ZStack {
+                    Circle()
+                        .strokeBorder(
+                            isSelected ? Color.unbound.accent : Color.unbound.border,
+                            lineWidth: 1.5
+                        )
+                        .frame(width: 20, height: 20)
+                    if isSelected {
+                        Circle()
+                            .fill(Color.unbound.accent)
+                            .frame(width: 10, height: 10)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+            }
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .squadOwnRowHighlight(isSelected, cornerRadius: 14)
     }
 }
 
 #Preview {
-    AffinityPickerSheet(currentAxis: .endurance)
+    AffinityPickerSheet(initialAxis: .endurance) { _ in }
 }

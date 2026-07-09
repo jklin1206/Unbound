@@ -38,7 +38,7 @@ struct Step_Arc03_Path: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
 
-                    Text(L10n.onboarding("arcPath.subtitle", defaultValue: "Every session becomes proof, so strength, control, and consistency stop feeling invisible."))
+                    Text(L10n.onboarding("arcPath.subtitle", defaultValue: "Every session becomes proof."))
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .multilineTextAlignment(.center)
@@ -112,17 +112,17 @@ struct Step_Arc03_Path: View {
             return
         }
 
-        try? await Task.sleep(nanoseconds: 650_000_000)
+        try? await Task.sleep(nanoseconds: 400_000_000)
         guard !Task.isCancelled else { return }
-        withAnimation(.spring(response: 0.58, dampingFraction: 0.78)) {
+        withAnimation(.spring(response: 0.44, dampingFraction: 0.78)) {
             activeRankIndex = 0
         }
         UnboundHaptics.soft()
 
         while !Task.isCancelled {
-            try? await Task.sleep(nanoseconds: 1_250_000_000)
+            try? await Task.sleep(nanoseconds: 850_000_000)
             guard !Task.isCancelled else { return }
-            withAnimation(.spring(response: 0.58, dampingFraction: 0.78)) {
+            withAnimation(.spring(response: 0.44, dampingFraction: 0.78)) {
                 activeRankIndex = (activeRankIndex + 1) % ranks.count
             }
             UnboundHaptics.soft()
@@ -181,9 +181,10 @@ private struct RankOrbitStage: View {
         }
     }
 
+    // Just the rank name — no per-rank tagline underneath.
     private var rankName: some View {
-        VStack(spacing: 8) {
-            Spacer().frame(height: 126)
+        VStack(spacing: 0) {
+            Spacer().frame(height: 142)
 
             Text(activeRank.displayName.uppercased())
                 .font(.system(size: 34, weight: .black, design: .monospaced))
@@ -192,13 +193,6 @@ private struct RankOrbitStage: View {
                 .shadow(color: activeRank.rewardTint.opacity(badgeSurge ? 0.85 : 0.42), radius: badgeSurge ? 24 : 10)
                 .id(activeRank)
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
-
-            Text(rankSignal(activeRank))
-                .font(.system(size: 12, weight: .black, design: .monospaced))
-                .tracking(1.6)
-                .foregroundStyle(activeRank.rewardTextTint)
-                .id("signal-\(activeRank.rawValue)")
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
         }
         .frame(width: size.width, height: size.height)
         .opacity(copyIn && activeRankIndex >= 0 ? 1 : 0)
@@ -221,19 +215,6 @@ private struct RankOrbitStage: View {
         selected ? 1 : 0.78
     }
 
-    private func rankSignal(_ tier: SkillTier) -> String {
-        switch tier {
-        case .initiate: return "STARTING LINE"
-        case .novice: return "FIRST CLEAR"
-        case .apprentice: return "FORMING"
-        case .forged: return "BUILT UNDER LOAD"
-        case .veteran: return "PROVEN"
-        case .master: return "SHARPENED"
-        case .vessel: return "HIGH TIER"
-        case .ascendant: return "RESTRICTION BROKEN"
-        case .unbound: return "APEX"
-        }
-    }
 }
 
 private struct RankOrbitBadge: View {

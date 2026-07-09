@@ -4,7 +4,11 @@ import UIKit
 
 struct RootView: View {
     @EnvironmentObject var services: ServiceContainer
-    @State private var isAuthenticated = false
+    // Routing gates on a real CLOUD session, not merely "has a user id": every
+    // launch auto-provisions an anonymous local UUID (so data has a key during
+    // onboarding), which would otherwise read as authenticated and skip the
+    // forced "protect your progress" screen.
+    @State private var isCloudLinked = false
     @State private var isCheckingAuth = true
 
     // Reacts to UserDefaults changes — flipping this key from Settings
@@ -24,6 +28,7 @@ struct RootView: View {
     var body: some View {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-rewardDemo")
+            || ProcessInfo.processInfo.arguments.contains("-rewardDemoManual")
             || ProcessInfo.processInfo.environment["REWARD_DEMO"] == "1" {
             RewardDemoView()
         } else if ProcessInfo.processInfo.arguments.contains("-rankTrialDemos")
@@ -40,6 +45,15 @@ struct RootView: View {
             VowDemoHarness()
         } else if ProcessInfo.processInfo.arguments.contains("-homeTrialsDemo") {
             HomeTrialsDemoHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("-gateDemo") {
+            // Gate journey stage harness — pick the screen with
+            // UNBOUND_GATE_STAGE=<sealed|open|hall|active|beat|verdictPass|card|verdictFail|records|crossing|flow>.
+            GateExperienceDemoView()
+        } else if ProcessInfo.processInfo.arguments.contains("-authScreenDemo") {
+            // Renders the forced "protect your progress" auth screen directly
+            // (Apple + Google + email), bypassing the onboarding/cloud-link gate
+            // so it can be reviewed without walking the full first-run flow.
+            AuthContainerView()
         } else if ProcessInfo.processInfo.arguments.contains("-treeUnlockDemo") {
             TreeUnlockRevealDemoHarness()
         } else if ProcessInfo.processInfo.arguments.contains("-rankDetailDemo") {
@@ -62,7 +76,7 @@ struct RootView: View {
                 OnboardingContainerView(onComplete: {
                     hasCompletedOnboarding = true
                 })
-            } else if !isAuthenticated {
+            } else if !isCloudLinked {
                 AuthContainerView()
             } else {
                 HomeTabView()
@@ -75,9 +89,13 @@ struct RootView: View {
             #endif
 
             for await userId in services.auth.authStatePublisher.values {
-                isAuthenticated = userId != nil
+                // Anonymous users emit a userId too, so re-derive cloud-link on
+                // every change: only a real Supabase session flips this true and
+                // routes past the forced auth screen into Home.
+                let cloudLinked = await services.auth.isCloudLinked
+                isCloudLinked = cloudLinked
                 isCheckingAuth = false
-                if let userId {
+                if let userId, cloudLinked {
                     services.analytics.identify(
                         userId: userId,
                         traits: ["authState": "signedIn"]
@@ -108,9 +126,6 @@ struct RootView: View {
                         try? await services.subscription.login(userId: userId)
                         #endif
 
-                        // Backfill the 6-axis hex from existing logs on first launch
-                        // (no-op if the profile already exists in the store).
-                        await services.attribute.backfillFromExistingLogs(userId: userId)
                         // Trials: roll week on Monday or first launch. Marks prior
                         // uncompleted trial as .missed and generates 3 fresh cards.
                         await services.trials.ensureCurrentWeek(userId: userId)
@@ -139,10 +154,41 @@ struct RootView: View {
                                 ProgramStore.shared.adopt(prog, userId: userId)
                             }
                         }
+                        // Backfill the 6-axis hex from existing logs. Runs AFTER
+                        // restore-on-sign-in so a reinstall replays the restored
+                        // log history instead of seeing an empty local DB; running
+                        // it earlier risks a first post-reinstall workout creating
+                        // a one-session profile that latches the backfill off and
+                        // permanently undercounts attributes. No-op once a profile
+                        // exists in the store.
+                        await services.attribute.backfillFromExistingLogs(userId: userId)
                         // One-time skill-tier migration: replay full log history
                         // to seed UserSkillTierState. Idempotent — guarded by
                         // a UserDefaults flag so it only runs once per user.
                         let profile = try? await services.user.fetchProfile(userId: userId)
+                        // Restore-on-launch: seed the trial-confirmed rank + per-lift
+                        // tiers from the server profile when the local UserDefaults
+                        // stores are empty (e.g. after a reinstall). Conservative and
+                        // never-regressing, so it is safe to run every launch and can
+                        // never lower a locally-earned rank or tier.
+                        if let profile {
+                            RankProgressCloudBackup.shared.seedLocalStores(from: profile, userId: userId)
+                            // Same contract for every seed below: conservative,
+                            // never-regressing merges that only raise or fill
+                            // empty local state, so running on every launch is
+                            // safe. The movement/load snapshot must land before
+                            // MovementProgressConsolidationMigration below so
+                            // consolidation merges restored rows, not a void.
+                            await OverallLevelCloudBackup.shared.seedLocalStores(from: profile, userId: userId)
+                            SessionXPCloudBackup.shared.seedLocalStores(from: profile, userId: userId)
+                            RewardsCloudBackup.shared.seedLocalStores(from: profile, userId: userId)
+                            AchievementsCloudBackup.shared.seedLocalStores(from: profile, userId: userId)
+                            await ProgressSnapshotCloudBackup.shared.seedLocalStores(from: profile, userId: userId)
+                            // Sweep up equips made outside shop flows (rank
+                            // cosmetics, showcase, skin) — free when unchanged
+                            // thanks to the redundant-patch cache.
+                            RewardsCloudBackup.shared.backup(userId: userId)
+                        }
                         let bodyweightKg = profile?.weightKg ?? 70.0
                         let logs = (try? await services.workoutLog.fetchLogs(userId: userId, programId: nil)) ?? []
                         let history = logs.flatMap { $0.exerciseEntries }
@@ -156,7 +202,9 @@ struct RootView: View {
                         // Idempotent + local-only.
                         await MovementProgressConsolidationMigration.migrateIfNeeded(userId: userId)
                     }
-                } else {
+                } else if userId == nil {
+                    // Genuine sign-out. An anonymous user (userId set, not
+                    // cloud-linked) is mid-forced-auth — leave analytics alone.
                     services.analytics.reset()
                 }
             }

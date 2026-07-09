@@ -24,14 +24,14 @@ enum BlockRolloverService {
             var title: String {
                 switch self {
                 case .nextBlockOnly:
-                    return "Current block stays locked"
+                    return "Current arc stays locked"
                 }
             }
 
             var detail: String {
                 switch self {
                 case .nextBlockOnly:
-                    return "This checkpoint can inform the next-block review, but it will not rewrite today's workout or body-grade the athlete."
+                    return "This checkpoint can inform the next-arc review, but it will not rewrite today's workout or body-grade the athlete."
                 }
             }
         }
@@ -129,7 +129,6 @@ enum BlockRolloverService {
             createdAt: delta.createdAt,
             buildIdentitySnapshot: nil,
             overallScore: delta.overall.after,
-            muscleAssessments: [],
             proportions: ProportionData(
                 shoulderToWaistRatio: nil,
                 chestToWaistRatio: nil,
@@ -139,7 +138,6 @@ enum BlockRolloverService {
                 overallProportionScore: 0
             ),
             estimatedBodyFatPercentage: nil,
-            estimatedMuscleMassCategory: .average,
             focusAreas: proposal.focusAreas,
             summary: delta.narrative,
             strengths: delta.improvements,
@@ -169,8 +167,8 @@ enum BlockRolloverService {
                 ProgramBlockProposal.Line(
                     kind: .scan,
                     title: "Checkpoint recap included",
-                    detail: improvement.map { "\($0) is trending up; the next block review can see the latest proof." }
-                        ?? "The next block review can use the latest checkpoint without changing today's workout."
+                    detail: improvement.map { "\($0) is trending up; the next arc review can see the latest proof." }
+                        ?? "The next arc review can use the latest checkpoint without changing today's workout."
                 )
             )
         } else {
@@ -178,7 +176,7 @@ enum BlockRolloverService {
                 ProgramBlockProposal.Line(
                     kind: .rescan,
                     title: "Checkpoint optional",
-                    detail: "You can build the next block from training history now, or save a checkpoint first for a fresh recap."
+                    detail: "You can build the next arc from training history now, or save a checkpoint first for a fresh recap."
                 )
             )
         }
@@ -189,7 +187,7 @@ enum BlockRolloverService {
                 ProgramBlockProposal.Line(
                     kind: .focus,
                     title: "Proposed focus: \(names)",
-                    detail: "This biases accessories in the next block only; the completed block stays intact."
+                    detail: "This biases accessories in the next arc only; the completed arc stays intact."
                 )
             )
         } else if resolution.accessoryBiasResult.carriedForward {
@@ -197,7 +195,7 @@ enum BlockRolloverService {
                 ProgramBlockProposal.Line(
                     kind: .carryForward,
                     title: "Carrying current focus",
-                    detail: "No meaningful scan priority changed, so the next block keeps the current accessory bias."
+                    detail: "No meaningful scan priority changed, so the next arc keeps the current accessory bias."
                 )
             )
         }
@@ -207,7 +205,7 @@ enum BlockRolloverService {
                 ProgramBlockProposal.Line(
                     kind: .rotation,
                     title: "\(resolution.exercisesToRotate.count) stale exercise rotation\(resolution.exercisesToRotate.count == 1 ? "" : "s")",
-                    detail: "Repeated movements can rotate in the next block to keep progress fresh."
+                    detail: "Repeated movements can rotate in the next arc to keep progress fresh."
                 )
             )
         }
@@ -218,7 +216,6 @@ enum BlockRolloverService {
     // MARK: Full flow (integration)
 
     enum RolloverError: Error {
-        case missingProfileInputs
         case generationFailed(Error)
     }
 
@@ -232,16 +229,30 @@ enum BlockRolloverService {
         analysis: BodyAnalysis?,
         scan: ScanSession?
     ) async throws -> TrainingProgram {
-        let buildIdentity = await AttributeService.shared.snapshot(userId: userId, asOf: Date()).buildIdentity
-        guard let experience = profile.experience,
-              let frequency = profile.targetFrequency,
-              let trainingDays = profile.trainingDays, !trainingDays.isEmpty,
-              let weight = profile.weightKg,
-              let height = profile.heightCm,
-              let age = profile.age,
-              let sex = profile.biologicalSex else {
-            throw RolloverError.missingProfileInputs
-        }
+        // All time stamps in this flow use the program clock (dev-simulated in
+        // DEBUG, real in release) so a rollover triggered by a simulated
+        // day-jump anchors the new block where the simulated clock is.
+        let now = ProgramClock.now
+        let buildIdentity = await AttributeService.shared.snapshot(userId: userId, asOf: now).buildIdentity
+        // Resolve generation inputs with the SAME tolerant defaults first-run
+        // generation uses (ProgramGenerationService). A genuine new user's profile
+        // legitimately lacks some of these — onboarding writes `gender`, never
+        // `biologicalSex` — so a hard guard here would throw `missingProfileInputs`
+        // and dead-end the auto-build at the first Calibration→Arc rollover. The
+        // rollover must never be stricter than the generator it feeds.
+        let experience = profile.experience ?? .never
+        let frequency = profile.targetFrequency ?? .four
+        let trainingDays = ProgramGenerationService.resolvedTrainingDays(
+            profile.trainingDays,
+            frequency: frequency,
+            startDate: now
+        )
+        let weight = profile.weightKg ?? 0
+        let height = profile.heightCm ?? 0
+        let age = profile.age ?? 0
+        let sex = profile.biologicalSex
+            ?? ProgramGenerationService.biologicalSexFallback(from: profile.gender ?? .unspecified)
+            ?? .male
 
         let blocks = await ProgramBlockStore.shared.blocks(userId: userId)
         let previous = blocks.first
@@ -326,7 +337,7 @@ enum BlockRolloverService {
             heightCm: height,
             age: age,
             sex: sex,
-            blockStartDate: Date(),
+            blockStartDate: now,
             exercisePreferences: preferences,
             calibration: .standardReady(knownExerciseKeys: Set(progressionStates.keys))
         )
@@ -338,12 +349,50 @@ enum BlockRolloverService {
             throw RolloverError.generationFailed(error)
         }
 
+        // Carry the user's own plans across the boundary: future-dated
+        // occurrences re-key to the new program id, and a weekday the user
+        // repeatedly overrode in the finished arc gets that workout stamped
+        // onto the new arc. The generated plan stays underneath as fallback —
+        // rollover must never erase what the user authored.
+        let existingOccurrences = await ProgramScheduleStore.shared.all(userId: userId)
+        let carryover = BlockRolloverPlanCarryover.plan(
+            previousProgram: currentProgram,
+            occurrences: existingOccurrences,
+            userId: userId,
+            newProgram: program
+        )
+        for occurrence in carryover.rekeyed + carryover.stamped {
+            await ProgramScheduleStore.shared.upsert(occurrence)
+        }
+
+        // Persist local-first: ProgramStore writes the cache and enqueues both
+        // the program upsert and the users.currentProgramId patch. Without
+        // this the rolled-over arc lived only in the view model and a relaunch
+        // reloaded the finished block.
+        await ProgramStore.shared.save(program, userId: userId)
+        // Also point the LOCAL users doc at the new arc. ProgramStore's outbox
+        // patch is remote-only; a relaunch reads the local profile, and a stale
+        // currentProgramId there makes `revalidate` re-adopt the finished block
+        // over the new arc. Retry-and-log rather than `try?`: a silently dropped
+        // patch resurrects exactly that bug, and this runs fire-and-forget
+        // inside the rollover Task with no caller that could react.
+        await DurableWrite.attempt(
+            "Rollover local currentProgramId patch",
+            context: ["userId": userId, "programId": program.id]
+        ) {
+            try await DatabaseService.shared.update(
+                ["currentProgramId": program.id],
+                collection: "users",
+                documentId: userId
+            )
+        }
+
         let newBlock = ProgramBlock(
             id: UUID().uuidString,
             userId: userId,
             programId: program.id,
             blockNumber: (previous?.blockNumber ?? 0) + 1,
-            startedAt: Date(),
+            startedAt: now,
             scanId: scan?.id,
             accessoryBias: resolution.accessoryBiasResult.bias,
             cutModeActive: profile.cutMode.enabled,

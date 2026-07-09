@@ -11,26 +11,22 @@ struct LinkedSessionToast: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Color.unbound.accent)
             VStack(alignment: .leading, spacing: 2) {
-                Text("LINKED WITH \(participantDisplayNames.joined(separator: ", ").uppercased())")
-                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                    .tracking(1.5)
+                Text("Linked with \(participantDisplayNames.joined(separator: ", "))")
+                    .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
                 Text("+\(xpBonus) XP")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(Font.unbound.monoS)
                     .foregroundStyle(Color.unbound.accent)
+                    .monospacedDigit()
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.unbound.surface)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.unbound.surfaceElevated)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color.unbound.accent.opacity(0.5), lineWidth: 1)
-        )
-        .shadow(color: Color.unbound.accent.opacity(0.3), radius: 14)
+        .shadow(color: Color.black.opacity(0.4), radius: 14, y: 6)
     }
 }
 

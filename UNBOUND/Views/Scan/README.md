@@ -8,7 +8,7 @@ The progress-photo / scan ceremony: capture flow (daily photo or monthly checkpo
 |---|---|
 | `PhotoCaptureFlow.swift` | Enum-driven fullScreenCover from Home/Profile: `.photo` daily ritual (camera → review → confirm → save `ProgressPhoto` → +5 LVL XP deduped per day) and the checkpoint scan path; also posts scan notifications. |
 | `ScanConsentModal.swift` | One-time consent before the first monthly checkpoint (photo saved as proof, never body-graded); persisted in `@AppStorage("unbound.scanConsentGranted")`. |
-| `ScanCadenceGate.swift` | `ScanCadenceState` pure value + `ScanCadenceGate` view — controls when the next checkpoint window opens. |
+| `ScanCadenceGate.swift` | `ScanCadenceState` pure value — computes when the next checkpoint window opens (consumed by Home + Profile scan entry points). |
 | `FirstScanArcCard.swift` | First-scan payoff: photo + seeded hex + narrative + 30-day cadence anchor; NO grading or strengths/weaknesses. |
 | `NthScanEvolutionCard.swift` | Nth-scan payoff: before/after split + delta card + evolution narrative; regressions show as quiet "Watch signal" pills, never negative numbers. |
 | `ScanBuildDeltaCard.swift` | `ScanBuildDeltaCard` — the per-axis build delta card used by the Nth-scan payoff. |

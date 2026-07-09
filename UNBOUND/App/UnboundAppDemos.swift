@@ -6,12 +6,27 @@ import UIKit
 /// Launch with `-rewardDemo` to drop into the post-workout reward sequence and
 /// cycle through a battery of payload variants (no level-up, single rank,
 /// multi-rank feat, many exercises with different badges, the full kitchen sink
-/// with PRs + badge). Advances to the next scenario each time the sequence is
-/// dismissed (the demo auto-advance loops it). Used to record/iterate reward UX.
+/// with PRs + badge, gate-trial receipts, a sealed vow). Advances to the next
+/// scenario each time the sequence is dismissed (the demo auto-advance loops
+/// it). Used to record/iterate reward UX. `-rewardDemoManual` opens the same
+/// battery WITHOUT the timed auto-advance, for tap-paced review/screenshots.
 struct RewardDemoView: View {
-    @State private var index = 0
+    @State private var index: Int
     @State private var runID = UUID()
     private let scenarios = RewardDemoScenarios.all
+
+    /// `-rewardDemoIndex <n>` (0-based) starts the battery at scenario n, so a
+    /// review session can jump straight to a late scenario without walking the
+    /// whole cycle.
+    init() {
+        let args = ProcessInfo.processInfo.arguments
+        var start = 0
+        if let flag = args.firstIndex(of: "-rewardDemoIndex"), flag + 1 < args.count,
+           let value = Int(args[flag + 1]) {
+            start = max(0, min(RewardDemoScenarios.all.count - 1, value))
+        }
+        _index = State(initialValue: start)
+    }
 
     /// The active scenario, tagged with a post-workout photo context so the
     /// final beat shows the opt-in "Add a photo" button in the demo.
@@ -93,7 +108,9 @@ private enum RewardDemoScenarios {
         entries: [ExerciseLogEntry] = [], lifts: [LiftProgressReward] = [],
         attrs: [AttributeDeltaReward] = [], prs: [PersonalRecordReward] = [],
         badges: [BadgeUnlock] = [], streak: StreakReward? = nil,
-        cosmetics: [CosmeticUnlockReward] = []
+        cosmetics: [CosmeticUnlockReward] = [],
+        arcs: Int = 90,
+        trial: RankTrialRewardCallout? = nil
     ) -> RewardDemoScenario {
         let log = WorkoutLog(
             id: "demo-\(label)", userId: "demo", programId: "demo", dayNumber: 1,
@@ -113,29 +130,33 @@ private enum RewardDemoScenarios {
         s.personalRecords = prs
         s.streak = streak
         s.cosmeticUnlocks = cosmetics
-        // Reward hex = progress toward NEXT level (0–1), which moves a lot per
-        // session. Untrained axes hold at a resting progress; trained axes animate
-        // from levelProgressStart (0 if it leveled up) → currentProgress. Honest
-        // values — this is the real per-level progress, not a fudge.
+        s.arcsEarned = arcs
+        s.rankTrialCallout = trial
+        // Radar shapes on the honest cumulative scale (continuousHexFill),
+        // exactly like the real receipts. Untrained axes rest at plausible
+        // mid-journey levels so the demo silhouette looks like a real user.
         if !attrs.isEmpty {
-            var before = restingProgress
-            var after = restingProgress
-            for a in attrs {
-                before[a.key] = a.levelProgressStart
-                after[a.key] = a.currentProgress
+            var before: [AttributeKey: Double] = [:]
+            var after: [AttributeKey: Double] = [:]
+            for (key, level) in restingLevels {
+                let fill = AttributeLevelCurve.continuousHexFill(level: level, progress: 0.4) * 100
+                before[key] = fill
+                after[key] = fill
             }
-            s.attributePreviousHexValues = before.mapValues { $0 * 100 }
-            s.attributeCurrentHexValues = after.mapValues { $0 * 100 }
-            s.attributePreviousLevels = Dictionary(uniqueKeysWithValues: attrs.map { ($0.key, $0.previousLevel) })
-            s.attributeLevels = Dictionary(uniqueKeysWithValues: attrs.map { ($0.key, $0.currentLevel) })
+            for a in attrs {
+                before[a.key] = AttributeLevelCurve.continuousHexFill(level: a.previousLevel, progress: a.previousProgress) * 100
+                after[a.key] = AttributeLevelCurve.continuousHexFill(level: a.currentLevel, progress: a.currentProgress) * 100
+            }
+            s.attributePreviousHexValues = before
+            s.attributeCurrentHexValues = after
         }
         s = RewardPayloadBuilder.attachProofRewards(result, to: s)
         return RewardDemoScenario(label: label, summary: s)
     }
 
-    /// Resting level-progress (0–1) for the untrained axes; only trained axes move.
-    static let restingProgress: [AttributeKey: Double] = [
-        .power: 0.46, .control: 0.30, .endurance: 0.24, .vitality: 0.18, .mobility: 0.40, .explosiveness: 0.28
+    /// Resting levels for the untrained axes; only trained axes move.
+    static let restingLevels: [AttributeKey: Int] = [
+        .power: 5, .control: 4, .endurance: 3, .vitality: 2, .mobility: 4, .explosiveness: 3
     ]
 
     // Reusable lift/skill bits.
@@ -213,7 +234,35 @@ private enum RewardDemoScenarios {
                 CosmeticUnlockReward(title: "Jade Skin",
                                      subtitle: "Skill-tree cosmetic — equip in Appearance.",
                                      tint: Color.unbound.success)
-              ])
+              ]),
+
+        // 6 — GATE RECEIPT (passed): the trial-receipt beat. In the live flow a
+        //     FIRST pass plays TheCrossingView instead (this beat is stripped from
+        //     the tail), so this receipt only renders on a duplicate re-clear.
+        scene("GATE RE-CLEARED", xp: xp(120, 15, 0.30, 15, 0.52),
+              entries: [entry("pullup", "pp.pullup", [set(reps: 15)])],
+              trial: RankTrialRewardCallout(
+                id: "demo-gate-pass",
+                title: "The Forging",
+                subtitle: "Forged gate cleared",
+                statusLine: "Official result saved",
+                detailLine: "4/4 stations cleared",
+                receiptLine: "4/4 stations cleared",
+                passed: true)),
+
+        // 7 — GATE HELD: the failed-trial receipt. Note the live flow routes a
+        //     failed gate to GateVerdictView (with the banked-spoils line) and
+        //     skips the sequence — this page renders only on edge paths.
+        scene("GATE HELD", xp: xp(90, 15, 0.52, 15, 0.70),
+              streak: StreakReward(dayCount: 12, didExtend: true),
+              trial: RankTrialRewardCallout(
+                id: "demo-gate-fail",
+                title: "The Reckoning",
+                subtitle: "Veteran gate held",
+                statusLine: "First failed station saved",
+                detailLine: "Weighted Pull-Up: 2 reps short",
+                receiptLine: "3/4 stations cleared",
+                passed: false))
     ]
 }
 

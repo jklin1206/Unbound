@@ -97,7 +97,7 @@ private struct HomeArcWalletAmount: View {
         .padding(.leading, 9)
         .overlay(alignment: .leading) {
             Rectangle()
-                .fill(Color.unbound.impact.opacity(0.38))
+                .fill(Color.unbound.borderSubtle)
                 .frame(width: 0.5, height: 22)
         }
         .accessibilityLabel("\(balance.formatted()) Arcs")
@@ -464,7 +464,28 @@ struct HomeWeekPathSection: View {
     private let weekdayLabels = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
     private var todayIndex: Int { ((Calendar.current.component(.weekday, from: Date()) + 5) % 7) + 1 }
 
+    // Makes the streak rule apparent: you keep it by logging inside a 3-day
+    // window (ProgramAwareStreakPolicy.maxGapDays), not by training daily.
+    private var ruleCaption: String {
+        currentStreak > 0
+            ? "Log within 3 days to keep your streak."
+            : "Log a workout every 3 days to start a streak."
+    }
+
     var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            streakRow
+
+            Text(ruleCaption)
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(Color.unbound.textTertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var streakRow: some View {
         HStack(alignment: .center, spacing: 16) {
             ZStack(alignment: .leading) {
                 StreakSlashShape()
@@ -526,7 +547,6 @@ struct HomeWeekPathSection: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, 2)
     }
 }
 
@@ -554,9 +574,12 @@ private struct HomeWeekHeatFlame: View {
     let reduceMotion: Bool
 
     var body: some View {
+        // Strictly two flame states: ignited (session logged) or unlit.
+        // "Today" is marked by the label color and a neutral ring, never by
+        // a half-ember flame - the in-between state read as a third status.
         let flameColor = hasSession
             ? Color.unbound.ember
-            : (isToday ? Color.unbound.ember.opacity(0.82) : Color.unbound.textTertiary.opacity(0.48))
+            : Color.unbound.textTertiary.opacity(0.48)
         let labelColor = isToday ? Color.unbound.textPrimary : Color.unbound.textTertiary
         let shouldAnimate = hasSession && !reduceMotion
 
@@ -566,7 +589,10 @@ private struct HomeWeekHeatFlame: View {
 
                 ZStack {
                     Circle()
-                        .fill(isToday ? Color.unbound.ember.opacity(0.12 + (0.03 * Double(pulse))) : Color.clear)
+                        .strokeBorder(
+                            isToday ? Color.unbound.textPrimary.opacity(0.22) : Color.clear,
+                            lineWidth: 1
+                        )
                         .frame(width: 28, height: 28)
 
                     Image(systemName: hasSession ? "flame.fill" : "flame")

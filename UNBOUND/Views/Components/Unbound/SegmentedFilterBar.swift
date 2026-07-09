@@ -8,42 +8,61 @@ struct SegmentedFilterBar<Item: Hashable>: View {
     let items: [Item]
     let title: (Item) -> String
     @Binding var selection: Item
+    /// When true the segments split the full width evenly (equal-width, roomier
+    /// gaps) instead of packing left inside a horizontal scroll. Use for a small,
+    /// fixed set of segments (e.g. Form / Assist / Tips / Fixes) that should span
+    /// the screen; leave false for longer, scrollable filter rails.
+    var fillEqually: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+        if fillEqually {
+            HStack(spacing: 10) {
                 ForEach(items, id: \.self) { item in
-                    let isSelected = item == selection
-                    Button {
-                        guard !isSelected else { return }
-                        UnboundHaptics.soft()
-                        // Reduce Motion: skip the snappy crossfade, select instantly.
-                        if reduceMotion {
-                            selection = item
-                        } else {
-                            withAnimation(.snappy(duration: 0.22)) { selection = item }
-                        }
-                    } label: {
-                        Text(title(item))
-                            .font(Font.unbound.bodyMStrong)
-                            .foregroundStyle(isSelected ? Color.unbound.textPrimary : Color.unbound.textTertiary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(isSelected ? Color.unbound.surfaceElevated : Color.clear)
-                            )
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(title(item))
-                    .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+                    segment(item).frame(maxWidth: .infinity)
                 }
             }
-            .padding(.horizontal, 1)
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(items, id: \.self) { item in
+                        segment(item)
+                    }
+                }
+                .padding(.horizontal, 1)
+            }
         }
+    }
+
+    @ViewBuilder
+    private func segment(_ item: Item) -> some View {
+        let isSelected = item == selection
+        Button {
+            guard !isSelected else { return }
+            UnboundHaptics.soft()
+            // Reduce Motion: skip the snappy crossfade, select instantly.
+            if reduceMotion {
+                selection = item
+            } else {
+                withAnimation(.snappy(duration: 0.22)) { selection = item }
+            }
+        } label: {
+            Text(title(item))
+                .font(Font.unbound.bodyMStrong)
+                .foregroundStyle(isSelected ? Color.unbound.textPrimary : Color.unbound.textTertiary)
+                .frame(maxWidth: fillEqually ? .infinity : nil)
+                .padding(.horizontal, fillEqually ? 8 : 14)
+                .padding(.vertical, fillEqually ? 10 : 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(isSelected ? Color.unbound.surfaceElevated : Color.clear)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title(item))
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
 

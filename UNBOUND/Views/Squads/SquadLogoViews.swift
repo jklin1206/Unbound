@@ -51,16 +51,7 @@ struct SquadLogoPicker: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
                 SquadLogoMarkView(logoId: selectedLogoId, size: 96)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("SQUAD MARK")
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                        .tracking(1.3)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text(SquadLogoCatalog.preset(for: selectedLogoId).title)
-                        .font(Font.unbound.bodyLStrong)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(1)
-                }
+                CalmSectionHeader(title: "SQUAD MARK")
                 Spacer(minLength: 0)
             }
 
@@ -100,18 +91,10 @@ struct SquadLogoEditSheet: View {
             }
             .background(Color.unbound.bg.ignoresSafeArea())
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Button {
+                UnboundButton(title: "Save Mark") {
                     onSave(selectedLogoId)
                     dismiss()
-                } label: {
-                    Text("SAVE MARK")
-                        .font(Font.unbound.bodyMStrong)
-                        .tracking(1.1)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Color.unbound.accent)
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
                 .padding(.bottom, 12)

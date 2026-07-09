@@ -27,7 +27,6 @@ struct UserSkillProgress: Codable {
     /// aiming at. At most one per tree. Independent of `activeGoalIds` (Program
     /// Focuses): a target is a display/aspiration marker and does NOT change the
     /// program or weekly schedule.
-    var targetSkillIds: Set<String> = []
 
     /// User's customized weekly schedule. Index 0 = Monday, 6 = Sunday.
     /// `nil` entries fall back to `ProgramScheduler.defaultWeeklySchedule`.
@@ -47,7 +46,6 @@ struct UserSkillProgress: Codable {
             updatedAt: Date(),
             bookmarkedNodeIds: [],
             activeGoalIds: [],
-            targetSkillIds: [],
             weeklySchedule: Array(repeating: nil, count: 7),
             currentWeekPhase: .moderate
         )
@@ -67,7 +65,7 @@ struct UserSkillProgress: Codable {
     // decode without a migration.
     enum CodingKeys: String, CodingKey {
         case userId, nodeStates, provenAt, updatedAt
-        case bookmarkedNodeIds, activeGoalIds, targetSkillIds, weeklySchedule, currentWeekPhase
+        case bookmarkedNodeIds, activeGoalIds, weeklySchedule, currentWeekPhase
         // Legacy-only keys, read on decode, never encoded:
         case achievedAt, masteredAt
     }
@@ -79,7 +77,6 @@ struct UserSkillProgress: Codable {
         updatedAt: Date,
         bookmarkedNodeIds: Set<String> = [],
         activeGoalIds: Set<String> = [],
-        targetSkillIds: Set<String> = [],
         weeklySchedule: [DayCategory?] = Array(repeating: nil, count: 7),
         currentWeekPhase: WeekPhase = .moderate
     ) {
@@ -89,7 +86,6 @@ struct UserSkillProgress: Codable {
         self.updatedAt = updatedAt
         self.bookmarkedNodeIds = bookmarkedNodeIds
         self.activeGoalIds = activeGoalIds
-        self.targetSkillIds = targetSkillIds
         self.weeklySchedule = weeklySchedule
         self.currentWeekPhase = currentWeekPhase
     }
@@ -117,7 +113,6 @@ struct UserSkillProgress: Codable {
 
         bookmarkedNodeIds = try c.decodeIfPresent(Set<String>.self, forKey: .bookmarkedNodeIds) ?? []
         activeGoalIds = try c.decodeIfPresent(Set<String>.self, forKey: .activeGoalIds) ?? []
-        targetSkillIds = try c.decodeIfPresent(Set<String>.self, forKey: .targetSkillIds) ?? []
         weeklySchedule = try c.decodeIfPresent([DayCategory?].self, forKey: .weeklySchedule) ?? Array(repeating: nil, count: 7)
         currentWeekPhase = try c.decodeIfPresent(WeekPhase.self, forKey: .currentWeekPhase) ?? .moderate
     }
@@ -130,7 +125,6 @@ struct UserSkillProgress: Codable {
         try c.encode(updatedAt, forKey: .updatedAt)
         try c.encode(bookmarkedNodeIds, forKey: .bookmarkedNodeIds)
         try c.encode(activeGoalIds, forKey: .activeGoalIds)
-        try c.encode(targetSkillIds, forKey: .targetSkillIds)
         try c.encode(weeklySchedule, forKey: .weeklySchedule)
         try c.encode(currentWeekPhase, forKey: .currentWeekPhase)
     }

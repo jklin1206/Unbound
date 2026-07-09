@@ -242,7 +242,7 @@ struct ClusterStaircaseView: View {
                     Image(systemName: "shield.lefthalf.filled")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(skinService.currentSkin.primaryColor)
-                    Text("KEYSTONE —")
+                    Text("KEYSTONE")
                         .font(Font.unbound.captionS.weight(.heavy))
                         .tracking(1.4)
                         .foregroundStyle(Color.unbound.textTertiary)

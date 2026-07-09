@@ -63,77 +63,105 @@ enum RankCosmetics {
         highestRank ?? .initiate
     }
 
-    static func recordUnlockedTier(userId: String, currentTier: SkillTier) -> SkillTier {
+    static func recordUnlockedTier(userId: String, currentTier: SkillTier, defaults: UserDefaults = .standard) -> SkillTier {
         let key = highestKeyPrefix + userId
-        let stored = UserDefaults.standard.integer(forKey: key)
+        let stored = defaults.integer(forKey: key)
         let highest = max(stored, currentTier.rawValue)
-        UserDefaults.standard.set(highest, forKey: key)
+        defaults.set(highest, forKey: key)
         return SkillTier(rawValue: highest) ?? currentTier
     }
 
-    static func unlockedTiers(userId: String, currentTier: SkillTier) -> [SkillTier] {
-        rankUnlockedTiers(userId: userId, currentTier: currentTier)
+    static func unlockedTiers(userId: String, currentTier: SkillTier, defaults: UserDefaults = .standard) -> [SkillTier] {
+        rankUnlockedTiers(userId: userId, currentTier: currentTier, defaults: defaults)
     }
 
-    static func unlockedFrameTiers(userId: String, currentTier: SkillTier) -> [SkillTier] {
-        rankUnlockedTiers(userId: userId, currentTier: currentTier)
+    static func unlockedFrameTiers(userId: String, currentTier: SkillTier, defaults: UserDefaults = .standard) -> [SkillTier] {
+        rankUnlockedTiers(userId: userId, currentTier: currentTier, defaults: defaults)
     }
 
-    static func unlockedBackgroundTiers(userId: String, currentTier: SkillTier) -> [SkillTier] {
-        rankUnlockedTiers(userId: userId, currentTier: currentTier)
+    static func unlockedBackgroundTiers(userId: String, currentTier: SkillTier, defaults: UserDefaults = .standard) -> [SkillTier] {
+        rankUnlockedTiers(userId: userId, currentTier: currentTier, defaults: defaults)
     }
 
-    private static func rankUnlockedTiers(userId: String, currentTier: SkillTier) -> [SkillTier] {
-        let highest = recordUnlockedTier(userId: userId, currentTier: currentTier)
+    private static func rankUnlockedTiers(userId: String, currentTier: SkillTier, defaults: UserDefaults) -> [SkillTier] {
+        let highest = recordUnlockedTier(userId: userId, currentTier: currentTier, defaults: defaults)
         return SkillTier.allCases.filter { $0.rawValue <= highest.rawValue }
     }
 
-    static func equippedFrameTier(userId: String, currentTier: SkillTier) -> RankTitle {
+    static func equippedFrameTier(userId: String, currentTier: SkillTier, defaults: UserDefaults = .standard) -> RankTitle {
         equippedTier(
             keyPrefix: frameKeyPrefix,
             userId: userId,
             currentTier: currentTier,
-            unlocked: unlockedFrameTiers(userId: userId, currentTier: currentTier)
+            unlocked: unlockedFrameTiers(userId: userId, currentTier: currentTier, defaults: defaults),
+            defaults: defaults
         )
     }
 
-    static func equippedBackgroundTier(userId: String, currentTier: SkillTier) -> RankTitle {
+    static func equippedBackgroundTier(userId: String, currentTier: SkillTier, defaults: UserDefaults = .standard) -> RankTitle {
         equippedTier(
             keyPrefix: backgroundKeyPrefix,
             userId: userId,
             currentTier: currentTier,
-            unlocked: unlockedBackgroundTiers(userId: userId, currentTier: currentTier)
+            unlocked: unlockedBackgroundTiers(userId: userId, currentTier: currentTier, defaults: defaults),
+            defaults: defaults
         )
     }
 
-    static func setEquippedFrameTier(_ tier: SkillTier, userId: String, currentTier: SkillTier) {
+    static func setEquippedFrameTier(_ tier: SkillTier, userId: String, currentTier: SkillTier, defaults: UserDefaults = .standard) {
         setEquippedTier(
             tier,
             keyPrefix: frameKeyPrefix,
             userId: userId,
             currentTier: currentTier,
-            unlocked: unlockedFrameTiers(userId: userId, currentTier: currentTier)
+            unlocked: unlockedFrameTiers(userId: userId, currentTier: currentTier, defaults: defaults),
+            defaults: defaults
         )
     }
 
-    static func setEquippedBackgroundTier(_ tier: SkillTier, userId: String, currentTier: SkillTier) {
+    static func setEquippedBackgroundTier(_ tier: SkillTier, userId: String, currentTier: SkillTier, defaults: UserDefaults = .standard) {
         setEquippedTier(
             tier,
             keyPrefix: backgroundKeyPrefix,
             userId: userId,
             currentTier: currentTier,
-            unlocked: unlockedBackgroundTiers(userId: userId, currentTier: currentTier)
+            unlocked: unlockedBackgroundTiers(userId: userId, currentTier: currentTier, defaults: defaults),
+            defaults: defaults
         )
+    }
+
+    // MARK: - Cloud backup seams
+
+    /// Raw persisted values for `RewardsCloudBackup` — nil when the user never
+    /// touched the slot, which is exactly what the restore's adopt-when-unset
+    /// checks key off (the guarded getters above always fall back).
+    static func persistedHighestTierRawValue(userId: String, defaults: UserDefaults = .standard) -> Int? {
+        defaults.object(forKey: highestKeyPrefix + userId) as? Int
+    }
+
+    static func persistedEquippedFrameTier(userId: String, defaults: UserDefaults = .standard) -> SkillTier? {
+        persistedEquippedTier(keyPrefix: frameKeyPrefix, userId: userId, defaults: defaults)
+    }
+
+    static func persistedEquippedBackgroundTier(userId: String, defaults: UserDefaults = .standard) -> SkillTier? {
+        persistedEquippedTier(keyPrefix: backgroundKeyPrefix, userId: userId, defaults: defaults)
+    }
+
+    private static func persistedEquippedTier(keyPrefix: String, userId: String, defaults: UserDefaults) -> SkillTier? {
+        guard let raw = defaults.string(forKey: keyPrefix + userId) else { return nil }
+        // Same tolerant decode as `equippedTier` (Int rawValue, legacy token fallback).
+        return Int(raw).flatMap(RankTier.init(rawValue:)) ?? RankTier.fromLegacyToken(raw)
     }
 
     private static func equippedTier(
         keyPrefix: String,
         userId: String,
         currentTier: SkillTier,
-        unlocked: [SkillTier]
+        unlocked: [SkillTier],
+        defaults: UserDefaults
     ) -> RankTitle {
         let fallback = unlocked.last ?? currentTier
-        guard let raw = UserDefaults.standard.string(forKey: keyPrefix + userId)
+        guard let raw = defaults.string(forKey: keyPrefix + userId)
         else { return fallback }
         // New writes store the Int rawValue; older builds stored the case-name
         // token (crown tokens carry their pre-rename meanings).
@@ -147,12 +175,13 @@ enum RankCosmetics {
         keyPrefix: String,
         userId: String,
         currentTier: SkillTier,
-        unlocked: [SkillTier]
+        unlocked: [SkillTier],
+        defaults: UserDefaults
     ) {
         guard unlocked.contains(tier) else { return }
         // Persist the Int rawValue (stable across the 2026-06 crown rename);
         // reads stay tolerant of the older token form via fromLegacyToken.
-        UserDefaults.standard.set(String(tier.rawValue), forKey: keyPrefix + userId)
+        defaults.set(String(tier.rawValue), forKey: keyPrefix + userId)
         NotificationCenter.default.post(
             name: .profileCosmeticsChanged,
             object: nil,

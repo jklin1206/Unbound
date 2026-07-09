@@ -39,7 +39,10 @@ final class RestNotifier: RestNotifying, @unchecked Sendable {
         )
 
         Task {
-            await requestAuthIfNeeded()
+            // Scheduling never triggers the OS permission dialog - a prompt
+            // rising mid-set (or over the onboarding demo) reads as a bug.
+            // The deliberate asks live on the onboarding notifications step,
+            // Settings, and the real-workout open.
             let settings = await center.notificationSettings()
             guard settings.authorizationStatus.allowsRestTimerScheduling else { return }
             try? await center.add(request)

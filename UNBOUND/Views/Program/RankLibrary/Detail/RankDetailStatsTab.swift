@@ -9,8 +9,8 @@ import SwiftUI
 ///   3. PAST ATTEMPTS — the chronological attempt log, most recent first.
 ///
 /// Before the first log there is no data, so the tab shows a structured first-time
-/// state instead — placeholder "—" tiles for the metrics relevant to `vm.logMode`,
-/// plus a calm prompt — so the tab always has shape.
+/// state instead: placeholder "-" tiles for the metrics relevant to `vm.logMode`,
+/// plus a calm prompt, so the tab always has shape.
 struct RankDetailStatsTab: View {
     let vm: RankDetailViewModel
 
@@ -134,16 +134,16 @@ struct RankDetailStatsTab: View {
         var items: [RankStatItem]
         switch vm.logMode {
         case .reps:
-            items = [RankStatItem(id: "ph-reps", label: "Best Reps", value: "\u{2014}", systemImage: "repeat")]
+            items = [RankStatItem(id: "ph-reps", label: "Best Reps", value: "-", systemImage: "repeat")]
         case .hold:
-            items = [RankStatItem(id: "ph-hold", label: "Best Hold", value: "\u{2014}", systemImage: "timer")]
+            items = [RankStatItem(id: "ph-hold", label: "Best Hold", value: "-", systemImage: "timer")]
         case .oneRepMax:
             items = [
-                RankStatItem(id: "ph-1rm", label: "Best 1RM", value: "\u{2014}", systemImage: "trophy.fill"),
-                RankStatItem(id: "ph-load", label: "Best Load", value: "\u{2014}", systemImage: "scalemass.fill")
+                RankStatItem(id: "ph-1rm", label: "Best 1RM", value: "-", systemImage: "trophy.fill"),
+                RankStatItem(id: "ph-load", label: "Best Load", value: "-", systemImage: "scalemass.fill")
             ]
         }
-        items.append(RankStatItem(id: "ph-ap", label: "Accumulated", value: "\u{2014}", systemImage: "bolt.fill"))
+        items.append(RankStatItem(id: "ph-ap", label: "Accumulated", value: "-", systemImage: "bolt.fill"))
         return items
     }
 

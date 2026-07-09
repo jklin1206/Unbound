@@ -1582,6 +1582,13 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_band-face-pull",
+    "displayName" : "Band Face Pull",
+    "id" : "exercise.band-face-pull",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_pike-pushup",
     "displayName" : "Pike Push-Up",
     "id" : "exercise.pike-pushup",

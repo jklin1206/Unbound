@@ -353,9 +353,10 @@ struct DeloadSheet: View {
 
     @State private var phase: Phase = .preview
     @State private var states: [ProgressionState] = []
+    @State private var errorMessage: String?
     @Environment(\.dismiss) private var dismiss
 
-    private enum Phase { case preview, applied }
+    private enum Phase { case preview, applying, applied, failed }
 
     var body: some View {
         NavigationStack {
@@ -363,8 +364,10 @@ struct DeloadSheet: View {
                 Color.unbound.bg.ignoresSafeArea()
 
                 switch phase {
-                case .preview: previewView
-                case .applied: appliedView
+                case .preview:  previewView
+                case .applying: applyingView
+                case .applied:  appliedView
+                case .failed:   failedView
                 }
             }
             .navigationTitle("DELOAD WEEK")
@@ -418,6 +421,41 @@ struct DeloadSheet: View {
             .buttonStyle(.plain)
             .padding(.horizontal, 20)
             .padding(.bottom, 32)
+        }
+    }
+
+    private var applyingView: some View {
+        VStack(spacing: 16) {
+            ProgressView().tint(Color.unbound.rankGreen)
+            Text("Applying deload…")
+                .font(Font.unbound.bodyS)
+                .foregroundStyle(Color.unbound.textSecondary)
+        }
+    }
+
+    private var failedView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 28, weight: .light))
+                .foregroundStyle(Color.unbound.warnOrange)
+            Text(errorMessage ?? "The deload didn't save. Check your connection and try again.")
+                .font(Font.unbound.bodyS)
+                .foregroundStyle(Color.unbound.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            Button {
+                UnboundHaptics.medium()
+                applyDeload()
+            } label: {
+                Text("RETRY")
+                    .font(Font.unbound.bodyMStrong)
+                    .tracking(1.4)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 12)
+                    .background(Capsule().fill(Color.unbound.surface))
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -481,14 +519,26 @@ struct DeloadSheet: View {
     }
 
     private func applyDeload() {
+        phase = .applying
+        errorMessage = nil
         let deloaded = DeloadPlanner.shared.planDeload(for: states)
         Task {
+            var failed = false
             for s in deloaded {
-                try? await DatabaseService.shared.create(
-                    s, collection: "progression_states", documentId: s.id
-                )
+                do {
+                    try await ProgressionStateStore.shared.persist(s)
+                } catch {
+                    failed = true
+                }
             }
-            await MainActor.run { phase = .applied }
+            await MainActor.run {
+                if failed {
+                    errorMessage = "The deload didn't fully save. Tap retry to finish."
+                    phase = .failed
+                } else {
+                    phase = .applied
+                }
+            }
         }
     }
 }

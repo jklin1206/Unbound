@@ -17,6 +17,7 @@ extension SquadDetailView {
         await awardEndedSeasonWinnerIfEligible()
         await refreshRoutineDrops()
         await refreshMissionState()
+        await refreshHonors()
     }
 
     @MainActor
@@ -29,6 +30,16 @@ extension SquadDetailView {
         await awardEndedSeasonWinnerIfEligible()
         await refreshRoutineDrops()
         await refreshMissionState()
+        await refreshHonors()
+    }
+
+    @MainActor
+    func refreshHonors() async {
+        guard let squadId = state.currentSquad?.id else {
+            weeklyHonors = []
+            return
+        }
+        weeklyHonors = await services.squadHonors.currentHonors(squadId: squadId)
     }
 
     @MainActor
@@ -169,24 +180,54 @@ extension SquadDetailView {
         var logsByMember: [UUID: [WorkoutLog]] = [:]
         var recordsByMember: [UUID: SessionXPRecord] = [:]
 
+        let authUserId = services.auth.currentUserId ?? ""
+        if let squadId = state.currentSquad?.id,
+           !SquadUserIdentity.usesLocalOnlySquad(for: authUserId) {
+            // Real squads: squadmates' logs never exist in the local store
+            // (workout_logs is owner-only under RLS), so one gated RPC returns
+            // every member's completed logs. The window reaches back past the
+            // season start so PR detection has pre-season baselines.
+            let since = currentSeason.start.addingTimeInterval(-90 * 24 * 3600)
+            logsByMember = (try? await SquadBackend.shared.fetchMemberWorkoutLogs(
+                squadId: squadId,
+                since: since,
+                perMemberLimit: 200
+            )) ?? [:]
+            // The viewer's own row prefers the local store — it includes logs
+            // that haven't synced yet.
+            if let me = currentUserId {
+                let mine = await fetchWorkoutLogs(userId: authUserId, limit: 200)
+                if !mine.isEmpty { logsByMember[me] = mine }
+            }
+        } else {
+            // DEBUG local-only squads share this device's store.
+            for member in roster {
+                let profileUserId = resolvedProfileUserId(for: member)
+                logsByMember[member.userId] = await fetchWorkoutLogs(userId: profileUserId, limit: 120)
+            }
+        }
+
         for member in roster {
             let profileUserId = resolvedProfileUserId(for: member)
-            logsByMember[member.userId] = await fetchWorkoutLogs(userId: profileUserId, limit: 120)
             recordsByMember[member.userId] = services.sessionXP.record(userId: profileUserId)
         }
 
         memberWorkoutLogs = logsByMember
         memberSessionRecords = recordsByMember
 
+        // Cross-user profile flair (equipped cosmetics + showcase + hex) so a
+        // squadmate's profile renders 1:1. Device-local otherwise; only real
+        // squads have a gated RPC to read it.
+        if let squadId = state.currentSquad?.id,
+           !SquadUserIdentity.usesLocalOnlySquad(for: authUserId) {
+            memberFlair = await SquadFlairService.fetch(squadId: squadId)
+        }
+
         if let squadId = state.currentSquad?.id {
             challengeStatsByMember = await services.friendChallenge.challengeStats(squadId: squadId)
         } else {
             challengeStatsByMember = [:]
         }
-    }
-
-    func accountabilityBadge(for userId: UUID) -> AccountabilityBadgeState {
-        AccountabilityBadgeState(userId: userId, clearedCount: state.recentActivity.filter { $0.userId == userId && $0.kind == .trialCompleted }.count)
     }
 
     func weeklySessionCount(for userId: UUID) -> Int {
@@ -309,6 +350,17 @@ extension SquadDetailView {
     }
 
     @MainActor
+    func setSquadAffinity(_ axis: AttributeKey?) async {
+        guard let userId = services.auth.currentUserId else { return }
+        do {
+            try await services.squads.setAffinity(axis, userId: userId)
+            state = services.squads.state(userId: userId)
+        } catch {
+            services.logging.log("SquadDetailView.setSquadAffinity failed: \(error)", level: .warning)
+        }
+    }
+
+    @MainActor
     func setSquadLogo(_ logoId: String) async {
         guard let userId = services.auth.currentUserId else { return }
         do {
@@ -316,6 +368,17 @@ extension SquadDetailView {
             state = services.squads.state(userId: userId)
         } catch {
             services.logging.log("SquadDetailView.setSquadLogo failed: \(error)", level: .warning)
+        }
+    }
+
+    @MainActor
+    func renameSquad(_ name: String) async {
+        guard let userId = services.auth.currentUserId else { return }
+        do {
+            try await services.squads.renameSquad(name: name, userId: userId)
+            state = services.squads.state(userId: userId)
+        } catch {
+            services.logging.log("SquadDetailView.renameSquad failed: \(error)", level: .warning)
         }
     }
 

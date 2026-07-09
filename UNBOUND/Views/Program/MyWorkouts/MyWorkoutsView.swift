@@ -7,7 +7,7 @@ struct MyWorkoutsView: View {
     let onQuickLog: () -> Void
     let onBuild: () -> Void
     let onStartWorkout: (SavedWorkout) -> Void
-    let onSchedule: (SavedWorkout) -> Void
+    let onEdit: (SavedWorkout) -> Void
 
     var body: some View {
         ScrollView {
@@ -22,7 +22,7 @@ struct MyWorkoutsView: View {
                 SavedWorkoutsInlineList(
                     refreshTrigger: refreshTrigger,
                     onStartWorkout: onStartWorkout,
-                    onSchedule: onSchedule
+                    onEdit: onEdit
                 )
             }
             .padding(.horizontal, 20)

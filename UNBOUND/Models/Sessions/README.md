@@ -24,7 +24,6 @@ Workout-session model layer: the live in-workout state machine (`ActiveWorkoutSe
 | `TrainingSessionAdapters.swift` | `TrainingSessionAdapters` — converts a planned `Workout` (plus scheduled skill blocks) into a `TrainingSessionDraft`, and back. |
 | `TrainingSessionAdapters+Routines.swift` | Routine adapters — builds a `PerformanceLog` from a `RoutineDef` + `RoutineCompletionRecord`. |
 | `TrainingSessionDraft.swift` | `TrainingSessionDraft` + the core session enums: `TrainingSessionSource`, `TrainingBlockKind`, `TrainingSide`, `TrainingMetricKind`. |
-| `TrainingSessionEditing.swift` | Session-edit persistence model: `TrainingSessionEditPersistence` (today-only / repeat swap / preference / next block), `TrainingSessionSwapEdit`, `TrainingSessionEditPreferenceBuilder`. |
 | `TrainingTarget.swift` | `TrainingTarget` — typed prescription target (reps, range, AMRAP, hold seconds, distance, calories, timed). |
 | `Workout.swift` | `Workout` + `Exercise` — a planned program-day workout (warmup/main/cooldown exercise lists). |
 | `WorkoutBlock.swift` | `WorkoutBlock` — a section of a planned workout with `Kind` (warmup/main/accessory/cooldown/skill). |
@@ -38,4 +37,3 @@ Workout-session model layer: the live in-workout state machine (`ActiveWorkoutSe
 - **Converting a program workout or routine into a draft/log:** `TrainingSessionAdapters.swift` and `TrainingSessionAdapters+Routines.swift`
 - **Rest timer behavior:** `RestTimerModel.swift`
 - **User workout templates and Quick Log:** `SavedWorkout.swift`, `QuickLogDraftFactory.swift`
-- **Exercise swaps and how long an edit persists:** `TrainingSessionEditing.swift`

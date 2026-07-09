@@ -7,8 +7,7 @@ extension WorkoutRewardSequenceSummary {
         completionResult: TrainingCompletionResult? = nil,
         rewardSummary: RewardSummary? = nil,
         fallbackXP: Int = 0,
-        sourceName: String? = nil,
-        weeklyVowCallout: WeeklyVowRewardCallout? = nil
+        sourceName: String? = nil
     ) -> WorkoutRewardSequenceSummary {
         let allSets = performanceLog.blocks.flatMap(\.exercises).flatMap(\.sets)
         let metricOnlyBlocks = performanceLog.blocks.filter { block in
@@ -36,10 +35,6 @@ extension WorkoutRewardSequenceSummary {
         )
 
         let attributeDeltas = attributeDeltas(from: completionResult, progression: progression)
-        let attributePreviousLevels = attributePreviousLevels(from: completionResult, progression: progression)
-        let attributeLevels = attributeLevels(from: completionResult, progression: progression)
-        let previousAttributeTiers = attributePreviousTiers(from: completionResult, deltas: attributeDeltas)
-        let currentAttributeTiers = attributeTiers(from: completionResult, deltas: attributeDeltas)
 
         var summary = WorkoutRewardSequenceSummary(
             workoutName: performanceLog.title,
@@ -60,10 +55,6 @@ extension WorkoutRewardSequenceSummary {
                 fallbackDeltas: attributeDeltas,
                 useCurrent: true
             ),
-            attributePreviousLevels: attributePreviousLevels,
-            attributeLevels: attributeLevels,
-            attributePreviousTiers: previousAttributeTiers,
-            attributeTiers: currentAttributeTiers,
             personalRecords: personalRecords(from: rewardSummary),
             badges: badges(from: rewardSummary),
             arcProgress: ArcProgressReward(
@@ -77,8 +68,7 @@ extension WorkoutRewardSequenceSummary {
                 bonusXP: 0
             ),
             cosmeticUnlock: nil,
-            progression: progression,
-            weeklyVowCallout: weeklyVowCallout
+            progression: progression
         )
         summary.arcsEarned = max(0, completionResult?.arcsEarned ?? 0)
         if let proofResult = completionResult?.proofEngineResult {
@@ -292,78 +282,25 @@ extension WorkoutRewardSequenceSummary {
             }
     }
 
-    private static func attributeLevels(
-        from completionResult: TrainingCompletionResult?,
-        progression: ProgressionReceipt?
-    ) -> [AttributeKey: Int] {
-        if let profile = completionResult?.attributeProfileAfter {
-            return profile.levels
-        }
-
-        if let rewards = completionResult?.attributeRewards, !rewards.isEmpty {
-            return Dictionary(uniqueKeysWithValues: rewards.map { ($0.key, $0.currentLevel) })
-        }
-
-        return Dictionary(uniqueKeysWithValues: (progression?.attributeLines ?? []).map { ($0.key, $0.levelAfter) })
-    }
-
-    private static func attributePreviousLevels(
-        from completionResult: TrainingCompletionResult?,
-        progression: ProgressionReceipt?
-    ) -> [AttributeKey: Int] {
-        if let profile = completionResult?.attributeProfileBefore {
-            return profile.levels
-        }
-
-        if let rewards = completionResult?.attributeRewards, !rewards.isEmpty {
-            return Dictionary(uniqueKeysWithValues: rewards.map { ($0.key, $0.previousLevel) })
-        }
-
-        return Dictionary(uniqueKeysWithValues: (progression?.attributeLines ?? []).map { ($0.key, $0.levelBefore) })
-    }
-
-    private static func attributePreviousTiers(
-        from completionResult: TrainingCompletionResult?,
-        deltas: [AttributeDeltaReward]
-    ) -> [AttributeKey: RankTitle] {
-        if let profile = completionResult?.attributeProfileBefore {
-            return profile.levelRankTitles
-        }
-
-        return Dictionary(uniqueKeysWithValues: deltas.map { ($0.key, $0.previousTier) })
-    }
-
-    private static func attributeTiers(
-        from completionResult: TrainingCompletionResult?,
-        deltas: [AttributeDeltaReward]
-    ) -> [AttributeKey: RankTitle] {
-        if let profile = completionResult?.attributeProfileAfter {
-            return profile.levelRankTitles
-        }
-
-        return Dictionary(uniqueKeysWithValues: deltas.map { ($0.key, $0.currentTier) })
-    }
-
-    /// The REWARD hex shows each axis's progress toward its NEXT level (0–100%),
-    /// not the absolute level/100 (that's the profile page's honest cumulative
-    /// shape). Progress moves a lot per session, so the radar visibly pushes on
-    /// the axes you trained. Axes that leveled up this session animate from empty
-    /// (the level rolled over) rather than wrapping backward.
+    /// Radar shapes on the SAME honest cumulative scale the profile hex uses
+    /// (`continuousHexFill`: level plus fractional progress, over maxLevel).
+    /// Forward-only — a level-up is a continued push, never a wrap.
     private static func attributeHexValues(
         profile: AttributeProfile?,
         fallbackDeltas: [AttributeDeltaReward],
         useCurrent: Bool
     ) -> [AttributeKey: Double] {
-        let leveledUp = Set(fallbackDeltas.filter(\.didIncreaseLevel).map(\.key))
         if let profile {
             return Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
-                if !useCurrent && leveledUp.contains(key) { return (key, 0.0) }
-                return (key, AttributeLevelCurve.progressFraction(forXP: profile.value(for: key).xp) * 100)
+                (key, AttributeLevelCurve.continuousHexFill(forXP: profile.value(for: key).xp) * 100)
             })
         }
 
-        return Dictionary(uniqueKeysWithValues: fallbackDeltas.map {
-            ($0.key, (useCurrent ? $0.currentProgress : $0.levelProgressStart) * 100)
+        return Dictionary(uniqueKeysWithValues: fallbackDeltas.map { delta in
+            let fill = useCurrent
+                ? AttributeLevelCurve.continuousHexFill(level: delta.currentLevel, progress: delta.currentProgress)
+                : AttributeLevelCurve.continuousHexFill(level: delta.previousLevel, progress: delta.previousProgress)
+            return (delta.key, fill * 100)
         })
     }
 

@@ -9,29 +9,35 @@ struct Step14_Equipment: View {
     var body: some View {
         OnboardingScaffold(
             title: "What can you get your hands on?",
-            subtitle: "We'll build around whatever you've got. Less is fine.",
+            subtitle: "Nothing selected = just you.",
             progress: progress,
             primaryTitle: "Continue",
-            primaryEnabled: !flow.equipment.isEmpty,
             hudStep: .equipment,
             onBack: onBack,
-            onPrimary: onContinue
+            onPrimary: {
+                // No explicit "Bodyweight only" card — an empty pick IS
+                // bodyweight-only, recorded so downstream gen sees it as before.
+                if flow.equipment.isEmpty {
+                    flow.equipment = [.bodyweight]
+                }
+                onContinue()
+            }
         ) {
             HUDMultiSelectGroup(
                 options: visibleEquipment,
                 selection: $flow.equipment,
                 title: { $0.displayName },
                 umbrella: .fullGym,
-                umbrellaSubtitle: "Whole arsenal — nothing off the table."
+                umbrellaSubtitle: "Nothing off the table."
             )
             .padding(.top, 4)
         }
     }
 
-    /// Hide the legacy `.homeWeights` case from onboarding (kept on the enum
-    /// for backward compat with pre-redesign persisted profiles).
+    /// Hidden cases: legacy `.homeWeights` (pre-redesign profiles) and
+    /// `.bodyweight` (implicit — empty selection means bodyweight-only).
     private var visibleEquipment: [Equipment] {
-        Equipment.allCases.filter { $0 != .homeWeights }
+        Equipment.allCases.filter { $0 != .homeWeights && $0 != .bodyweight }
     }
 }
 

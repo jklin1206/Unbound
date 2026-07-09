@@ -152,6 +152,10 @@ final class OverallRankTrialRunner {
                     "definitionId": definition.id
                 ]
             )
+            // The freshly confirmed rank's title, announced; then a quiet
+            // sweep for anything missed (retroactive lower ranks).
+            WeeklyVowsService.shared.unlockTitle(.rank(definition.targetRank), userId: performanceLog.userId)
+            TitleGrants.reconcile(userId: performanceLog.userId)
         }
 
         return OverallRankTrialRunResult(

@@ -8,9 +8,8 @@ import UIKit
 
 // MARK: - OnboardingFlowViewModel
 //
-// Drives the new 30-step UNBOUND onboarding flow. Lives alongside the legacy
-// `OnboardingViewModel` — we haven't deleted that yet so legacy auth/flow
-// gating keeps working. Day 2/3 will retire the legacy one.
+// Drives the UNBOUND onboarding flow. The legacy `OnboardingViewModel` step
+// counter has been removed; this is the only onboarding flow VM.
 //
 // Holds the full answer model, step enum, navigation helpers, and `finish()`
 // which writes everything to `UserService.updateProfile(userId:fields:)` in
@@ -63,6 +62,11 @@ final class OnboardingFlowViewModel {
     var commitment: Int = 8
     var displayHandle: String = ""
 
+    /// Finger-signed pact strokes (normalized 0...1), captured at the commitment
+    /// ritual just before the paywall. Persisted so the signature can be
+    /// re-surfaced later (profile, vow surfaces).
+    var pactSignatureStrokes: [[CGPoint]] = []
+
     /// Max reps of a standard pushup — mapped to starting push tier on finish().
     var calisthenicPushReps: Int = 3
     /// Max reps of a standard pullup — mapped to starting pull tier on finish().
@@ -74,11 +78,11 @@ final class OnboardingFlowViewModel {
     /// The onboarding reveal should feel like UNBOUND is spotting potential,
     /// not making the user self-label a stat build. If an old/debug flow has
     /// explicit seeds, keep them; otherwise infer the first sparks from intent.
-    var effectiveSeededAttributes: Set<AttributeKey> {
-        if !seededAttributes.isEmpty {
-            return seededAttributes
-        }
-
+    /// Per-axis interest scores derived purely from the questionnaire (goals,
+    /// target areas, exercise styles). Shapes the onboarding "build hex" starting
+    /// estimate and picks the seeded focus attributes, so both read off the same
+    /// answers instead of a hardcoded baseline.
+    var questionnaireAttributeScores: [AttributeKey: Int] {
         var scores: [AttributeKey: Int] = Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, 0) })
         func add(_ key: AttributeKey, _ amount: Int = 1) {
             scores[key, default: 0] += amount
@@ -144,6 +148,15 @@ final class OnboardingFlowViewModel {
             }
         }
 
+        return scores
+    }
+
+    var effectiveSeededAttributes: Set<AttributeKey> {
+        if !seededAttributes.isEmpty {
+            return seededAttributes
+        }
+
+        let scores = questionnaireAttributeScores
         let ranked = AttributeKey.allCases.sorted {
             let lhs = scores[$0, default: 0]
             let rhs = scores[$1, default: 0]
@@ -232,6 +245,14 @@ final class OnboardingFlowViewModel {
         // program generation runs on defaults.
         PendingOnboardingProfile.stash(fields)
         do {
+            // Materialize a COMPLETE profile doc first. `updateProfile` is a blind
+            // field-merge: on a user with no doc yet it creates one containing only
+            // these answer keys — with no `id` — which then fails to decode on every
+            // later `fetchProfile`, silently blocking first-run program generation
+            // (the user lands on a permanent "No program"). `createUserIfNeeded`
+            // writes a full `UserProfile` (with `id`) so the merge below lands on a
+            // decodable doc. Best-effort: if it throws, the Home self-heal recovers.
+            _ = try? await userService.createUserIfNeeded(userId: userId, email: nil)
             try await userService.updateProfile(userId: userId, fields: fields)
             UserDefaults.standard.set(true, forKey: "onboardingCompleted")
             await MainActor.run {
@@ -294,6 +315,11 @@ final class OnboardingFlowViewModel {
         if let targetFrequency { fields["targetFrequency"] = targetFrequency.rawValue }
         if !trainingDays.isEmpty { fields["trainingDays"] = trainingDays.map(\.rawValue) }
         if let sessionLength { fields["sessionLength"] = sessionLength.rawValue }
+        if !pactSignatureStrokes.isEmpty,
+           let data = try? JSONEncoder().encode(pactSignatureStrokes),
+           let json = String(data: data, encoding: .utf8) {
+            fields["pactSignature"] = json
+        }
         return fields
     }
 }

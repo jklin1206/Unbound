@@ -11,9 +11,10 @@ enum GateKeyMetric: Equatable, Sendable {
     /// Reach `rank` in any `count` of the 6 attributes — build-expressive (you pick
     /// which axes). Replaces the old per-exercise keystone keys.
     case attributesAtRank(count: Int, rank: RankTier)
-    /// Have `count` proven movements (any skills or barbell compounds) at `rank` —
-    /// a light "show me a trained base" check. Required rank stays achievable
-    /// (one tier below the gate target, capped at Master), never an insane bar.
+    /// Have `count` proven movements (any skills, or any loaded lifts
+    /// StrengthStandards ranks) at `rank` - a light "show me a trained base"
+    /// check. Required rank stays achievable (one tier below the gate target,
+    /// capped at Vessel on the top gates), never an insane bar.
     case movementsAtRank(count: Int, rank: RankTier)
     /// Structural meta-gate: N prior gates cleared (the final gate only).
     case gatesAnswered(Int)
@@ -31,8 +32,9 @@ protocol GateKeyHistory {
     var gateKeySetRecords: [GateKeySetRecord] { get }
     var gateKeyAttributeProfile: AttributeProfile? { get }
     var gateKeyTrialProgress: OverallRankTrialProgress { get }
-    /// Proven tiers of the user's movements (skills + barbell compounds), the pool
-    /// the `movementsAtRank` key counts. Defaults to empty (see extension) for
+    /// Proven tiers of the user's movements (skills + every loaded lift
+    /// StrengthStandards ranks, deduped by canonical identity), the pool the
+    /// `movementsAtRank` key counts. Defaults to empty (see extension) for
     /// conformers that don't track it.
     var gateKeyMovementTiers: [RankTier] { get }
 }
@@ -114,18 +116,21 @@ enum GateKeys {
         case .theForging:   return [attrs(1, .apprentice), movements(2, .apprentice)]
         case .deckOfProof:  return [attrs(2, .forged),     movements(3, .forged)]
         case .theAscent:    return [attrs(2, .veteran),    movements(3, .veteran)]
-        case .sevenSeals:   return [attrs(3, .veteran),    movements(3, .veteran)]
-        case .theThreshold: return [attrs(3, .master),     movements(4, .master)]
-        case .theLastGate:  return [gatesCleared(7), attrs(3, .master), movements(4, .master)]
+        case .sevenSeals:   return [attrs(3, .veteran),    movements(4, .master)]
+        case .theThreshold: return [attrs(3, .master),     movements(5, .vessel)]
+        case .theLastGate:  return [gatesCleared(7), attrs(3, .master), movements(6, .vessel)]
         }
     }
 
-    /// "Any K proven movements at rank R" — skills or barbell compounds; a light
-    /// "show me a trained base" check, fed by `gateKeyMovementTiers`.
+    /// "Any K proven skills or lifts at rank R" - a light "show me a trained
+    /// base" check, fed by `gateKeyMovementTiers` (all skills + every loaded
+    /// lift StrengthStandards ranks).
     private static func movements(_ count: Int, _ rank: RankTier) -> GateKeyDefinition {
         GateKeyDefinition(
             id: "key-movements-\(count)-\(rank.token)",
-            label: "Any \(count) movement\(count == 1 ? "" : "s") at \(rank.displayName)",
+            label: count == 1
+                ? "Any 1 skill or lift at \(rank.displayName)"
+                : "Any \(count) skills or lifts at \(rank.displayName)",
             movementIds: [],
             metric: .movementsAtRank(count: count, rank: rank)
         )

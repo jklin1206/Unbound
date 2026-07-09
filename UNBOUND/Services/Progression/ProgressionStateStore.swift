@@ -37,6 +37,14 @@ final class ProgressionStateStore {
         try? await database.create(state, collection: collection, documentId: state.id)
     }
 
+    /// Like `save`, but surfaces the write failure instead of swallowing it.
+    /// Callers that report success to the user (e.g. applying a deload) need to
+    /// know whether the row actually landed. Idempotent: the document id is
+    /// `userId:exerciseKey`, so a retry overwrites the same row in place.
+    func persist(_ state: ProgressionState) async throws {
+        try await database.create(state, collection: collection, documentId: state.id)
+    }
+
     func delete(_ state: ProgressionState) async {
         try? await database.delete(collection: collection, documentId: state.id)
     }

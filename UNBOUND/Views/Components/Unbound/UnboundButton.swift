@@ -2,9 +2,11 @@ import SwiftUI
 
 // MARK: - UnboundButton
 //
-// Premium button in two variants:
+// Premium button in three variants:
 //   - .primary   — filled subtle material, violet shadow on press, bone-white label
 //   - .secondary — transparent + 1px border, inverts to violet border on press
+//   - .prominent — solid accent fill, white label; the one loud CTA on a screen
+//                  (paywall purchase and equivalents)
 //
 // Spring press animation + heavy haptic on tap. Use this instead of SwiftUI's
 // default Button so we own the look & feel end-to-end.
@@ -12,6 +14,7 @@ import SwiftUI
 enum UnboundButtonVariant {
     case primary
     case secondary
+    case prominent
 }
 
 struct UnboundButton: View {
@@ -75,6 +78,8 @@ struct UnboundButton: View {
             return Color.unbound.textPrimary
         case .secondary:
             return isPressed ? Color.unbound.accent : Color.unbound.textPrimary
+        case .prominent:
+            return .white
         }
     }
 
@@ -88,13 +93,17 @@ struct UnboundButton: View {
             }
         case .secondary:
             Color.clear
+        case .prominent:
+            Color.unbound.accent
         }
     }
 
     private var borderView: some View {
         RoundedRectangle(cornerRadius: 20, style: .continuous)
             .strokeBorder(
-                isPressed ? Color.unbound.accent : Color.unbound.border,
+                variant == .prominent
+                    ? Color.white.opacity(isPressed ? 0.4 : 0.18)
+                    : (isPressed ? Color.unbound.accent : Color.unbound.border),
                 lineWidth: 1
             )
     }
@@ -110,6 +119,8 @@ struct UnboundButton: View {
             return isPressed
                 ? Color.unbound.accent.opacity(0.25)
                 : .clear
+        case .prominent:
+            return Color.unbound.accent.opacity(isPressed ? 0.55 : 0.4)
         }
     }
 }

@@ -4,7 +4,7 @@ import XCTest
 @MainActor
 extension TrainingSessionAdapterTests {
     func testRoutineAdapterPrefersCapturedPerformanceEntriesOverAuthoredInference() {
-        let routine = RoutineLibrary.placeholderRoutines.first { $0.id == "saitama-protocol" }!
+        let routine = RoutineLibrary.routines.first { $0.id == "saitama-protocol" }!
         let record = RoutineCompletionRecord(
             id: "exact-routine-record",
             routineId: routine.id,
@@ -64,7 +64,7 @@ extension TrainingSessionAdapterTests {
     }
 
     func testRoutineAdapterDoesNotInferCapturedInstructionOnlyWork() {
-        let routine = RoutineLibrary.placeholderRoutines.first { $0.id == "daily-quest" }!
+        let routine = RoutineLibrary.routines.first { $0.id == "daily-quest" }!
         let record = RoutineCompletionRecord(
             id: "instruction-only-routine-record",
             routineId: routine.id,

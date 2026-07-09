@@ -15,6 +15,13 @@ import PhotosUI
 // rest (rank, stats, badges) and nests the existing
 // SettingsView as a push destination for account/preferences.
 //
+// Split across focused files:
+//   ProfileView+Header.swift   — trophy header, top bar, layout metrics
+//   ProfileView+Identity.swift — identity stack + handle/title strings
+//   ProfileView+Archive.swift  — archive bands (build, badges, photos)
+//   ProfileView+Showcase.swift — showcase option resolution
+//   ProfileView+Data.swift     — load/refresh + identity save
+//
 // Deferred to future passes:
 //   - Real scan photo library (grid of ProgressPhoto)
 //   - Stats history charts (weekly/monthly trend)
@@ -24,45 +31,46 @@ import PhotosUI
 struct ProfileView: View {
     @EnvironmentObject var services: ServiceContainer
 
-    @State private var profile: UserProfile?
-    @State private var aggregateTier: SkillTier = .initiate
-    @State private var attributeProfile: AttributeProfile = AttributeProfile.empty(userId: "", at: .now)
-    @State private var unlockedBadges: [Badge] = []
-    @State private var totalBadgeCount: Int = 0
-    @State private var totalWorkouts: Int = 0
-    @State private var showcaseSkillId: String?
-    @State private var showcaseSkillName: String = "None yet"
-    @State private var showcaseSkillTier: SkillTier = .initiate
-    @State private var showcaseLiftId: String?
-    @State private var showcaseLiftName: String = "None yet"
-    @State private var showcaseLiftTier: SkillTier = .initiate
-    @State private var showcaseSkillOptions: [ProfileShowcaseOption] = []
-    @State private var showcaseLiftOptions: [ProfileShowcaseOption] = []
-    @State private var equippedFrameTier: RankTitle = .initiate
-    @State private var equippedBackgroundTier: RankTitle = .initiate
-    @State private var equippedShopProfileBorder: ShopProfileBorderID?
-    @State private var equippedProfileBackdrop: ShopItem?
-    @State private var sessionXP: SessionXPRecord?
-    @State private var manualPhotoCount: Int = 0
-    @State private var scanPhotoCount: Int = 0
-    @State private var beforePhoto: ProgressPhoto?
-    @State private var afterPhoto: ProgressPhoto?
-    @State private var isLoading = true
-    @State private var trialsState: TrialsState = .empty
-    @State private var profileHeaderWidth: CGFloat = ScreenMetrics.bounds.width
+    @State var profile: UserProfile?
+    @State var aggregateTier: SkillTier = .initiate
+    @State var attributeProfile: AttributeProfile = AttributeProfile.empty(userId: "", at: .now)
+    @State var unlockedBadges: [Badge] = []
+    @State var totalBadgeCount: Int = 0
+    @State var totalWorkouts: Int = 0
+    @State var showcaseSkillId: String?
+    @State var showcaseSkillName: String = "None yet"
+    @State var showcaseSkillTier: SkillTier = .initiate
+    @State var showcaseLiftId: String?
+    @State var showcaseLiftName: String = "None yet"
+    @State var showcaseLiftTier: SkillTier = .initiate
+    @State var showcaseSkillOptions: [ProfileShowcaseOption] = []
+    @State var showcaseLiftOptions: [ProfileShowcaseOption] = []
+    @State var equippedFrameTier: RankTitle = .initiate
+    @State var equippedBackgroundTier: RankTitle = .initiate
+    @State var equippedShopProfileBorder: ShopProfileBorderID?
+    @State var equippedProfileBackdrop: ShopItem?
+    @State var sessionXP: SessionXPRecord?
+    @State var manualPhotoCount: Int = 0
+    @State var scanPhotoCount: Int = 0
+    @State var beforePhoto: ProgressPhoto?
+    @State var afterPhoto: ProgressPhoto?
+    @State var isLoading = true
+    @State var trialsState: TrialsState = .empty
+    @State var profileHeaderWidth: CGFloat = ScreenMetrics.bounds.width
 
-    @ObservedObject private var photoStore = ProfilePhotoStore.shared
-    @State private var showPhotoOptions = false
-    @State private var showEditProfile = false
-    @State private var showProfileCosmetics = false
+    @ObservedObject var photoStore = ProfilePhotoStore.shared
+    @State var showPhotoOptions = false
+    @State var showProfileCosmetics = false
+    #if DEBUG
     @State private var didAutoOpenCosmetics = false
+    #endif
     @State private var showShop = false
     @State private var shopInitialCategory: ShopCategory = .backdrop
     @State private var showCamera = false
     @State private var pickedItem: PhotosPickerItem?
-    private var photoUserId: String { services.auth.currentUserId ?? "" }
+    var photoUserId: String { services.auth.currentUserId ?? "" }
 
-    @State private var overallLevel: OverallLevelProgress?
+    @State var overallLevel: OverallLevelProgress?
 
     var body: some View {
         GeometryReader { rootProxy in
@@ -86,7 +94,20 @@ struct ProfileView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .task(id: services.auth.currentUserId ?? "anonymous") { await load() }
+        .task(id: services.auth.currentUserId ?? "anonymous") {
+            await load()
+            #if DEBUG
+            // Screenshot harness: `--unbound-open-cosmetics` (with
+            // `--unbound-open-profile`) lands on the Profile Kit sheet.
+            // Runs AFTER load() so the identity form captures real
+            // handle/title state instead of the empty pre-load values.
+            if !didAutoOpenCosmetics,
+               ProcessInfo.processInfo.arguments.contains("--unbound-open-cosmetics") {
+                didAutoOpenCosmetics = true
+                showProfileCosmetics = true
+            }
+            #endif
+        }
         .confirmationDialog("Profile picture",
                             isPresented: $showPhotoOptions,
                             titleVisibility: .visible) {
@@ -102,29 +123,6 @@ struct ProfileView: View {
             }
             Button("Cancel", role: .cancel) {}
         }
-        .sheet(isPresented: $showEditProfile) {
-            EditProfileSheet(
-                displayHandle: profile?.displayHandle ?? "",
-                unlockedTitles: trialsState.unlockedTitles,
-                equippedTitle: trialsState.equippedTitle,
-                showcaseSkillOptions: showcaseSkillOptions,
-                selectedShowcaseSkillId: showcaseSkillId,
-                showcaseLiftOptions: showcaseLiftOptions,
-                selectedShowcaseLiftId: showcaseLiftId,
-                save: saveProfileIdentity
-            )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-        }
-        .onAppear {
-            // Screenshot harness: `--unbound-open-cosmetics` (with
-            // `--unbound-open-profile`) lands directly on the cosmetics sheet.
-            if !didAutoOpenCosmetics,
-               ProcessInfo.processInfo.arguments.contains("--unbound-open-cosmetics") {
-                didAutoOpenCosmetics = true
-                showProfileCosmetics = true
-            }
-        }
         .sheet(isPresented: $showProfileCosmetics, onDismiss: {
             // Guarantee the header avatar reflects any frame/border the user
             // equipped while the picker was open, even if a change notification
@@ -132,7 +130,18 @@ struct ProfileView: View {
             refreshEquippedCosmetics()
         }) {
             NavigationStack {
-                ProfileCosmeticsView { category in
+                ProfileCosmeticsView(
+                    identity: ProfileIdentityEditorContext(
+                        displayHandle: profile?.displayHandle ?? "",
+                        unlockedTitles: trialsState.unlockedTitles,
+                        equippedTitle: trialsState.equippedTitle,
+                        showcaseSkillOptions: showcaseSkillOptions,
+                        selectedShowcaseSkillId: showcaseSkillId,
+                        showcaseLiftOptions: showcaseLiftOptions,
+                        selectedShowcaseLiftId: showcaseLiftId,
+                        save: saveProfileIdentity
+                    )
+                ) { category in
                     shopInitialCategory = category
                     showProfileCosmetics = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
@@ -196,877 +205,5 @@ struct ProfileView: View {
             refreshEquippedCosmetics()
         }
         .attributeRankUpToast()
-    }
-
-    private var profileArchiveStack: some View {
-        VStack(spacing: 14) {
-            ProfileArchiveBand(tint: activeProfileTint) {
-                ProfileBuildCard(profile: attributeProfile)
-            }
-
-            ProfileArchiveBand(tint: Color.unbound.rankGold) {
-                badgesArchiveSection
-            }
-
-            ProfileArchiveBand(tint: Color.unbound.impact) {
-                VStack(spacing: 0) {
-                    if let beforePhoto, let afterPhoto {
-                        ProgressJourneySection(dayZero: beforePhoto, now: afterPhoto)
-                    }
-                    PhotoCalendarView().environmentObject(services)
-                }
-            }
-
-            Spacer().frame(height: 118)
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 14)
-    }
-
-    private var profileBaseWash: some View {
-        LinearGradient(
-            stops: [
-                .init(color: activeProfileTint.opacity(0.10), location: 0),
-                .init(color: Color.unbound.bg.opacity(0.98), location: 0.32),
-                .init(color: Color.black.opacity(0.28), location: 1)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-    }
-
-    // MARK: - Load
-
-    @MainActor
-    private func load() async {
-        let userId = services.auth.currentUserId ?? "anonymous"
-        services.badges.bind(userId: userId)
-
-        do {
-            profile = try await services.user.fetchProfile(userId: userId)
-        } catch {
-            profile = nil
-        }
-
-        aggregateTier = await services.rank.aggregateTier(userId: userId)
-        refreshEquippedCosmetics(userId: userId)
-        attributeProfile = services.attribute.profile(userId: userId)
-
-        unlockedBadges = services.badges.unlockedBadges(userId: userId)
-            .sorted { ($0.unlockedAt ?? .distantPast) > ($1.unlockedAt ?? .distantPast) }
-        totalBadgeCount = BadgeCatalog.all.count
-        sessionXP = services.sessionXP.record(userId: userId)
-        overallLevel = (try? await services.database.read(collection: "overall_level_progress", documentId: userId)) ?? OverallLevelProgress(userId: userId)
-
-        let photos: [ProgressPhoto] = (try? await services.database.query(
-            collection: "progressPhotos",
-            field: "userId",
-            isEqualTo: userId,
-            orderBy: "capturedAt",
-            descending: true,
-            limit: 500
-        )) ?? []
-        manualPhotoCount = photos.filter { $0.source == .manual }.count
-        scanPhotoCount = photos.filter { $0.source == .scan }.count
-        let orderedPhotos = photos.sorted { $0.capturedAt < $1.capturedAt }
-        beforePhoto = orderedPhotos.first
-        afterPhoto = orderedPhotos.last
-
-        let workoutLogs: [WorkoutLog] = (try? await services.database.query(
-            collection: "workoutLogs",
-            field: "userId",
-            isEqualTo: userId,
-            orderBy: "startedAt",
-            descending: true,
-            limit: nil
-        )) ?? []
-        totalWorkouts = max(workoutLogs.count, sessionXP?.totalSessions ?? 0)
-        resolveProfileShowcase(
-            userId: userId,
-            workoutLogs: workoutLogs,
-            bodyweightKg: profile?.weightKg,
-            sex: profile?.biologicalSex
-        )
-
-        // Load trials state
-        trialsState = services.trials.state(userId: userId)
-
-        isLoading = false
-    }
-
-    @MainActor
-    private func refreshRewardReadouts(userId: String) async {
-        sessionXP = services.sessionXP.record(userId: userId)
-        overallLevel = (try? await services.database.read(
-            collection: "overall_level_progress",
-            documentId: userId
-        )) ?? OverallLevelProgress(userId: userId)
-        aggregateTier = await services.rank.aggregateTier(userId: userId)
-        trialsState = services.trials.state(userId: userId)
-        totalWorkouts = max(totalWorkouts, sessionXP?.totalSessions ?? 0)
-    }
-
-    private func refreshShopCosmetics(userId overrideUserId: String? = nil) {
-        let userId = overrideUserId ?? services.auth.currentUserId ?? "anonymous"
-        equippedShopProfileBorder = ShopInventoryStore.equippedProfileBorder(userId: userId)
-        equippedProfileBackdrop = ShopInventoryStore.equippedBackdrop(for: .profile, userId: userId)
-    }
-
-    private func refreshEquippedCosmetics(userId overrideUserId: String? = nil) {
-        let userId = overrideUserId ?? services.auth.currentUserId ?? "anonymous"
-        // Cosmetic unlocks follow the rank the app SHOWS the user: the rank
-        // plate displays the skill-aggregate tier, so the aggregate counts
-        // alongside the trial-confirmed rank (the unlock ratchet keeps
-        // anything earned permanent). `aggregateTier` hydrates before this
-        // runs in load(); on the first pass it can be .initiate — the sheet
-        // and ratchet recompute with the live value on open/equip.
-        let confirmedRank = OverallRankTrialStore.shared.load(userId: userId).currentRank
-        let cosmeticTier = RankCosmetics.equipped(highestRank: max(confirmedRank, aggregateTier))
-        _ = RankCosmetics.unlockedTiers(userId: userId, currentTier: cosmeticTier)
-        equippedFrameTier = RankCosmetics.equippedFrameTier(userId: userId, currentTier: cosmeticTier)
-        equippedBackgroundTier = RankCosmetics.equippedBackgroundTier(userId: userId, currentTier: cosmeticTier)
-        refreshShopCosmetics(userId: userId)
-    }
-
-    private func profileCosmeticChangeAppliesToCurrentUser(_ note: Notification) -> Bool {
-        guard let eventUserId = note.userInfo?["userId"] as? String else { return true }
-        return eventUserId == (services.auth.currentUserId ?? "anonymous")
-    }
-
-    @MainActor
-    private func saveProfileIdentity(
-        displayHandle: String,
-        equippedTitle: TitleID?,
-        showcaseSelection: ProfileShowcaseSelection
-    ) async throws {
-        let userId = services.auth.currentUserId ?? "anonymous"
-        let cleanedHandle = displayHandle
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "@"))
-
-        try await services.user.updateProfile(
-            userId: userId,
-            fields: [
-                "displayName": NSNull(),
-                "displayHandle": cleanedHandle.isEmpty ? NSNull() : cleanedHandle
-            ]
-        )
-
-        services.trials.equipTitle(equippedTitle, userId: userId)
-        trialsState = services.trials.state(userId: userId)
-        ProfileShowcaseStore.save(showcaseSelection, userId: userId)
-        applyProfileShowcase(
-            selection: showcaseSelection,
-            skillOptions: showcaseSkillOptions,
-            liftOptions: showcaseLiftOptions
-        )
-
-        if var profile {
-            profile.displayName = nil
-            profile.displayHandle = cleanedHandle.isEmpty ? nil : cleanedHandle
-            self.profile = profile
-        }
-    }
-
-    // MARK: - Header
-
-    private func trophyHeader(topSafeInset: CGFloat) -> some View {
-        let level = overallLevel?.level ?? 0
-        let levelProgress = overallLevel?.progressToNextLevel ?? 0
-        let currentXP = { guard let p = overallLevel else { return 0 }; return max(0, Int(p.totalXP - OverallLevelCurve.xpRequired(forLevel: p.level))) }()
-        let lastXPGain = max(0, Int((overallLevel?.lastGainedXP ?? 0).rounded()))
-        let rankColor = aggregateTier.rewardTint
-        let rankTextColor = aggregateTier.rewardTextTint
-        let profileTint = activeProfileTint
-        let avatarSize = profileAvatarSize
-        let metrics = [
-            UnboundNativeMetric(
-                label: "Streak",
-                value: "\(sessionXP?.longestStreak ?? 0)D",
-                detail: "Best",
-                tint: Color.unbound.ember
-            ),
-            UnboundNativeMetric(
-                label: "Sessions",
-                value: "\(totalWorkouts)",
-                detail: "Total",
-                tint: Color.unbound.coachCyan
-            ),
-            UnboundNativeMetric(
-                label: "Vows",
-                value: "\(vowsCompletedCount)",
-                detail: vowMetricDetail,
-                tint: vowMetricTint
-            )
-        ]
-
-        return VStack(alignment: .leading, spacing: 0) {
-            ZStack(alignment: .topLeading) {
-                UnboundBackdropArt(
-                    assetName: activeProfileBackgroundAsset,
-                    role: .profileBanner,
-                    tint: profileTint
-                )
-                // Soft top emergence: fade the art's first ~14% from the page
-                // background so it doesn't start on a hard horizontal edge
-                // (which read as "cut off") — same dissolve language as the
-                // bottom hand-off.
-                .mask(
-                    LinearGradient(
-                        stops: [
-                            .init(color: .clear, location: 0),
-                            .init(color: .black, location: 0.14)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                // Start the art BELOW the status-bar inset: bleeding under the
-                // Dynamic Island hid the banner's top slice and made the whole
-                // composition read too high, detached from the avatar zone.
-                .padding(.top, topSafeInset)
-
-                DossierLinework(color: profileTint)
-                    .opacity(0.08)
-
-                // Lower-band legibility + seamless hand-off: the full-bleed
-                // banner reaches the bottom of the header, so we ramp its lower
-                // half into the page background. This both guarantees the
-                // avatar + name + rank read cleanly on the art's dead space and
-                // dissolves the old hard black cut into the metric rail below.
-                LinearGradient(
-                    stops: [
-                        .init(color: .clear, location: 0),
-                        .init(color: .black.opacity(0.12), location: 0.42),
-                        .init(color: .black.opacity(0.5), location: 0.66),
-                        .init(color: Color.unbound.bg.opacity(0.88), location: 0.88),
-                        .init(color: Color.unbound.bg, location: 1)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .allowsHitTesting(false)
-
-                VStack(alignment: .leading, spacing: 0) {
-                    profileTopBar
-                        .unboundTextShadow(strength: 0.96)
-
-                    Spacer(minLength: 16)
-
-                    HStack(alignment: .bottom, spacing: profileHeroSpacing) {
-                        heroAvatar(level: level, tint: rankColor, size: avatarSize)
-                            .shadow(color: profileTint.opacity(0.36), radius: 20, x: 0, y: 10)
-                            .layoutPriority(3)
-
-                        identityStack(
-                            level: level,
-                            currentXP: currentXP,
-                            lastXPGain: lastXPGain,
-                            levelProgress: levelProgress,
-                            rankColor: rankColor,
-                            rankTextColor: rankTextColor
-                        )
-                        .layoutPriority(2)
-                        .unboundTextShadow(strength: 0.98)
-                    }
-                }
-                .frame(maxWidth: profileHeaderContentMaxWidth, alignment: .leading)
-                .padding(.horizontal, profileHeaderHorizontalPadding)
-                .padding(.top, max(8, topSafeInset + 12))
-                .padding(.bottom, profileHeaderBottomPadding)
-            }
-            .frame(height: profileHeaderHeight + topSafeInset)
-            .background {
-                GeometryReader { proxy in
-                    Color.clear
-                        .onAppear {
-                            updateProfileHeaderWidth(proxy.size.width)
-                        }
-                        .onChange(of: proxy.size.width) { _, width in
-                            updateProfileHeaderWidth(width)
-                        }
-                }
-            }
-
-            UnboundNativeMetricRail(metrics: metrics)
-                .padding(.horizontal, 20)
-                .padding(.top, 18)
-                .padding(.bottom, 18)
-
-            HStack(alignment: .top, spacing: 16) {
-                TrophyShowcaseRow(
-                    label: "SKILL",
-                    value: showcaseSkillName.uppercased(),
-                    systemImage: "sparkles",
-                    badgeTier: showcaseSkillTier
-                )
-                TrophyShowcaseRow(
-                    label: "LIFT",
-                    value: showcaseLiftName.uppercased(),
-                    systemImage: "dumbbell.fill",
-                    badgeTier: showcaseLiftTier
-                )
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.unbound.surface.opacity(0.28))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(Color.unbound.borderSubtle.opacity(0.62), lineWidth: 0.5)
-            )
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
-        }
-        .background {
-            LinearGradient(
-                stops: [
-                    .init(color: profileTint.opacity(0.06), location: 0),
-                    .init(color: Color.unbound.bg.opacity(0.98), location: 0.30),
-                    .init(color: Color.unbound.bg, location: 1)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-        .overlay(alignment: .bottom) {
-            UnboundNativeDivider(opacity: 0.62)
-        }
-    }
-
-    private var profileTopBar: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("UNBOUND")
-                    .font(Font.unbound.captionS.weight(.black))
-                    .tracking(2.0)
-                    .foregroundStyle(Color.unbound.impact)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-                Text("PROFILE")
-                    .font(Font.unbound.titleM)
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-            }
-            .layoutPriority(1)
-            Spacer()
-            Button {
-                UnboundHaptics.medium()
-                showProfileCosmetics = true
-            } label: {
-                Image(systemName: "paintbrush.pointed.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(activeProfileTint)
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(Color.unbound.bg.opacity(0.78)))
-                    .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Customize profile cosmetics")
-            .accessibilityIdentifier("profile.cosmetics")
-
-            NavigationLink(destination: SettingsView(services: services)) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(Color.unbound.bg.opacity(0.78)))
-                    .overlay(Circle().strokeBorder(Color.unbound.borderSubtle, lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Settings")
-            .accessibilityIdentifier("profile.settings")
-        }
-    }
-
-    private var activeProfileBackgroundAsset: String? {
-        if let assetName = equippedProfileBackdrop?.backdropAssetName,
-           UIImage(named: assetName) != nil {
-            return assetName
-        }
-        return RankCosmetics.profileHeaderBannerAsset(for: equippedBackgroundTier)
-    }
-
-    private var activeProfileTint: Color {
-        if let backdrop = equippedProfileBackdrop,
-           let assetName = backdrop.backdropAssetName,
-           UIImage(named: assetName) != nil {
-            return backdrop.accent
-        }
-        if let border = equippedShopProfileBorder {
-            return border.accent
-        }
-        return equippedBackgroundTier.rewardTint
-    }
-
-    private var profileHeaderHeight: CGFloat {
-        Self.profileHeaderHeight(for: profileHeaderWidth)
-    }
-
-    private static func profileHeaderHeight(for width: CGFloat) -> CGFloat {
-        let clampedWidth = max(320, min(width, 820))
-        let bannerHeight = clampedWidth / UnboundBackdropAspect.profileBanner
-        // Full-fit: the header tracks the banner's own 16:9 so the WHOLE
-        // authored art is visible at every device width (the art renders fit,
-        // top-anchored — see UnboundBackdropArt). The floor only guards the
-        // avatar/identity overlay on very narrow widths; any band below the
-        // art dissolves into the page background via the header scrim.
-        return max(252, bannerHeight)
-    }
-
-    private var profileHeaderContentMaxWidth: CGFloat {
-        profileHeaderWidth >= 700 ? 660 : .infinity
-    }
-
-    private var profileHeaderHorizontalPadding: CGFloat {
-        profileHeaderWidth >= 700 ? 32 : 20
-    }
-
-    private var profileHeaderBottomPadding: CGFloat {
-        // Lifts the avatar + identity block UP off the bottom edge so it sits
-        // higher on the banner, leaving a measured band of dead space below it
-        // before the art blends into the page.
-        if profileHeaderWidth < 360 {
-            return 40
-        }
-        if profileHeaderWidth >= 700 {
-            return 56
-        }
-        return 46
-    }
-
-    private var profileHeroSpacing: CGFloat {
-        profileHeaderWidth < 360 ? 10 : 14
-    }
-
-    private var profileAvatarSize: CGFloat {
-        if profileHeaderWidth < 360 {
-            return hasLongIdentityText ? 104 : 118
-        }
-        if profileHeaderWidth >= 700 {
-            return hasLongIdentityText ? 168 : 196
-        }
-        return hasLongIdentityText ? 126 : 148
-    }
-
-    private var hasLongIdentityText: Bool {
-        profileIdentityName.count > 20 || (profileTitleLine?.count ?? 0) > 22
-    }
-
-    private func heroAvatar(level: Int, tint: Color, size: CGFloat) -> some View {
-        Button {
-            showPhotoOptions = true
-        } label: {
-            ProfileHeroAvatar(
-                cosmeticTier: equippedFrameTier,
-                glowTier: equippedFrameTier,
-                profileTint: activeProfileTint,
-                skillTier: aggregateTier,
-                level: level,
-                tint: tint,
-                image: photoStore.image(userId: photoUserId),
-                letterFallback: avatarInitial,
-                shopBorder: equippedShopProfileBorder,
-                size: size
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Profile picture. Tap to change.")
-    }
-
-    private func updateProfileHeaderWidth(_ width: CGFloat) {
-        guard width > 1, abs(profileHeaderWidth - width) > 0.5 else { return }
-        profileHeaderWidth = width
-    }
-
-    private var vowsCompletedCount: Int {
-        trialsState.completionsByLane.values.reduce(0, +)
-    }
-
-    private var vowMetricDetail: String {
-        "COMPLETED"
-    }
-
-    private var vowMetricTint: Color {
-        Color.unbound.rankGold
-    }
-
-    private func identityStack(
-        level: Int,
-        currentXP: Int,
-        lastXPGain: Int,
-        levelProgress: Double,
-        rankColor: Color,
-        rankTextColor: Color
-    ) -> some View {
-        let xpPerLevel = max(1, Int(OverallLevelCurve.xpRequired(forLevel: level + 1) - OverallLevelCurve.xpRequired(forLevel: level)))
-        return VStack(alignment: .leading, spacing: 10) {
-            Button {
-                showEditProfile = true
-            } label: {
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(alignment: .top, spacing: 6) {
-                        Text(profileIdentityName.uppercased())
-                            .font(.system(size: 22, weight: .black))
-                            .tracking(0.4)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                            .lineLimit(profileIdentityName.count > 26 ? 2 : 1)
-                            .minimumScaleFactor(profileIdentityName.count > 26 ? 0.52 : 0.62)
-                            .allowsTightening(true)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .layoutPriority(1)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    if let profileTitleLine {
-                        Text(profileTitleLine.uppercased())
-                            .font(.system(size: 12, weight: .bold, design: .monospaced))
-                            .tracking(1.1)
-                            .foregroundStyle(rankTextColor)
-                            .lineLimit(profileTitleLine.count > 28 ? 2 : 1)
-                            .minimumScaleFactor(0.58)
-                            .allowsTightening(true)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Edit profile handle and title")
-
-            // Rank reads as a quiet plate — the trial/gate details live on the
-            // Home rank surfaces now, not behind an ⓘ here.
-            RankTitlePlate(
-                tier: aggregateTier,
-                tint: rankColor
-            )
-            .frame(maxWidth: .infinity)
-
-            LevelProgressPlate(
-                currentXP: currentXP,
-                xpPerLevel: xpPerLevel,
-                lastXPGain: lastXPGain,
-                progress: levelProgress,
-                tint: rankColor,
-                detail: "XP"
-            )
-            .frame(maxWidth: .infinity)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .layoutPriority(1)
-    }
-
-    private var profileIdentityName: String {
-        playerHandle
-    }
-
-    private var profileTitleLine: String? {
-        trialsState.equippedTitle.map(TitleCatalog.displayName(for:))
-    }
-
-    private var avatarInitial: String {
-        if let handle = cleanedStoredHandle, let first = handle.first {
-            return String(first).uppercased()
-        }
-        return "U"
-    }
-
-    private var playerHandle: String {
-        if let handle = cleanedStoredHandle {
-            return handle.uppercased()
-        }
-        return "PLAYER"
-    }
-
-    private var cleanedStoredHandle: String? {
-        guard let handle = profile?.displayHandle else { return nil }
-        let cleaned = handle
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "@"))
-        return cleaned.isEmpty ? nil : cleaned
-    }
-
-    private func resolveProfileShowcase(
-        userId: String,
-        workoutLogs: [WorkoutLog],
-        bodyweightKg: Double?,
-        sex: BiologicalSex?
-    ) {
-        let selection = ProfileShowcaseStore.load(userId: userId)
-        let skillOptions = Self.skillShowcaseOptions(userId: userId)
-        let liftOptions = Self.loggedLiftCandidates(
-            logs: workoutLogs,
-            bodyweightKg: bodyweightKg,
-            sex: sex
-        )
-
-        showcaseSkillOptions = skillOptions
-        showcaseLiftOptions = liftOptions
-        applyProfileShowcase(selection: selection, skillOptions: skillOptions, liftOptions: liftOptions)
-    }
-
-    private func applyProfileShowcase(
-        selection: ProfileShowcaseSelection,
-        skillOptions: [ProfileShowcaseOption],
-        liftOptions: [ProfileShowcaseOption]
-    ) {
-        let skill = Self.selectedShowcaseOption(selection.skillId, options: skillOptions) ?? skillOptions.first
-        showcaseSkillId = skill?.id
-        showcaseSkillName = skill?.name ?? "None yet"
-        showcaseSkillTier = skill?.tier ?? .initiate
-
-        let lift = Self.selectedShowcaseOption(selection.liftId, options: liftOptions) ?? liftOptions.first
-        showcaseLiftId = lift?.id
-        showcaseLiftName = lift?.name ?? "None yet"
-        showcaseLiftTier = lift?.tier ?? .initiate
-    }
-
-    private static func selectedShowcaseOption(
-        _ id: String?,
-        options: [ProfileShowcaseOption]
-    ) -> ProfileShowcaseOption? {
-        guard let id else { return nil }
-        return options.first { $0.id == id }
-    }
-
-    private static func skillShowcaseOptions(userId: String) -> [ProfileShowcaseOption] {
-        let skillTiers = UserSkillTierStore.shared.load(userId: userId).perSkill
-        let nodeStates = SkillProgressService.shared.nodeStates
-        let options = SkillGraph.shared.nodes.compactMap { node -> ProfileShowcaseOption? in
-            guard nodeStates[node.id] == .proven else { return nil }
-            return ProfileShowcaseOption(
-                id: node.id,
-                name: node.title,
-                tier: skillTiers[node.id] ?? .initiate,
-                metricSort: Double(node.placementRank.rawValue),
-                repsSort: node.tier
-            )
-        }
-        return sortedShowcaseOptions(options)
-    }
-
-    private static func displayLiftName(_ lift: String) -> String {
-        lift.split(separator: " ")
-            .map { $0.prefix(1).uppercased() + $0.dropFirst() }
-            .joined(separator: " ")
-    }
-
-    private static func loggedLiftCandidates(
-        logs: [WorkoutLog],
-        bodyweightKg: Double?,
-        sex: BiologicalSex?
-    ) -> [ProfileShowcaseOption] {
-        var bestById: [String: ProfileShowcaseOption] = [:]
-        for entry in logs.flatMap(\.exerciseEntries) {
-            let rankKey = rankExerciseKey(for: entry)
-            let liftId = MovementCatalog.normalized(entry.exerciseName)
-            let liftName = displayLiftName(entry.exerciseName)
-
-            for set in entry.sets {
-                guard !set.isWarmup, let weightKg = set.weightKg, weightKg > 0 else { continue }
-                guard let tier = Self.liftTier(
-                    for: rankKey,
-                    weightKg: weightKg,
-                    bodyweightKg: bodyweightKg,
-                    sex: sex
-                ) else { continue }
-                let option = ProfileShowcaseOption(
-                    id: liftId,
-                    name: liftName,
-                    tier: tier,
-                    metricSort: weightKg,
-                    repsSort: set.reps
-                )
-                if let existing = bestById[liftId] {
-                    if isShowcaseOption(option, betterThan: existing) {
-                        bestById[liftId] = option
-                    }
-                } else {
-                    bestById[liftId] = option
-                }
-            }
-        }
-        return sortedShowcaseOptions(Array(bestById.values))
-    }
-
-    private static func liftTier(
-        for lift: String,
-        weightKg: Double,
-        bodyweightKg: Double?,
-        sex: BiologicalSex?
-    ) -> SkillTier? {
-        guard weightKg > 0 else { return nil }
-        if let bodyweightKg, bodyweightKg > 0 {
-            return StrengthStandards.progressToNextRank(
-                metricValue: weightKg,
-                bodyweightKg: bodyweightKg,
-                exerciseKey: lift,
-                sex: sex
-            )?.current
-        }
-
-        if StrengthStandards.canonicalKey(for: lift) != nil ||
-            StrengthStandards.accessoryFamily(for: lift) != nil {
-            return .initiate
-        }
-
-        return nil
-    }
-
-    private static func rankExerciseKey(for entry: ExerciseLogEntry) -> String {
-        if let key = canonicalMovementExerciseKey(for: entry.rankStandardMovementId) {
-            return key
-        }
-        if let key = canonicalMovementExerciseKey(for: entry.movementId) {
-            return key
-        }
-
-        let resolved = MovementResolver.resolve(entry.exerciseName)
-        if let key = canonicalMovementExerciseKey(for: resolved.rankStandardMovementId) {
-            return key
-        }
-        return MovementResolution.normalizedKey(entry.exerciseName)
-    }
-
-    private static func canonicalMovementExerciseKey(for movementId: String?) -> String? {
-        guard let movementId, let definition = MovementCatalog.definition(for: movementId) else {
-            return nil
-        }
-        if let canonical = definition.canonicalExerciseName {
-            return MovementResolution.normalizedKey(canonical)
-        }
-        return MovementResolution.normalizedKey(definition.displayName)
-    }
-
-    private static func sortedShowcaseOptions(_ options: [ProfileShowcaseOption]) -> [ProfileShowcaseOption] {
-        options.sorted { lhs, rhs in
-            isShowcaseOption(lhs, betterThan: rhs)
-        }
-    }
-
-    private static func isShowcaseOption(
-        _ lhs: ProfileShowcaseOption,
-        betterThan rhs: ProfileShowcaseOption
-    ) -> Bool {
-        if lhs.tier != rhs.tier { return lhs.tier > rhs.tier }
-        if lhs.metricSort != rhs.metricSort { return lhs.metricSort > rhs.metricSort }
-        if lhs.repsSort != rhs.repsSort { return lhs.repsSort > rhs.repsSort }
-        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-    }
-
-    private func rankTitle(for tier: SkillTier) -> RankTitle {
-        tier.rankTitle
-    }
-
-    // MARK: - Archive
-
-    private var badgesArchiveSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("BADGES")
-                        .font(Font.unbound.captionS.weight(.bold))
-                        .tracking(1.8)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text("\(unlockedBadges.count) / \(totalBadgeCount) UNLOCKED")
-                        .font(Font.unbound.titleS)
-                        .tracking(0.7)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .monospacedDigit()
-                }
-                Spacer()
-                NavigationLink(destination: BadgeGalleryView().environmentObject(services)) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color.unbound.accent)
-                        .frame(width: 34, height: 34)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-
-            if unlockedBadges.isEmpty {
-                HStack(spacing: 10) {
-                    Image(systemName: "seal")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text("Earn your first badge by logging a session.")
-                        .font(Font.unbound.captionS)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                }
-                .padding(.vertical, 10)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(Array(unlockedBadges.prefix(10))) { b in
-                            badgeTile(b)
-                        }
-                    }
-                    .padding(.vertical, 1)
-                }
-            }
-        }
-        .padding(.vertical, 18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .top) {
-            UnboundNativeDivider(opacity: 0.52)
-        }
-        .overlay(alignment: .bottom) {
-            UnboundNativeDivider(opacity: 0.42)
-        }
-    }
-
-    private func badgeTile(_ badge: Badge) -> some View {
-        VStack(spacing: 6) {
-            BadgeEmblemView(badge: badge, size: 58, isUnlocked: true)
-            Text(badge.displayName.uppercased())
-                .font(.system(size: 8, weight: .bold))
-                .tracking(1.0)
-                .foregroundStyle(Color.unbound.textTertiary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-        }
-        .frame(width: 68)
-    }
-
-}
-
-private struct ProfileArchiveBand<Content: View>: View {
-    let tint: Color
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            content()
-        }
-        .padding(.horizontal, 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.unbound.surface.opacity(0.38),
-                            tint.opacity(0.05),
-                            Color.unbound.surface.opacity(0.18)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(Color.unbound.borderSubtle.opacity(0.72), lineWidth: 0.5)
-        }
     }
 }

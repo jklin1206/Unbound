@@ -36,17 +36,28 @@ final class SyncEngine {
         isFlushing = true
         defer { isFlushing = false }
 
+        // If this account previously had entries parked in the dead-letter
+        // store because a different user was signed in at flush time, bring
+        // them back first — signing back in must recover unsynced edits.
+        let resurrected = outbox.requeueDeadlettered(userId: currentUserId, maxAttempts: maxAttempts)
+        if resurrected > 0 {
+            logger.log(
+                "Outbox resurrected \(resurrected) dead-lettered entries for the signed-in user",
+                level: .info,
+                context: ["currentUserId": currentUserId]
+            )
+        }
+
+        // Identity-mismatched entries (e.g. anonymous pre-sign-in writes that
+        // migration has since re-written under the new UID, or a signed-out
+        // account's edits) can never flush under this identity. Dead-letter
+        // them so they stop starving the FIFO head; the resurrection pass
+        // above returns them if that account signs back in.
+        var mismatched: [OutboxEntry] = []
+
         for entry in outbox.peekBatch(limit: 50) {
             guard canFlush(entry, currentUserId: currentUserId) else {
-                logger.log(
-                    "Outbox flush refused: entry user does not match authenticated user",
-                    level: .warning,
-                    context: [
-                        "docId": entry.docId,
-                        "entryUserId": entry.userId,
-                        "currentUserId": currentUserId
-                    ]
-                )
+                mismatched.append(entry)
                 continue
             }
 
@@ -76,6 +87,27 @@ final class SyncEngine {
                 }
             }
         }
+
+        deadletterMismatched(mismatched, currentUserId: currentUserId)
+    }
+
+    /// Moves identity-mismatched entries to the dead-letter store and logs once
+    /// per batch (never per entry). The dead-letter store preserves the full
+    /// entries for forensics; the queue self-heals regardless of migration state.
+    private func deadletterMismatched(_ entries: [OutboxEntry], currentUserId: String) {
+        guard !entries.isEmpty else { return }
+        for entry in entries {
+            outbox.moveToDeadletter(entry.id)
+        }
+        logger.log(
+            "Outbox dead-lettered \(entries.count) identity-mismatched entries",
+            level: .info,
+            context: [
+                "reason": "entry userId does not match authenticated user",
+                "currentUserId": currentUserId,
+                "docIds": entries.map(\.docId)
+            ]
+        )
     }
 
     private func canFlush(_ entry: OutboxEntry, currentUserId: String) -> Bool {

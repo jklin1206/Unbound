@@ -23,8 +23,10 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
     /// Equip an unlocked Title as the user's profile headline. Pass nil to unequip.
     func equipTitle(_ titleId: TitleID?, userId: String)
 
-    /// Grant a wearable title. Idempotent; posts `.titleUnlocked` when newly earned.
-    func unlockTitle(_ titleId: TitleID, userId: String)
+    /// Grant a wearable title. Idempotent; posts `.titleUnlocked` when newly
+    /// earned and `announce` is true. Announcements publish to the squad
+    /// activity feed, so retroactive backfills must pass `announce: false`.
+    func unlockTitle(_ titleId: TitleID, userId: String, announce: Bool)
 
     /// Read current state for UI.
     func state(userId: String) -> WeeklyVowsState
@@ -42,6 +44,13 @@ protocol WeeklyVowsServiceProtocol: AnyObject {
 
     /// True if the active vow can still be logged today (once-a-day gate).
     func canLogVowToday(userId: String, now: Date) -> Bool
+}
+
+extension WeeklyVowsServiceProtocol {
+    /// Announced grant — the default for titles earned by a live event.
+    func unlockTitle(_ titleId: TitleID, userId: String) {
+        unlockTitle(titleId, userId: userId, announce: true)
+    }
 }
 
 typealias TrialsServiceProtocol = WeeklyVowsServiceProtocol

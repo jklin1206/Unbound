@@ -20,8 +20,8 @@ final class MockSubscriptionService: SubscriptionServiceProtocol, @unchecked Sen
                 price: "$14.99",
                 duration: "Weekly",
                 pricePerMonth: nil,
-                hasFreeTrial: true,
-                freeTrialDuration: "3 Days"
+                hasFreeTrial: false,
+                freeTrialDuration: nil
             ),
             SubscriptionPackage(
                 id: "$rc_three_month",
@@ -31,14 +31,30 @@ final class MockSubscriptionService: SubscriptionServiceProtocol, @unchecked Sen
                 duration: "3 Months",
                 pricePerMonth: "$8.33",
                 hasFreeTrial: true,
-                freeTrialDuration: "3 Days"
+                freeTrialDuration: "7 Days"
             )
         ]
     }
 
-    func purchase(packageId: String) async throws -> Bool {
+    func fetchPromoOffering() async throws -> [SubscriptionPackage] {
+        [
+            SubscriptionPackage(
+                id: "$rc_annual",
+                productId: "unbound_yearly_promo",
+                title: "Yearly",
+                price: "$29.99",
+                duration: "Annual",
+                pricePerMonth: "$2.50",
+                hasFreeTrial: false,
+                freeTrialDuration: nil,
+                anchorPrice: "$59.99"
+            )
+        ]
+    }
+
+    func purchase(packageId: String, fromOffering offeringKey: String?) async throws -> SubscriptionPurchaseOutcome {
         subject.send(true)
-        return true
+        return .purchased
     }
 
     func restorePurchases() async throws -> Bool {

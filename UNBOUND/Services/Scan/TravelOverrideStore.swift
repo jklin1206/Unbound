@@ -31,7 +31,9 @@ final class TravelOverrideStore {
     /// The currently-active override for `userId`, or nil. "Active" means
     /// today falls within `[startDate, endDate]`. If multiple overrides
     /// overlap today (user re-scheduled), the one created most recently wins.
-    func activeOverride(for userId: String, on date: Date = Date()) async -> TravelOverride? {
+    /// "Today" is the program clock — real time in release, the dev-simulated
+    /// day in DEBUG — so simulated day-jumps see the same window a user would.
+    func activeOverride(for userId: String, on date: Date = ProgramClock.now) async -> TravelOverride? {
         let all = await fetchAll(userId: userId)
         let active = all.filter { $0.isActive(on: date) }
         return active.sorted(by: { $0.createdAt > $1.createdAt }).first

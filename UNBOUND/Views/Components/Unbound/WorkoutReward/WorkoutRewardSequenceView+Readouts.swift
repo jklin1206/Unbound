@@ -24,40 +24,46 @@ extension WorkoutRewardSequenceView {
         return Color.unbound.coachCyan
     }
 
-    // The reward hex shows progress toward the next level (moves a lot per
-    // session), not the absolute level/100 (that's the profile's job).
+    // The reward radar reads on the SAME honest cumulative scale as the
+    // profile hex (level + fractional progress, over maxLevel) — before/after
+    // shapes that only ever move forward.
     var previousAttributeMap: [AttributeKey: Double] {
         if !summary.attributePreviousHexValues.isEmpty {
             return summary.attributePreviousHexValues
         }
-        return Dictionary(uniqueKeysWithValues: summary.attributeDeltas.map { ($0.key, $0.levelProgressStart * 100) })
+        return Dictionary(uniqueKeysWithValues: summary.attributeDeltas.map {
+            ($0.key, AttributeLevelCurve.continuousHexFill(level: $0.previousLevel, progress: $0.previousProgress) * 100)
+        })
     }
 
     var currentAttributeMap: [AttributeKey: Double] {
         if !summary.attributeCurrentHexValues.isEmpty {
             return summary.attributeCurrentHexValues
         }
-        return Dictionary(uniqueKeysWithValues: summary.attributeDeltas.map { ($0.key, $0.currentProgress * 100) })
+        return Dictionary(uniqueKeysWithValues: summary.attributeDeltas.map {
+            ($0.key, AttributeLevelCurve.continuousHexFill(level: $0.currentLevel, progress: $0.currentProgress) * 100)
+        })
     }
 
-
-    var previousAttributeLevels: [AttributeKey: Int]? {
-        summary.attributePreviousLevels.isEmpty ? nil : summary.attributePreviousLevels
+    /// The honest scale renders early users as a near-invisible dot, so the
+    /// reward radar zooms its grid to the smallest level bracket that fits —
+    /// and LABELS it ("GRID TO LVL 25"), like any chart axis. Same bracket for
+    /// the before and after shapes, so relative growth stays truthful.
+    var attributeHexBracket: Int {
+        let maxFill = max(
+            previousAttributeMap.values.max() ?? 0,
+            currentAttributeMap.values.max() ?? 0
+        )
+        let reachedLevel = maxFill / 100 * Double(AttributeLevelCurve.maxLevel)
+        for bracket in [10, 25, 50] where reachedLevel <= Double(bracket) {
+            return bracket
+        }
+        return AttributeLevelCurve.maxLevel
     }
 
-    var currentAttributeLevels: [AttributeKey: Int]? {
-        summary.attributeLevels.isEmpty ? nil : summary.attributeLevels
-    }
-
-    var previousAttributeTiers: [AttributeKey: RankTitle]? {
-        let tiers = !summary.attributePreviousTiers.isEmpty
-            ? summary.attributePreviousTiers
-            : Dictionary(uniqueKeysWithValues: summary.attributeDeltas.map { ($0.key, $0.previousTier) })
-        return tiers.isEmpty ? nil : tiers
-    }
-
-    var currentAttributeTiers: [AttributeKey: RankTitle]? {
-        summary.attributeTiers.isEmpty ? nil : summary.attributeTiers
+    func bracketScaled(_ map: [AttributeKey: Double]) -> [AttributeKey: Double] {
+        let scale = Double(AttributeLevelCurve.maxLevel) / Double(attributeHexBracket)
+        return map.mapValues { min(100, $0 * scale) }
     }
 
     var primaryAttributeDelta: AttributeDeltaReward? {
@@ -132,29 +138,6 @@ extension WorkoutRewardSequenceView {
 
     func formatReceiptNumber(_ value: Double) -> String {
         "\(Int(value.rounded()))"
-    }
-
-    func weeklyVowShareChip(_ callout: WeeklyVowRewardCallout) -> some View {
-        let tint = callout.lane.tintColor
-        let chipTitle = callout.completionBonus?.shareCard?.title ?? callout.shareTitle
-        return HStack(spacing: 10) {
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 17, weight: .black))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(chipTitle.uppercased())
-                    .font(Font.unbound.captionS.weight(.heavy))
-                    .tracking(1.5)
-                Text(callout.receiptLine.uppercased())
-                    .font(Font.unbound.captionS)
-                    .tracking(1.2)
-                    .foregroundStyle(Color.unbound.textTertiary)
-            }
-        }
-        .foregroundStyle(tint)
-        .padding(.horizontal, 14)
-        .frame(height: 52)
-        .background(Capsule().fill(tint.opacity(0.12)))
-        .overlay(Capsule().stroke(tint.opacity(0.42), lineWidth: 1))
     }
 
     func yieldToken(value: String, label: String, tint: Color) -> some View {

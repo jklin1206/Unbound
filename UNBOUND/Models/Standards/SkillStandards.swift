@@ -205,15 +205,41 @@ enum SkillStandards {
     /// Progress toward the next rank for a specific skill node, from the peak
     /// reps/seconds achieved this session. Covers every node, not just the
     /// canonical lift-path movements.
-    static func nodeProgress(skillId: String, peakReps: Int, peakSeconds: Int) -> (current: RankTier, next: RankTier?, fraction: Double)? {
+    ///
+    /// `exerciseKey` is the movement the peaks were actually logged AS. Rungs
+    /// whose criterion names a DIFFERENT movement (the authored variant
+    /// ladders: ld.pistol-squat / ld.nordic-curl / ld.shrimp-squat) are
+    /// name-gated exactly like the exercise-key path above — a raw rep count
+    /// can never clear another variant's rung (1 nordic curl is NOT the
+    /// one-leg nordic curl Unbound rung). Single-movement nodes, where the
+    /// logged name IS the node movement, behave identically to an ungated
+    /// walk. Pass nil only when no logged movement name exists.
+    static func nodeProgress(skillId: String, exerciseKey: String?, peakReps: Int, peakSeconds: Int) -> (current: RankTier, next: RankTier?, fraction: Double)? {
         guard let criteria = SkillGraph.shared.node(id: skillId)?.tierCriteria, !criteria.isEmpty else { return nil }
-        return progress(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
+        return progress(using: criteria, exerciseKey: gateKey(exerciseKey, in: criteria), peakReps: peakReps, peakSeconds: peakSeconds)
     }
 
-    /// Micro-target text for a specific skill node.
-    static func nodeNextThresholdText(skillId: String, peakReps: Int, peakSeconds: Int) -> String? {
+    /// Micro-target text for a specific skill node. Same name gate as
+    /// `nodeProgress`, so the "N reps to X" line never points at a rung whose
+    /// criterion names a different variant.
+    static func nodeNextThresholdText(skillId: String, exerciseKey: String?, peakReps: Int, peakSeconds: Int) -> String? {
         guard let criteria = SkillGraph.shared.node(id: skillId)?.tierCriteria, !criteria.isEmpty else { return nil }
-        return thresholdText(using: criteria, peakReps: peakReps, peakSeconds: peakSeconds)
+        return thresholdText(using: criteria, exerciseKey: gateKey(exerciseKey, in: criteria), peakReps: peakReps, peakSeconds: peakSeconds)
+    }
+
+    /// A key can only gate a ladder it belongs to: if `exerciseKey` matches
+    /// NONE of the ladder's named criteria, gating would zero the whole node
+    /// (vocabulary drift between a node's target text and its anchor text,
+    /// e.g. "inverted row" vs "row"), so the walk stays ungated instead —
+    /// the pre-gate behavior. Within-ladder keys gate rung-by-rung.
+    private static func gateKey(_ exerciseKey: String?, in criteria: [SkillTier: TierCriterion]) -> String? {
+        guard let exerciseKey else { return nil }
+        let requiredNames = criteria.values.compactMap(exerciseName(in:))
+        guard !requiredNames.isEmpty else { return exerciseKey }
+        let matchesLadder = requiredNames.contains {
+            MovementProofMatcher.namesMatch(logged: exerciseKey, required: $0)
+        }
+        return matchesLadder ? exerciseKey : nil
     }
 
     // MARK: - Weighted pull-up (added-load %bw)

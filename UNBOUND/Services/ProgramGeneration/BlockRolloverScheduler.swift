@@ -4,7 +4,7 @@ import Foundation
 ///
 /// Used by the home UI to show "days remaining" and by the rollover flow
 /// to detect when to prompt a Checkpoint / generate the next Arc. Normal
-/// Arcs are 28 days; first-run Calibration Week stays 7 days.
+/// Arcs are `Arc.durationDays` (30); first-run Calibration Week stays 7 days.
 ///
 /// This scheduler does only one thing: map the active arc start date to the
 /// current day number. Legacy programs without arcs still use `program.createdAt`.
@@ -35,6 +35,27 @@ enum BlockRolloverScheduler {
 
     private static func activeDurationDays(for program: TrainingProgram) -> Int {
         program.currentArc == nil ? program.durationDays : Arc.durationDays
+    }
+}
+
+/// "Now" for program-system WRITES — block anchors, travel windows, schedule
+/// stamps. In release this is real time. In DEBUG it is the dev-simulated
+/// clock, so writes land where the simulated reads are looking: without this,
+/// a simulated day-jump builds a next block anchored at REAL now, which the
+/// +30 sim clock immediately reads as complete again (and travel windows land
+/// 30 days away from the visible calendar). Reads in views keep their own
+/// reactive dev-clock accessors; this is the single source for writes.
+enum ProgramClock {
+    static var now: Date {
+        #if DEBUG
+        DevProgramClock.now
+        #else
+        Date()
+        #endif
+    }
+
+    static var today: Date {
+        Calendar.current.startOfDay(for: now)
     }
 }
 

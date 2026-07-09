@@ -150,7 +150,7 @@ enum DeterministicProgramGenerator {
             name: input.calibration.requiresLearningWeek ? "Calibration Week" : "\(input.buildIdentity.displayName) Arc",
             description: input.calibration.requiresLearningWeek
                 ? "Seven days to find your real working standards before the first Arc."
-                : "28-day personalized Arc built from your schedule and standards.",
+                : "\(durationDays)-day personalized Arc built from your schedule and standards.",
             durationDays: durationDays,
             days: days,
             nutritionPlan: nutritionPlan,

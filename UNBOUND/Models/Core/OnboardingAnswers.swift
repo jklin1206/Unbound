@@ -417,6 +417,20 @@ enum WorkoutTime: String, Codable, CaseIterable, Identifiable {
         case .varies:       return 8
         }
     }
+
+    /// Part-of-day bucket for a precise minute-of-day. Used to keep the legacy
+    /// `workoutTime` field + notification fallbacks coherent when the user picks
+    /// an exact training time. Ranges mirror `notificationHour`.
+    static func bucket(forMinuteOfDay minute: Int) -> WorkoutTime {
+        switch (minute / 60) % 24 {
+        case 5, 6:    return .earlyMorning
+        case 7...10:  return .morning
+        case 11...13: return .lunch
+        case 14...16: return .afternoon
+        case 17...20: return .evening
+        default:      return .lateNight
+        }
+    }
 }
 
 // MARK: Motivation (Screen 5)

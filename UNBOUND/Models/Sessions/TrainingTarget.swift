@@ -12,7 +12,9 @@ enum TrainingTarget: Codable, Hashable, Sendable {
     var displayText: String {
         switch self {
         case .reps(let count): return "\(count) reps"
-        case .repsRange(let low, let high): return "\(low)-\(high) reps"
+        // Authored windows (skill plans etc.) show as one number: the bottom
+        // of the window is today's ask; progression climbs it via state.
+        case .repsRange(let low, _): return "\(low) reps"
         case .amrap: return "AMRAP"
         case .holdSeconds(let seconds): return "\(seconds)s hold"
         case .distanceMeters(let meters): return meters >= 1000 ? String(format: "%.1f km", Double(meters) / 1000.0) : "\(meters)m"

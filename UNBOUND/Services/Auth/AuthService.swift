@@ -3,6 +3,8 @@ import Combine
 import AuthenticationServices
 import CryptoKit
 import Supabase
+import GoogleSignIn
+import UIKit
 
 // MARK: - AuthService (Supabase-backed, Sign in with Apple)
 //
@@ -80,6 +82,21 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
 
     var isAuthenticated: Bool { currentUserId != nil }
 
+    var isCloudLinked: Bool {
+        get async {
+            #if DEBUG
+            // Dev builds run under a debug-override identity with no real Supabase
+            // session; treat that as linked so the dev workflow and demo harnesses
+            // aren't trapped on the forced-auth screen. Genuine-new-user runs
+            // (`-genuineNewUser`) clear this override, so the real gate still shows.
+            if UserDefaults.standard.string(forKey: debugUserIdOverrideKey) != nil {
+                return true
+            }
+            #endif
+            return await UnboundSupabase.isSignedIn
+        }
+    }
+
     var authStatePublisher: AnyPublisher<String?, Never> {
         authStateSubject.eraseToAnyPublisher()
     }
@@ -113,6 +130,89 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
             self.appleSignInController = controller
             controller.performRequests()
         }
+    }
+
+    // MARK: Sign in with Google (native, Supabase idToken exchange)
+
+    func signInWithGoogle() async throws -> String {
+        let result: GIDSignInResult
+        do {
+            result = try await presentGoogleSignIn()
+        } catch {
+            // GoogleSignIn reports user-cancel as kGIDSignInErrorCodeCanceled
+            // (-5) in kGIDSignInErrorDomain. Match on the raw NSError so we don't
+            // depend on how the ObjC NS_ERROR_ENUM bridges case names into Swift.
+            let nsError = error as NSError
+            if nsError.domain == kGIDSignInErrorDomain, nsError.code == -5 {
+                logger.log("Google sign-in cancelled by user", level: .info)
+                throw AppError.authCanceled
+            }
+            logger.log("Google sign in failed: \(error)", level: .error)
+            throw AppError.from(authError: error)
+        }
+
+        guard let idToken = result.user.idToken?.tokenString else {
+            throw AppError.authSignInFailed(
+                underlying: NSError(domain: "GoogleAuth", code: -1)
+            )
+        }
+
+        do {
+            let session = try await UnboundSupabase.client.auth.signInWithIdToken(
+                credentials: OpenIDConnectCredentials(
+                    provider: .google,
+                    idToken: idToken,
+                    accessToken: result.user.accessToken.tokenString
+                )
+            )
+            logger.log("Google sign in successful", level: .info)
+            return adoptSupabaseSession(session)
+        } catch {
+            logger.log("Google sign in (idToken exchange) failed: \(error)", level: .error)
+            throw AppError.from(authError: error)
+        }
+    }
+
+    /// Presents the Google consent sheet on the key window's top-most view
+    /// controller. `@MainActor` because it reads the window hierarchy and drives
+    /// UIKit presentation.
+    @MainActor
+    private func presentGoogleSignIn() async throws -> GIDSignInResult {
+        guard let presenting = Self.topViewController() else {
+            throw AppError.authSignInFailed(
+                underlying: NSError(domain: "GoogleAuth", code: -3)
+            )
+        }
+        return try await GIDSignIn.sharedInstance.signIn(withPresenting: presenting)
+    }
+
+    @MainActor
+    private static func topViewController() -> UIViewController? {
+        let keyWindow = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }
+        var top = keyWindow?.rootViewController
+        while let presented = top?.presentedViewController {
+            top = presented
+        }
+        return top
+    }
+
+    /// Shared tail of every OIDC sign-in (Apple, Google): cache the new uid and,
+    /// if the user had pre-auth local data under a different (anonymous) uid,
+    /// kick off the local → cloud migration in the background. Returns the uid.
+    private func adoptSupabaseSession(_ session: Session) -> String {
+        let uid = session.user.id.uuidString
+        let legacyUID = UserDefaults.standard.string(forKey: legacyLocalUserIdKey)
+        cacheUserId(uid)
+        if let legacyUID, legacyUID != uid {
+            Task.detached { [weak self] in
+                await LocalToSupabaseMigration.migrate(from: legacyUID, to: uid)
+                self?.logger.log("Local → cloud migration complete", level: .info)
+            }
+        }
+        return uid
     }
 
     // MARK: Email / password (Supabase native)
@@ -263,21 +363,10 @@ final class AuthService: NSObject, AuthServiceProtocol, @unchecked Sendable {
                     nonce: nonce
                 )
             )
-            let uid = session.user.id.uuidString
-            let legacyUID = UserDefaults.standard.string(forKey: legacyLocalUserIdKey)
-
-            cacheUserId(uid)
             logger.log("Apple sign in successful", level: .info)
-
-            // Kick off local → cloud migration in the background if the
-            // user has pre-auth local data.
-            if let legacyUID, legacyUID != uid {
-                Task.detached { [weak self] in
-                    await LocalToSupabaseMigration.migrate(from: legacyUID, to: uid)
-                    self?.logger.log("Local → cloud migration complete", level: .info)
-                }
-            }
-
+            // Cache uid + kick off local → cloud migration if the user has
+            // pre-auth local data (shared with the Google path).
+            let uid = adoptSupabaseSession(session)
             appleSignInContinuation?.resume(returning: uid)
         } catch {
             logger.log("Supabase idToken auth failed: \(error)", level: .error)

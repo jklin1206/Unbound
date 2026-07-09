@@ -9,8 +9,10 @@ struct CustomExerciseBuilderView: View {
     @State private var displayName: String = ""
     @State private var pattern: MovementPattern = .pushHorizontal
     @State private var classification: ExerciseClassification = .accessory
+    @State private var measure: CustomExerciseMeasure = .reps
     @State private var repMin: Int = 8
     @State private var repMax: Int = 12
+    @State private var holdSeconds: Int = 30
     @State private var notes: String = ""
     @State private var videoURLString: String = ""
     @State private var isSaving = false
@@ -26,7 +28,12 @@ struct CustomExerciseBuilderView: View {
                         nameCard
                         patternCard
                         classificationCard
-                        repRangeCard
+                        measureCard
+                        if measure == .reps {
+                            repRangeCard
+                        } else {
+                            holdCard
+                        }
                         notesCard
                         videoCard
                         if let error {
@@ -160,6 +167,51 @@ struct CustomExerciseBuilderView: View {
         .buttonStyle(.plain)
     }
 
+    private var measureCard: some View {
+        card(title: "MEASURED BY") {
+            HStack(spacing: 8) {
+                measureChip(.reps, "Reps", "repeat")
+                measureChip(.hold, "Timed hold", "timer")
+            }
+        }
+    }
+
+    private func measureChip(_ value: CustomExerciseMeasure, _ label: String, _ icon: String) -> some View {
+        let isSelected = measure == value
+        return Button {
+            UnboundHaptics.soft()
+            measure = value
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(label)
+                    .font(Font.unbound.bodyM)
+            }
+            .foregroundStyle(isSelected ? Color.unbound.accent : Color.unbound.textSecondary)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(isSelected ? Color.unbound.accent.opacity(0.12) : Color.clear)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(
+                        isSelected ? Color.unbound.accent.opacity(0.5) : Color.unbound.border,
+                        lineWidth: 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var holdCard: some View {
+        card(title: "DEFAULT HOLD") {
+            stepper(label: "Seconds", value: $holdSeconds, range: 5...300, step: 5)
+        }
+    }
+
     private var repRangeCard: some View {
         card(title: "DEFAULT REP RANGE") {
             HStack(spacing: 12) {
@@ -172,7 +224,7 @@ struct CustomExerciseBuilderView: View {
         }
     }
 
-    private func stepper(label: String, value: Binding<Int>, range: ClosedRange<Int>) -> some View {
+    private func stepper(label: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int = 1) -> some View {
         HStack(spacing: 10) {
             Text(label)
                 .font(Font.unbound.captionS)
@@ -181,7 +233,7 @@ struct CustomExerciseBuilderView: View {
             Spacer()
             Button {
                 UnboundHaptics.soft()
-                value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1)
+                value.wrappedValue = max(range.lowerBound, value.wrappedValue - step)
             } label: {
                 Image(systemName: "minus")
                     .font(.system(size: 11, weight: .bold))
@@ -193,10 +245,12 @@ struct CustomExerciseBuilderView: View {
             Text("\(value.wrappedValue)")
                 .font(Font.unbound.monoL)
                 .foregroundStyle(Color.unbound.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .frame(minWidth: 32)
             Button {
                 UnboundHaptics.soft()
-                value.wrappedValue = min(range.upperBound, value.wrappedValue + 1)
+                value.wrappedValue = min(range.upperBound, value.wrappedValue + step)
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 11, weight: .bold))
@@ -263,7 +317,7 @@ struct CustomExerciseBuilderView: View {
 
     private var canSave: Bool {
         let trimmed = displayName.trimmingCharacters(in: .whitespaces)
-        return !trimmed.isEmpty && repMax >= repMin
+        return !trimmed.isEmpty && (measure == .hold || repMax >= repMin)
     }
 
     private func save() {
@@ -289,6 +343,8 @@ struct CustomExerciseBuilderView: View {
             classification: classification,
             defaultRepMin: repMin,
             defaultRepMax: repMax,
+            measure: measure,
+            defaultHoldSeconds: holdSeconds,
             notes: notes.isEmpty ? nil : notes,
             videoURL: url,
             userId: userId

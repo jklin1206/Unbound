@@ -15,8 +15,9 @@ enum TrainingSessionAdapters {
             blocks.append(exerciseBlock(title: "Warmup", kind: .bodyweight, exercises: workout.warmup))
         }
 
-        blocks.append(exerciseBlock(title: workout.name, kind: .strength, exercises: workout.mainExercises))
-
+        // Skill practice goes right after the warmup, BEFORE main work: it is
+        // high-precision work that degrades fast under fatigue. Placing it
+        // after the strength block trained sloppy reps.
         let skillBlocks = scheduledSkillBlocks.isEmpty
             ? scheduledSkillIds.compactMap { skillId -> TrainingBlock? in
                 guard let skill = SkillGraph.shared.node(id: skillId) else { return nil }
@@ -24,6 +25,8 @@ enum TrainingSessionAdapters {
             }
             : scheduledSkillBlocks
         blocks.append(contentsOf: skillBlocks)
+
+        blocks.append(exerciseBlock(title: workout.name, kind: .strength, exercises: workout.mainExercises))
 
         if !workout.cooldown.isEmpty {
             blocks.append(exerciseBlock(title: "Cooldown", kind: .routine, exercises: workout.cooldown))

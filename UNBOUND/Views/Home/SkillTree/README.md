@@ -4,7 +4,7 @@ The Skill Map tab: `UnboundSkillTreeTabView` hosts `SkillGraphView` (landing scr
 
 | File | Purpose |
 | --- | --- |
-| `UnboundSkillTreeTabView.swift` | Skill tree tab root — loads profile + live node state from SkillProgressService, presents `SkillDetailView` on node tap. |
+| `UnboundSkillTreeTabView.swift` | Skill tree tab root — loads profile + live node state from SkillProgressService, hosts `SkillGraphView`. |
 | `SkillGraphView.swift` | Skill Map landing screen: vertical scroll of rich cluster cards, one per display tree (Pull/Push/Legs/Core/...). |
 | `ClusterCardView.swift` | One full-width cluster card on the landing screen: glyph + name, proven/total progress, NOW chip, farthest proof. |
 | `ClusterStaircaseView.swift` | Per-cluster top-to-bottom tree view (roots at top, keystone terminus); core state + node tap handling. |
@@ -16,14 +16,12 @@ The Skill Map tab: `UnboundSkillTreeTabView` hosts `SkillGraphView` (landing scr
 | `ClusterStaircaseRails.swift` | SwiftUI Canvas rails: orthogonal child←parent step paths with reached/partial/locked glow. |
 | `ClusterStaircaseRailsCG.swift` | CGContext rail versions for `UIGraphicsImageRenderer` — works around lazy Canvas rendering vanishing rails on zoom-out. |
 | `ZoomableTreeScrollView.swift` | `UIViewRepresentable` pinch-zoom/pan scroll container for the tree content. |
-| `ClusterDetailView.swift` | Drill-in mini-graph for a single cluster with barycentric tier layout; keystone/Mythic amplified treatment. |
 | `SkillTraditionalVisualResolver.swift` | Maps a `SkillNode` to its exercise-visual asset name via generated-icon lookup + slug candidates. |
-| `SkillGraphConcept.swift` | Throwaway Chunk 1.5 concept preview for the Skill Graph v2 redesign (Option B cluster-first drill-in). |
 
 Where to find X:
 - Entry point from the tab bar → `UnboundSkillTreeTabView.swift` (mounted by `../Dashboard/HomeTabView.swift`)
 - Which clusters appear on the landing screen → `SkillGraphView.swift`
 - Node positions / tree geometry math → `ClusterStaircaseView.swift` + `ComputedTreeLayout.swift` + `ClusterStaircaseLayout.swift`
 - Rails missing or glow tiers → `ClusterStaircaseRails.swift` (Canvas) / `ClusterStaircaseRailsCG.swift` (zoomed-out renderer) 
-- Node tap → detail screen → `SkillDetailView` in `../SkillDetail/`
+- Node tap → detail screen → `ClusterStaircaseView.swift` presents `RankDetailView` (in `../../Program/RankLibrary/Detail/`)
 - Skill icon asset resolution → `SkillTraditionalVisualResolver.swift`

@@ -43,16 +43,15 @@ struct JoinSquadSheet: View {
                             .squadInputChrome(isFocused: isCodeFocused)
 
                         Text("\(code.count)/6")
-                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                            .tracking(0.8)
+                            .font(Font.unbound.captionS)
                             .foregroundStyle(Color.unbound.textTertiary)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     }
 
                     if let error {
                         Text(error)
-                            .font(.system(size: 13))
-                            .foregroundStyle(.red)
+                            .font(Font.unbound.bodyS)
+                            .foregroundStyle(Color.unbound.alert)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -89,15 +88,12 @@ struct JoinSquadSheet: View {
     }
 
     private var footer: some View {
-        Button {
+        UnboundButton(
+            title: isJoining ? "Joining…" : "Join Squad",
+            isEnabled: canJoin
+        ) {
             submitIfReady()
-        } label: {
-            Text(isJoining ? "Joining..." : "Join Squad")
-                .frame(maxWidth: .infinity)
-                .padding()
         }
-        .buttonStyle(.borderedProminent)
-        .disabled(!canJoin)
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 12)
@@ -115,7 +111,10 @@ struct JoinSquadSheet: View {
 
     @MainActor
     private func join() async {
-        guard let userId = services.auth.currentUserId else {
+        // Squads are cloud-only (RLS-gated RPCs); an anonymous local UUID can't
+        // join. Require a real session so the failure reads "Sign in…" instead of
+        // a dead RPC error. Forced auth at onboarding means this normally passes.
+        guard let userId = services.auth.currentUserId, await services.auth.isCloudLinked else {
             error = "Sign in to join a squad."
             return
         }

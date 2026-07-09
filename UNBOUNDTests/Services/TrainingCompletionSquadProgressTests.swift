@@ -29,10 +29,22 @@ private final class SpyChallengeService: FriendChallengeServiceProtocol {
     func activeChallenges(userId: UUID) async -> [FriendChallenge] { [] }
     func challengeStats(squadId: UUID) async -> [UUID: FriendChallengeStats] { [:] }
     func accept(_ challengeId: UUID) async throws {}
+    func decline(_ challengeId: UUID) async throws {}
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {
         recordCalls.append((log.id, userId, sourceLogId))
     }
     func evaluateExpired() async {}
+    func consumePendingOutcome() -> FriendChallenge? { nil }
+}
+
+@MainActor
+private final class SpyActivityService: SquadActivityServiceProtocol {
+    var recorded: [(kind: SquadActivityEntry.Kind, payload: SquadActivityPayload, userId: String)] = []
+    func record(kind: SquadActivityEntry.Kind, payload: SquadActivityPayload, userId: String) async {
+        recorded.append((kind, payload, userId))
+    }
+    func fetchRecent(userId: String) async throws -> [SquadActivityEntry] { [] }
+    func handleLinkedSessionDetected(userId: String, participantDisplayNames: [String], baseSessionXP: Int) async {}
 }
 
 @MainActor
@@ -57,7 +69,12 @@ final class TrainingCompletionSquadProgressTests: XCTestCase {
     func testRecordsSquadProgressOncePerSession() async {
         let mission = SpyMissionService()
         let challenge = SpyChallengeService()
-        let service = TrainingCompletionService(squadMission: mission, friendChallenge: challenge)
+        let activity = SpyActivityService()
+        let service = TrainingCompletionService(
+            squadMission: mission,
+            friendChallenge: challenge,
+            squadActivity: activity
+        )
         let log = makeLog(id: "perf-1", userId: "user-1")
 
         await service.recordSquadProgress(workoutLog: log, performanceLogId: "perf-1")
@@ -69,12 +86,29 @@ final class TrainingCompletionSquadProgressTests: XCTestCase {
         XCTAssertEqual(challenge.recordCalls.count, 1)
         XCTAssertEqual(challenge.recordCalls.first?.logId, "perf-1")
         XCTAssertEqual(challenge.recordCalls.first?.sourceLogId, "perf-1")
+
+        // The finished workout is shared to the squad feed exactly once.
+        XCTAssertEqual(activity.recorded.count, 1)
+        XCTAssertEqual(activity.recorded.first?.kind, .workoutCompleted)
+        XCTAssertEqual(activity.recorded.first?.userId, "user-1")
+        if case let .workoutCompleted(title, exerciseCount, durationMinutes) = activity.recorded.first?.payload {
+            XCTAssertEqual(title, "Session")
+            XCTAssertEqual(exerciseCount, 0)
+            XCTAssertEqual(durationMinutes, 30)
+        } else {
+            XCTFail("Expected a workoutCompleted payload")
+        }
     }
 
     func testReflushOfSameSessionDoesNotDoubleCount() async {
         let mission = SpyMissionService()
         let challenge = SpyChallengeService()
-        let service = TrainingCompletionService(squadMission: mission, friendChallenge: challenge)
+        let activity = SpyActivityService()
+        let service = TrainingCompletionService(
+            squadMission: mission,
+            friendChallenge: challenge,
+            squadActivity: activity
+        )
         let log = makeLog(id: "perf-2", userId: "user-1")
 
         // Same performanceLog id flushed twice (e.g. retry / re-flush path).
@@ -83,5 +117,6 @@ final class TrainingCompletionSquadProgressTests: XCTestCase {
 
         XCTAssertEqual(mission.recordCalls.count, 1, "Mission progress must not double-count a re-flush")
         XCTAssertEqual(challenge.recordCalls.count, 1, "Challenge progress must not double-count a re-flush")
+        XCTAssertEqual(activity.recorded.count, 1, "Workout share must not double-post on a re-flush")
     }
 }

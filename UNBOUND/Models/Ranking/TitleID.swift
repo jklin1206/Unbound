@@ -3,8 +3,16 @@ import Foundation
 /// Identifier for an earned Title.
 struct TitleID: Codable, Hashable, Sendable {
     enum Path: Codable, Hashable, Sendable {
+        /// Proof of an elite attribute axis — the axis's class name (Titan,
+        /// Monk, …) earned when it reaches `TitleGrants.axisTitleBar`. Tier is
+        /// unused (carried as `.gold`).
         case axis(AttributeKey)
+        /// Legacy Binding Vows v1 track; never awarded since v2 but may exist
+        /// in persisted state, so the case stays for decode compat.
         case cardKind(WeeklyVowKind)
+        /// The title earned by confirming a rank at its gate. Tier is unused
+        /// (carried as `.gold`).
+        case rank(RankTier)
         /// A title earned by unlocking a badge (badge id). Tier is unused for
         /// these (carried as `.gold`); the name comes from the badge itself.
         case badge(String)
@@ -15,6 +23,8 @@ struct TitleID: Codable, Hashable, Sendable {
         /// season leaderboard.
         case squadSeasonWinner(Int)
     }
+    /// Legacy Binding Vows v1 ladder. New awards always carry `.gold`; the
+    /// field survives for persisted-state and wire compat.
     enum Tier: String, Codable, CaseIterable, Sendable {
         case bronze
         case silver
@@ -27,17 +37,9 @@ struct TitleID: Codable, Hashable, Sendable {
 // MARK: - Display helpers
 
 extension TitleID {
+    /// `TitleCatalog` owns all title naming; this is a convenience mirror.
     var displayName: String {
-        let pathLabel: String
-        switch path {
-        case .axis(let key):      pathLabel = key.buildVocab
-        case .cardKind(let kind): pathLabel = kind.displayName
-        case .badge(let id):      return BadgeCatalog.all.first { $0.id == id }?.displayName ?? "Badge"
-        case .shop(let id):       return ShopTitleCatalog.displayName(for: id)
-        case .squadSeasonWinner(let seasonNumber):
-            return "Season \(max(1, seasonNumber)) Winner"
-        }
-        return "\(pathLabel) · \(tier.rawValue.capitalized)"
+        TitleCatalog.displayName(for: self)
     }
 
     var rewardAssetName: String? {
@@ -47,6 +49,16 @@ extension TitleID {
         default:
             return nil
         }
+    }
+
+    /// Convenience: the title earned by confirming a rank at its gate.
+    static func rank(_ tier: RankTier) -> TitleID {
+        TitleID(path: .rank(tier), tier: .gold)
+    }
+
+    /// Convenience: the axis class-name title (Titan, Monk, …).
+    static func axis(_ key: AttributeKey) -> TitleID {
+        TitleID(path: .axis(key), tier: .gold)
     }
 
     /// Convenience: the title earned by unlocking a badge.

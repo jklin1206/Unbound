@@ -18,24 +18,40 @@ struct SettingsView: View {
         List {
             // MARK: Account
             Section {
-                HStack {
-                    Label(L10n.string(.settingsEmail, defaultValue: "Email"), systemImage: "envelope")
-                        .foregroundColor(Color.unbound.textPrimary)
-                    Spacer()
-                    Text(viewModel.userProfile?.email ?? "—")
-                        .font(.bodyText(14))
-                        .foregroundColor(Color.unbound.textTertiary)
-                }
+                if viewModel.isCloudLinked {
+                    HStack {
+                        Label(L10n.string(.settingsEmail, defaultValue: "Email"), systemImage: "envelope")
+                            .foregroundColor(Color.unbound.textPrimary)
+                        Spacer()
+                        Text(viewModel.userProfile?.email ?? "Apple ID")
+                            .font(.bodyText(14))
+                            .foregroundColor(Color.unbound.textTertiary)
+                    }
 
-                Button(role: .destructive) {
-                    viewModel.signOut()
-                } label: {
-                    Label(L10n.string(.settingsSignOut, defaultValue: "Sign Out"), systemImage: "rectangle.portrait.and.arrow.right")
-                        .foregroundColor(Color.unbound.alert)
+                    Button(role: .destructive) {
+                        viewModel.signOut()
+                    } label: {
+                        Label(L10n.string(.settingsSignOut, defaultValue: "Sign Out"), systemImage: "rectangle.portrait.and.arrow.right")
+                            .foregroundColor(Color.unbound.alert)
+                    }
+                } else {
+                    Button {
+                        Task { await viewModel.signInWithApple() }
+                    } label: {
+                        Label("Sign in with Apple", systemImage: "apple.logo")
+                            .foregroundColor(Color.unbound.textPrimary)
+                    }
+                    .disabled(viewModel.isLoading)
                 }
             } header: {
                 Text(L10n.string(.settingsSectionAccount, defaultValue: "Account"))
                     .foregroundColor(Color.unbound.textSecondary)
+            } footer: {
+                if !viewModel.isCloudLinked {
+                    Text("Your progress is saved on this device. Sign in to back it up and keep it if you switch phones.")
+                        .font(.caption(11))
+                        .foregroundColor(Color.unbound.textTertiary)
+                }
             }
 
             // MARK: Subscription
@@ -108,37 +124,28 @@ struct SettingsView: View {
                 }
 
                 Toggle(isOn: $microloadingEnabled) {
-                    Label(L10n.string(.settingsMicroPlates, defaultValue: "Micro plates"), systemImage: "plus.forwardslash.minus")
-                        .foregroundColor(Color.unbound.textPrimary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Label(L10n.string(.settingsMicroPlates, defaultValue: "Micro plates"), systemImage: "plus.forwardslash.minus")
+                            .foregroundColor(Color.unbound.textPrimary)
+                        Text("Smaller weight jumps (2.5 lb / 1.25 kg) for gyms with fractional plates")
+                            .font(.caption(11))
+                            .foregroundColor(Color.unbound.textTertiary)
+                    }
                 }
                 .tint(Color.unbound.accent)
 
                 NavigationLink {
-                    ExercisePreferencesView()
-                        .environmentObject(services)
-                } label: {
-                    Label(L10n.string(.settingsExerciseLibrary, defaultValue: "Exercise Library"), systemImage: "list.bullet.rectangle.portrait")
-                        .foregroundColor(Color.unbound.textPrimary)
-                }
-                NavigationLink {
                     EquipmentSettingsView()
-                } label: {
-                    Label(L10n.string(.settingsEquipment, defaultValue: "Equipment"), systemImage: "dumbbell.fill")
-                        .foregroundColor(Color.unbound.textPrimary)
-                }
-                NavigationLink {
-                    CoachActionHistoryView()
                         .environmentObject(services)
                 } label: {
-                    Label(L10n.string(.settingsPlanChanges, defaultValue: "Plan changes"), systemImage: "arrow.triangle.2.circlepath")
-                        .foregroundColor(Color.unbound.textPrimary)
-                }
-                NavigationLink {
-                    BadgeGalleryView()
-                        .environmentObject(services)
-                } label: {
-                    Label(L10n.string(.settingsBadges, defaultValue: "Badges"), systemImage: "rosette")
-                        .foregroundColor(Color.unbound.textPrimary)
+                    HStack {
+                        Label(L10n.string(.settingsEquipment, defaultValue: "Equipment"), systemImage: "dumbbell.fill")
+                            .foregroundColor(Color.unbound.textPrimary)
+                        Spacer()
+                        Text(equipmentSummary)
+                            .font(.bodyText(14))
+                            .foregroundColor(Color.unbound.textTertiary)
+                    }
                 }
             } header: {
                 Text(L10n.string(.settingsSectionTraining, defaultValue: "Training"))
@@ -152,52 +159,20 @@ struct SettingsView: View {
                     .foregroundColor(Color.unbound.textTertiary)
             }
 
-            // MARK: Appearance
-            Section {
-                NavigationLink {
-                    RewardsVaultView()
-                        .environmentObject(services)
-                } label: {
-                    Label("Rewards", systemImage: "trophy.fill")
-                        .foregroundColor(Color.unbound.textPrimary)
-                }
-                NavigationLink {
-                    ProfileCosmeticsView()
-                        .environmentObject(services)
-                } label: {
-                    Label(L10n.string(.settingsProfileCosmetics, defaultValue: "Profile cosmetics"), systemImage: "person.crop.circle.badge.sparkles")
-                        .foregroundColor(Color.unbound.textPrimary)
-                }
-                NavigationLink {
-                    SkinPickerView()
-                        .environmentObject(services)
-                } label: {
-                    Label(L10n.string(.settingsSkillTreeCosmetics, defaultValue: "Skill tree cosmetics"), systemImage: "paintpalette")
-                        .foregroundColor(Color.unbound.textPrimary)
-                }
-            } header: {
-                Text(L10n.string(.settingsSectionAppearance, defaultValue: "Appearance"))
-                    .foregroundColor(Color.unbound.textSecondary)
-            } footer: {
-                Text(L10n.string(.settingsAppearanceFooter, defaultValue: "Equip unlocked profile frames, backdrops, and skill-tree cosmetics."))
-                    .font(.caption(11))
-                    .foregroundColor(Color.unbound.textTertiary)
-            }
-
             // MARK: Support
             Section {
-                if let mailURL = URL(string: "mailto:support@unboundapp.com") {
+                if let mailURL = URL(string: "mailto:support@unboundbtr.com") {
                     Link(destination: mailURL) {
                         Label(L10n.string(.settingsContactUs, defaultValue: "Contact Us"), systemImage: "envelope.badge")
                             .foregroundColor(Color.unbound.textPrimary)
                     }
                 }
 
-                NavigationLink {
-                    FAQPlaceholderView()
-                } label: {
-                    Label(L10n.string(.settingsFAQ, defaultValue: "FAQ"), systemImage: "questionmark.circle")
-                        .foregroundColor(Color.unbound.textPrimary)
+                if let faqURL = URL(string: "https://unboundbtr.com/faq") {
+                    Link(destination: faqURL) {
+                        Label(L10n.string(.settingsFAQ, defaultValue: "FAQ"), systemImage: "questionmark.circle")
+                            .foregroundColor(Color.unbound.textPrimary)
+                    }
                 }
             } header: {
                 Text(L10n.string(.settingsSectionSupport, defaultValue: "Support"))
@@ -290,9 +265,26 @@ struct SettingsView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
+        // Restore outcomes (restored / nothing to restore) confirm under their
+        // own title; only real failures use the Error alert above.
+        .alert(L10n.string(.subscriptionRestoreIdle, defaultValue: "Restore Purchases"), isPresented: .constant(viewModel.restoreMessage != nil)) {
+            Button(L10n.string(.settingsAlertOK, defaultValue: "OK")) { viewModel.restoreMessage = nil }
+        } message: {
+            Text(viewModel.restoreMessage ?? "")
+        }
         .onAppear {
             Task { await viewModel.loadProfile() }
         }
+    }
+
+    /// Reflects the live equipment declaration next to the Equipment row so
+    /// the setting shows its state without navigating in.
+    private var equipmentSummary: String {
+        guard let equipment = viewModel.userProfile?.equipment, !equipment.isEmpty else {
+            return "Bodyweight"
+        }
+        if equipment.contains(.fullGym) { return "Full gym" }
+        return "\(equipment.count) selected"
     }
 
     private var shareUsageDataBinding: Binding<Bool> {
@@ -462,6 +454,15 @@ struct NotificationSettingsView: View {
     }
 
     private func requestAuthorization() async {
+        // Once denied, requestAuthorization returns immediately without a
+        // prompt — the only path back is the system notification settings.
+        let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+        if status == .denied {
+            if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+                await MainActor.run { UIApplication.shared.open(url) }
+            }
+            return
+        }
         _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
         await refreshAuthorizationLabel()
         await NotificationService.applyStoredPreferences()
@@ -491,21 +492,6 @@ private extension UNAuthorizationStatus {
         @unknown default:
             return L10n.string(.notificationAuthorizationUnknown, defaultValue: "Unknown")
         }
-    }
-}
-
-// MARK: - FAQ Placeholder
-
-private struct FAQPlaceholderView: View {
-    var body: some View {
-        ZStack {
-            Color.unbound.bg.ignoresSafeArea()
-            Text(L10n.string(.settingsFAQComingSoon, defaultValue: "FAQ coming soon"))
-                .font(.bodyText(16))
-                .foregroundColor(Color.unbound.textSecondary)
-        }
-        .navigationTitle(L10n.string(.settingsFAQ, defaultValue: "FAQ"))
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

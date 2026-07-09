@@ -36,7 +36,7 @@ final class TravelPlanService {
                 isRest: template.isRest
             )
         }
-        let summary = "\(days)-day travel block loaded: bodyweight sessions keep rhythm without rewriting the main arc."
+        let summary = "\(days)-day travel plan loaded: bodyweight sessions keep rhythm without rewriting the main arc."
 
         let override = TravelOverride(
             userId: userId,

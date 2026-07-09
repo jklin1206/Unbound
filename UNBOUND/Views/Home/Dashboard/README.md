@@ -18,13 +18,11 @@ The Home tab itself: `HomeTabView` is the app's root tab container, and `Unbound
 | `HomeRanksCard.swift` | `HomeRanksRow` — compact row surfacing aggregate rank tier, opens the rank library. |
 | `HomeBuildChipCard.swift` | Tappable card showing the user's `AttributeProfile` as an attribute hex chart. |
 | `HomeBodyWeightViews.swift` | Bodyweight chart, history screen, and log sheet. |
-| `StaminaCardView.swift` | Stamina stat card with logger/history sheets; empty state when no sessions exist. |
-| `ScanDueCard.swift` | Contextual card shown when the monthly scan is due/overdue or never done; opens PhotoCaptureFlow. |
 | `DayOneCalibrationCard.swift` | Calibration prompt with `.hero` (onboarding) and `.slim` (home default) modes. |
 | `CoachModesStrip.swift` | Three contextual AI coach mode buttons (travel, deload, plateau-fix) with their sheets. |
 | `BodyLoadHeatmapView.swift` | Body-region load heatmap: SVG-region figure, heat colors, selection strip, band pills. |
 | `HomeTrialDeck.swift` | `HomeTrialDeck` — horizontally-swipeable deck of rank-gate "world" cards (one `NextGateCard` per gate) with cleared/current/locked position dots. |
-| `RankTrialInlineCard.swift` | Home Trials chrome: `HomeRankGateLockedRow` (locked fallback → records list), `HomeVowPickStrip` (vow pick), and `HomeTrialsDemoHarness` (`-homeTrialsDemo`). |
+| `RankTrialInlineCard.swift` | Home Trials chrome: `HomeVowPickStrip` (vow pick) and `HomeTrialsDemoHarness` (`-homeTrialsDemo`). |
 
 Where to find X:
 - Home tab routing / which tab shows what → `HomeTabView.swift`
@@ -33,5 +31,5 @@ Where to find X:
 - Home data loading logic → NOT here; it's in `HomeViewModel` (this folder keeps only view-side pieces, see `UnboundHomeView+Loading.swift`)
 - Skill tree tab content → `../SkillTree/`
 - Muscle/body-region heat rendering → `BodyLoadHeatmapView.swift`
-- Home Trials section (rank-gate deck + locked fallback + vow pick) → `HomeTrialDeck.swift`, `RankTrialInlineCard.swift`
+- Home Trials section (rank-gate deck + vow pick) → `HomeTrialDeck.swift`, `RankTrialInlineCard.swift`
 - The `[ SYSTEM ]` hero directive line → `HomeSystemVoice.swift`

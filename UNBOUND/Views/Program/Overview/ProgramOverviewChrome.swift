@@ -102,7 +102,7 @@ struct ProgramNoProgramState: View {
             Text("No daily quest yet")
                 .font(Font.unbound.titleM)
                 .foregroundStyle(Color.unbound.textPrimary)
-            Text("Complete onboarding to forge your first training block.")
+            Text("Complete onboarding to forge your first training arc.")
                 .font(Font.unbound.bodyM)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
@@ -125,7 +125,7 @@ struct ProgramSubscriptionBanner: View {
                     Text("Unlock the full quest board")
                         .font(Font.unbound.bodyMStrong)
                         .foregroundStyle(Color.unbound.textPrimary)
-                    Text("Subscribe to access daily quests, nutrition, and recovery.")
+                    Text("Subscribe to access daily quests and recovery.")
                         .font(Font.unbound.captionS)
                         .foregroundStyle(Color.unbound.textSecondary)
                 }

@@ -24,6 +24,11 @@ final class SquadMissionService: SquadMissionServiceProtocol {
     private let squadService: any SquadServiceProtocol
     private let remoteReadsEnabled: Bool
     private let logger = LoggingService.shared
+    /// DEBUG local-only squads have no Supabase identity, so a captain-picked
+    /// mission lives here for the week instead of in squad_missions.
+    private var localMissions: [UUID: SquadMission] = [:]
+    /// Injectable so unit tests aren't coupled to the shared AuthService state.
+    private let usesLocalMissions: () -> Bool
 
     convenience init(remoteReadsEnabled: Bool = true) {
         self.init(
@@ -36,39 +41,44 @@ final class SquadMissionService: SquadMissionServiceProtocol {
     init(
         backend: SquadBackendProtocol,
         squadService: any SquadServiceProtocol,
-        remoteReadsEnabled: Bool = true
+        remoteReadsEnabled: Bool = true,
+        usesLocalMissions: @escaping () -> Bool = {
+            guard let userId = AuthService.shared.currentUserId else { return false }
+            return SquadUserIdentity.usesLocalOnlySquad(for: userId)
+        }
     ) {
         self.backend = backend
         self.squadService = squadService
         self.remoteReadsEnabled = remoteReadsEnabled
+        self.usesLocalMissions = usesLocalMissions
     }
 
     // MARK: - Private Codable row type
 
-    // The squad_missions table uses `mission_kind` (not `kind`) and snake_case columns.
+    // The squad_missions table uses `mission_kind` (not `kind`) and snake_case columns;
     // UnboundSupabase.dbDecoder uses .convertFromSnakeCase, so properties declared
     // with camelCase will auto-map. However `mission_kind` → `missionKind` is fine.
     private struct MissionRow: Codable {
         let id: UUID
-        let squad_id: UUID
-        let week_iso: String
-        let mission_kind: String
+        let squadId: UUID
+        let weekIso: String
+        let missionKind: String
         let target: Int
-        let current_progress: Int
-        let completed_at: Date?
-        let created_at: Date
+        let currentProgress: Int
+        let completedAt: Date?
+        let createdAt: Date
 
         func toModel() -> SquadMission? {
-            guard let kind = SquadMission.Kind(rawValue: mission_kind) else { return nil }
+            guard let kind = SquadMission.Kind(rawValue: missionKind) else { return nil }
             return SquadMission(
                 id: id,
-                squadId: squad_id,
-                weekIso: week_iso,
+                squadId: squadId,
+                weekIso: weekIso,
                 kind: kind,
                 target: target,
-                currentProgress: current_progress,
-                completedAt: completed_at,
-                createdAt: created_at
+                currentProgress: currentProgress,
+                completedAt: completedAt,
+                createdAt: createdAt
             )
         }
     }
@@ -112,7 +122,8 @@ final class SquadMissionService: SquadMissionServiceProtocol {
     }
 
     func currentMission(squadId: UUID) async -> SquadMission? {
-        guard remoteReadsEnabled else { return nil }
+        if let local = localMission(squadId: squadId), local.completedAt == nil { return local }
+        guard remoteReadsEnabled, !currentUserUsesLocalSquad else { return nil }
         let weekIso = Self.currentWeekIso()
         do {
             let rows: [MissionRow] = try await db
@@ -133,7 +144,8 @@ final class SquadMissionService: SquadMissionServiceProtocol {
     }
 
     func latestMission(squadId: UUID) async -> SquadMission? {
-        guard remoteReadsEnabled else { return nil }
+        if let local = localMission(squadId: squadId) { return local }
+        guard remoteReadsEnabled, !currentUserUsesLocalSquad else { return nil }
         let weekIso = Self.currentWeekIso()
         do {
             let rows: [MissionRow] = try await db
@@ -153,11 +165,27 @@ final class SquadMissionService: SquadMissionServiceProtocol {
     }
 
     func recordProgress(log: WorkoutLog, userId: String, sourceLogId: String) async {
+        guard let squad = squadService.state(userId: userId).currentSquad else { return }
+
+        // DEBUG local-only squads: advance the in-memory mission with the same
+        // per-kind math the server RPC applies.
+        if currentUserUsesLocalSquad {
+            guard var mission = localMission(squadId: squad.id), mission.completedAt == nil else { return }
+            let delta = Self.localDelta(for: mission.kind, log: log)
+            guard delta > 0 else { return }
+            mission.currentProgress += delta
+            if mission.currentProgress >= mission.target {
+                mission.completedAt = .now
+                NotificationCenter.default.post(name: .squadMissionCompleted, object: mission)
+            }
+            localMissions[squad.id] = mission
+            return
+        }
+
         // Increment the squad's current-week mission via the
         // `increment_squad_mission_progress` RPC (SECURITY DEFINER, squad-
         // membership guarded). The RPC computes the real delta server-side from
         // the workout_logs.exercise_entries jsonb — the +1 here is a signal only.
-        guard let squad = squadService.state(userId: userId).currentSquad else { return }
         do {
             try await backend.incrementMissionProgress(
                 squadId: squad.id,
@@ -172,6 +200,27 @@ final class SquadMissionService: SquadMissionServiceProtocol {
         }
     }
 
+    /// Mirror of the server RPC's per-kind delta for the DEBUG local path.
+    static func localDelta(for kind: SquadMission.Kind, log: WorkoutLog) -> Int {
+        let workingSets = log.exerciseEntries
+            .filter { !$0.skipped }
+            .flatMap(\.sets)
+            .filter { !$0.isWarmup }
+        switch kind {
+        case .totalSessions, .crewCoverage:
+            return 1
+        case .totalWeight:
+            return workingSets.reduce(0) { total, set in
+                guard let weight = set.weightKg, weight > 0, set.reps > 0 else { return total }
+                return total + Int(weight * Double(set.reps))
+            }
+        case .totalReps:
+            return workingSets.reduce(0) { $0 + max($1.reps, 0) }
+        case .trainTogether:
+            return 0
+        }
+    }
+
     func evaluateCompletion(squadId: UUID) async {
         guard let mission = await currentMission(squadId: squadId),
               mission.currentProgress >= mission.target,
@@ -182,7 +231,40 @@ final class SquadMissionService: SquadMissionServiceProtocol {
     }
 
     func pickMission(squadId: UUID, kind: SquadMission.Kind) async throws -> SquadMission? {
-        try await backend.pickSquadMission(squadId: squadId, kind: kind)
+        if currentUserUsesLocalSquad {
+            if let existing = localMission(squadId: squadId) { return existing }
+            let memberCount: Int
+            if let userId = AuthService.shared.currentUserId {
+                memberCount = max(2, squadService.state(userId: userId).roster.count)
+            } else {
+                memberCount = 2
+            }
+            let mission = SquadMission(
+                id: UUID(),
+                squadId: squadId,
+                weekIso: Self.currentWeekIso(),
+                kind: kind,
+                target: SquadMissionCatalog.target(for: kind, memberCount: memberCount),
+                currentProgress: 0,
+                completedAt: nil,
+                createdAt: .now
+            )
+            localMissions[squadId] = mission
+            return mission
+        }
+        return try await backend.pickSquadMission(squadId: squadId, kind: kind)
+    }
+
+    private var currentUserUsesLocalSquad: Bool {
+        usesLocalMissions()
+    }
+
+    /// The local mission only counts for the current ISO week.
+    private func localMission(squadId: UUID) -> SquadMission? {
+        guard let mission = localMissions[squadId], mission.weekIso == Self.currentWeekIso() else {
+            return nil
+        }
+        return mission
     }
 
     func fetchMissionContributions(missionId: UUID) async throws -> [MissionContribution] {

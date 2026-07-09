@@ -5,7 +5,7 @@ import UIKit
 final class RoutineLibraryTests: XCTestCase {
 
     func testRoutinesAllWellFormed() {
-        let routines = RoutineLibrary.placeholderRoutines
+        let routines = RoutineLibrary.routines
         XCTAssertEqual(routines.count, 39)
         XCTAssertEqual(Set(routines.map(\.id)).count, 39, "duplicate routine id")
 
@@ -38,7 +38,7 @@ final class RoutineLibraryTests: XCTestCase {
     }
 
     func testCategoriesCoverAllFour() {
-        let cats = Set(RoutineLibrary.placeholderRoutines.map(\.category))
+        let cats = Set(RoutineLibrary.routines.map(\.category))
         XCTAssertEqual(cats, [.cardio, .mobility, .challenge, .altCircuit])
     }
 
@@ -47,13 +47,13 @@ final class RoutineLibraryTests: XCTestCase {
             XCTAssertFalse(category.label.contains("LOADOUT DUNGEON"), "\(category): loadout category should not repeat dungeon")
         }
 
-        for routine in RoutineLibrary.placeholderRoutines {
+        for routine in RoutineLibrary.routines {
             XCTAssertFalse(routine.title.contains("Dungeon"), "\(routine.id): title should avoid repeated dungeon suffix")
         }
     }
 
     func testRoutinesUseNamedDifficultyTiers() {
-        let routines = RoutineLibrary.placeholderRoutines
+        let routines = RoutineLibrary.routines
         XCTAssertEqual(Set(routines.map(\.difficultyTier)), Set(SkillTier.allCases))
 
         for routine in routines {
@@ -79,7 +79,7 @@ final class RoutineLibraryTests: XCTestCase {
             "e rank", "d rank", "c rank", "b rank", "a rank", "s rank"
         ]
 
-        for routine in RoutineLibrary.placeholderRoutines {
+        for routine in RoutineLibrary.routines {
             let searchable = routineSearchText(routine)
             for term in bannedTerms {
                 XCTAssertFalse(
@@ -122,7 +122,7 @@ final class RoutineLibraryTests: XCTestCase {
         ]
 
         for id in sourceCodedIds {
-            let routine = RoutineLibrary.placeholderRoutines.first { $0.id == id }
+            let routine = RoutineLibrary.routines.first { $0.id == id }
             let searchable = routine.map(routineSearchText) ?? ""
             XCTAssertNotNil(routine, "\(id): expected inspired dungeon")
             for term in bannedTerms {
@@ -141,7 +141,7 @@ final class RoutineLibraryTests: XCTestCase {
             "and so on"
         ]
 
-        for routine in RoutineLibrary.placeholderRoutines {
+        for routine in RoutineLibrary.routines {
             let searchable = routineSearchText(routine)
             for term in bannedTerms {
                 XCTAssertFalse(searchable.contains(term), "\(routine.id): dungeon plan uses incomplete shorthand \(term)")
@@ -150,20 +150,20 @@ final class RoutineLibraryTests: XCTestCase {
     }
 
     func testRoutineUnlockPolicyKeepsStarterDungeonsOpenAndGatesHigherTiers() {
-        let daily = RoutineLibrary.placeholderRoutines.first { $0.id == "daily-quest" }!
+        let daily = RoutineLibrary.routines.first { $0.id == "daily-quest" }!
         XCTAssertTrue(RoutineUnlockPolicy.state(for: daily, currentTier: .initiate).isUnlocked)
 
-        let tabata = RoutineLibrary.placeholderRoutines.first { $0.id == "tabata-core" }!
+        let tabata = RoutineLibrary.routines.first { $0.id == "tabata-core" }!
         XCTAssertFalse(RoutineUnlockPolicy.state(for: tabata, currentTier: .initiate).isUnlocked)
         XCTAssertTrue(RoutineUnlockPolicy.state(for: tabata, currentTier: .apprentice).isUnlocked)
 
-        let gravity = RoutineLibrary.placeholderRoutines.first { $0.id == "gravity-chamber" }!
+        let gravity = RoutineLibrary.routines.first { $0.id == "gravity-chamber" }!
         XCTAssertFalse(RoutineUnlockPolicy.state(for: gravity, currentTier: .vessel).isUnlocked)
         XCTAssertTrue(RoutineUnlockPolicy.state(for: gravity, currentTier: .ascendant).isUnlocked)
     }
 
     func testRoutineCoverAssetsAreBundled() {
-        for routine in RoutineLibrary.placeholderRoutines {
+        for routine in RoutineLibrary.routines {
             let assetName = "routine_challenge_\(routine.id)"
             XCTAssertNotNil(
                 UIImage(named: assetName),
@@ -173,7 +173,7 @@ final class RoutineLibraryTests: XCTestCase {
     }
 
     func testMobilityLibraryCoversMajorRegions() {
-        let mobility = RoutineLibrary.placeholderRoutines.filter { $0.category == .mobility }
+        let mobility = RoutineLibrary.routines.filter { $0.category == .mobility }
         XCTAssertEqual(mobility.count, 9)
         XCTAssertTrue(mobility.map(\.id).contains("shoulder-spine-12"))
         XCTAssertTrue(mobility.map(\.id).contains("ankle-squat-10"))
@@ -185,34 +185,31 @@ final class RoutineLibraryTests: XCTestCase {
         for reference in MobilityReferenceLibrary.all {
             XCTAssertFalse(reference.cameraAngle.isEmpty, "\(reference.id): missing camera angle")
             XCTAssertFalse(reference.primaryPose.isEmpty, "\(reference.id): missing primary pose")
-
-            switch reference.visualType {
-            case .singlePose:
-                XCTAssertNil(reference.secondaryPose, "\(reference.id): static stretches should use one pose")
-                XCTAssertEqual(reference.expectedAssetNames, ["mobility_reference_\(reference.id)"])
-            case .startEnd:
-                XCTAssertNotNil(reference.secondaryPose, "\(reference.id): dynamic drills need an end pose")
-                XCTAssertEqual(
-                    reference.expectedAssetNames,
-                    ["mobility_reference_\(reference.id)_start", "mobility_reference_\(reference.id)_end"]
-                )
-            }
         }
     }
 
     func testMobilityReferenceAssetsAreBundled() {
         for reference in MobilityReferenceLibrary.all {
-            for assetName in reference.expectedAssetNames {
+            if reference.secondaryPose != nil {
                 XCTAssertNotNil(
-                    UIImage(named: assetName),
-                    "\(reference.id): missing bundled mobility asset \(assetName)"
+                    UIImage(named: reference.startAssetName),
+                    "\(reference.id): missing bundled start asset \(reference.startAssetName)"
+                )
+                XCTAssertNotNil(
+                    UIImage(named: reference.endAssetName),
+                    "\(reference.id): missing bundled end asset \(reference.endAssetName)"
+                )
+            } else {
+                XCTAssertNotNil(
+                    UIImage(named: reference.assetName),
+                    "\(reference.id): missing bundled mobility asset \(reference.assetName)"
                 )
             }
         }
     }
 
     func testMobilityRoutineStepsResolveReferenceVisuals() {
-        let mobility = RoutineLibrary.placeholderRoutines.filter { $0.category == .mobility }
+        let mobility = RoutineLibrary.routines.filter { $0.category == .mobility }
 
         for routine in mobility {
             let (run, _) = RoutineRun.build(routine.steps)
@@ -251,7 +248,7 @@ final class RoutineLibraryTests: XCTestCase {
     }
 
     func testRepTargetRoutinesPresent() {
-        let ids = RoutineLibrary.placeholderRoutines
+        let ids = RoutineLibrary.routines
             .filter { $0.steps.contains {
                 if case .repTarget = $0 { return true }; return false } }
             .map(\.id)
@@ -260,7 +257,7 @@ final class RoutineLibraryTests: XCTestCase {
 
     func testFullBodyRoutineLibraryHasEasyOptions() {
         let ids = Set(
-            RoutineLibrary.placeholderRoutines
+            RoutineLibrary.routines
                 .filter { $0.category == .altCircuit }
                 .map(\.id)
         )
@@ -274,7 +271,7 @@ final class RoutineLibraryTests: XCTestCase {
 
     func testCardioLibraryIncludesMachineAndFootworkOptions() {
         let ids = Set(
-            RoutineLibrary.placeholderRoutines
+            RoutineLibrary.routines
                 .filter { $0.category == .cardio }
                 .map(\.id)
         )
@@ -303,7 +300,7 @@ final class RoutineLibraryTests: XCTestCase {
             "gym-full-45",
             "athletic-full-28"
         ]
-        let routines = RoutineLibrary.placeholderRoutines.filter { fullBodyIds.contains($0.id) }
+        let routines = RoutineLibrary.routines.filter { fullBodyIds.contains($0.id) }
 
         for routine in routines {
             let (run, _) = RoutineRun.build(routine.steps)

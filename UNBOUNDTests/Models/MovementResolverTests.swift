@@ -1007,6 +1007,31 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertTrue(plank.bodyRegions.contains(.abs))
     }
 
+    func testHangSkillsTreatRingsAndPullupBarAsAlternatives() throws {
+        // Skin the cat and German hang work from rings OR a bar; either one
+        // must satisfy the pair so bar-only users can reach the back-lever line.
+        for id in ["skill.cl.skin-the-cat", "skill.cl.german-hang"] {
+            let definition = try XCTUnwrap(MovementCatalog.definition(for: id))
+            XCTAssertTrue(
+                MovementCatalog.isProgramCompatible(definition, style: .bodyweight, userEquipment: [.bodyweight, .pullupBar]),
+                "\(id) should run for a bar-only user"
+            )
+            XCTAssertTrue(
+                MovementCatalog.isProgramCompatible(definition, style: .bodyweight, userEquipment: [.bodyweight, .rings]),
+                "\(id) should run for a rings-only user"
+            )
+            XCTAssertFalse(
+                MovementCatalog.isProgramCompatible(definition, style: .bodyweight, userEquipment: [.bodyweight]),
+                "\(id) still needs something to hang from"
+            )
+        }
+
+        // 360-degree pulls are genuinely rings-only — a bar must not qualify.
+        let threeSixty = try XCTUnwrap(MovementCatalog.definition(for: "skill.cl.three-sixty-pulls"))
+        XCTAssertTrue(MovementCatalog.isProgramCompatible(threeSixty, style: .bodyweight, userEquipment: [.bodyweight, .rings]))
+        XCTAssertFalse(MovementCatalog.isProgramCompatible(threeSixty, style: .bodyweight, userEquipment: [.bodyweight, .pullupBar]))
+    }
+
     func testRankableBodyweightLibraryExercisesDeriveRanksFromLoggedReps() throws {
         let rowLow = try XCTUnwrap(StrengthStandards.progressToNextRank(
             metricValue: 1,

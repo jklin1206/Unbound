@@ -10,7 +10,7 @@ struct Step23_Notifications: View {
     var body: some View {
         OnboardingScaffold(
             title: L10n.onboarding("notifications.title", defaultValue: "Stay on track."),
-            subtitle: L10n.onboarding("notifications.subtitle", defaultValue: "A small nudge when it's time to keep the streak alive."),
+            subtitle: L10n.onboarding("notifications.subtitle", defaultValue: "A nudge when it's time."),
             progress: progress,
             primaryTitle: flow.notificationsRequested
                 ? L10n.onboarding("common.continue", defaultValue: "Continue")
@@ -22,37 +22,32 @@ struct Step23_Notifications: View {
             VStack(spacing: 20) {
                 Spacer().frame(height: 16)
 
+                // Plain bell — no badge art, no hex chrome.
                 ZStack {
                     Circle()
                         .fill(
                             RadialGradient(
                                 colors: [
-                                    Color.unbound.accent.opacity(0.22),
+                                    Color.unbound.accent.opacity(0.20),
                                     Color.clear
                                 ],
                                 center: .center,
                                 startRadius: 0,
-                                endRadius: 120
+                                endRadius: 110
                             )
                         )
-                        .frame(width: 220, height: 220)
+                        .frame(width: 200, height: 200)
 
-                    HUDHexagon()
-                        .stroke(Color.unbound.accent.opacity(0.6), lineWidth: 1.5)
-                        .frame(width: 140, height: 128)
-                        .animeGlow(color: Color.unbound.accent, radius: 14, intensity: 0.7)
-
-                    Image("badge_art_consistency_loop")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 88, height: 88)
-                        .shadow(color: Color.unbound.accent.opacity(0.55), radius: 18)
+                    Image(systemName: "bell.badge.fill")
+                        .font(.system(size: 54, weight: .semibold))
+                        .foregroundStyle(Color.unbound.accent)
+                        .shadow(color: Color.unbound.accent.opacity(0.5), radius: 16)
                 }
 
                 VStack(spacing: 12) {
-                    hudBenefitRow(assetName: "badge_art_streak_7", text: L10n.onboarding("notifications.benefit.streak", defaultValue: "A clean nudge when it is time to train"))
-                    hudBenefitRow(assetName: "badge_art_arc_week", text: L10n.onboarding("notifications.benefit.schedule", defaultValue: "Gym reminders that match your schedule"))
-                    hudBenefitRow(assetName: "badge_art_first_scan", text: L10n.onboarding("notifications.benefit.monthly", defaultValue: "No extra progress or streak alerts by default"))
+                    hudBenefitRow(icon: "bell.fill", text: L10n.onboarding("notifications.benefit.streak", defaultValue: "A clean nudge when it is time to train"))
+                    hudBenefitRow(icon: "calendar", text: L10n.onboarding("notifications.benefit.schedule", defaultValue: "Gym reminders that match your schedule"))
+                    hudBenefitRow(icon: "moon.zzz.fill", text: L10n.onboarding("notifications.benefit.monthly", defaultValue: "No extra progress or streak alerts by default"))
                 }
 
                 Spacer().frame(height: 8)
@@ -83,17 +78,13 @@ struct Step23_Notifications: View {
         }
     }
 
-    private func hudBenefitRow(assetName: String, text: String) -> some View {
+    private func hudBenefitRow(icon: String, text: String) -> some View {
         HUDPanel(isActive: false) {
             HStack(spacing: 14) {
-                OnboardingAssetGlyph(
-                    assetName: assetName,
-                    tint: Color.unbound.accent,
-                    size: 28,
-                    imagePadding: 5,
-                    shape: .hexagon,
-                    showsCornerMark: false
-                )
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.unbound.accent)
+                    .frame(width: 24)
                 Text(text)
                     .font(Font.unbound.bodyM)
                     .foregroundStyle(Color.unbound.textPrimary)

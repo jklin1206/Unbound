@@ -9,12 +9,27 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
+    # App Store version identity. Builds 1-3 were uploaded with ad-hoc
+    # overrides; these make the generated project self-sufficient. Bump
+    # CURRENT_PROJECT_VERSION for every upload (next upload after build 3 = 4).
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: 4
+    # HTTPS-only exempt crypto; answers the export-compliance question at
+    # upload time so builds don't stall on "Missing Compliance".
+    INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
     # Justin's Apple Developer team. Persisted here so `xcodegen generate`
     # stops resetting it to "" and wiping the Xcode team selection each run.
     DEVELOPMENT_TEAM: "6K5R25Y398"
     CODE_SIGN_STYLE: Automatic
+    # iPhone-only for the 1.0 submission: the iPad layout is untested and
+    # App Review requires iPad screenshots whenever family 2 is included.
+    TARGETED_DEVICE_FAMILY: "1"
     INFOPLIST_KEY_NSCameraUsageDescription: "UNBOUND needs camera access to capture your body scans and post-workout photos"
     INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "UNBOUND needs photo library access for your profile picture and progress photos"
+    # Required by the HealthKit entitlement: rest-day recovery reads steps,
+    # walking distance, and sleep. Read-only, so no Update description needed.
+    INFOPLIST_KEY_NSHealthShareUsageDescription: "UNBOUND reads your steps, walking distance, and sleep to check how recovered you are on rest days"
+    INFOPLIST_KEY_NSHealthUpdateUsageDescription: "UNBOUND only reads activity and sleep data to gauge recovery and never writes to your health records"
     INFOPLIST_KEY_UILaunchScreen_Generation: true
     INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
     INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown"
@@ -32,6 +47,13 @@ packages:
   PostHog:
     url: https://github.com/PostHog/posthog-ios.git
     from: "3.0.0"
+  # Sign in with Google (native). The reversed-client-ID URL scheme and
+  # GIDClientID live in the partial UNBOUND/Info.plist merged via INFOPLIST_FILE
+  # below; the Supabase Google provider must list this iOS client ID as an
+  # authorized client for signInWithIdToken(.google) to validate the token.
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: "7.0.0"
   # Hot-reload for SwiftUI iteration. Debug-only; the linker keeps it
   # out of release builds because the import is wrapped in #if DEBUG.
   # Setup: install InjectionIII.app once and drag UNBOUND.xcodeproj
@@ -51,11 +73,18 @@ targets:
           - CloudFunctions/**
           - supabase/**
           - Views/Components/Unbound/TierBloomToast.swift
+          - Info.plist
           - "**/README.md"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.unboundapp.ios
+        TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
+        # Partial plist merged UNDER the generated keys: carries only what
+        # GENERATE_INFOPLIST_FILE can't express — the Google reversed-client-ID
+        # URL scheme + GIDClientID. All the usage-description / orientation keys
+        # stay as INFOPLIST_KEY_* build settings and merge in on top.
+        INFOPLIST_FILE: UNBOUND/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: UNBOUND
         CODE_SIGN_ENTITLEMENTS: UNBOUND/UNBOUND.entitlements
     dependencies:
@@ -65,6 +94,8 @@ targets:
         product: Supabase
       - package: PostHog
         product: PostHog
+      - package: GoogleSignIn
+        product: GoogleSignIn
       # Weak-linked so DEBUG *device* builds don't SIGABRT in dyld: HotReloading
       # is simulator-only (Swift import is guarded by DEBUG && simulator), but the
       # LC_LOAD_DYLIB still ships in the device binary. Weak makes dyld nil the
@@ -87,6 +118,21 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         BUNDLE_LOADER: "$(TEST_HOST)"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/UNBOUND.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/UNBOUND"
+  # UI-test target whose only job is to launch the real app under a live
+  # StoreKit Testing session (see UNBOUND-StoreKitTesting scheme) so genuine
+  # onboarding + the local purchase can be driven externally. No @testable
+  # imports, so it builds against a Release host without testability.
+  UNBOUNDUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UNBOUNDUITests
+    dependencies:
+      - target: UNBOUND
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: UNBOUND
 
 # Explicit scheme (replaces the auto-generated one) so the archive carries a
 # post-action: the HotReloading SPM stack embeds SwiftTrace.framework
@@ -121,3 +167,23 @@ schemes:
             APP="${ARCHIVE_PRODUCTS_PATH}/Applications/${PRODUCT_NAME}.app"
             rm -rf "${APP}/Frameworks/SwiftTrace.framework" \
                    "${APP}/Frameworks/HotReloading.framework"
+  # Drives the genuine first-run + local in-app purchase. Builds the app in
+  # Release (DEBUG dev-account bootstrapper compiled out) and launches it under
+  # the local StoreKit Testing config via the UNBOUNDUITests hold-open test, so
+  # tapping "Start arc" completes a local purchase with no Apple Account and no
+  # dev account, unlocking Home. Test-only scheme; the app ships via the
+  # UNBOUND scheme's archive action above.
+  UNBOUND-StoreKitTesting:
+    build:
+      targets:
+        UNBOUND: all
+        UNBOUNDUITests: [test]
+    run:
+      config: Release
+      storeKitConfiguration: StoreKitTesting/UnboundProducts.storekit
+    test:
+      config: Release
+      gatherCoverageData: false
+      storeKitConfiguration: StoreKitTesting/UnboundProducts.storekit
+      targets:
+        - UNBOUNDUITests

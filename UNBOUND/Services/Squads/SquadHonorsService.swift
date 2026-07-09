@@ -21,21 +21,21 @@ final class SquadHonorsService: SquadHonorsServiceProtocol {
 
     private struct HonorRow: Codable {
         let id: UUID
-        let squad_id: UUID
-        let week_iso: String
-        let honor_kind: String
-        let recipient_user_id: UUID
-        let awarded_at: Date
+        let squadId: UUID
+        let weekIso: String
+        let honorKind: String
+        let recipientUserId: UUID
+        let awardedAt: Date
 
         func toModel() -> WeeklyHonor? {
-            guard let kind = WeeklyHonor.Kind(rawValue: honor_kind) else { return nil }
+            guard let kind = WeeklyHonor.Kind(rawValue: honorKind) else { return nil }
             return WeeklyHonor(
                 id: id,
-                squadId: squad_id,
-                weekIso: week_iso,
+                squadId: squadId,
+                weekIso: weekIso,
                 kind: kind,
-                recipientUserId: recipient_user_id,
-                awardedAt: awarded_at
+                recipientUserId: recipientUserId,
+                awardedAt: awardedAt
             )
         }
     }

@@ -459,7 +459,6 @@ struct BaselineYearProgramSimulator {
         let resolved = await MainActor.run {
             let resolvedWorkout = DailyWorkoutResolver.resolvedWorkout(
                 from: workout,
-                date: date,
                 scheduledSkillIds: scheduledSkillIds,
                 modifierContext: modifierContext
             )

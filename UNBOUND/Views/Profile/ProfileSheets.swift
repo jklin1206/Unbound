@@ -1,7 +1,24 @@
 import SwiftUI
 import PhotosUI
 
-struct EditProfileSheet: View {
+/// Everything the identity editor needs from its owner (ProfileView), so the
+/// form can live inside the Profile Cosmetics hub without knowing how handle
+/// or showcase state is loaded and saved.
+struct ProfileIdentityEditorContext {
+    let displayHandle: String
+    let unlockedTitles: [TitleID]
+    let equippedTitle: TitleID?
+    let showcaseSkillOptions: [ProfileShowcaseOption]
+    let selectedShowcaseSkillId: String?
+    let showcaseLiftOptions: [ProfileShowcaseOption]
+    let selectedShowcaseLiftId: String?
+    let save: (String, TitleID?, ProfileShowcaseSelection) async throws -> Void
+}
+
+/// Identity editing form — handle, wearable title, showcase skill/lift.
+/// Hosted as the IDENTITY surface of `ProfileCosmeticsView` (the profile-kit
+/// hub); a successful save dismisses the hosting sheet.
+struct ProfileIdentityForm: View {
     @State private var handle: String
     @State private var selectedTitle: TitleID?
     @State private var selectedShowcaseSkillId: String?
@@ -16,51 +33,19 @@ struct EditProfileSheet: View {
     let showcaseLiftOptions: [ProfileShowcaseOption]
     let save: (String, TitleID?, ProfileShowcaseSelection) async throws -> Void
 
-    init(
-        displayHandle: String,
-        unlockedTitles: [TitleID],
-        equippedTitle: TitleID?,
-        showcaseSkillOptions: [ProfileShowcaseOption],
-        selectedShowcaseSkillId: String?,
-        showcaseLiftOptions: [ProfileShowcaseOption],
-        selectedShowcaseLiftId: String?,
-        save: @escaping (String, TitleID?, ProfileShowcaseSelection) async throws -> Void
-    ) {
-        _handle = State(initialValue: displayHandle)
-        _selectedTitle = State(initialValue: equippedTitle)
-        _selectedShowcaseSkillId = State(initialValue: selectedShowcaseSkillId)
-        _selectedShowcaseLiftId = State(initialValue: selectedShowcaseLiftId)
-        self.unlockedTitles = unlockedTitles
-        self.showcaseSkillOptions = showcaseSkillOptions
-        self.showcaseLiftOptions = showcaseLiftOptions
-        self.save = save
+    init(context: ProfileIdentityEditorContext) {
+        _handle = State(initialValue: context.displayHandle)
+        _selectedTitle = State(initialValue: context.equippedTitle)
+        _selectedShowcaseSkillId = State(initialValue: context.selectedShowcaseSkillId)
+        _selectedShowcaseLiftId = State(initialValue: context.selectedShowcaseLiftId)
+        self.unlockedTitles = context.unlockedTitles
+        self.showcaseSkillOptions = context.showcaseSkillOptions
+        self.showcaseLiftOptions = context.showcaseLiftOptions
+        self.save = context.save
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("EDIT PROFILE")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
-                        .tracking(1.7)
-                        .foregroundStyle(Color.unbound.textTertiary)
-                    Text("Profile")
-                        .font(Font.unbound.titleS)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                }
-                Spacer()
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .frame(width: 32, height: 32)
-                        .background(Circle().fill(Color.unbound.surfaceElevated))
-                }
-                .buttonStyle(.plain)
-            }
-
             VStack(alignment: .leading, spacing: 12) {
                 profileField(label: "HANDLE", text: $handle, prompt: "handle")
                 titleMenu
@@ -107,12 +92,7 @@ struct EditProfileSheet: View {
             }
             .buttonStyle(.plain)
             .disabled(isSaving)
-
-            Spacer(minLength: 0)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color.unbound.bg)
     }
 
     private func profileField(label: String, text: Binding<String>, prompt: String) -> some View {
@@ -453,6 +433,9 @@ struct GateTrialLaunchView: View {
     var onFinished: () -> Void
 
     @State private var entered = false
+    /// Bumped by a failed gate's ENTER AGAIN — recreates the logging container
+    /// with a fresh session identity so the retry is a genuinely new attempt.
+    @State private var attemptKey = 0
 
     private var crossing: GateCrossing? {
         guard let definition = draft.programId.flatMap(OverallRankTrialDefinitions.definition) else { return nil }
@@ -467,8 +450,14 @@ struct GateTrialLaunchView: View {
                 })
                 .transition(.opacity)
             } else {
-                ActiveWorkoutContainerView(draft: draft, services: services, onFinished: onFinished)
-                    .transition(.opacity)
+                ActiveWorkoutContainerView(
+                    draft: draft,
+                    services: services,
+                    onFinished: onFinished,
+                    onGateRematch: { attemptKey += 1 }
+                )
+                .id(attemptKey)
+                .transition(.opacity)
             }
         }
     }

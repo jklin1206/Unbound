@@ -15,7 +15,6 @@ struct ProfileHeroAvatar: View {
 
     var body: some View {
         let glowSize = size * 1.08
-        let badgeSize = size * 0.33
 
         ZStack {
             // Dark seat: lets the framed avatar read cleanly on any banner art
@@ -37,13 +36,6 @@ struct ProfileHeroAvatar: View {
                 shopBorder: shopBorder
             )
             .shadow(color: profileTint.opacity(frameGlowOpacity), radius: frameGlowRadius)
-
-            Image(skillTier.assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: badgeSize, height: badgeSize)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .offset(x: -2, y: 2)
 
             Text("LVL \(level)")
                 .font(.system(size: max(8, size * 0.057), weight: .black, design: .monospaced))
@@ -92,7 +84,7 @@ struct ProgressJourneySection: View {
                         .font(.system(size: 9, weight: .black, design: .monospaced))
                         .tracking(1.8)
                         .foregroundStyle(Color.unbound.textTertiary)
-                    Text("DAY 0 -> NOW")
+                    Text("DAY 0 → NOW")
                         .font(Font.unbound.titleS)
                         .tracking(1.0)
                         .foregroundStyle(Color.unbound.textPrimary)
@@ -100,7 +92,7 @@ struct ProgressJourneySection: View {
                 Spacer()
                 Text(deltaCopy)
                     .font(Font.unbound.monoS.weight(.bold))
-                    .foregroundStyle(Color.unbound.impact)
+                    .foregroundStyle(Color.unbound.textSecondary)
             }
 
             HStack(spacing: 10) {
@@ -282,11 +274,6 @@ struct TrophyShowcaseRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 9) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(badgeTier.rewardTint)
-                .frame(width: 3, height: 38)
-                .shadow(color: badgeTier.rewardTint.opacity(0.26), radius: 6)
-
             Image(badgeTier.assetName)
                 .resizable()
                 .scaledToFit()

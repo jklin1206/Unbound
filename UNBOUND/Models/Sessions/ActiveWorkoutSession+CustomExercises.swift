@@ -4,7 +4,10 @@ import Combine
 extension ActiveWorkoutSession {
     func appendCustomExercise(_ custom: CustomExercise) {
         let plannedSets = Self.defaultSetCount(for: custom.classification)
-        let plannedReps = "\(custom.defaultRepMin)-\(custom.defaultRepMax)"
+        let isHold = custom.measure == .hold
+        let plannedReps = isHold
+            ? "\(custom.defaultHoldSeconds)s"
+            : "\(custom.defaultRepMin)-\(custom.defaultRepMax)"
         let targetRPE = 8
         let exercise = ActiveExercise(
             id: custom.id.uuidString,
@@ -21,7 +24,8 @@ extension ActiveWorkoutSession {
                     rpe: nil,
                     isWarmup: false,
                     logged: false,
-                    suggestedReps: custom.defaultRepMin,
+                    suggestedReps: isHold ? nil : custom.defaultRepMin,
+                    suggestedHoldSeconds: isHold ? custom.defaultHoldSeconds : nil,
                     suggestedRPE: targetRPE,
                     suggestedRestSeconds: Self.defaultRestSeconds(for: custom.classification)
                 )
@@ -31,7 +35,8 @@ extension ActiveWorkoutSession {
             targetRPE: targetRPE,
             substitution: "Custom exercise",
             blockKind: custom.classification == .bodyweightSkill ? .bodyweight : .strength,
-            metricKind: .reps
+            tracksHold: isHold,
+            metricKind: isHold ? .holdSeconds : .reps
         )
 
         objectWillChange.send()

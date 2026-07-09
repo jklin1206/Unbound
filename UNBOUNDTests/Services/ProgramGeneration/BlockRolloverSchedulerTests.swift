@@ -69,7 +69,7 @@ final class BlockRolloverSchedulerTests: XCTestCase {
 
         XCTAssertFalse(BlockRolloverScheduler.shouldRollover(program: program, now: now))
         XCTAssertEqual(BlockRolloverScheduler.currentDayNumber(program: program, now: now), 4)
-        XCTAssertEqual(BlockRolloverScheduler.daysRemaining(program: program, now: now), 25)
+        XCTAssertEqual(BlockRolloverScheduler.daysRemaining(program: program, now: now), Arc.durationDays - 3)
     }
 
     // MARK: helper
@@ -115,7 +115,9 @@ final class ArcModelTests: XCTestCase {
         XCTAssertEqual(arc.dayNumber(asOf: start.addingTimeInterval(13 * 86_400)), 14)
         XCTAssertEqual(arc.dayNumber(asOf: start.addingTimeInterval(14 * 86_400)), 15)
         XCTAssertEqual(arc.dayNumber(asOf: start.addingTimeInterval(27 * 86_400)), 28)
-        XCTAssertNil(arc.dayNumber(asOf: start.addingTimeInterval(28 * 86_400)))
+        // Last valid day of the Arc, then nil once the Arc has fully elapsed.
+        XCTAssertEqual(arc.dayNumber(asOf: start.addingTimeInterval(Double(Arc.durationDays - 1) * 86_400)), Arc.durationDays)
+        XCTAssertNil(arc.dayNumber(asOf: start.addingTimeInterval(Double(Arc.durationDays) * 86_400)))
     }
 
     func testTrainingProgramDecodesLegacyPayloadWithoutArcFields() throws {

@@ -182,7 +182,8 @@ final class SquadActivityServiceTests: XCTestCase {
 
         let backend = MockSquadActivityBackend()
         let svc = SquadActivityService(
-            backend: backend, auth: customAuth, squadService: customSquadService
+            backend: backend, auth: customAuth, squadService: customSquadService,
+            usesLocalOnlyFeed: { _ in false }
         )
         _ = svc // keep alive
 
@@ -221,7 +222,8 @@ final class SquadActivityServiceTests: XCTestCase {
 
         let backend = MockSquadActivityBackend()
         let svc = SquadActivityService(
-            backend: backend, auth: customAuth, squadService: customSquadService
+            backend: backend, auth: customAuth, squadService: customSquadService,
+            usesLocalOnlyFeed: { _ in false }
         )
         _ = svc
 
@@ -301,7 +303,8 @@ final class SquadActivityServiceTests: XCTestCase {
 
         let backend = MockSquadActivityBackend()
         let svc = SquadActivityService(
-            backend: backend, auth: customAuth, squadService: customSquadService
+            backend: backend, auth: customAuth, squadService: customSquadService,
+            usesLocalOnlyFeed: { _ in false }
         )
         _ = svc // keep alive
 

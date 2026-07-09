@@ -90,6 +90,7 @@ enum SkillTraditionalVisualResolver {
         "cal.clapping-handstand-pushup": ["clapping-handstand-pushup", "handstand-pushup"],
         "cal.l-sit-10": ["l-sit"],
         "cal.plank-30": ["plank"],
+        "hs.freestanding-hs-30": ["freestanding-handstand"],
         "cl.hollow-body-30": ["hollow-hold"],
         "cl.tuck-front-lever": ["tuck-front-lever"],
         "cl.straddle-front-lever": ["straddle-front-lever"],

@@ -409,6 +409,92 @@ final class ProgramViewModel {
         return protectedGenerated
     }
 
+    /// Applies a new training schedule (which weekdays, session length, time of
+    /// day) after onboarding. Persists the inputs and, when an input that shapes
+    /// the plan changes (days / frequency / session length), regenerates the
+    /// current arc from today forward — keeping the user's current style,
+    /// equipment, and experience. A time-of-day-only change skips the regenerate,
+    /// since it affects metadata and reminders, not the workouts themselves.
+    func applyTrainingSchedule(
+        trainingDays: Set<Weekday>,
+        targetFrequency: TargetFrequency,
+        sessionLength: SessionLength,
+        workoutMinuteOfDay: Int
+    ) async throws {
+        guard let userId = services.auth.currentUserId else {
+            throw AppError.authNotAuthenticated
+        }
+        let profile: UserProfile
+        if let cached = currentProfile {
+            profile = cached
+        } else {
+            profile = try await services.user.fetchProfile(userId: userId)
+        }
+
+        let needsRegen = trainingDays != (profile.trainingDays ?? [])
+            || targetFrequency != profile.targetFrequency
+            || sessionLength != profile.sessionLength
+
+        // The user now picks an exact training time; keep the legacy part-of-day
+        // `workoutTime` bucket coherent for notification fallbacks and display.
+        let workoutTime = WorkoutTime.bucket(forMinuteOfDay: workoutMinuteOfDay)
+
+        var fields: [String: Any] = [
+            "trainingDays": trainingDays.map(\.rawValue),
+            "targetFrequency": targetFrequency.rawValue,
+            "sessionLength": sessionLength.rawValue,
+            "workoutTime": workoutTime.rawValue,
+            "workoutMinuteOfDay": workoutMinuteOfDay
+        ]
+
+        var regenerated: TrainingProgram?
+        if needsRegen {
+            let generated = try await ProgramGenerationService.shared.generateFromOnboarding(
+                userId: userId,
+                targetFrequency: targetFrequency,
+                equipment: Set(profile.equipment ?? []),
+                experience: profile.experience,
+                sessionLength: sessionLength,
+                exerciseStyles: Set(profile.exerciseStyles ?? []),
+                targetAreas: Set(profile.targetAreas ?? []),
+                age: profile.age ?? 0,
+                gender: profile.gender ?? .unspecified,
+                heightCm: profile.heightCm ?? 0,
+                weightKg: profile.weightKg ?? 0,
+                trainingDays: trainingDays,
+                trainingStyleOverride: profile.trainingStyleOverride,
+                trainingFeedbackMode: profile.trainingFeedbackMode,
+                cutModeActive: profile.cutMode.enabled,
+                biologicalSex: profile.biologicalSex
+            )
+            let protectedGenerated = Self.preservingUserOwnedWorkouts(
+                from: program,
+                onto: generated,
+                userId: userId
+            )
+            fields["currentProgramId"] = protectedGenerated.id
+            regenerated = protectedGenerated
+        }
+
+        try await services.user.updateProfile(userId: userId, fields: fields)
+
+        var updatedProfile = profile
+        updatedProfile.trainingDays = trainingDays
+        updatedProfile.targetFrequency = targetFrequency
+        updatedProfile.sessionLength = sessionLength
+        updatedProfile.workoutTime = workoutTime
+        updatedProfile.workoutMinuteOfDay = workoutMinuteOfDay
+        if let regenerated { updatedProfile.currentProgramId = regenerated.id }
+        currentProfile = updatedProfile
+
+        if let regenerated {
+            program = regenerated
+            state = .loaded(regenerated)
+            await ProgramStore.shared.save(regenerated, userId: userId)
+            await loadTrackingData()
+        }
+    }
+
     static func preservingUserOwnedWorkouts(
         from previous: TrainingProgram?,
         onto generated: TrainingProgram,
@@ -492,7 +578,7 @@ final class ProgramViewModel {
         let updated = ArcGenerator.generateNextArc(
             from: current,
             checkpoint: outcome,
-            startDate: Date()
+            startDate: ProgramClock.now
         )
         program = updated
         if case .loaded = state { state = .loaded(updated) }

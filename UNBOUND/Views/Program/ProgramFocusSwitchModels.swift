@@ -127,7 +127,7 @@ enum ProgramFocusSwitchModeChoice: String, CaseIterable, Identifiable {
         switch self {
         case .calisthenics: return "Bodyweight-first progressions and skill work."
         case .lifting: return "Weights, cables, and machines based on available gear."
-        case .hybrid: return "Skills plus weights in the same block."
+        case .hybrid: return "Skills plus weights in the same arc."
         }
     }
 
@@ -193,8 +193,8 @@ enum ProgramFocusSwitchScopeChoice: String, CaseIterable, Identifiable {
         switch self {
         case .todayOnly: return "Today"
         case .thisWeek: return "Week"
-        case .nextBlock: return "Next block"
-        case .ongoing: return "Active block"
+        case .nextBlock: return "Next arc"
+        case .ongoing: return "Active arc"
         }
     }
 

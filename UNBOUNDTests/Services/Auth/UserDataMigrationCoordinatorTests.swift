@@ -206,6 +206,175 @@ final class UserDataMigrationCoordinatorTests: XCTestCase {
         XCTAssertEqual(summary.sessionXP.failures, 1)
         XCTAssertFalse(summary.allCollectionsSucceeded)
     }
+
+    // MARK: - Rank progress migration outcome → summary mapping
+    //
+    // The re-key itself is covered by the integration test below; here we only
+    // assert the coordinator maps each outcome into the summary correctly, and
+    // that a `.failed` blocks completion the same way SessionXP does.
+
+    private func coordinator(rankProgressOutcome: RankProgressMigrationOutcome) -> UserDataMigrationCoordinator {
+        UserDataMigrationCoordinator(
+            local: MockMigrationLocalStore(),
+            remote: MockMigrationRemoteStore(authenticated: false),
+            sessionXPStore: StubMigrationSessionXPStore(outcome: .noLegacy),
+            rankProgressStore: StubMigrationRankProgressStore(outcome: rankProgressOutcome),
+            flagStore: NeverCompletedMigrationFlagStore()
+        )
+    }
+
+    func test_rankProgress_rekeyed_outcome_counts_as_local_write() async {
+        let summary = await coordinator(rankProgressOutcome: .rekeyed)
+            .migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+        XCTAssertEqual(summary.rankProgress.scanned, 1)
+        XCTAssertEqual(summary.rankProgress.localWrites, 1)
+        XCTAssertEqual(summary.rankProgress.failures, 0)
+        XCTAssertTrue(summary.allCollectionsSucceeded)
+    }
+
+    func test_rankProgress_merged_outcome_counts_existing_target_and_write() async {
+        let summary = await coordinator(rankProgressOutcome: .merged)
+            .migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+        XCTAssertEqual(summary.rankProgress.scanned, 1)
+        XCTAssertEqual(summary.rankProgress.existingTargets, 1)
+        XCTAssertEqual(summary.rankProgress.localWrites, 1)
+    }
+
+    func test_rankProgress_noLegacy_outcome_is_noop() async {
+        let summary = await coordinator(rankProgressOutcome: .noLegacy)
+            .migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+        XCTAssertEqual(summary.rankProgress.scanned, 0)
+        XCTAssertEqual(summary.rankProgress.localWrites, 0)
+        XCTAssertEqual(summary.rankProgress.failures, 0)
+    }
+
+    func test_rankProgress_failed_outcome_blocks_migration_completion() async {
+        // A corrupt/unwritable legacy rank must count as a failure so the
+        // migration is retried instead of silently completing + resetting the
+        // displayed rank to Initiate.
+        let summary = await coordinator(rankProgressOutcome: .failed)
+            .migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+        XCTAssertEqual(summary.rankProgress.failures, 1)
+        XCTAssertFalse(summary.allCollectionsSucceeded)
+    }
+
+    // MARK: - Progress domain outcomes → summary mapping
+    //
+    // Level / progress-docs / rewards / achievements share one outcome shape
+    // (`UserDataDomainMigrationOutcome`) and one summary mapping. The merges
+    // themselves are covered by the per-store tests
+    // (UserDataMigrationProgressDocsTests / RewardsAchievementsTests); here we
+    // assert the coordinator counts each domain's outcome into ITS field and
+    // that a `.failed` in any of the four blocks the completion flag.
+
+    private func coordinator(
+        level: UserDataDomainMigrationOutcome = .noLegacy,
+        progressDocs: UserDataDomainMigrationOutcome = .noLegacy,
+        rewards: UserDataDomainMigrationOutcome = .noLegacy,
+        achievements: UserDataDomainMigrationOutcome = .noLegacy
+    ) -> UserDataMigrationCoordinator {
+        UserDataMigrationCoordinator(
+            local: MockMigrationLocalStore(),
+            remote: MockMigrationRemoteStore(authenticated: false),
+            sessionXPStore: StubMigrationSessionXPStore(outcome: .noLegacy),
+            rankProgressStore: StubMigrationRankProgressStore(outcome: .noLegacy),
+            levelProgressStore: StubDomainMigrationStore(outcome: level),
+            progressDocsStore: StubDomainMigrationStore(outcome: progressDocs),
+            rewardsStore: StubDomainMigrationStore(outcome: rewards),
+            achievementsStore: StubDomainMigrationStore(outcome: achievements),
+            flagStore: NeverCompletedMigrationFlagStore()
+        )
+    }
+
+    func test_progress_domain_outcomes_map_into_their_summary_fields() async {
+        let summary = await coordinator(
+            level: .rekeyed,
+            progressDocs: .merged,
+            rewards: .unchanged,
+            achievements: .noLegacy
+        ).migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+
+        XCTAssertEqual(summary.levelProgress.scanned, 1)
+        XCTAssertEqual(summary.levelProgress.localWrites, 1)
+        XCTAssertEqual(summary.levelProgress.existingTargets, 0)
+        XCTAssertEqual(summary.progressDocs.scanned, 1)
+        XCTAssertEqual(summary.progressDocs.existingTargets, 1)
+        XCTAssertEqual(summary.progressDocs.localWrites, 1)
+        XCTAssertEqual(summary.rewards.existingTargets, 1)
+        XCTAssertEqual(summary.rewards.localWrites, 0)
+        XCTAssertEqual(summary.achievements.scanned, 0)
+        XCTAssertEqual(summary.achievements.localWrites, 0)
+        XCTAssertTrue(summary.allCollectionsSucceeded)
+        // New domains count toward the total local-writes tally.
+        XCTAssertEqual(summary.migratedLocally, 2)
+    }
+
+    func test_failed_progress_domain_blocks_migration_completion() async {
+        // Any one of the four failing must leave the completion flag unset so
+        // the whole migration is retried on the next launch.
+        let cases: [(domain: String, sut: UserDataMigrationCoordinator)] = [
+            ("levelProgress", coordinator(level: .failed)),
+            ("progressDocs", coordinator(progressDocs: .failed)),
+            ("rewards", coordinator(rewards: .failed)),
+            ("achievements", coordinator(achievements: .failed)),
+        ]
+        for (domain, sut) in cases {
+            let summary = await sut.migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+            XCTAssertFalse(summary.allCollectionsSucceeded, "\(domain) .failed must block completion")
+        }
+
+        let summary = await coordinator(rewards: .failed)
+            .migrate(legacyUserId: "legacy-user", supabaseUserId: UUID().uuidString)
+        XCTAssertEqual(summary.rewards.failures, 1)
+        XCTAssertEqual(summary.rewards.scanned, 1)
+    }
+
+    // MARK: - Rank progress re-key (integration, real production store)
+
+    @MainActor
+    func test_rankProgress_migration_rekeys_trial_rank_and_lift_tiers_to_new_uid() async {
+        let suiteName = "RankProgressMigrationTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let legacyUserId = "legacy-user"
+        let supabaseUserId = UUID().uuidString
+        let trialStore = OverallRankTrialStore(defaults: defaults)
+        let liftTierStore = LiftTierService(defaults: defaults)
+
+        let legacyAttempt = OverallRankTrialAttempt(
+            id: "gate-03",
+            userId: legacyUserId,
+            definitionId: "gate",
+            targetRank: .forged,
+            startedAt: Date(timeIntervalSince1970: 100),
+            completedAt: Date(timeIntervalSince1970: 700),
+            performanceLogId: "gate-03",
+            passed: true,
+            movementAPGained: 5,
+            overallLevelXPGained: 10
+        )
+        trialStore.save(
+            OverallRankTrialProgress(highestPassedRank: .forged, attempts: [legacyAttempt]),
+            userId: legacyUserId
+        )
+        liftTierStore.save(tier: .veteran, lift: "bench press", userId: legacyUserId)
+
+        let sut = ProductionUserDataMigrationRankProgressStore(
+            trialStore: trialStore,
+            liftTierStore: liftTierStore,
+            backup: NoOpRankProgressBackup()
+        )
+
+        let outcome = await sut.migrate(legacyUserId: legacyUserId, supabaseUserId: supabaseUserId)
+
+        XCTAssertEqual(outcome, .rekeyed)
+        XCTAssertEqual(trialStore.load(userId: supabaseUserId).currentRank, .forged)
+        XCTAssertEqual(trialStore.load(userId: supabaseUserId).attempts.map(\.id), ["gate-03"])
+        XCTAssertEqual(liftTierStore.tier(lift: "bench press", userId: supabaseUserId), .veteran)
+        // Legacy entry stays on disk as a backup — the re-key writes the new uid.
+        XCTAssertEqual(trialStore.load(userId: legacyUserId).currentRank, .forged)
+    }
 }
 
 private final class StubMigrationSessionXPStore: UserDataMigrationSessionXPStoring, @unchecked Sendable {
@@ -219,6 +388,39 @@ private final class StubMigrationSessionXPStore: UserDataMigrationSessionXPStori
     func migrate(legacyUserId: String, supabaseUserId: String) async -> SessionXPMigrationOutcome {
         calls.append((legacyUserId, supabaseUserId))
         return outcome
+    }
+}
+
+private final class StubMigrationRankProgressStore: UserDataMigrationRankProgressStoring, @unchecked Sendable {
+    let outcome: RankProgressMigrationOutcome
+    private(set) var calls: [(legacy: String, supabase: String)] = []
+
+    init(outcome: RankProgressMigrationOutcome) {
+        self.outcome = outcome
+    }
+
+    func migrate(legacyUserId: String, supabaseUserId: String) async -> RankProgressMigrationOutcome {
+        calls.append((legacyUserId, supabaseUserId))
+        return outcome
+    }
+}
+
+private struct NoOpRankProgressBackup: RankProgressBackuping {
+    func backupTrials(_ progress: OverallRankTrialProgress, userId: String) {}
+    func backupLiftTiers(_ tiers: [String: SkillTier], userId: String) {}
+}
+
+/// One stub covers all four progress-domain seams: their protocols share the
+/// `UserDataDomainMigrationOutcome` result, so a single conformance satisfies
+/// level, progress-docs, rewards, and achievements.
+private struct StubDomainMigrationStore: UserDataMigrationLevelProgressStoring,
+    UserDataMigrationProgressDocsStoring,
+    UserDataMigrationRewardsStoring,
+    UserDataMigrationAchievementsStoring {
+    let outcome: UserDataDomainMigrationOutcome
+
+    func migrate(legacyUserId: String, supabaseUserId: String) async -> UserDataDomainMigrationOutcome {
+        outcome
     }
 }
 

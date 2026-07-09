@@ -106,3 +106,6 @@ sjw-wiki.yml
 UNBOUND.xcodeproj/xcshareddata/xcschemes/
 .dd/
 .dd-device/
+
+# Developer-machine MCP tooling config (ASC key ids + local key path)
+.mcp.json

@@ -73,6 +73,7 @@ final class FieldLevelMergeTests: XCTestCase {
     final class TestAuth: AuthServiceProtocol, @unchecked Sendable {
         var currentUserId: String?
         var isAuthenticated: Bool { currentUserId != nil }
+        var isCloudLinked: Bool { get async { currentUserId != nil } }
         var authStatePublisher: AnyPublisher<String?, Never> {
             Just(currentUserId).eraseToAnyPublisher()
         }
@@ -82,6 +83,7 @@ final class FieldLevelMergeTests: XCTestCase {
         }
 
         func signInWithApple() async throws -> String { currentUserId ?? "" }
+        func signInWithGoogle() async throws -> String { currentUserId ?? "" }
         func signInWithEmail(email: String, password: String) async throws -> String { currentUserId ?? "" }
         func createAccountWithEmail(email: String, password: String) async throws -> String { currentUserId ?? "" }
         func signOut() throws { currentUserId = nil }

@@ -193,7 +193,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         // detached Task) so the grant is part of the seal's completion path and
         // isn't dropped if the app backgrounds immediately after sealing. The
         // grant is idempotent by sourceId.
-        try? await OverallLevelService.shared.grantFlatXPStrict(
+        _ = try? await OverallLevelService.shared.grantFlatXPStrict(
             amount: current.chosenCard.bet.winXP,
             sourceId: "weeklyVowWin:\(current.id)",
             userId: userId,
@@ -257,14 +257,17 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
     }
 
     /// Grant any wearable title through the shared profile title store.
-    /// Idempotent; fires `.titleUnlocked` for the new title so the UI can
-    /// surface it.
-    func unlockTitle(_ titleId: TitleID, userId: String) {
+    /// Idempotent; when `announce` is true, fires `.titleUnlocked` for the new
+    /// title so the UI (and squad feed) can surface it. Quiet grants exist for
+    /// retroactive backfills, which must not spam the feed.
+    func unlockTitle(_ titleId: TitleID, userId: String, announce: Bool) {
         var state = store.load(userId: userId)
         guard !state.unlockedTitles.contains(titleId) else { return }
         state.unlockedTitles.append(titleId)
         store.save(state, userId: userId)
-        NotificationCenter.default.post(name: .titleUnlocked, object: titleId)
+        if announce {
+            NotificationCenter.default.post(name: .titleUnlocked, object: titleId)
+        }
     }
 
     // MARK: - checkVowWindow

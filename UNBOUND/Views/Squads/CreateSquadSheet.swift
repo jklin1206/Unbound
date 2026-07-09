@@ -30,8 +30,7 @@ struct CreateSquadSheet: View {
                             .squadInputChrome(isFocused: isNameFocused)
 
                         Text("\(name.count)/30")
-                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                            .tracking(0.8)
+                            .font(Font.unbound.captionS)
                             .foregroundStyle(Color.unbound.textTertiary)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     }
@@ -41,8 +40,8 @@ struct CreateSquadSheet: View {
 
                     if let error {
                         Text(error)
-                            .font(.system(size: 13))
-                            .foregroundStyle(.red)
+                            .font(Font.unbound.bodyS)
+                            .foregroundStyle(Color.unbound.alert)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -72,15 +71,12 @@ struct CreateSquadSheet: View {
     }
 
     private var footer: some View {
-        Button {
+        UnboundButton(
+            title: isCreating ? "Creating…" : "Create Squad",
+            isEnabled: canCreate
+        ) {
             submitIfReady()
-        } label: {
-            Text(isCreating ? "Creating..." : "Create")
-                .frame(maxWidth: .infinity)
-                .padding()
         }
-        .buttonStyle(.borderedProminent)
-        .disabled(!canCreate)
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 12)
@@ -98,7 +94,11 @@ struct CreateSquadSheet: View {
 
     @MainActor
     private func create() async {
-        guard let userId = services.auth.currentUserId else {
+        // Squads live entirely in the cloud (RLS-gated RPCs), so an anonymous
+        // local UUID can't create one — require a real session. Forced auth at
+        // onboarding means this normally passes; the check keeps the failure
+        // honest ("Sign in…") instead of a dead RPC error if it's ever reached.
+        guard let userId = services.auth.currentUserId, await services.auth.isCloudLinked else {
             error = "Sign in to create a squad."
             return
         }
@@ -154,11 +154,6 @@ extension View {
                         isFocused ? Color.unbound.accent.opacity(0.75) : Color.unbound.border,
                         lineWidth: isFocused ? 1.5 : 1
                     )
-            )
-            .shadow(
-                color: isFocused ? Color.unbound.accent.opacity(0.18) : Color.clear,
-                radius: 12,
-                y: 4
             )
             .animation(.easeOut(duration: 0.16), value: isFocused)
     }

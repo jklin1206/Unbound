@@ -100,6 +100,23 @@ final class RankDetailViewModel {
         }
     }
 
+    /// The node's own movement — the first exercise its target names. Used to
+    /// name-gate per-attempt grading (`SkillStandards.nodeProgress`) so an
+    /// authored variant ladder can't grade this screen's raw reps as another
+    /// variant's rung.
+    private static func targetExerciseName(_ requirement: NodeRequirement) -> String? {
+        switch requirement {
+        case .weightMultiplier(let exercise, _),
+             .reps(let exercise, _, _),
+             .hold(let exercise, _),
+             .steps(let exercise, _),
+             .carry(let exercise, _, _):
+            return exercise
+        case .composite(let reqs):
+            return reqs.compactMap { targetExerciseName($0) }.first
+        }
+    }
+
     /// Maps a skill node's target to the ruler metric. Hold/carry skills log a
     /// timed hold; everything else logs reps (the criterion the skill ranks on).
     /// Weighted skills are handled earlier in `logMode` (the weight ruler).
@@ -324,8 +341,12 @@ final class RankDetailViewModel {
         if isSkillEntry, !skillIsWeightBased, let node = skillNode {
             let peakReps = (logMode == .reps) ? selectedReps : 0
             let peakSeconds = (logMode == .hold) ? selectedSeconds : 0
+            // This screen logs the node's OWN movement, so grade against the
+            // rungs that name it. On authored variant ladders (ld.nordic-curl,
+            // ...) a raw rep here must not grade as another variant's rung.
             return SkillStandards.nodeProgress(
                 skillId: node.id,
+                exerciseKey: Self.targetExerciseName(node.target),
                 peakReps: peakReps,
                 peakSeconds: peakSeconds
             )?.current ?? .initiate

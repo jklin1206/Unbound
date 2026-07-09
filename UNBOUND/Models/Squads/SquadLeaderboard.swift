@@ -5,8 +5,11 @@ struct SquadSeason: Equatable, Sendable {
     let interval: DateInterval
 
     private static let seasonLengthMonths = 3
+    // Season 1 ("Ignition") begins at launch. Keep the first-season start at the
+    // launch month so the current season reads "Season 1"; it rolls forward every
+    // seasonLengthMonths from here.
     private static let firstSeasonStartYear = 2026
-    private static let firstSeasonStartMonth = 4
+    private static let firstSeasonStartMonth = 7
 
     var start: Date { interval.start }
     var end: Date { interval.end }
@@ -27,7 +30,8 @@ struct SquadSeason: Equatable, Sendable {
         return 1
     }
     var winnerTitleID: TitleID { .squadSeasonWinner(seasonNumber) }
-    var winnerTitleName: String { "Season \(seasonNumber) Winner" }
+    // Themed per season via TitleCatalog (season 1 = "First Flame"). Single source.
+    var winnerTitleName: String { winnerTitleID.displayName }
     var winnerTitleAssetName: String? {
         winnerTitleID.rewardAssetName
     }
@@ -195,12 +199,16 @@ enum SquadSeasonRewardsBuilder {
         season: SquadSeason = .current(),
         missionsCompleted: Int = 0
     ) -> [SquadSeasonReward] {
-        let challengeWins = rows.reduce(0) { $0 + $1.seasonChallengeWins }
-        let seasonPRs = rows.reduce(0) { $0 + $1.seasonPRs }
-        let rosterTarget = max(3, rows.count)
-        let fullSeasonStreakTarget = min(12, max(1, season.weekTarget()))
         let winnerAward = SquadLeaderboardBuilder.winnerTitleAward(rows: rows, season: season)
+        // Crew border target: hold the streak for 4 weeks. Capped so short
+        // seasons stay reachable.
+        let borderStreakTarget = min(4, max(1, season.weekTarget()))
 
+        // Exactly two rewards, both rendered from the existing rank-badge-style
+        // emblem art (glowing anime/JRPG emblems on transparency), matching the
+        // rank badges elsewhere in the app:
+        //   1. Season Winner — the individual title (top of the board).
+        //   2. Season Aura — a crew-earned profile border (radiant ring emblem).
         return [
             SquadSeasonReward(
                 id: "season-winner-title",
@@ -214,54 +222,14 @@ enum SquadSeasonRewardsBuilder {
                 titleId: winnerAward?.titleId ?? season.winnerTitleID
             ),
             SquadSeasonReward(
-                id: "streak-crest",
-                title: "Streak Crest",
-                rewardName: "Squad badge",
-                kind: .squadBadge,
-                iconName: "shield.lefthalf.filled",
-                assetName: "squad_reward_streak_crest",
-                progress: min(squad.squadStreakWeeks, 4),
-                target: 4
-            ),
-            SquadSeasonReward(
-                id: "rival-banner",
-                title: "Rival Banner",
-                rewardName: "Squad cosmetic",
-                kind: .squadCosmetic,
-                iconName: "flag.checkered",
-                assetName: "squad_reward_rival_banner",
-                progress: min(challengeWins, 5),
-                target: 5
-            ),
-            SquadSeasonReward(
-                id: "pr-relic",
-                title: "PR Relic",
-                rewardName: "Squad badge",
-                kind: .squadBadge,
-                iconName: "bolt.badge.checkmark.fill",
-                assetName: "squad_reward_pr_relic",
-                progress: min(seasonPRs, rosterTarget),
-                target: rosterTarget
-            ),
-            SquadSeasonReward(
-                id: "season-aura",
+                id: "season-aura-border",
                 title: "Season Aura",
-                rewardName: "Squad cosmetic",
+                rewardName: "Crew profile border",
                 kind: .squadCosmetic,
                 iconName: "sparkles",
                 assetName: "squad_reward_season_aura",
-                progress: min(squad.squadStreakWeeks, fullSeasonStreakTarget),
-                target: fullSeasonStreakTarget
-            ),
-            SquadSeasonReward(
-                id: "squad-missions",
-                title: "Squad Missions",
-                rewardName: "Season milestone",
-                kind: .squadBadge,
-                iconName: "flag.2.crossed.fill",
-                assetName: nil,
-                progress: min(missionsCompleted, 4),
-                target: 4
+                progress: min(squad.squadStreakWeeks, borderStreakTarget),
+                target: borderStreakTarget
             )
         ]
     }

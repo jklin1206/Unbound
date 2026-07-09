@@ -34,35 +34,22 @@ extension Step_Verdict {
     }
 
     var onboardingAttributeValues: [AttributeKey: Double] {
-        Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
-            let base: Double = {
-                switch key {
-                case .power: return 16
-                case .vitality: return 12
-                case .control: return 14
-                case .endurance: return 15
-                case .mobility: return 10
-                case .explosiveness: return 8
-                }
-            }()
-            let seededBoost = flow.effectiveSeededAttributes.contains(key) ? 3.0 : 0.0
-            let goalBoost: Double = {
-                switch key {
-                case .power:
-                    return flow.goals.contains(.getStronger) ? 2 : 0
-                case .endurance:
-                    return flow.goals.contains(.athletic) ? 2 : 0
-                case .control:
-                    return flow.exerciseStyles.contains(.calisthenics) ? 2 : 0
-                case .mobility:
-                    return flow.exerciseStyles.contains(.mobility) ? 2 : 0
-                case .explosiveness:
-                    return flow.exerciseStyles.contains(.plyometrics) ? 2 : 0
-                case .vitality:
-                    return flow.exerciseStyles.contains(.sports) ? 2 : 0
-                }
-            }()
-            return (key, min(22, base + seededBoost + goalBoost))
+        // A personalized starting estimate read straight off the questionnaire:
+        // the per-axis interest scores (goals + target areas + styles) set the
+        // hex's SHAPE, and training experience sets how high it starts. This is a
+        // projected read of the build the user walks in with - not earned rank
+        // (that comes from training) - so a focused set of answers leans the hex
+        // instead of everyone sharing one hardcoded baseline.
+        let scores = flow.questionnaireAttributeScores
+        let maxScore = Double(max(scores.values.max() ?? 0, 1))
+        // Day zero is essentially zero - nothing is earned until it's trained. The
+        // questionnaire only buys a 1-2 level lean on the emphasized axes: axes
+        // with real training history behind the answers reach 2, everyone else 1,
+        // untouched axes stay 0. Anything higher would read as unearned rank.
+        let peak: Double = (flow.experience == .used || flow.experience == .current) ? 2 : 1
+        return Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in
+            let ratio = Double(scores[key] ?? 0) / maxScore
+            return (key, ratio * peak)
         })
     }
 
@@ -140,7 +127,7 @@ extension Step_Verdict {
 
         return L10n.onboardingFormat(
             "verdict.dossier.narrative",
-            defaultValue: "Your first arc starts from your %@ baseline %@. Priority work is %@ — the gap between today and the version you keep picturing. With your %@ commitment, the first milestone is close enough to chase, and the climb keeps going after that.",
+            defaultValue: "Your first arc starts from your %@ baseline %@. Priority work: %@. With your %@ commitment, the first milestone is already in reach.",
             experiencePhrase,
             equipPhrase,
             focusPhrase,

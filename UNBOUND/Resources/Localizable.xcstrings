@@ -1580,6 +1580,42 @@
         }
       }
     },
+    "auth.google.signIn" : {
+      "comment" : "Google sign-in button title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with Google"
+          }
+        }
+      }
+    },
+    "auth.protect.title" : {
+      "comment" : "Forced auth screen headline (post-paywall).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protect your progress"
+          }
+        }
+      }
+    },
+    "auth.protect.body" : {
+      "comment" : "Forced auth screen supporting line (post-paywall).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save your training to your account so it's backed up and follows you to any device."
+          }
+        }
+      }
+    },
     "auth.email.createAccount" : {
       "comment" : "Create account button title.",
       "extractionState" : "stale",
@@ -1809,6 +1845,294 @@
     },
     "Build your Stamina stat — run, bike, row." : {
 
+    },
+    "buildClass.ascetic" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ascetic"
+          }
+        }
+      }
+    },
+    "buildClass.assassin" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assassin"
+          }
+        }
+      }
+    },
+    "buildClass.berserker" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Berserker"
+          }
+        }
+      }
+    },
+    "buildClass.bladeDancer" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blade Dancer"
+          }
+        }
+      }
+    },
+    "buildClass.colossus" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colossus"
+          }
+        }
+      }
+    },
+    "buildClass.immortal" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immortal"
+          }
+        }
+      }
+    },
+    "buildClass.juggernaut" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Juggernaut"
+          }
+        }
+      }
+    },
+    "buildClass.monk" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monk"
+          }
+        }
+      }
+    },
+    "buildClass.mystic" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mystic"
+          }
+        }
+      }
+    },
+    "buildClass.paragon" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paragon"
+          }
+        }
+      }
+    },
+    "buildClass.pathFormat" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path of the %@"
+          }
+        }
+      }
+    },
+    "buildClass.phantom" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phantom"
+          }
+        }
+      }
+    },
+    "buildClass.raider" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raider"
+          }
+        }
+      }
+    },
+    "buildClass.ronin" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ronin"
+          }
+        }
+      }
+    },
+    "buildClass.sage" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sage"
+          }
+        }
+      }
+    },
+    "buildClass.serpent" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serpent"
+          }
+        }
+      }
+    },
+    "buildClass.shinobi" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shinobi"
+          }
+        }
+      }
+    },
+    "buildClass.striker" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Striker"
+          }
+        }
+      }
+    },
+    "buildClass.swordSaint" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sword Saint"
+          }
+        }
+      }
+    },
+    "buildClass.tempest" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempest"
+          }
+        }
+      }
+    },
+    "buildClass.titan" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titan"
+          }
+        }
+      }
+    },
+    "buildClass.vagabond" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vagabond"
+          }
+        }
+      }
+    },
+    "buildClass.vanguard" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vanguard"
+          }
+        }
+      }
+    },
+    "buildClass.wanderer" : {
+      "comment" : "Build class epithets derived from the held build identity.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wanderer"
+          }
+        }
+      }
     },
     "buildIdentity.axis.balanced" : {
       "comment" : "Build identity display copy and templates.",
@@ -2103,6 +2427,17 @@
     },
     "Coming soon — Phase 5 integrates with the program block generator." : {
 
+    },
+    "common.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
     },
     "Complete onboarding to generate your first training block." : {
 
@@ -3496,7 +3831,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1–2 days"
+            "value" : "1-2 days"
           }
         }
       }
@@ -3520,7 +3855,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "3–4 days"
+            "value" : "3-4 days"
           }
         }
       }
@@ -4204,7 +4539,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Every session becomes proof, so strength, control, and consistency stop feeling invisible."
+            "value" : "Every session becomes proof."
           }
         }
       }
@@ -4353,6 +4688,94 @@
         }
       }
     },
+    "onboarding.chapterPath.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The first of eight. Beyond it: quests, dungeons, and the long climb to Unbound."
+          }
+        }
+      }
+    },
+    "onboarding.chapterPath.chapter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CHAPTER IV"
+          }
+        }
+      }
+    },
+    "onboarding.chapterPath.primary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the path"
+          }
+        }
+      }
+    },
+    "onboarding.chapterPath.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "THE GATE OPENED"
+          }
+        }
+      }
+    },
+    "onboarding.commitVision.staircase.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The first step is small on purpose. Log the work, clear the sessions, and the staircase starts revealing the version above you."
+          }
+        }
+      }
+    },
+    "onboarding.commitVision.staircase.eyebrow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "THE WHOLE LADDER"
+          }
+        }
+      }
+    },
+    "onboarding.commitVision.staircase.primary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock my arc"
+          }
+        }
+      }
+    },
+    "onboarding.commitVision.staircase.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are standing at the bottom."
+          }
+        }
+      }
+    },
     "onboarding.common.arcOne" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -4473,6 +4896,28 @@
         }
       }
     },
+    "onboarding.common.rank.master" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MASTER"
+          }
+        }
+      }
+    },
+    "onboarding.common.rank.unbound" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UNBOUND"
+          }
+        }
+      }
+    },
     "onboarding.common.start" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -4509,6 +4954,17 @@
         }
       }
     },
+    "onboarding.debug.archivedScreens" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archived Screens"
+          }
+        }
+      }
+    },
     "onboarding.debug.devJump" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -4529,6 +4985,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "DEV · SKIP"
+          }
+        }
+      }
+    },
+    "onboarding.debug.officialFlow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Official Flow"
           }
         }
       }
@@ -4588,7 +5055,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Front, side, and back — we'll guide you"
+            "value" : "Front, side, and back. We'll guide you"
           }
         }
       }
@@ -4792,7 +5259,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A small nudge when it's time to keep the streak alive."
+            "value" : "A nudge when it's time."
           }
         }
       }
@@ -4817,6 +5284,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The goal is not more willpower. It is a journey you want to return to."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.consistency.counter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaks reset. Gates don't."
           }
         }
       }
@@ -4893,6 +5371,39 @@
         }
       }
     },
+    "onboarding.obstacleFix.consistency.line1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A missed week never resets your rank."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.consistency.line2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d sessions a week, small on purpose."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.consistency.line3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something visible moves every session."
+          }
+        }
+      }
+    },
     "onboarding.obstacleFix.consistency.subtitle" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -4949,6 +5460,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Motivation starts the arc. Visible progress keeps it alive."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.motivation.counter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stakes replace willpower."
           }
         }
       }
@@ -5025,6 +5547,39 @@
         }
       }
     },
+    "onboarding.obstacleFix.motivation.line1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is your first visible milestone."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.motivation.line2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every session pays out XP and rank."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.motivation.line3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your card keeps the gap visible."
+          }
+        }
+      }
+    },
     "onboarding.obstacleFix.motivation.subtitle" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5049,6 +5604,17 @@
         }
       }
     },
+    "onboarding.obstacleFix.otherApps.kicker" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other apps counted streaks. This one counts proof."
+          }
+        }
+      }
+    },
     "onboarding.obstacleFix.plateau.callout" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5057,6 +5623,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A plateau stops feeling permanent when the next wall is named."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.plateau.counter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Walls here are built to break."
           }
         }
       }
@@ -5133,6 +5710,39 @@
         }
       }
     },
+    "onboarding.obstacleFix.plateau.line1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every set gets a target, not a guess."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.plateau.line2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You watch %@ move week over week."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.plateau.line3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prove it, and the next wall gets named."
+          }
+        }
+      }
+    },
     "onboarding.obstacleFix.plateau.subtitle" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5189,6 +5799,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The fix is not a bigger plan. It is a sharper one."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.time.counter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The arc fits the day you have."
           }
         }
       }
@@ -5265,6 +5886,39 @@
         }
       }
     },
+    "onboarding.obstacleFix.time.line1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessions are capped at %@."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.time.line2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d days a week. No fantasy schedule."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.time.line3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priority %@ work first, noise trimmed."
+          }
+        }
+      }
+    },
     "onboarding.obstacleFix.time.subtitle" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5297,6 +5951,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The first fix is clarity: open the app, see the target, do the next session."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.unsure.counter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The next move is always named."
           }
         }
       }
@@ -5373,6 +6038,39 @@
         }
       }
     },
+    "onboarding.obstacleFix.unsure.line1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The next move is always on screen."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.unsure.line2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d sessions a week, already built for you."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.unsure.line3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish one, and %@ steps into view."
+          }
+        }
+      }
+    },
     "onboarding.obstacleFix.unsure.subtitle" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5405,6 +6103,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "YOU SAID"
+          }
+        }
+      }
+    },
+    "onboarding.painCost.break" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Most never rise from it."
+          }
+        }
+      }
+    },
+    "onboarding.painCost.eyebrow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "[ SYSTEM ]"
+          }
+        }
+      }
+    },
+    "onboarding.painCost.line1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The System has chosen you."
+          }
+        }
+      }
+    },
+    "onboarding.painCost.line2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You begin at zero, like all before."
           }
         }
       }
@@ -5457,6 +6199,17 @@
         }
       }
     },
+    "onboarding.paywall.close" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maybe later"
+          }
+        }
+      }
+    },
     "onboarding.paywall.devUnlock" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5477,6 +6230,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Start today. Cancel anytime. Checkout is handled securely by Apple."
+          }
+        }
+      }
+    },
+    "onboarding.paywall.eyebrow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "THE GATE IS OPEN"
+          }
+        }
+      }
+    },
+    "onboarding.paywall.headline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your first arc is loaded."
+          }
+        }
+      }
+    },
+    "onboarding.paywall.headline.named" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your first arc is loaded, @%@."
+          }
+        }
+      }
+    },
+    "onboarding.paywall.meta.days" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d DAYS / WEEK"
+          }
+        }
+      }
+    },
+    "onboarding.paywall.noTrialLine" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Billing starts today. Cancel anytime."
           }
         }
       }
@@ -5549,6 +6357,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Become the version that keeps showing up."
+          }
+        }
+      }
+    },
+    "onboarding.paywall.trialLine" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First %d days free."
           }
         }
       }
@@ -5692,7 +6511,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Random workouts, invisible progress, and missed weeks make it too easy to lose the arc."
+            "value" : "Daily quests, dungeons, rank trials — a world that keeps score while you climb."
           }
         }
       }
@@ -5704,7 +6523,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show the ladder"
+            "value" : "Change the game"
           }
         }
       }
@@ -5716,7 +6535,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DAY ZERO"
+            "value" : "[ SYSTEM ]"
           }
         }
       }
@@ -5728,7 +6547,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "THE PAIN POINTS"
+            "value" : "THE WORLD AHEAD"
           }
         }
       }
@@ -5740,7 +6559,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You still have to decide what matters today."
+            "value" : "One mission a day, built for you."
           }
         }
       }
@@ -5752,7 +6571,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Guesswork"
+            "value" : "Daily quests"
           }
         }
       }
@@ -5764,7 +6583,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Strength changes, but the progress feels invisible."
+            "value" : "Eight gates on the climb to Unbound."
           }
         }
       }
@@ -5776,7 +6595,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No proof"
+            "value" : "Rank trials"
           }
         }
       }
@@ -5788,7 +6607,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A busy week can turn into starting over."
+            "value" : "Long runs for those who want more."
           }
         }
       }
@@ -5800,7 +6619,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restart loop"
+            "value" : "Dungeons"
           }
         }
       }
@@ -5817,6 +6636,28 @@
         }
       }
     },
+    "onboarding.problemOpening.story.silence" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No rank. No proof. Not yet."
+          }
+        }
+      }
+    },
+    "onboarding.problemOpening.story.stakes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That changes the moment you begin."
+          }
+        }
+      }
+    },
     "onboarding.problemOpening.title" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5824,7 +6665,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You shouldn't have to guess your way through training."
+            "value" : "Right now, you are no one here."
           }
         }
       }
@@ -5836,7 +6677,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Climb the ranks"
+            "value" : "Begin the climb"
           }
         }
       }
@@ -5848,7 +6689,29 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BUILD PREVIEW"
+            "value" : "[ SYSTEM ]"
+          }
+        }
+      }
+    },
+    "onboarding.restartLoop.metric.peak" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PEAK"
+          }
+        }
+      }
+    },
+    "onboarding.restartLoop.metric.rank" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RANK"
           }
         }
       }
@@ -5949,6 +6812,17 @@
         }
       }
     },
+    "onboarding.restartLoop.profile.eyebrow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PROFILE PATH"
+          }
+        }
+      }
+    },
     "onboarding.restartLoop.subtitle" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5956,7 +6830,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "UNBOUND maps the daily mission around your time, gear, and obstacles, so a rough week doesn't erase the path."
+            "value" : "Train your way. Your build follows."
           }
         }
       }
@@ -5968,7 +6842,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "What you train becomes your build."
+            "value" : "Who will you become?"
           }
         }
       }
@@ -6321,6 +7195,17 @@
         }
       }
     },
+    "onboarding.scanAnalyzing.rankIncoming" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RANK REVEAL INCOMING"
+          }
+        }
+      }
+    },
     "onboarding.scanAnalyzing.status.arming" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -6460,7 +7345,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "One sec — bringing up the front camera."
+            "value" : "One sec. Bringing up the front camera."
           }
         }
       }
@@ -6573,6 +7458,17 @@
         }
       }
     },
+    "onboarding.scanLive.skipWithoutPhoto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue without Day Zero"
+          }
+        }
+      }
+    },
     "onboarding.scanReview.primary" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -6628,7 +7524,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This is the before. In 30 days, you get the first real proof of the climb."
+            "value" : "The before. Proof lands in 30 days."
           }
         }
       }
@@ -6952,7 +7848,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BETA LOG"
+            "value" : "CLIMB LOG"
           }
         }
       }
@@ -6965,6 +7861,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open the app. Finish the session. Watch the rank move."
+          }
+        }
+      }
+    },
+    "onboarding.socialProof.hero.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First arcs. Real climbs."
           }
         }
       }
@@ -7000,7 +7907,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beta Tester"
+            "value" : "Climber"
           }
         }
       }
@@ -7048,7 +7955,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beta testers started at Day Zero and kept opening UNBOUND because the climb felt visible."
+            "value" : "They started at Day Zero. The climb kept them coming back."
           }
         }
       }
@@ -7133,6 +8040,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "They came back for the next session."
+          }
+        }
+      }
+    },
+    "onboarding.trainingDays.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rest days are part of the plan. The system builds around them."
+          }
+        }
+      }
+    },
+    "onboarding.trainingDays.locked" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "YOUR WEEK · %@"
+          }
+        }
+      }
+    },
+    "onboarding.trainingDays.remaining" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PICK %d MORE"
           }
         }
       }
@@ -7576,7 +8516,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your first arc starts from your %@ baseline %@. Priority work is %@ — the gap between today and the version you keep picturing. With your %@ commitment, the first milestone is close enough to chase, and the climb keeps going after that."
+            "value" : "Your first arc starts from your %@ baseline %@. Priority work: %@. With your %@ commitment, the first milestone is already in reach."
           }
         }
       }
@@ -7737,6 +8677,28 @@
         }
       }
     },
+    "onboarding.verdict.potentialRead" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "POTENTIAL READ"
+          }
+        }
+      }
+    },
+    "onboarding.verdict.potentialRead.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High growth potential detected. Initiate is where your record starts, not where it ends."
+          }
+        }
+      }
+    },
     "onboarding.verdict.primary" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -7744,7 +8706,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "See the ladder"
+            "value" : "Open your first quest"
           }
         }
       }
@@ -7781,6 +8743,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "PROFILE CREATED"
+          }
+        }
+      }
+    },
+    "onboarding.verdict.projection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "THE CLIMB"
+          }
+        }
+      }
+    },
+    "onboarding.verdict.projection.alone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On your own"
+          }
+        }
+      }
+    },
+    "onboarding.verdict.projection.caption" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Projected from your %dx/week commitment. Ranks are earned at the gates."
+          }
+        }
+      }
+    },
+    "onboarding.verdict.projection.month" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dmo"
+          }
+        }
+      }
+    },
+    "onboarding.verdict.projection.window" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "12 MO · PROJECTED"
+          }
+        }
+      }
+    },
+    "onboarding.verdict.projection.with" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With UNBOUND"
           }
         }
       }
@@ -7905,6 +8933,17 @@
         }
       }
     },
+    "onboarding.verdict.rankRevealed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RANK REVEALED"
+          }
+        }
+      }
+    },
     "onboarding.verdict.scanInsight.fromDayZero" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -7972,7 +9011,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ — your arc is logged. Every session moves this forward."
+            "value" : "%@, your arc is logged. Every session moves it forward."
           }
         }
       }
@@ -8157,6 +9196,50 @@
         }
       }
     },
+    "onboarding.workoutTime.note" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session prep and reminders follow this window."
+          }
+        }
+      }
+    },
+    "onboarding.workoutTime.preset.evening" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EVENING"
+          }
+        }
+      }
+    },
+    "onboarding.workoutTime.preset.lunch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LUNCH"
+          }
+        }
+      }
+    },
+    "onboarding.workoutTime.preset.morning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MORNING"
+          }
+        }
+      }
+    },
     "Open one layer at a time" : {
 
     },
@@ -8214,18 +9297,6 @@
         }
       }
     },
-    "paywall.feature.nutritionRecovery" : {
-      "comment" : "Paywall feature bullet.",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nutrition and recovery guidance"
-          }
-        }
-      }
-    },
     "paywall.feature.progressScans" : {
       "comment" : "Paywall feature bullet.",
       "extractionState" : "stale",
@@ -8234,6 +9305,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Progress tracking and re-scans"
+          }
+        }
+      }
+    },
+    "paywall.feature.recovery" : {
+      "comment" : "Paywall feature bullet.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recovery guidance"
           }
         }
       }
@@ -9185,18 +10268,6 @@
         }
       }
     },
-    "scan.payoffFlavor.fallback" : {
-      "comment" : "Deterministic scan narrative fallback text.",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your work is showing."
-          }
-        }
-      }
-    },
     "SCHEDULE" : {
       "comment" : "The text on the \"Schedule\" button in the workout date picker.",
       "isCommentAutoGenerated" : true
@@ -9764,18 +10835,6 @@
         }
       }
     },
-    "settings.support.faq.comingSoon" : {
-      "comment" : "FAQ placeholder body.",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FAQ coming soon"
-          }
-        }
-      }
-    },
     "settings.title" : {
       "comment" : "Settings navigation title.",
       "extractionState" : "stale",
@@ -10047,7 +11106,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LOWEST MONTHLY"
+            "value" : "BEST VALUE"
           }
         }
       }
@@ -10107,7 +11166,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flexible monthly access"
+            "value" : "Billed monthly"
           }
         }
       }
@@ -10143,7 +11202,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flexible weekly access"
+            "value" : "Billed weekly"
           }
         }
       }
@@ -10208,6 +11267,114 @@
         }
       }
     },
+    "subscription.package.cadence.annual" : {
+      "comment" : "Billing cadence word used in the paywall legal line.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "year"
+          }
+        }
+      }
+    },
+    "subscription.package.cadence.monthly" : {
+      "comment" : "Billing cadence word used in the paywall legal line.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "month"
+          }
+        }
+      }
+    },
+    "subscription.package.cadence.quarterly" : {
+      "comment" : "Billing cadence phrase used in the paywall legal line.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 months"
+          }
+        }
+      }
+    },
+    "subscription.package.cadence.weekly" : {
+      "comment" : "Billing cadence word used in the paywall legal line.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "week"
+          }
+        }
+      }
+    },
+    "subscription.package.legal.direct" : {
+      "comment" : "Paywall legal line for plans without a free trial. %@ = price and cadence.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. Cancel anytime."
+          }
+        }
+      }
+    },
+    "subscription.package.legal.trial" : {
+      "comment" : "Paywall legal line for plans with a free trial. %1$@ = trial length, %2$@ = price and cadence.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free for %1$@, then %2$@. Cancel anytime."
+          }
+        }
+      }
+    },
+    "subscription.package.link.privacy" : {
+      "comment" : "Privacy Policy link label on the paywall.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        }
+      }
+    },
+    "subscription.package.link.terms" : {
+      "comment" : "Terms of Use link label on the paywall.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms of Use"
+          }
+        }
+      }
+    },
+    "subscription.package.noPaymentNow" : {
+      "comment" : "Reassurance line above the CTA when the selected plan has a free trial.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No payment now"
+          }
+        }
+      }
+    },
     "subscription.package.openingCheckout" : {
       "comment" : "Purchase button title while checkout is opening.",
       "extractionState" : "stale",
@@ -10251,7 +11418,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Best value for your first block. Weekly is there if you want maximum flexibility."
+            "value" : "Best value for your first arc. Weekly is there if you want maximum flexibility."
           }
         }
       }
@@ -10364,6 +11531,30 @@
         }
       }
     },
+    "subscription.package.trial.durationFallback" : {
+      "comment" : "Compact trial duration used in the CTA when the store omits one.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7-day"
+          }
+        }
+      }
+    },
+    "subscription.package.start.trial" : {
+      "comment" : "Purchase button title when the selected package includes a free trial.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start %@ free trial"
+          }
+        }
+      }
+    },
     "subscription.package.start.quarterly" : {
       "comment" : "Purchase button title for quarterly package.",
       "extractionState" : "stale",
@@ -10413,25 +11604,37 @@
       }
     },
     "subscription.package.unavailable.body" : {
-      "comment" : "Body shown when no subscription products are available.",
+      "comment" : "Body shown when subscription plans fail to load.",
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Products are not configured for this build yet."
+            "value" : "Check your connection and try again."
+          }
+        }
+      }
+    },
+    "subscription.package.unavailable.retry" : {
+      "comment" : "Retry button when subscription plans fail to load.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
           }
         }
       }
     },
     "subscription.package.unavailable.title" : {
-      "comment" : "Title shown when no subscription products are available.",
+      "comment" : "Title shown when subscription plans fail to load.",
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Subscription unavailable"
+            "value" : "Plans didn't load"
           }
         }
       }
@@ -10631,6 +11834,114 @@
     "TITLES (%@)" : {
 
     },
+    "titleRank.apprentice" : {
+      "comment" : "Wearable title earned by confirming this rank at its gate.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Counted"
+          }
+        }
+      }
+    },
+    "titleRank.ascendant" : {
+      "comment" : "Wearable title earned by confirming this rank at its gate.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skysworn"
+          }
+        }
+      }
+    },
+    "titleRank.forged" : {
+      "comment" : "Wearable title earned by confirming this rank at its gate.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emberborn"
+          }
+        }
+      }
+    },
+    "titleRank.initiate" : {
+      "comment" : "Wearable title earned by confirming this rank at its gate.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Unwritten"
+          }
+        }
+      }
+    },
+    "titleRank.master" : {
+      "comment" : "Wearable title earned by confirming this rank at its gate.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Summitborn"
+          }
+        }
+      }
+    },
+    "titleRank.novice" : {
+      "comment" : "Wearable title earned by confirming this rank at its gate.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dawnseeker"
+          }
+        }
+      }
+    },
+    "titleRank.unbound" : {
+      "comment" : "Wearable title earned by confirming this rank at its gate.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gatebreaker"
+          }
+        }
+      }
+    },
+    "titleRank.vessel" : {
+      "comment" : "Wearable title earned by confirming this rank at its gate.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sealbearer"
+          }
+        }
+      }
+    },
+    "titleRank.veteran" : {
+      "comment" : "Wearable title earned by confirming this rank at its gate.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reckoner"
+          }
+        }
+      }
+    },
     "Titles, skins, cosmetics & badges" : {
       "comment" : "A description of the rewards vault view, emphasizing its focus on earning and displaying user-earned achievements.",
       "isCommentAutoGenerated" : true
@@ -10746,7 +12057,7 @@
     "UNBOUND · BLOCK %@" : {
 
     },
-    "unboundapp.com" : {
+    "unboundbtr.com" : {
 
     },
     "Undo" : {
@@ -10974,7 +12285,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2–5 pm"
+            "value" : "2-5 pm"
           }
         }
       }
@@ -10998,7 +12309,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "5–7 am"
+            "value" : "5-7 am"
           }
         }
       }
@@ -11022,7 +12333,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "5–9 pm"
+            "value" : "5-9 pm"
           }
         }
       }
@@ -11046,7 +12357,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "9 pm – midnight"
+            "value" : "9 pm - midnight"
           }
         }
       }
@@ -11070,7 +12381,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "11 am – 2 pm"
+            "value" : "11 am - 2 pm"
           }
         }
       }

@@ -40,6 +40,28 @@ final class AuthViewModel: ObservableObject {
         isLoading = false
     }
 
+    func signInWithGoogle() async {
+        isLoading = true
+        errorMessage = nil
+        analytics.track(.signInStarted(method: "google"))
+
+        do {
+            let userId = try await auth.signInWithGoogle()
+            _ = try await user.createUserIfNeeded(userId: userId, email: nil)
+            #if DEBUG
+            DevFlags.shared.unlockAllFeatures = true
+            #endif
+            analytics.track(.signInCompleted(method: "google"))
+        } catch AppError.authCanceled {
+            // User dismissed the Google sheet — not a failure, surface nothing.
+        } catch {
+            errorMessage = error.localizedDescription
+            analytics.track(.signInFailed(method: "google", error: error.localizedDescription))
+        }
+
+        isLoading = false
+    }
+
     func signInWithEmail() async {
         isLoading = true
         errorMessage = nil

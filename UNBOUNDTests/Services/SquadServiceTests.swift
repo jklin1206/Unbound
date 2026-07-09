@@ -342,14 +342,20 @@ final class SquadServiceTests: XCTestCase {
         s.roster = (mockBackend.members[squad.id] ?? [])
         store.save(s, userId: userId)
 
+        mockBackend.currentAuthUserId = userUUID
         try await service.leaveSquad(userId: userId)
 
         let state = service.state(userId: userId)
         XCTAssertNil(state.currentSquad)
         XCTAssertTrue(
-            mockBackend.deletedMembers.contains { $0.userId == userUUID },
-            "Expected deleteMember to be called for non-captain"
+            mockBackend.leaveCalls.contains(squad.id),
+            "Expected leaveSquad RPC to be called for non-captain"
         )
+        XCTAssertTrue(
+            (mockBackend.members[squad.id] ?? []).allSatisfy { $0.userId != userUUID },
+            "Member row should be removed"
+        )
+        XCTAssertTrue(mockBackend.captainPromotions.isEmpty, "No succession for a non-captain leave")
     }
 
     func testCaptainLeavesWith2PlusRemaining() async throws {
@@ -365,14 +371,15 @@ final class SquadServiceTests: XCTestCase {
         roster.sort { $0.joinedAt < $1.joinedAt }
         mockBackend.members[squad.id] = roster
 
+        mockBackend.currentAuthUserId = userUUID
         try await service.leaveSquad(userId: userId)
 
-        XCTAssertEqual(mockBackend.captainUpdates.count, 1)
-        XCTAssertEqual(mockBackend.captainUpdates.first?.squadId, squad.id)
-        XCTAssertEqual(mockBackend.captainUpdates.first?.newCaptainId, m2UUID)
+        XCTAssertEqual(mockBackend.captainPromotions.count, 1)
+        XCTAssertEqual(mockBackend.captainPromotions.first?.squadId, squad.id)
+        XCTAssertEqual(mockBackend.captainPromotions.first?.newCaptainId, m2UUID)
         XCTAssertTrue(
-            mockBackend.deletedMembers.contains { $0.userId == userUUID },
-            "Captain's own member row should be deleted"
+            (mockBackend.members[squad.id] ?? []).allSatisfy { $0.userId != userUUID },
+            "Captain's own member row should be removed"
         )
         XCTAssertNil(service.state(userId: userId).currentSquad)
     }
@@ -381,8 +388,8 @@ final class SquadServiceTests: XCTestCase {
         // Seed squad with only the captain.
         let squad = seedSquad()
         guard let userUUID = UUID(uuidString: userId) else { XCTFail(); return }
-        _ = userUUID  // silence unused warning
 
+        mockBackend.currentAuthUserId = userUUID
         try await service.leaveSquad(userId: userId)
 
         XCTAssertTrue(

@@ -19,7 +19,6 @@ The Program tab: the three-tab training-plan surface (`ProgramOverviewView`) plu
 
 | File | What it is |
 | --- | --- |
-| `BlockProgressRevealView.swift` | Block-complete sheet rendering a fresh `ScanDeltaReport` — checkpoint proof signals, short narrative, shareable card via `ImageRenderer` + `ShareLink` (no match-percent / setback UI by design). |
 | `CheckpointFlowSheet.swift` | Checkpoint flow sheet driven by `CheckpointFlow` — collects standards attempted/cleared, pain/form-breakdown flags, free text; commits a `CheckpointOutcome` or hands off to body scan. |
 | `CoachActionsRow.swift` | Structured action chips for program adjustments (DELOAD / TRAVEL / SHORT) feeding `CoachActionExecutor`; swaps deliberately live in SessionEditorView instead. |
 | `DayDetailView.swift` | Preview screen for a `ProgramDay` — workout, nutrition, recovery; optional `ProgramViewModel` enables the edit toolbar, with wave-adjustment undo hooks. |
@@ -31,11 +30,9 @@ The Program tab: the three-tab training-plan surface (`ProgramOverviewView`) plu
 | `ProgramFocusSwitchModels.swift` | Model types for the focus switch — `ProgramFocusSwitchPresentation`, `ProgramFocusSwitchClearTarget` (daily / pending next-block), and related selection enums. |
 | `ProgramFocusSwitchSheet.swift` | Sheet for switching training focus (style/equipment/experience) with mode + scope choices, apply/clear callbacks, and applying/error state. |
 | `ProgramFocusSwitchSheet+Sections.swift` | Section builders for the focus-switch sheet — active/pending context control cards and rails. |
-| `ProgramFuelTargetBand.swift` | Compact fuel-target band for a `ProgramDay`; NavigationLink into `NutritionDayView`. |
 | `ProgramOverviewView.swift` | Root three-tab Program surface: PROGRAM (week strip + selected-day card), ROUTINES, RANKS; day tiles open `DayDetailView` preview-first. |
 | `ProgramRankLibraryView.swift` | Rank library list screen — searchable, filterable `ProgramRankLibraryRow`s opening into the RankLibrary detail views. |
 | `RecoveryView.swift` | Recovery plan screen — sleep-target card and activities list for a `RecoveryPlan`. |
 | `TowerTrialReadyPreview.swift` | Tower-trial preview visual — floor list + tower silhouette built from the trial's `TrainingBlock`s. |
 | `WhyThisProgramView.swift` | "Why this program" explainer rendering a `ProgramRationale` (hero + summary blocks). |
 | `WorkoutDetailView.swift` | Workout detail screen; optional `ProgramViewModel` enables edit mode (swap exercises, adjust sets) persisting to the program doc, and its LOG WORKOUT button launches `ActiveWorkoutContainerView` directly. |
-| `WorkoutLogSummaryView.swift` | Completed-workout summary for a `WorkoutLog` — total work sets, reps, and per-exercise breakdown in the user's weight unit. |

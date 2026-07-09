@@ -40,15 +40,50 @@ struct ProgramWorkoutExerciseList: View {
     }
 }
 
-private struct ProgramVisualExerciseRow: View {
-    let exercise: Exercise
+/// One exercise line in the daily-card style: art thumbnail, name,
+/// "Equipment · Muscles" subtitle, mono sets × target on the right.
+/// Built from a program `Exercise` or a saved-workout prescription so the
+/// daily quest card and loadout surfaces share one row language.
+struct ProgramVisualExerciseRow: View {
+    let name: String
+    let muscleGroups: [MuscleGroup]
+    let trailing: String
+    private let includesMuscles: Bool
 
+    init(exercise: Exercise) {
+        name = exercise.name
+        muscleGroups = exercise.muscleGroups
+        trailing = "\(exercise.sets) × \(exercise.reps)"
+        includesMuscles = true
+    }
+
+    /// Loadout rows show set count only — stored rep targets are template
+    /// numbers that the progression engine overrides when the loadout lands
+    /// on a program day, so printing them here would promise the wrong thing.
+    /// Subtitle is equipment-only: the loadout answers "what do I need",
+    /// the daily answers "what does it train".
+    init(prescription: TrainingBlockPrescription) {
+        name = prescription.exerciseName
+        muscleGroups = prescription.muscleGroups
+        trailing = "\(prescription.sets) set\(prescription.sets == 1 ? "" : "s")"
+        includesMuscles = false
+    }
+
+    // Resolve any real movement (canonical exercise, skill drill, skill target …)
+    // so drills like Wall Handstand get their art; only unresolved/routine-step
+    // names fall back to the placeholder tile. Same rule as WorkoutReferenceImageView.
     private var definition: MovementDefinition? {
-        MovementCatalog.canonicalExercise(named: exercise.name)
+        let resolved = MovementResolver.resolve(name)
+        guard let definition = MovementCatalog.definition(for: resolved.movementId),
+              definition.role != .routineStep
+        else { return nil }
+        return definition
     }
 
     private var subtitle: String {
-        let groups = exercise.muscleGroups.prefix(2).map(\.displayName).joined(separator: " / ")
+        let groups = includesMuscles
+            ? muscleGroups.prefix(2).map(\.displayName).joined(separator: " / ")
+            : ""
         guard let definition else { return groups }
         let labels = ExerciseLibrary.equipmentLabels(for: definition)
         let equipment = labels.first(where: { $0 != "Bodyweight" }) ?? labels.first
@@ -67,21 +102,23 @@ private struct ProgramVisualExerciseRow: View {
             .frame(width: 46, height: 46)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(exercise.name)
+                Text(name)
                     .font(Font.unbound.bodyMStrong)
                     .foregroundStyle(Color.unbound.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                Text(subtitle)
-                    .font(Font.unbound.captionS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(Font.unbound.captionS)
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
             }
 
             Spacer(minLength: 8)
 
-            Text("\(exercise.sets) × \(exercise.reps)")
+            Text(trailing)
                 .font(Font.unbound.monoS.weight(.bold))
                 .foregroundStyle(Color.unbound.textPrimary)
                 .monospacedDigit()

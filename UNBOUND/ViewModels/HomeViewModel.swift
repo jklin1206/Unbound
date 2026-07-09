@@ -48,7 +48,7 @@ final class HomeViewModel: ObservableObject {
     // Travel override (user hit the TRAVEL coach action)
     @Published var activeTravelOverride: TravelOverride?
 
-    // Scan cadence — drives ScanDueCard visibility
+    // Scan cadence — gates the daily-quest scan entry and the capture flow
     @Published var scanCadence: ScanCadenceState = .compute(lastScanAt: nil, now: .now)
     @Published var lastScanAt: Date? = nil
 
@@ -147,9 +147,19 @@ final class HomeViewModel: ObservableObject {
     }
 
     func loadProfileAndProgram(_ userId: String) async -> (UserProfile?, TrainingProgram?) {
+        let store = ProgramStore.shared
+        // A first-run user may have no profile doc yet, or an id-less doc written by
+        // onboarding's field-merge before the user was created — both fail to decode.
+        // Heal rather than strand the user on a permanent "No program": create a full
+        // profile and replay any stashed onboarding answers, then generate from it.
+        let fetched: UserProfile
         do {
-            let fetched: UserProfile = try await services.user.fetchProfile(userId: userId)
-            let store = ProgramStore.shared
+            fetched = try await services.user.fetchProfile(userId: userId)
+        } catch {
+            guard let healed = await healProfile(userId) else { return (nil, nil) }
+            fetched = healed
+        }
+        do {
             if let programId = fetched.currentProgramId {
                 // Instant local paint; revalidate is a no-op unless a new
                 // programId (rollover) superseded it.
@@ -188,7 +198,29 @@ final class HomeViewModel: ObservableObject {
             store.adopt(generated, userId: userId)
             return (fetched, generated)
         } catch {
-            return (nil, nil)
+            // Profile is valid; generation hit a transient error — retry next load.
+            return (fetched, nil)
+        }
+    }
+
+    /// Recover a missing or undecodable profile so first-run program generation is
+    /// never permanently blocked. Creates a complete `UserProfile` (with `id`) and
+    /// replays any stashed onboarding answers onto it. `take()` does NOT clear the
+    /// stash, so a later sign-in still replays the same answers onto the real
+    /// account. Returns nil only if the create/refetch itself fails.
+    private func healProfile(_ userId: String) async -> UserProfile? {
+        do {
+            _ = try await services.user.createUserIfNeeded(userId: userId, email: nil)
+            if let pending = PendingOnboardingProfile.take() {
+                try? await services.user.updateProfile(userId: userId, fields: pending)
+            }
+            let healed = try await services.user.fetchProfile(userId: userId)
+            LoggingService.shared.log(
+                "Recovered missing/undecodable profile for first-run program generation",
+                level: .info, context: ["userId": userId])
+            return healed
+        } catch {
+            return nil
         }
     }
 

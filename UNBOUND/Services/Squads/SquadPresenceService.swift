@@ -7,10 +7,12 @@ import Foundation
 // snake_case fields match the DB column names for automatic Codable decoding.
 
 private struct SquadPresenceRow: Codable {
-    let user_id: String
-    let squad_id: String
-    let workout_started_at: String   // ISO8601
-    let expires_at: String           // ISO8601
+    // camelCase is load-bearing: UnboundSupabase.dbDecoder converts the
+    // snake_case JSON keys before matching (snake_case properties throw).
+    let userId: String
+    let squadId: String
+    let workoutStartedAt: String   // ISO8601
+    let expiresAt: String          // ISO8601
 
     // PostgREST returns timestamptz with fractional seconds; the value we write
     // has none. Parse tolerantly so a row never silently drops on a format
@@ -28,10 +30,10 @@ private struct SquadPresenceRow: Codable {
 
     var toModel: SquadPresence? {
         guard
-            let userId = UUID(uuidString: user_id),
-            let squadId = UUID(uuidString: squad_id),
-            let startedAt = Self.parseISO8601(workout_started_at),
-            let expiresAt = Self.parseISO8601(expires_at)
+            let userId = UUID(uuidString: userId),
+            let squadId = UUID(uuidString: squadId),
+            let startedAt = Self.parseISO8601(workoutStartedAt),
+            let expiresAt = Self.parseISO8601(expiresAt)
         else { return nil }
         return SquadPresence(
             userId: userId,

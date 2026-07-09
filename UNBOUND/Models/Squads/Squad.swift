@@ -69,7 +69,7 @@ struct Squad: Codable, Identifiable, Equatable, Sendable {
 extension Squad {
     /// Inviteable URL — used by Share Sheet flows.
     var inviteURL: URL? {
-        URL(string: "https://unboundapp.com/squad/\(inviteCode)")
+        URL(string: "https://unboundbtr.com/squad/\(inviteCode)")
     }
 
     func replacingCaptain(_ captainId: UUID) -> Squad {
@@ -129,6 +129,21 @@ extension Squad {
             squadStreakWeeks: squadStreakWeeks,
             createdAt: createdAt,
             logoId: SquadLogoCatalog.resolvedId(logoId)
+        )
+    }
+
+    func replacingName(_ name: String) -> Squad {
+        Squad(
+            id: id,
+            name: name,
+            captainId: captainId,
+            affinityAxis: affinityAxis,
+            affinitySetAt: affinitySetAt,
+            inviteCode: inviteCode,
+            maxSize: maxSize,
+            squadStreakWeeks: squadStreakWeeks,
+            createdAt: createdAt,
+            logoId: logoId
         )
     }
 

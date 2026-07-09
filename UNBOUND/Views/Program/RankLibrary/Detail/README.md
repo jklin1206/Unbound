@@ -14,7 +14,7 @@ This replaces the two divergent legacy detail screens (`ProgramRankExerciseDetai
 | `RankDetailView.swift` | `RankDetailView` — the container: custom top bar, tier-tinted hero, `UnderlineTabBar`, and the three tab panes. |
 | `RankDetailOverviewTab.swift` | Overview tab: "about this movement" reference only — target-body figure, equipment list, and the technique/form guide. No logging or rank glance (those live in the Rank tab). |
 | `RankDetailRankTab.swift` | Rank tab (the centerpiece): compact current-rank header, the theatrical mystery-ladder CLIMB (earned tiers reveal as lit shields; unreached tiers are sealed "???" tokens — no criteria shown), the "Log a Set" action (ruler for exercises / session sheet for pure skills), and the inline rank-up reveal (ignited rung + banner). |
-| `RankDetailStatsTab.swift` | Stats tab: the rich data pane (History folded in) — a progression trend graph (`ProgramRankProofHistoryLineGraph`, with range selector), the bests/PRs + derived numbers (attempts, first logged, accumulated, last logged) as a tile grid, and the chronological past-attempts log. Shows a structured first-time state (placeholder "—" tiles + prompt) before the first log. |
+| `RankDetailStatsTab.swift` | Stats tab: the rich data pane (History folded in) — a progression trend graph (`ProgramRankProofHistoryLineGraph`, with range selector), the bests/PRs + derived numbers (attempts, first logged, accumulated, last logged) as a tile grid, and the chronological past-attempts log. Shows a structured first-time state (placeholder "-" tiles + prompt) before the first log. |
 
 ## Where to find X
 

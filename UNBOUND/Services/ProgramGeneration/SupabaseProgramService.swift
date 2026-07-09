@@ -37,17 +37,25 @@ final class SupabaseProgramService: ProgramRemote, @unchecked Sendable {
             )
             logger.log("Program saved to Supabase", level: .info, context: ["programId": program.id])
         } catch SupabaseDatabaseError.notAuthenticated {
-            try? await local.create(program, collection: "programs", documentId: program.id)
-            try? await local.update(
-                ["currentProgramId": program.id],
-                collection: "users",
-                documentId: userId
-            )
+            await persistLocalFallback(program, userId: userId)
         } catch {
             logger.log("SupabaseProgramService.saveProgram failed: \(error)", level: .error, context: ["programId": program.id])
             // Best-effort local fallback so the user never loses their program.
-            try? await local.create(program, collection: "programs", documentId: program.id)
-            try? await local.update(
+            await persistLocalFallback(program, userId: userId)
+        }
+    }
+
+    /// Writes the program and its `currentProgramId` pointer to the local store
+    /// when the remote save can't complete (unauthenticated dev flows, or a
+    /// server error). Retries so a transient local write failure doesn't silently
+    /// lose the user's program; idempotent, so a full retry is safe.
+    private func persistLocalFallback(_ program: TrainingProgram, userId: String) async {
+        await DurableWrite.attempt(
+            "SupabaseProgramService local fallback",
+            context: ["programId": program.id, "userId": userId]
+        ) {
+            try await local.create(program, collection: "programs", documentId: program.id)
+            try await local.update(
                 ["currentProgramId": program.id],
                 collection: "users",
                 documentId: userId
@@ -66,16 +74,12 @@ final class SupabaseProgramService: ProgramRemote, @unchecked Sendable {
                 in: "users", keyedBy: "id", equals: userId)
             return true
         } catch SupabaseDatabaseError.notAuthenticated {
-            try? await local.create(program, collection: "programs", documentId: program.id)
-            try? await local.update(["currentProgramId": program.id],
-                                    collection: "users", documentId: userId)
+            await persistLocalFallback(program, userId: userId)
             return true
         } catch {
             logger.log("SupabaseProgramService.persist failed: \(error)",
                        level: .error, context: ["programId": program.id])
-            try? await local.create(program, collection: "programs", documentId: program.id)
-            try? await local.update(["currentProgramId": program.id],
-                                    collection: "users", documentId: userId)
+            await persistLocalFallback(program, userId: userId)
             return false
         }
     }

@@ -7,6 +7,7 @@ struct ProgramDayActionRow: View {
     let onPrimary: () -> Void
     let onAddExtra: () -> Void
     let onEdit: () -> Void
+    let onUseLoadout: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -49,6 +50,22 @@ struct ProgramDayActionRow: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Add Quest")
                 .accessibilityIdentifier("program.addExtraSession")
+            }
+
+            if actionState.showsUseLoadout {
+                Button(action: onUseLoadout) {
+                    Image(systemName: "square.stack.3d.up")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Color.unbound.textSecondary)
+                        .frame(width: 52, height: 46)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color.unbound.surfaceElevated)
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Use Loadout")
+                .accessibilityIdentifier("program.useLoadout")
             }
 
             if actionState.showsEditSession {

@@ -44,9 +44,14 @@ struct Step_Verdict: View {
             VStack {
                 Spacer()
                 UnboundButton(
-                    title: L10n.onboarding("verdict.primary", defaultValue: "See the ladder"),
+                    title: L10n.onboarding("verdict.primary", defaultValue: "Open your first quest"),
                     icon: "arrow.right",
-                    action: onContinue
+                    action: {
+                        // The App Store rating ask now fires earlier, during the
+                        // scan-analyzing beat (Step_ScanAnalyzing), so this CTA
+                        // just advances into the first-quest demo.
+                        onContinue()
+                    }
                 )
                 .padding(.horizontal, 20)
                 .padding(.bottom, 16)

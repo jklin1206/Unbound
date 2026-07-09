@@ -9,7 +9,7 @@ struct Step19_Stress: View {
     var body: some View {
         OnboardingScaffold(
             title: "How much stress are you carrying?",
-            subtitle: "High stress compounds fatigue. We factor it in.",
+            subtitle: nil,
             progress: progress,
             primaryTitle: "Continue",
             hudStep: .stress,
@@ -17,9 +17,6 @@ struct Step19_Stress: View {
             onPrimary: onContinue
         ) {
             VStack(alignment: .leading, spacing: 24) {
-                LifestyleSignalAsset(kind: LifestyleSignalAsset.Kind.stress, value: flow.stressLevel)
-                    .padding(.top, 10)
-
                 HUDSlider(
                     value: $flow.stressLevel,
                     steps: HUDSlider.fivePointStoredSteps,
@@ -28,16 +25,13 @@ struct Step19_Stress: View {
                     rightAnchor: "Burned out"
                 )
 
-                if flow.stressLevel >= 7 {
-                    HUDCallout(
-                        iconSystemName: "sparkles",
-                        eyebrow: "SYSTEM NOTE",
-                        message: "Noted. We'll adjust intensity."
-                    )
-                    .transition(.opacity.combined(with: .offset(y: 8)))
-                }
+                HUDCallout(
+                    iconSystemName: "sparkles",
+                    eyebrow: "SYSTEM NOTE",
+                    message: "Noted. Saved to your profile."
+                )
             }
-            .animation(.easeOut(duration: 0.3), value: flow.stressLevel >= 7)
+            .frame(maxWidth: .infinity, minHeight: 420, alignment: .center)
         }
     }
 }

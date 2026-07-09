@@ -9,7 +9,7 @@ struct Step05_Motivation: View {
     var body: some View {
         OnboardingScaffold(
             title: "What's pushing you?",
-            subtitle: "The real reason, not the polished one. Pick whatever lands.",
+            subtitle: "The real reason, not the polished one.",
             progress: progress,
             primaryTitle: "Continue",
             primaryEnabled: !flow.motivations.isEmpty,

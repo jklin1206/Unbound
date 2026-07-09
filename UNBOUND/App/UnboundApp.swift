@@ -2,7 +2,7 @@
 //
 // Universal Links — /squad/<code>
 // AASA (apple-app-site-association) must be deployed at:
-//   https://unboundapp.com/.well-known/apple-app-site-association
+//   https://unboundbtr.com/.well-known/apple-app-site-association
 //
 // Required AASA content:
 // {
@@ -20,6 +20,7 @@
 // The app side: entitlement + onContinueUserActivity handler below.
 import SwiftUI
 import UIKit
+import GoogleSignIn
 
 #if DEBUG && targetEnvironment(simulator)
 // Hot-reload for SwiftUI iteration. Save any .swift file and the
@@ -46,11 +47,16 @@ struct UnboundApp: App {
             RootView()
                 .environmentObject(services)
                 .preferredColorScheme(.dark)
+                .onOpenURL { url in
+                    // Google Sign-In callback (reversed-client-id scheme). Harmless
+                    // for any other URL — returns false when it isn't Google's.
+                    _ = GIDSignIn.sharedInstance.handle(url)
+                }
                 .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
                     guard
                         let url = activity.webpageURL,
                         let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
-                        components.host == "unboundapp.com"
+                        components.host == "unboundbtr.com"
                     else { return }
 
                     let pathComponents = components.path

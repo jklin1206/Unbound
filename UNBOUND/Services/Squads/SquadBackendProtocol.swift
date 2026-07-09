@@ -30,25 +30,34 @@ protocol SquadBackendProtocol: Sendable {
     /// Fetch a squad by its invite code. Returns nil if not found.
     func fetchSquadByInviteCode(_ code: String) async throws -> Squad?
 
-    /// Delete a squad row (cascade clears members + activity + presence).
-    func deleteSquad(squadId: UUID) async throws
-
-    /// Update the captain_id column for a squad.
-    func updateCaptain(squadId: UUID, newCaptainId: UUID) async throws
-
     /// Update the affinity_axis + affinity_set_at columns for a squad.
     func updateAffinity(squadId: UUID, axis: AttributeKey?, setAt: Date?) async throws
 
     /// Update the selected squad logo preset. Captains only via RLS.
     func updateLogo(squadId: UUID, logoId: String) async throws
+    func updateName(squadId: UUID, name: String) async throws
 
     // MARK: Member operations
 
     /// Return all members for a squad, ordered by joined_at ascending.
     func fetchMembers(squadId: UUID) async throws -> [SquadMember]
 
-    /// Remove a single member row.
-    func deleteMember(squadId: UUID, userId: UUID) async throws
+    /// Leave the squad as the current auth user via the `leave_squad_atomic`
+    /// RPC: removes the membership, promotes the earliest-joined remaining
+    /// member when the captain leaves, and deletes the squad when the last
+    /// member leaves. Client-side succession can't do either under RLS
+    /// (squads has no DELETE policy and captain transfer is captain-gated).
+    func leaveSquad(squadId: UUID) async throws
+
+    /// Fetch every squad member's completed workout logs since `since` via the
+    /// gated `squad_member_workout_logs` RPC (workout_logs is owner-only under
+    /// RLS). Feeds the leaderboard / roster stats / member detail with real
+    /// cross-member data.
+    func fetchMemberWorkoutLogs(
+        squadId: UUID,
+        since: Date,
+        perMemberLimit: Int
+    ) async throws -> [UUID: [WorkoutLog]]
 
     // MARK: Edge Function
 

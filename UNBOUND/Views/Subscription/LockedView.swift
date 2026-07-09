@@ -75,7 +75,7 @@ struct LockedView: View {
             }
         }
         .sheet(isPresented: $showPurchaseSheet) {
-            PaywallPlaceholderView()
+            HardGatePaywallView()
                 .environmentObject(services)
         }
     }
