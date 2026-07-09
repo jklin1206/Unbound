@@ -6,11 +6,14 @@ The live in-workout logging screen: `ActiveWorkoutContainerView` owns the `Activ
 
 | File | What it is |
 |---|---|
-| `ActiveWorkoutContainerView.swift` | The session orchestrator view — owns session state, draft autosave, completion + reward handoff. |
+| `ActiveWorkoutContainerView.swift` | The session orchestrator view — state + inits + the body (grid, footers, sheets, overlays, dialogs). |
 | `ActiveWorkoutContainerView+Chrome.swift` | Top bar (close / elapsed / mode badge / progress rail), draft-autosave warning row, trial-format flags, time formatting. |
+| `ActiveWorkoutContainerView+Completion.swift` | The COMPLETE flow — saves the `PerformanceLog`, records rank-trial attempts, routes into reward sequence / The Crossing / gate-holds verdict, then dismisses. |
+| `ActiveWorkoutContainerView+Footer.swift` | Bottom chrome — trial rest footer, empty Quick Log state, and the completion footer (progress line, DEBUG fill, add-exercise, COMPLETE button). |
 | `ActiveWorkoutContainerView+Intents.swift` | Overflow-menu intent handling (warmup toggle, add/remove set, skip, notes, swap) + DEBUG fill-planned-sets. |
 | `ActiveWorkoutContainerView+Keypad.swift` | Wires the session into the shared `NumberPadEditorModel` (per-cell config, live-write/commit/RPE closures); dock chrome lives in `../../Components/Unbound/NumberPadEditor.swift`. |
 | `ActiveWorkoutContainerView+RewardSummary.swift` | Assembles the post-workout `WorkoutRewardSequenceSummary` (incl. rank-trial callout) from the completion result. |
+| `ActiveWorkoutContainerView+SessionContext.swift` | Draft-autosave funnel, prior-history + working-weight context loading, suggested-weight prefill ghosts, rest-timer start on each logged set. |
 | `ActiveWorkoutContainerView+WorkoutPhoto.swift` | Saves an opt-in post-workout photo captured on the reward final beat — local JPEG + a `.workout` `ProgressPhoto` carrying the session's `WorkoutPhotoSummary`. |
 | `ActiveWorkoutDemoHarness.swift` | TEMPORARY proof harness — boots the real container with a seeded draft via `-activeWorkoutDemo` launch arg for screenshots. |
 | `ActiveWorkoutSheets.swift` | `EditorSheet` + `NotesEditSheet` presented from the workout. |
@@ -27,7 +30,7 @@ The live in-workout logging screen: `ActiveWorkoutContainerView` owns the `Activ
 ## Where to find X
 
 - **How a set gets confirmed/edited** → `SetLogGridRow.swift` (row UI) + `ActiveWorkoutContainerView+Keypad.swift` (editor wiring).
-- **What happens on COMPLETE** → `ActiveWorkoutContainerView.swift` + `+RewardSummary.swift`.
+- **What happens on COMPLETE** → `ActiveWorkoutContainerView+Completion.swift` + `+RewardSummary.swift`.
 - **Add set / skip / swap / notes actions** → `ExerciseOverflowMenu.swift` + `ActiveWorkoutContainerView+Intents.swift`.
 - **Rest timer** → `RestTimerPill.swift`.
 - **Screenshot/verify the screen on sim** → `ActiveWorkoutDemoHarness.swift` (`-activeWorkoutDemo`).

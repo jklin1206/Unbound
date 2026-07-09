@@ -57,19 +57,19 @@ struct Step_RestartLoop: View {
                 Spacer().frame(height: 44)
 
                 VStack(spacing: 9) {
-                    Text(L10n.onboarding("restartLoop.eyebrow", defaultValue: "BUILD PREVIEW"))
-                        .font(Font.unbound.monoS)
-                        .tracking(2.0)
-                        .foregroundStyle(Color.unbound.accent)
+                    Text(L10n.onboarding("restartLoop.eyebrow", defaultValue: "[ SYSTEM ]"))
+                        .font(.system(size: 12, weight: .black, design: .monospaced))
+                        .tracking(2.4)
+                        .foregroundStyle(Color.unbound.coachCyan)
 
-                    Text(L10n.onboarding("restartLoop.title", defaultValue: "What you train becomes your build."))
+                    Text(L10n.onboarding("restartLoop.title", defaultValue: "Who will you become?"))
                         .font(Font.unbound.displayM)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .minimumScaleFactor(0.82)
 
-                    Text(L10n.onboarding("restartLoop.subtitle", defaultValue: "Train your way. The build follows."))
+                    Text(L10n.onboarding("restartLoop.subtitle", defaultValue: "Train your way. Your build follows."))
                         .font(Font.unbound.bodyM)
                         .foregroundStyle(Color.unbound.textSecondary)
                         .multilineTextAlignment(.center)
@@ -117,7 +117,7 @@ struct Step_RestartLoop: View {
                 .padding(.bottom, 16)
                 .opacity(hasAnimated ? 1 : 0)
 
-                UnboundButton(title: L10n.onboarding("restartLoop.cta", defaultValue: "Climb the ranks"), icon: "flame.fill", action: onContinue)
+                UnboundButton(title: L10n.onboarding("restartLoop.cta", defaultValue: "Begin the climb"), icon: "flame.fill", action: onContinue)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                     .opacity(hasAnimated ? 1 : 0)

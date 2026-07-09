@@ -45,9 +45,17 @@ struct RankRow: View {
         .accessibilityAddTraits(.isButton)
     }
 
+    /// Whether this row is showing an actual illustration (vs. a fallback SF
+    /// glyph). All movement/skill art is dark-on-transparent, drawn for a light
+    /// backdrop, so every real image gets the light portrait tile.
     private var usesCharacterArt: Bool {
-        row.source == .exercise
-            || (row.visualAssetName?.hasPrefix("exercise_visual_") == true)
+        row.visualAssetName != nil
+    }
+
+    /// Unranked rows read as a plain "-" (not a filled Initiate shield), so the
+    /// list cleanly separates what you've actually earned from what you haven't.
+    private var isUnranked: Bool {
+        row.isRankHidden || !row.isEarned
     }
 
     @ViewBuilder
@@ -102,9 +110,9 @@ struct RankRow: View {
 
     @ViewBuilder
     private var tierShield: some View {
-        if row.isRankHidden {
-            Text("—")
-                .font(Font.unbound.titleS)
+        if isUnranked {
+            Text("-")
+                .font(Font.unbound.titleM.weight(.semibold))
                 .foregroundStyle(Color.unbound.textTertiary)
                 .frame(width: 34, height: 34)
         } else {

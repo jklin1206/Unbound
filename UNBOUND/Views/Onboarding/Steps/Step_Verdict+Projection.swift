@@ -104,13 +104,23 @@ extension Step_Verdict {
         .chartYAxis {
             AxisMarks(values: [0, 5, 7]) { value in
                 AxisValueLabel {
-                    Text(projectionAxisLabel(for: value.as(Int.self) ?? 0))
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
-                        .foregroundStyle(
-                            (value.as(Int.self) ?? 0) == 7
-                                ? Color.unbound.accent
-                                : Color.unbound.textTertiary
-                        )
+                    // The peak is the destination: at the top rank we show the
+                    // real Unbound emblem instead of a text label, so the climb
+                    // reads as arriving at the actual rank, not a word.
+                    if (value.as(Int.self) ?? 0) == 7 {
+                        Image(SkillTier.unbound.assetName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 22, height: 22)
+                            .shadow(color: Color.unbound.accent.opacity(0.55), radius: 6)
+                            .accessibilityLabel(Text(
+                                L10n.onboarding("common.rank.unbound", defaultValue: "UNBOUND")
+                            ))
+                    } else {
+                        Text(projectionAxisLabel(for: value.as(Int.self) ?? 0))
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color.unbound.textTertiary)
+                    }
                 }
                 AxisGridLine()
                     .foregroundStyle(Color.unbound.borderSubtle)

@@ -10,9 +10,11 @@ import SwiftUI
 // reminder / billing date), then the RevenueCat-driven
 // `SubscriptionPackagePicker` plus a restore link (App Review 3.1.1).
 // Packages + pricing come from RevenueCat Offerings, so edits and A/B
-// experiments are dashboard-configured with no app release. NOTE: the timeline
-// copy assumes the default package carries a 7-day trial (true of every
-// current offering); revisit if a no-trial arm ships.
+// experiments are dashboard-configured with no app release. The trial
+// headline, timeline, and billing date all track the plan selected in the
+// picker: a no-trial plan (weekly) drops the free-trial claim and the
+// timeline for honest billing-starts-today copy, so this screen never
+// promises a trial the selected plan does not carry (App Review 2.3.1/3.1.2).
 
 struct Step_Paywall: View {
     @Bindable var flow: OnboardingFlowViewModel
@@ -21,6 +23,10 @@ struct Step_Paywall: View {
     @State private var hasAnimated = false
     @State private var glow = false
     @State private var showPromo = false
+    /// The plan currently highlighted in the picker. Drives the trial copy so
+    /// the headline, timeline, and billing date never claim a free trial the
+    /// selected plan does not carry.
+    @State private var selectedPackage: SubscriptionPackage?
     @EnvironmentObject var services: ServiceContainer
 
     var body: some View {
@@ -31,24 +37,35 @@ struct Step_Paywall: View {
             // continuous block from the top; the purchase cluster (plans, CTA,
             // legal) anchors to the bottom. Exactly one flexible gap between
             // them — two symmetric voids read broken, one reads intentional.
-            VStack(spacing: 0) {
-                header
-                    .padding(.top, 52)
+            // Scrollable so the purchase cluster (plans, CTA, legal disclosure,
+            // Terms/Privacy, Restore) is never clipped on shorter devices, while
+            // minHeight keeps the flexible-gap distribution on tall screens.
+            GeometryReader { geo in
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        header
+                            .padding(.top, 52)
 
-                // Equal flexible gaps float the timeline in the space between
-                // the hero and the purchase cluster, so leftover height reads
-                // as even breathing room instead of one dead band.
-                Spacer(minLength: 24)
+                        // Equal flexible gaps float the timeline in the space between
+                        // the hero and the purchase cluster, so leftover height reads
+                        // as even breathing room instead of one dead band.
+                        Spacer(minLength: 24)
 
-                trialTimeline
-                    .padding(.horizontal, 4)
+                        if showsTrialCopy {
+                            trialTimeline
+                                .padding(.horizontal, 4)
+                        }
 
-                Spacer(minLength: 24)
+                        Spacer(minLength: 24)
 
-                ctaSection
-                    .padding(.bottom, 6)
+                        ctaSection
+                            .padding(.bottom, 6)
+                    }
+                    .padding(.horizontal, 20)
+                    .frame(minHeight: geo.size.height)
+                }
+                .scrollBounceBehavior(.basedOnSize)
             }
-            .padding(.horizontal, 20)
 
             // Exit lives top-right, out of the sell. On a hard gate "close"
             // routes to the exit promo — the discount is the answer to leaving.
@@ -71,7 +88,7 @@ struct Step_Paywall: View {
                 Spacer()
             }
             .padding(.horizontal, 20)
-            .padding(.top, 10)
+            .padding(.top, 30)
         }
         .toolbar(.hidden, for: .navigationBar)
         .opacity(hasAnimated ? 1 : 0)
@@ -160,7 +177,7 @@ struct Step_Paywall: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .shadow(color: Color.black.opacity(0.6), radius: 6, y: 1)
 
-            Text(L10n.onboarding("paywall.trialLine", defaultValue: "First 7 days free."))
+            Text(accessLineText)
                 .font(Font.unbound.bodyL.weight(.semibold))
                 .foregroundStyle(Color.unbound.textPrimary.opacity(0.92))
                 .shadow(color: Color.black.opacity(0.5), radius: 4)
@@ -195,11 +212,47 @@ struct Step_Paywall: View {
         return "\(days) · \(length.uppercased())"
     }
 
+    // MARK: Trial copy
+
+    // Trial copy only when the selected plan actually carries a free trial.
+    // `nil` (packages still loading) defaults to the trial copy because the
+    // picker's default selection is a trial plan; the honest swap happens the
+    // moment a no-trial plan (weekly) is highlighted.
+    private var showsTrialCopy: Bool {
+        selectedPackage?.hasFreeTrial ?? true
+    }
+
+    // The sub-headline under the hero: the trial promise when the selected
+    // plan has one, an honest immediate-billing line when it does not.
+    private var accessLineText: String {
+        if showsTrialCopy {
+            return L10n.onboardingFormat("paywall.trialLine", defaultValue: "First %d days free.", trialDays)
+        }
+        return L10n.onboarding("paywall.noTrialLine", defaultValue: "Billing starts today. Cancel anytime.")
+    }
+
+    /// Trial length in days for the selected plan. `SubscriptionPackage` only
+    /// exposes the store's display string ("7 Days"), so parse it when it is
+    /// day-denominated. Every live UNBOUND trial is 7 days, so 7 is the
+    /// fallback for any other shape rather than a guess at all period units;
+    /// revisit if a non-7-day trial ships.
+    private var trialDays: Int {
+        guard let duration = selectedPackage?.freeTrialDuration?.lowercased(),
+              duration.contains("day"),
+              let days = Int(duration.split(separator: " ").first ?? ""),
+              days > 0 else { return 7 }
+        return days
+    }
+
+    /// The reminder lands two days before billing, clamped for short trials.
+    private var reminderDay: Int { max(1, trialDays - 2) }
+
     // MARK: Trial timeline
 
     // "How the free trial works" as three milestones down a rail: unlock
     // today, reminder before it ends, billing on a concrete date. The dated
-    // last step is what makes the trial feel safe to start.
+    // last step is what makes the trial feel safe to start. Only rendered
+    // when the selected plan carries a trial (see `showsTrialCopy`).
     private var trialTimeline: some View {
         VStack(alignment: .leading, spacing: 0) {
             timelineRow(
@@ -210,13 +263,13 @@ struct Step_Paywall: View {
             )
             timelineRow(
                 icon: "bell.fill",
-                title: "Day 5: Reminder",
+                title: "Day \(reminderDay): Reminder",
                 detail: "We'll remind you that your trial is ending soon.",
                 isLast: false
             )
             timelineRow(
                 icon: "crown.fill",
-                title: "Day 7: Billing starts",
+                title: "Day \(trialDays): Billing starts",
                 detail: "You'll be charged on \(billingDateText). Cancel anytime before.",
                 isLast: true
             )
@@ -279,7 +332,7 @@ struct Step_Paywall: View {
     }
 
     private var billingDateText: String {
-        let date = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
+        let date = Calendar.current.date(byAdding: .day, value: trialDays, to: Date()) ?? Date()
         return date.formatted(.dateTime.month(.abbreviated).day())
     }
 
@@ -295,7 +348,10 @@ struct Step_Paywall: View {
                 ctaTitle: "Start my first arc",
                 showsPitch: false,
                 maxVisiblePackages: 2,
-                onPurchased: onUnlock
+                onPurchased: onUnlock,
+                onSelectedPackageChange: { package in
+                    withAnimation(.easeInOut(duration: 0.2)) { selectedPackage = package }
+                }
             )
 
             RestorePurchasesButton(onRestored: onUnlock)

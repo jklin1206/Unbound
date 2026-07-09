@@ -56,7 +56,6 @@ struct UnboundHomeView: View {
     // Ambient animation state
     @State var rankGlowRadius: CGFloat = 6
     @State var xpShimmerPhase: CGFloat = -1
-    @State var statsRendered = false
 
     // Daily Quest — launches the same canonical routine completion path as
     // the routine library. Rotation service lands later; fixed entry for now.

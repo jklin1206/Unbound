@@ -2428,6 +2428,17 @@
     "Coming soon — Phase 5 integrates with the program block generator." : {
 
     },
+    "common.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
+    },
     "Complete onboarding to generate your first training block." : {
 
     },
@@ -4677,6 +4688,94 @@
         }
       }
     },
+    "onboarding.chapterPath.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The first of eight. Beyond it: quests, dungeons, and the long climb to Unbound."
+          }
+        }
+      }
+    },
+    "onboarding.chapterPath.chapter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CHAPTER IV"
+          }
+        }
+      }
+    },
+    "onboarding.chapterPath.primary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the path"
+          }
+        }
+      }
+    },
+    "onboarding.chapterPath.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "THE GATE OPENED"
+          }
+        }
+      }
+    },
+    "onboarding.commitVision.staircase.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The first step is small on purpose. Log the work, clear the sessions, and the staircase starts revealing the version above you."
+          }
+        }
+      }
+    },
+    "onboarding.commitVision.staircase.eyebrow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "THE WHOLE LADDER"
+          }
+        }
+      }
+    },
+    "onboarding.commitVision.staircase.primary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock my arc"
+          }
+        }
+      }
+    },
+    "onboarding.commitVision.staircase.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are standing at the bottom."
+          }
+        }
+      }
+    },
     "onboarding.common.arcOne" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -4797,6 +4896,28 @@
         }
       }
     },
+    "onboarding.common.rank.master" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MASTER"
+          }
+        }
+      }
+    },
+    "onboarding.common.rank.unbound" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UNBOUND"
+          }
+        }
+      }
+    },
     "onboarding.common.start" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -4833,6 +4954,17 @@
         }
       }
     },
+    "onboarding.debug.archivedScreens" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archived Screens"
+          }
+        }
+      }
+    },
     "onboarding.debug.devJump" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -4853,6 +4985,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "DEV · SKIP"
+          }
+        }
+      }
+    },
+    "onboarding.debug.officialFlow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Official Flow"
           }
         }
       }
@@ -5145,6 +5288,17 @@
         }
       }
     },
+    "onboarding.obstacleFix.consistency.counter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaks reset. Gates don't."
+          }
+        }
+      }
+    },
     "onboarding.obstacleFix.consistency.fix1.detail" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5217,6 +5371,39 @@
         }
       }
     },
+    "onboarding.obstacleFix.consistency.line1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A missed week never resets your rank."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.consistency.line2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d sessions a week, small on purpose."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.consistency.line3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something visible moves every session."
+          }
+        }
+      }
+    },
     "onboarding.obstacleFix.consistency.subtitle" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5273,6 +5460,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Motivation starts the arc. Visible progress keeps it alive."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.motivation.counter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stakes replace willpower."
           }
         }
       }
@@ -5349,6 +5547,39 @@
         }
       }
     },
+    "onboarding.obstacleFix.motivation.line1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is your first visible milestone."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.motivation.line2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every session pays out XP and rank."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.motivation.line3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your card keeps the gap visible."
+          }
+        }
+      }
+    },
     "onboarding.obstacleFix.motivation.subtitle" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5373,6 +5604,17 @@
         }
       }
     },
+    "onboarding.obstacleFix.otherApps.kicker" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other apps counted streaks. This one counts proof."
+          }
+        }
+      }
+    },
     "onboarding.obstacleFix.plateau.callout" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5381,6 +5623,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A plateau stops feeling permanent when the next wall is named."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.plateau.counter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Walls here are built to break."
           }
         }
       }
@@ -5457,6 +5710,39 @@
         }
       }
     },
+    "onboarding.obstacleFix.plateau.line1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every set gets a target, not a guess."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.plateau.line2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You watch %@ move week over week."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.plateau.line3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prove it, and the next wall gets named."
+          }
+        }
+      }
+    },
     "onboarding.obstacleFix.plateau.subtitle" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5513,6 +5799,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The fix is not a bigger plan. It is a sharper one."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.time.counter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The arc fits the day you have."
           }
         }
       }
@@ -5589,6 +5886,39 @@
         }
       }
     },
+    "onboarding.obstacleFix.time.line1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessions are capped at %@."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.time.line2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d days a week. No fantasy schedule."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.time.line3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priority %@ work first, noise trimmed."
+          }
+        }
+      }
+    },
     "onboarding.obstacleFix.time.subtitle" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5621,6 +5951,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The first fix is clarity: open the app, see the target, do the next session."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.unsure.counter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The next move is always named."
           }
         }
       }
@@ -5697,6 +6038,39 @@
         }
       }
     },
+    "onboarding.obstacleFix.unsure.line1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The next move is always on screen."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.unsure.line2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d sessions a week, already built for you."
+          }
+        }
+      }
+    },
+    "onboarding.obstacleFix.unsure.line3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish one, and %@ steps into view."
+          }
+        }
+      }
+    },
     "onboarding.obstacleFix.unsure.subtitle" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5729,6 +6103,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "YOU SAID"
+          }
+        }
+      }
+    },
+    "onboarding.painCost.break" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Most never rise from it."
+          }
+        }
+      }
+    },
+    "onboarding.painCost.eyebrow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "[ SYSTEM ]"
+          }
+        }
+      }
+    },
+    "onboarding.painCost.line1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The System has chosen you."
+          }
+        }
+      }
+    },
+    "onboarding.painCost.line2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You begin at zero, like all before."
           }
         }
       }
@@ -5781,6 +6199,17 @@
         }
       }
     },
+    "onboarding.paywall.close" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maybe later"
+          }
+        }
+      }
+    },
     "onboarding.paywall.devUnlock" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -5801,6 +6230,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Start today. Cancel anytime. Checkout is handled securely by Apple."
+          }
+        }
+      }
+    },
+    "onboarding.paywall.eyebrow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "THE GATE IS OPEN"
+          }
+        }
+      }
+    },
+    "onboarding.paywall.headline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your first arc is loaded."
+          }
+        }
+      }
+    },
+    "onboarding.paywall.headline.named" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your first arc is loaded, @%@."
+          }
+        }
+      }
+    },
+    "onboarding.paywall.meta.days" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d DAYS / WEEK"
+          }
+        }
+      }
+    },
+    "onboarding.paywall.noTrialLine" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Billing starts today. Cancel anytime."
           }
         }
       }
@@ -5873,6 +6357,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Become the version that keeps showing up."
+          }
+        }
+      }
+    },
+    "onboarding.paywall.trialLine" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First %d days free."
           }
         }
       }
@@ -6028,7 +6523,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show me the game"
+            "value" : "Change the game"
           }
         }
       }
@@ -6040,7 +6535,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "DAY ZERO"
+            "value" : "[ SYSTEM ]"
           }
         }
       }
@@ -6141,6 +6636,28 @@
         }
       }
     },
+    "onboarding.problemOpening.story.silence" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No rank. No proof. Not yet."
+          }
+        }
+      }
+    },
+    "onboarding.problemOpening.story.stakes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That changes the moment you begin."
+          }
+        }
+      }
+    },
     "onboarding.problemOpening.title" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -6148,7 +6665,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "What if training played like a game?"
+            "value" : "Right now, you are no one here."
           }
         }
       }
@@ -6160,7 +6677,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Climb the ranks"
+            "value" : "Begin the climb"
           }
         }
       }
@@ -6172,7 +6689,29 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "BUILD PREVIEW"
+            "value" : "[ SYSTEM ]"
+          }
+        }
+      }
+    },
+    "onboarding.restartLoop.metric.peak" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PEAK"
+          }
+        }
+      }
+    },
+    "onboarding.restartLoop.metric.rank" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RANK"
           }
         }
       }
@@ -6273,6 +6812,17 @@
         }
       }
     },
+    "onboarding.restartLoop.profile.eyebrow" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PROFILE PATH"
+          }
+        }
+      }
+    },
     "onboarding.restartLoop.subtitle" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -6280,7 +6830,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Train your way. The build follows."
+            "value" : "Train your way. Your build follows."
           }
         }
       }
@@ -6292,7 +6842,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "What you train becomes your build."
+            "value" : "Who will you become?"
           }
         }
       }
@@ -6645,6 +7195,17 @@
         }
       }
     },
+    "onboarding.scanAnalyzing.rankIncoming" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RANK REVEAL INCOMING"
+          }
+        }
+      }
+    },
     "onboarding.scanAnalyzing.status.arming" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -6893,6 +7454,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Skip (dev · simulator)"
+          }
+        }
+      }
+    },
+    "onboarding.scanLive.skipWithoutPhoto" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue without Day Zero"
           }
         }
       }
@@ -7293,6 +7865,17 @@
         }
       }
     },
+    "onboarding.socialProof.hero.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First arcs. Real climbs."
+          }
+        }
+      }
+    },
     "onboarding.socialProof.primary" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -7457,6 +8040,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "They came back for the next session."
+          }
+        }
+      }
+    },
+    "onboarding.trainingDays.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rest days are part of the plan. The system builds around them."
+          }
+        }
+      }
+    },
+    "onboarding.trainingDays.locked" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "YOUR WEEK · %@"
+          }
+        }
+      }
+    },
+    "onboarding.trainingDays.remaining" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PICK %d MORE"
           }
         }
       }
@@ -8061,6 +8677,28 @@
         }
       }
     },
+    "onboarding.verdict.potentialRead" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "POTENTIAL READ"
+          }
+        }
+      }
+    },
+    "onboarding.verdict.potentialRead.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High growth potential detected. Initiate is where your record starts, not where it ends."
+          }
+        }
+      }
+    },
     "onboarding.verdict.primary" : {
       "comment" : "Onboarding screen copy.",
       "extractionState" : "stale",
@@ -8068,7 +8706,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open your first mission"
+            "value" : "Open your first quest"
           }
         }
       }
@@ -8105,6 +8743,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "PROFILE CREATED"
+          }
+        }
+      }
+    },
+    "onboarding.verdict.projection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "THE CLIMB"
+          }
+        }
+      }
+    },
+    "onboarding.verdict.projection.alone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On your own"
+          }
+        }
+      }
+    },
+    "onboarding.verdict.projection.caption" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Projected from your %dx/week commitment. Ranks are earned at the gates."
+          }
+        }
+      }
+    },
+    "onboarding.verdict.projection.month" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dmo"
+          }
+        }
+      }
+    },
+    "onboarding.verdict.projection.window" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "12 MO · PROJECTED"
+          }
+        }
+      }
+    },
+    "onboarding.verdict.projection.with" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With UNBOUND"
           }
         }
       }
@@ -8225,6 +8929,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "YOUR ADAPTIVE PROTOCOL"
+          }
+        }
+      }
+    },
+    "onboarding.verdict.rankRevealed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RANK REVEALED"
           }
         }
       }
@@ -8477,6 +9192,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your anime physique starts here."
+          }
+        }
+      }
+    },
+    "onboarding.workoutTime.note" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Session prep and reminders follow this window."
+          }
+        }
+      }
+    },
+    "onboarding.workoutTime.preset.evening" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EVENING"
+          }
+        }
+      }
+    },
+    "onboarding.workoutTime.preset.lunch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LUNCH"
+          }
+        }
+      }
+    },
+    "onboarding.workoutTime.preset.morning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MORNING"
           }
         }
       }

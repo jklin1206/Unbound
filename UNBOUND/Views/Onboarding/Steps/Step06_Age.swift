@@ -26,7 +26,7 @@ struct Step06_Age: View {
                 )
                 Spacer().frame(height: 12)
             }
-            .frame(maxWidth: .infinity, minHeight: 430, alignment: .center)
+            .frame(maxWidth: .infinity, minHeight: 430, alignment: .top)
         }
     }
 }

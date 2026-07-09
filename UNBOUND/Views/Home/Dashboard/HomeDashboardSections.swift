@@ -464,7 +464,28 @@ struct HomeWeekPathSection: View {
     private let weekdayLabels = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
     private var todayIndex: Int { ((Calendar.current.component(.weekday, from: Date()) + 5) % 7) + 1 }
 
+    // Makes the streak rule apparent: you keep it by logging inside a 3-day
+    // window (ProgramAwareStreakPolicy.maxGapDays), not by training daily.
+    private var ruleCaption: String {
+        currentStreak > 0
+            ? "Log within 3 days to keep your streak."
+            : "Log a workout every 3 days to start a streak."
+    }
+
     var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            streakRow
+
+            Text(ruleCaption)
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(Color.unbound.textTertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var streakRow: some View {
         HStack(alignment: .center, spacing: 16) {
             ZStack(alignment: .leading) {
                 StreakSlashShape()
@@ -526,7 +547,6 @@ struct HomeWeekPathSection: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, 2)
     }
 }
 

@@ -25,23 +25,13 @@ struct Step19_Stress: View {
                     rightAnchor: "Burned out"
                 )
 
-                if flow.stressLevel >= 7 {
-                    HUDCallout(
-                        iconSystemName: "sparkles",
-                        eyebrow: "SYSTEM NOTE",
-                        message: "Noted. We'll adjust intensity."
-                    )
-                    .transition(.opacity.combined(with: .offset(y: 8)))
-                } else {
-                    Text(L10n.onboarding("stress.note", defaultValue: "High-stress weeks auto-adjust intensity. Nothing to manage."))
-                        .font(Font.unbound.bodyS)
-                        .foregroundStyle(Color.unbound.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                }
+                HUDCallout(
+                    iconSystemName: "sparkles",
+                    eyebrow: "SYSTEM NOTE",
+                    message: "Noted. Saved to your profile."
+                )
             }
             .frame(maxWidth: .infinity, minHeight: 420, alignment: .center)
-            .animation(.easeOut(duration: 0.3), value: flow.stressLevel >= 7)
         }
     }
 }

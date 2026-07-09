@@ -12,6 +12,7 @@ Every screen follows the squads section-card language (`SquadSectionStyles.swift
 | `SquadEmptyView.swift` | No-squad state with create/join entry points. |
 | `CreateSquadSheet.swift` | Sheet for creating a squad (name + crest picker). |
 | `JoinSquadSheet.swift` | Sheet for joining a squad by code. |
+| `RenameSquadSheet.swift` | Captain-only sheet to rename the squad; mirrors the create sheet's input chrome + 1–30 char validation. |
 | `SquadDetailView.swift` | The main squad screen container: identity header + Crew/Mission/Season underline tabs. |
 | `SquadDetailView+Data.swift` | Extension: data loading/refresh; real squads pull cross-member logs via the `squad_member_workout_logs` RPC. |
 | `SquadDetailView+Header.swift` | Extension: empty state + crest mark helpers. |

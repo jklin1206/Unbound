@@ -17,6 +17,14 @@ final class ImageCaptureService: NSObject, ImageCaptureServiceProtocol {
     /// running session. Lazy + memoized keeps it bound to the live session.
     private var cachedPreviewLayer: AVCaptureVideoPreviewLayer?
 
+    // Orientation is owned here, not by the SwiftUI preview view: a hardcoded
+    // 90° guess left a portrait subject lying sideways on some devices. The
+    // RotationCoordinator computes the exact horizon-level preview angle for THIS
+    // device + camera and republishes it via KVO, so the preview always stands up.
+    private var captureDevice: AVCaptureDevice?
+    private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
+    private var previewRotationObservation: NSKeyValueObservation?
+
     var previewLayer: Any {
         if let cached = cachedPreviewLayer { return cached }
         let layer = AVCaptureVideoPreviewLayer(session: captureSession ?? AVCaptureSession())
@@ -27,7 +35,36 @@ final class ImageCaptureService: NSObject, ImageCaptureServiceProtocol {
             connection.isVideoMirrored = true
         }
         cachedPreviewLayer = layer
+        // In the scan flow the layer is first accessed AFTER startSession, so the
+        // device already exists — wire up rotation immediately.
+        setupRotationCoordinatorIfPossible()
         return layer
+    }
+
+    /// Binds a RotationCoordinator to the live device + preview layer and locks
+    /// the preview connection to the returned horizon-level angle, updating it
+    /// whenever the device reports a new one. No-op until both exist.
+    private func setupRotationCoordinatorIfPossible() {
+        guard let device = captureDevice, let previewLayer = cachedPreviewLayer else { return }
+        let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: previewLayer)
+        rotationCoordinator = coordinator
+        applyPreviewRotation()
+        previewRotationObservation = coordinator.observe(
+            \.videoRotationAngleForHorizonLevelPreview,
+            options: [.new]
+        ) { [weak self] _, _ in
+            DispatchQueue.main.async { self?.applyPreviewRotation() }
+        }
+    }
+
+    private func applyPreviewRotation() {
+        guard let coordinator = rotationCoordinator,
+              let connection = cachedPreviewLayer?.connection else { return }
+        let angle = coordinator.videoRotationAngleForHorizonLevelPreview
+        if connection.isVideoRotationAngleSupported(angle) {
+            connection.videoRotationAngle = angle
+        }
+        logger.log("Camera preview rotation set to \(Int(angle))°", level: .info)
     }
 
     func requestPermission() async -> Bool {
@@ -86,6 +123,7 @@ final class ImageCaptureService: NSObject, ImageCaptureServiceProtocol {
         self.captureSession = session
         self.photoOutput = output
         self.videoDataOutput = videoOutput
+        self.captureDevice = camera
 
         // Rebind preview layer to the new session if it was created earlier.
         cachedPreviewLayer?.session = session
@@ -93,6 +131,9 @@ final class ImageCaptureService: NSObject, ImageCaptureServiceProtocol {
             connection.automaticallyAdjustsVideoMirroring = false
             connection.isVideoMirrored = true
         }
+        // Re-anchor rotation to the now-live device (no-op if the preview layer
+        // hasn't been created yet; the getter wires it up when it is).
+        setupRotationCoordinatorIfPossible()
 
         // startRunning blocks; off the main actor.
         await Task.detached(priority: .userInitiated) {

@@ -34,6 +34,7 @@ enum AnalyticsEvent {
     case paywallPresented(placement: String)
     case paywallDismissed(placement: String)
     case paywallConverted(placement: String, productId: String)
+    case paywallPurchaseFailed(placement: String)
     case subscriptionStarted(productId: String, isTrialPeriod: Bool)
     case subscriptionRenewed(productId: String)
     case subscriptionCanceled(productId: String)
@@ -106,6 +107,7 @@ enum AnalyticsEvent {
         case .paywallPresented: return "paywall_presented"
         case .paywallDismissed: return "paywall_dismissed"
         case .paywallConverted: return "paywall_converted"
+        case .paywallPurchaseFailed: return "paywall_purchase_failed"
         case .subscriptionStarted: return "subscription_started"
         case .subscriptionRenewed: return "subscription_renewed"
         case .subscriptionCanceled: return "subscription_canceled"
@@ -177,7 +179,8 @@ enum AnalyticsEvent {
         case .workoutAbandoned(let programId, let dayNumber):
             return ["program_id": programId, "day_number": dayNumber]
         case .paywallTriggered(let placement), .paywallViewed(let placement),
-             .paywallPresented(let placement), .paywallDismissed(let placement):
+             .paywallPresented(let placement), .paywallDismissed(let placement),
+             .paywallPurchaseFailed(let placement):
             return ["placement": placement]
         case .paywallConverted(let placement, let productId):
             return ["placement": placement, "product_id": productId]

@@ -44,13 +44,12 @@ struct Step_Verdict: View {
             VStack {
                 Spacer()
                 UnboundButton(
-                    title: L10n.onboarding("verdict.primary", defaultValue: "Open your first mission"),
+                    title: L10n.onboarding("verdict.primary", defaultValue: "Open your first quest"),
                     icon: "arrow.right",
                     action: {
-                        // The rating ask rides the commitment tap: they just
-                        // chose to open their first mission off the rank
-                        // reveal. Apple's sheet rises as the demo loads.
-                        AppStoreReviewPrompt.request()
+                        // The App Store rating ask now fires earlier, during the
+                        // scan-analyzing beat (Step_ScanAnalyzing), so this CTA
+                        // just advances into the first-quest demo.
                         onContinue()
                     }
                 )

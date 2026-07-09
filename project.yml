@@ -9,6 +9,14 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
+    # App Store version identity. Builds 1-3 were uploaded with ad-hoc
+    # overrides; these make the generated project self-sufficient. Bump
+    # CURRENT_PROJECT_VERSION for every upload (next upload after build 3 = 4).
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: 4
+    # HTTPS-only exempt crypto; answers the export-compliance question at
+    # upload time so builds don't stall on "Missing Compliance".
+    INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
     # Justin's Apple Developer team. Persisted here so `xcodegen generate`
     # stops resetting it to "" and wiping the Xcode team selection each run.
     DEVELOPMENT_TEAM: "6K5R25Y398"
@@ -21,7 +29,7 @@ settings:
     # Required by the HealthKit entitlement: rest-day recovery reads steps,
     # walking distance, and sleep. Read-only, so no Update description needed.
     INFOPLIST_KEY_NSHealthShareUsageDescription: "UNBOUND reads your steps, walking distance, and sleep to check how recovered you are on rest days"
-    INFOPLIST_KEY_NSHealthUpdateUsageDescription: "UNBOUND does not write health data; this string satisfies the HealthKit API declaration requirement"
+    INFOPLIST_KEY_NSHealthUpdateUsageDescription: "UNBOUND only reads activity and sleep data to gauge recovery and never writes to your health records"
     INFOPLIST_KEY_UILaunchScreen_Generation: true
     INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
     INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown"

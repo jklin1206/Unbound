@@ -18,15 +18,28 @@ protocol SubscriptionServiceProtocol: Sendable {
     /// matters: package identifiers like `$rc_annual` repeat across offerings
     /// with different products/prices, and RevenueCat attributes the conversion
     /// to the offering of the package object it's handed.
-    func purchase(packageId: String, fromOffering offeringKey: String?) async throws -> Bool
+    func purchase(packageId: String, fromOffering offeringKey: String?) async throws -> SubscriptionPurchaseOutcome
     func restorePurchases() async throws -> Bool
 }
 
 extension SubscriptionServiceProtocol {
     /// Purchase from the current offering.
-    func purchase(packageId: String) async throws -> Bool {
+    func purchase(packageId: String) async throws -> SubscriptionPurchaseOutcome {
         try await purchase(packageId: packageId, fromOffering: nil)
     }
+}
+
+/// Outcome of a purchase attempt. Backing out of the payment sheet is a
+/// deliberate choice, not an error, so it gets its own case instead of a
+/// thrown error; callers show no failure copy for it. Real failures throw.
+enum SubscriptionPurchaseOutcome: Sendable {
+    /// The purchase completed and the entitlement is active.
+    case purchased
+    /// The user cancelled the payment sheet.
+    case userCancelled
+    /// The transaction ended without an active entitlement (e.g. pending
+    /// approval). Callers show the not-completed message.
+    case notEntitled
 }
 
 struct SubscriptionPackage: Identifiable, Sendable {

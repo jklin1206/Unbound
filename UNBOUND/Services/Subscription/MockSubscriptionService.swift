@@ -52,9 +52,9 @@ final class MockSubscriptionService: SubscriptionServiceProtocol, @unchecked Sen
         ]
     }
 
-    func purchase(packageId: String, fromOffering offeringKey: String?) async throws -> Bool {
+    func purchase(packageId: String, fromOffering offeringKey: String?) async throws -> SubscriptionPurchaseOutcome {
         subject.send(true)
-        return true
+        return .purchased
     }
 
     func restorePurchases() async throws -> Bool {

@@ -103,11 +103,14 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
             #endif
         }
         let offerings = try await Purchases.shared.offerings()
-        // Placement first: experiments/targeting can remap what the exit promo
-        // serves per arm. The fixed `promo` offering is the fallback when no
-        // placement rule matches (placements unconfigured returns nil).
-        guard let promo = offerings.currentOffering(forPlacement: AppConstants.RevenueCat.promoPlacementId)
-            ?? offerings.all[AppConstants.RevenueCat.promoOfferingKey] else { return [] }
+        // The fixed `promo` offering is AUTHORITATIVE: it is the one guaranteed to
+        // carry the discounted annual (`unbound_yearly_promo`). The placement is
+        // only a fallback for deliberate A/B remaps. Preferring the placement was
+        // a bug: an unconfigured/foreign placement can resolve to the default
+        // offering, whose first package is the weekly — which then rendered a
+        // weekly price ($14.99) under this sheet's hardcoded "One year for…" copy.
+        guard let promo = offerings.all[AppConstants.RevenueCat.promoOfferingKey]
+            ?? offerings.currentOffering(forPlacement: AppConstants.RevenueCat.promoPlacementId) else { return [] }
         // Anchor = the standard annual package (from the current offering). Its
         // localized string is struck through next to the promo price; its decimal
         // price is what the discount is computed against.
@@ -115,7 +118,14 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
             .first { $0.storeProduct.subscriptionPeriod?.unit == .year }
         let anchor = anchorPackage?.localizedPriceString
         let anchorValue = anchorPackage?.storeProduct.price
-        return promo.availablePackages.map { pkg in
+        // Annual only. The exit sheet frames the offer as "One year for X", so a
+        // non-annual package here would be a mispriced lie. If the resolved
+        // offering carries no annual, we return nothing and the sheet shows its
+        // honest unavailable state rather than a weekly dressed up as a year.
+        let annualPackages = promo.availablePackages.filter {
+            $0.storeProduct.subscriptionPeriod?.unit == .year
+        }
+        return annualPackages.map { pkg in
             SubscriptionPackage(
                 id: pkg.identifier,
                 productId: pkg.storeProduct.productIdentifier,
@@ -187,13 +197,13 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
     }
     #endif
 
-    func purchase(packageId: String, fromOffering offeringKey: String?) async throws -> Bool {
+    func purchase(packageId: String, fromOffering offeringKey: String?) async throws -> SubscriptionPurchaseOutcome {
         guard !isStubbed else {
             #if DEBUG && targetEnvironment(simulator)
             setSubscriptionStatus(true)
-            return true
+            return .purchased
             #else
-            return false
+            return .notEntitled
             #endif
         }
         let offerings = try await Purchases.shared.offerings()
@@ -201,9 +211,16 @@ final class SubscriptionService: NSObject, SubscriptionServiceProtocol, @uncheck
         guard let pkg = offering?.availablePackages.first(where: { $0.identifier == packageId }) else {
             throw AppError.subscriptionPurchaseFailed(underlying: NSError(domain: "RC", code: -1, userInfo: [NSLocalizedDescriptionKey: "Package not found"]))
         }
-        let (_, customerInfo, _) = try await Purchases.shared.purchase(package: pkg)
-        updateStatus(from: customerInfo)
-        return hasActiveSubscription
+        do {
+            let (_, customerInfo, userCancelled) = try await Purchases.shared.purchase(package: pkg)
+            // Backing out of the payment sheet is a choice, not a failure:
+            // surface it as its own outcome so no caller shows error copy.
+            guard !userCancelled else { return .userCancelled }
+            updateStatus(from: customerInfo)
+            return hasActiveSubscription ? .purchased : .notEntitled
+        } catch ErrorCode.purchaseCancelledError {
+            return .userCancelled
+        }
     }
 
     func restorePurchases() async throws -> Bool {

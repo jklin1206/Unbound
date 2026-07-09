@@ -10,6 +10,7 @@ Squad (crew) social-system models: the squad itself, roster membership, live pre
 | `SquadLeaderboard.swift` | Season machinery: `SquadSeason`, `SquadStreakSummary`, `SquadBoardRow`, season rewards/winner-title types, `SquadSeasonRewardsBuilder`, `SquadLeaderboardBuilder`. |
 | `SquadLogo.swift` | `SquadLogoPreset` (asset + palette) and `SquadLogoCatalog`. |
 | `SquadMember.swift` | `SquadMember` — roster row (userId, joinedAt, joined display fields). |
+| `SquadMemberFlair.swift` | `SquadMemberFlair` — a member's published profile flair (equipped cosmetics, featured showcase, rank + attribute snapshot) so squadmates render their profile as the owner sees it. |
 | `SquadMission.swift` | `SquadMission` — weekly co-op mission (kind, target, progress) keyed by ISO week. |
 | `SquadPresence.swift` | `SquadPresence` — "in a workout right now" presence record with expiry. |
 | `SquadState.swift` | `SquadState` — the client-side aggregate: current squad, roster, presence, recent activity (capped at 50), unlocked squad titles. |

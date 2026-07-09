@@ -155,9 +155,21 @@ struct Step_ScanAnalyzing: View {
         .onAppear {
             startTime = .now
             runLocalBodyInsights()
+            requestScanRatingPrompt()
         }
         .onDisappear {
             analysisTask?.cancel()
+        }
+    }
+
+    /// Fires the App Store rating ask mid-scan. The user is watching the
+    /// cinematic "building your protocol" sweep with nothing to tap, so Apple's
+    /// prompt lands at a calm, high-goodwill moment. Apple throttles the actual
+    /// sheet (~3/yr), so this requests unconditionally and lets the OS decide.
+    private func requestScanRatingPrompt() {
+        guard !holdsForPreview else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+            AppStoreReviewPrompt.request()
         }
     }
 

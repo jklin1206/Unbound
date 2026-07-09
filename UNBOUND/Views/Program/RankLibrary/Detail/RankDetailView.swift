@@ -295,13 +295,32 @@ struct RankDetailView: View {
     @ViewBuilder
     private var heroArtwork: some View {
         if let assetName = vm.visualAssetName {
+            // Movement/skill art is dark-on-transparent (drawn for a light
+            // backdrop), so on the black hero it disappears. Seat it on a light
+            // portrait tile - the same collectible treatment the library rows use -
+            // so the figure reads clearly, with the tier glow haloing behind.
             Image(assetName)
                 .renderingMode(.original)
                 .resizable()
                 .interpolation(.high)
                 .scaledToFit()
-                .frame(width: 172, height: 172)
-                .shadow(color: Color.black.opacity(0.55), radius: 10)
+                .frame(width: 156, height: 156)
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(white: 0.95), Color(white: 0.82)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .strokeBorder(vm.tint.opacity(0.45), lineWidth: 1)
+                )
+                .shadow(color: Color.black.opacity(0.5), radius: 16, y: 8)
         } else {
             Image(vm.displayedTier.assetName)
                 .resizable()

@@ -78,11 +78,11 @@ final class OnboardingFlowViewModel {
     /// The onboarding reveal should feel like UNBOUND is spotting potential,
     /// not making the user self-label a stat build. If an old/debug flow has
     /// explicit seeds, keep them; otherwise infer the first sparks from intent.
-    var effectiveSeededAttributes: Set<AttributeKey> {
-        if !seededAttributes.isEmpty {
-            return seededAttributes
-        }
-
+    /// Per-axis interest scores derived purely from the questionnaire (goals,
+    /// target areas, exercise styles). Shapes the onboarding "build hex" starting
+    /// estimate and picks the seeded focus attributes, so both read off the same
+    /// answers instead of a hardcoded baseline.
+    var questionnaireAttributeScores: [AttributeKey: Int] {
         var scores: [AttributeKey: Int] = Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { ($0, 0) })
         func add(_ key: AttributeKey, _ amount: Int = 1) {
             scores[key, default: 0] += amount
@@ -148,6 +148,15 @@ final class OnboardingFlowViewModel {
             }
         }
 
+        return scores
+    }
+
+    var effectiveSeededAttributes: Set<AttributeKey> {
+        if !seededAttributes.isEmpty {
+            return seededAttributes
+        }
+
+        let scores = questionnaireAttributeScores
         let ranked = AttributeKey.allCases.sorted {
             let lhs = scores[$0, default: 0]
             let rhs = scores[$1, default: 0]

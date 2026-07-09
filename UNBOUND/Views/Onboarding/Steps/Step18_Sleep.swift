@@ -25,11 +25,11 @@ struct Step18_Sleep: View {
                     rightAnchor: "Restored"
                 )
 
-                Text(L10n.onboarding("sleep.note", defaultValue: "Rough sleep weeks get lighter progression targets."))
-                    .font(Font.unbound.bodyS)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
+                HUDCallout(
+                    iconSystemName: "sparkles",
+                    eyebrow: "SYSTEM NOTE",
+                    message: "Noted. Saved to your profile."
+                )
             }
             .frame(maxWidth: .infinity, minHeight: 420, alignment: .center)
         }

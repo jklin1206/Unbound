@@ -1,6 +1,5 @@
 import SwiftUI
 import Combine
-import AuthenticationServices
 
 @MainActor
 final class SettingsViewModel: ObservableObject {
@@ -10,6 +9,9 @@ final class SettingsViewModel: ObservableObject {
     @Published var showDeleteConfirmation = false
     @Published var deleteConfirmationText = ""
     @Published var errorMessage: String?
+    /// Post-restore outcome ("restored" vs "no subscription found") surfaced
+    /// as its own settings alert; failures keep flowing through `errorMessage`.
+    @Published var restoreMessage: String?
     /// True when a real Supabase (Apple) session backs the account, false for
     /// the anonymous local-UUID identity. Drives the Account section: connected
     /// accounts get Sign Out, anonymous ones get the Sign in with Apple CTA.
@@ -74,7 +76,12 @@ final class SettingsViewModel: ObservableObject {
     func restorePurchases() async {
         isLoading = true
         do {
-            _ = try await services.subscription.restorePurchases()
+            // Mirror RestorePurchasesButton: every outcome gets visible
+            // feedback, so a silent tap never leaves the user guessing.
+            let hasActive = try await services.subscription.restorePurchases()
+            restoreMessage = hasActive
+                ? "Purchases restored. Your subscription is active."
+                : "No active subscription found."
         } catch {
             errorMessage = "Failed to restore purchases"
         }

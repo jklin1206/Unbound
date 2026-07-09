@@ -18,6 +18,7 @@ Everything social: squad membership/state, the activity feed, presence, weekly m
 | `SquadActivityServiceProtocol.swift` | `@MainActor` protocol for the activity service. |
 | `SquadBackend.swift` | Production Supabase wrapper for all squad-table operations (`UnboundSupabase.client`). |
 | `SquadBackendProtocol.swift` | Protocol for squad-table operations; also defines `LinkedSession`. |
+| `SquadFlairService.swift` | Publishes the user's `SquadMemberFlair` to `squad_member_flair` and reads squadmates' flair via the gated `squad_member_flair_for_squad` RPC. |
 | `SquadHonorsService.swift` | Weekly honors: `currentHonors(squadId:)` / `recordHonor(_:)` over the squad backend. |
 | `SquadLoopReconciler.swift` | Closes the loops with no production trigger: consumes `linked_sessions` rows (once each, persisted dedup) to drive the +20% bonus and advance squadStreak/linkedSessions title counters. |
 | `SquadLoopStore.swift` | UserDefaults persistence for the reconciler's dedup set + counter state (one entry-group per userId). |

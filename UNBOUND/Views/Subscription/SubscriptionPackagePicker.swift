@@ -8,6 +8,11 @@ struct SubscriptionPackagePicker: View {
     var showsPitch: Bool = true
     var maxVisiblePackages: Int? = nil
     var onPurchased: () -> Void = {}
+    /// Fires whenever the highlighted plan changes, including the initial
+    /// auto-selection after load (`nil` while loading or when loading fails),
+    /// so hosts can keep their surrounding copy honest for the plan the CTA
+    /// will actually purchase (e.g. no trial claims on a no-trial plan).
+    var onSelectedPackageChange: (SubscriptionPackage?) -> Void = { _ in }
 
     @State private var packages: [SubscriptionPackage] = []
     @State private var selectedPackageId: String?
@@ -61,6 +66,14 @@ struct SubscriptionPackagePicker: View {
                     .multilineTextAlignment(.center)
                     .lineLimit(2, reservesSpace: true)
             }
+
+            // App Review (3.1.2) requires an explicit auto-renewal statement on
+            // the paywall itself, not only at the StoreKit purchase sheet.
+            Text("Auto-renews unless canceled at least 24 hours before the period ends. Cancel anytime in Settings.")
+                .font(Font.unbound.captionS)
+                .foregroundStyle(Color.unbound.textTertiary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
 
             // App Review requires functional Terms of Use + Privacy Policy
             // links on every subscription paywall.
@@ -149,6 +162,7 @@ struct SubscriptionPackagePicker: View {
         return Button {
             UnboundHaptics.medium()
             selectedPackageId = package.id
+            onSelectedPackageChange(package)
         } label: {
             // Reference card: plan name over its price on the left, a filled
             // check on the right only when selected, the badge floating off
@@ -289,12 +303,14 @@ struct SubscriptionPackagePicker: View {
         do {
             packages = try await services.subscription.fetchOfferings()
             selectedPackageId = preferredPackageId(from: packages)
+            onSelectedPackageChange(selectedPackage)
             message = packages.isEmpty
                 ? L10n.string(.subscriptionPackageRevenueCatEmpty, defaultValue: "RevenueCat returned no available packages.")
                 : nil
         } catch {
             packages = []
             selectedPackageId = nil
+            onSelectedPackageChange(nil)
             message = L10n.string(.subscriptionPackageLoadFailed, defaultValue: "Couldn't load subscription options.")
         }
     }
@@ -306,16 +322,21 @@ struct SubscriptionPackagePicker: View {
 
         services.analytics.track(.paywallPresented(placement: placement))
         do {
-            let success = try await services.subscription.purchase(packageId: selectedPackageId)
-            if success {
+            switch try await services.subscription.purchase(packageId: selectedPackageId) {
+            case .purchased:
                 services.analytics.track(.paywallConverted(placement: placement, productId: selectedPackage?.productId ?? selectedPackageId))
                 onPurchased()
-            } else {
-                services.analytics.track(.paywallDismissed(placement: placement))
+            case .userCancelled:
+                // Backing out of the payment sheet is a choice, not a failure:
+                // no error copy, no failure event. Dismissal is tracked where
+                // the user actually closes the paywall.
+                message = nil
+            case .notEntitled:
+                services.analytics.track(.paywallPurchaseFailed(placement: placement))
                 message = L10n.string(.subscriptionPackagePurchaseNotCompleted, defaultValue: "Purchase was not completed.")
             }
         } catch {
-            services.analytics.track(.paywallDismissed(placement: placement))
+            services.analytics.track(.paywallPurchaseFailed(placement: placement))
             message = L10n.string(.subscriptionPackagePurchaseFailed, defaultValue: "Purchase failed. Please try again.")
         }
     }

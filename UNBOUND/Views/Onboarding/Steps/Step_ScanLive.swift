@@ -43,13 +43,16 @@ struct Step_ScanLive: View {
                 fallbackBackground
             }
 
-            // Dimming scrim — keeps overlays legible against bright backgrounds
+            // Light dimming only at the very top/bottom to keep the chrome legible
+            // — the header, instruction, and shutter already carry their own
+            // backgrounds, so a heavy full-frame scrim just read as a filter over
+            // the camera.
             LinearGradient(
                 colors: [
-                    Color.unbound.bg.opacity(0.55),
+                    Color.unbound.bg.opacity(0.35),
                     Color.clear,
                     Color.clear,
-                    Color.unbound.bg.opacity(0.78)
+                    Color.unbound.bg.opacity(0.5)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -71,7 +74,6 @@ struct Step_ScanLive: View {
                 Spacer()
 
                 if sessionStatus == .running {
-                    instructionBlock
                     captureButton
                         .padding(.top, 20)
                         .padding(.bottom, 36)
@@ -245,44 +247,6 @@ struct Step_ScanLive: View {
         .stroke(Color.unbound.accent.opacity(0.82), style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
         .frame(width: 22, height: 22)
         .rotationEffect(.degrees(rotation))
-    }
-
-    // MARK: - Instruction block
-
-    private var instructionBlock: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "figure.stand")
-                    .font(.system(size: 13, weight: .semibold))
-                Text(L10n.onboarding("scanLive.instruction.eyebrow", defaultValue: "MONTH ONE STARTS HERE"))
-                    .font(Font.unbound.captionS)
-                    .tracking(1.6)
-            }
-            .foregroundStyle(Color.unbound.accent)
-
-            Text(L10n.onboarding("scanLive.instruction.title", defaultValue: "Set the before."))
-                .font(Font.unbound.titleM)
-                .foregroundStyle(Color.unbound.textPrimary)
-                .multilineTextAlignment(.center)
-
-            Text(L10n.onboarding("scanLive.instruction.subtitle", defaultValue: "This is the first page of the climb."))
-                .font(Font.unbound.captionS)
-                .foregroundStyle(Color.unbound.textSecondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.unbound.bg.opacity(0.62))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(Color.unbound.accent.opacity(0.24), lineWidth: 1)
-                )
-                .shadow(color: Color.unbound.accent.opacity(0.16), radius: 18)
-        )
-        .padding(.horizontal, 20)
-        .padding(.bottom, 8)
     }
 
     private var captureButton: some View {

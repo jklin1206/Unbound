@@ -265,6 +265,13 @@ struct SettingsView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
+        // Restore outcomes (restored / nothing to restore) confirm under their
+        // own title; only real failures use the Error alert above.
+        .alert(L10n.string(.subscriptionRestoreIdle, defaultValue: "Restore Purchases"), isPresented: .constant(viewModel.restoreMessage != nil)) {
+            Button(L10n.string(.settingsAlertOK, defaultValue: "OK")) { viewModel.restoreMessage = nil }
+        } message: {
+            Text(viewModel.restoreMessage ?? "")
+        }
         .onAppear {
             Task { await viewModel.loadProfile() }
         }
@@ -447,6 +454,15 @@ struct NotificationSettingsView: View {
     }
 
     private func requestAuthorization() async {
+        // Once denied, requestAuthorization returns immediately without a
+        // prompt — the only path back is the system notification settings.
+        let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+        if status == .denied {
+            if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+                await MainActor.run { UIApplication.shared.open(url) }
+            }
+            return
+        }
         _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
         await refreshAuthorizationLabel()
         await NotificationService.applyStoredPreferences()

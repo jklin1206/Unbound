@@ -17,6 +17,7 @@ struct Step_ObstacleFix: View {
     let onBack: () -> Void
     let onContinue: () -> Void
 
+    @State private var windowAppeared = false
     @State private var showsConfession = false
     @State private var showsCounter = false
     @State private var visibleFixes = 0
@@ -38,72 +39,77 @@ struct Step_ObstacleFix: View {
     var body: some View {
         ZStack {
             Color.unbound.bg.ignoresSafeArea()
-            TechGridBackground(opacity: 0.1)
+            AnimeBackdrop(variant: .smoky, intensity: 0.7)
                 .ignoresSafeArea()
+            ParticleEmitter(config: .embers)
+                .opacity(0.12)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
 
             VStack(spacing: 0) {
-                Spacer(minLength: 40)
+                Spacer(minLength: 32)
 
-                VStack(spacing: 26) {
-                    // The confession, in their words.
-                    VStack(spacing: 12) {
-                        Text(L10n.onboarding("painCost.eyebrow", defaultValue: "[ SYSTEM ]"))
-                            .font(.system(size: 12, weight: .black, design: .monospaced))
-                            .tracking(1.6)
-                            .foregroundStyle(Color.unbound.coachCyan)
+                // Same SYSTEM window as the earlier cost beat: the System quotes
+                // the user's own confessed obstacle back and answers it.
+                SystemNotificationWindow {
+                    VStack(spacing: 22) {
+                        // The confession, in their words.
+                        VStack(spacing: 10) {
+                            Text(L10n.onboarding("obstacleFix.youSaid", defaultValue: "YOU SAID"))
+                                .font(Font.unbound.monoS)
+                                .tracking(1.8)
+                                .foregroundStyle(Color.unbound.textTertiary)
 
-                        Text(L10n.onboarding("obstacleFix.youSaid", defaultValue: "YOU SAID"))
-                            .font(Font.unbound.monoS)
-                            .tracking(1.8)
-                            .foregroundStyle(Color.unbound.textTertiary)
-
-                        Text("\u{201C}\(primaryObstacle.displayName)\u{201D}")
-                            .font(Font.unbound.displayM)
-                            .foregroundStyle(Color.unbound.textPrimary)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .minimumScaleFactor(0.8)
-                    }
-                    .opacity(showsConfession ? 1 : 0)
-                    .offset(y: showsConfession ? 0 : 10)
-
-                    // The counter.
-                    Text(plan.counter)
-                        .font(Font.unbound.titleL)
-                        .foregroundStyle(Color.unbound.accent)
-                        .shadow(color: Color.unbound.accent.opacity(0.5), radius: 16)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .opacity(showsCounter ? 1 : 0)
-                        .scaleEffect(showsCounter ? 1 : 1.08)
-                        .blur(radius: showsCounter ? 0 : 5)
-
-                    // Three short lines, personalized from the quiz answers.
-                    VStack(spacing: 13) {
-                        ForEach(Array(plan.lines.enumerated()), id: \.offset) { index, line in
-                            Text(line)
-                                .font(Font.unbound.bodyL)
-                                .foregroundStyle(Color.unbound.textSecondary)
+                            Text("\u{201C}\(primaryObstacle.displayName)\u{201D}")
+                                .font(Font.unbound.titleL)
+                                .foregroundStyle(Color.unbound.textPrimary)
                                 .multilineTextAlignment(.center)
                                 .fixedSize(horizontal: false, vertical: true)
-                                .opacity(visibleFixes > index ? 1 : 0)
-                                .offset(y: visibleFixes > index ? 0 : 8)
+                                .minimumScaleFactor(0.8)
                         }
-                    }
-                    .padding(.top, 4)
+                        .opacity(showsConfession ? 1 : 0)
+                        .offset(y: showsConfession ? 0 : 10)
 
-                    if triedOtherApps {
-                        Text(L10n.onboarding("obstacleFix.otherApps.kicker", defaultValue: "Other apps counted streaks. This one counts proof."))
-                            .font(Font.unbound.bodyM.weight(.semibold))
-                            .foregroundStyle(Color.unbound.ember)
+                        // The counter - the System's power-color answer.
+                        Text(plan.counter)
+                            .font(Font.unbound.titleM.weight(.bold))
+                            .foregroundStyle(Color.unbound.accent)
+                            .shadow(color: Color.unbound.accent.opacity(0.5), radius: 16)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
-                            .opacity(showsFooter ? 1 : 0)
+                            .opacity(showsCounter ? 1 : 0)
+                            .scaleEffect(showsCounter ? 1 : 1.08)
+                            .blur(radius: showsCounter ? 0 : 5)
+
+                        // Three short lines, personalized from the quiz answers.
+                        VStack(spacing: 12) {
+                            ForEach(Array(plan.lines.enumerated()), id: \.offset) { index, line in
+                                Text(line)
+                                    .font(Font.unbound.bodyM)
+                                    .foregroundStyle(Color.unbound.textSecondary)
+                                    .multilineTextAlignment(.center)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .opacity(visibleFixes > index ? 1 : 0)
+                                    .offset(y: visibleFixes > index ? 0 : 8)
+                            }
+                        }
+
+                        if triedOtherApps {
+                            Text(L10n.onboarding("obstacleFix.otherApps.kicker", defaultValue: "Other apps counted streaks. This one counts proof."))
+                                .font(Font.unbound.bodyM.weight(.semibold))
+                                .foregroundStyle(Color.unbound.ember)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .opacity(showsFooter ? 1 : 0)
+                        }
                     }
                 }
-                .padding(.horizontal, 30)
+                .padding(.horizontal, 26)
+                .opacity(windowAppeared ? 1 : 0)
+                .scaleEffect(windowAppeared ? 1 : 0.96)
+                .blur(radius: windowAppeared ? 0 : 5)
 
-                Spacer(minLength: 40)
+                Spacer(minLength: 32)
 
                 UnboundButton(
                     title: L10n.onboarding("obstacleFix.primary", defaultValue: "Show me my path"),
@@ -120,7 +126,10 @@ struct Step_ObstacleFix: View {
     }
 
     private func runSequence() {
-        withAnimation(.spring(response: 0.55, dampingFraction: 0.85).delay(0.2)) {
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+            windowAppeared = true
+        }
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.85).delay(0.35)) {
             showsConfession = true
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {

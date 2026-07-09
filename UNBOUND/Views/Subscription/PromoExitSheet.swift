@@ -158,10 +158,23 @@ struct PromoExitSheet: View {
             }
             .buttonStyle(.plain)
 
-            Text("Renews yearly · cancel anytime")
+            // App Review (3.1.2): a direct-purchase surface needs Restore,
+            // the auto-renew disclosure, and functional Terms + Privacy links.
+            RestorePurchasesButton(onRestored: onUnlock)
+
+            Text("Auto-renews yearly at \(package.price) unless canceled at least 24 hours before the end of the current period. Manage or cancel anytime in your Apple ID settings.")
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(Color.unbound.textSecondary)
+                .multilineTextAlignment(.center)
                 .shadow(color: .black.opacity(0.6), radius: 4)
+
+            HStack(spacing: 12) {
+                Link("Terms of Use", destination: AppConstants.Legal.termsURL)
+                Text("·")
+                Link("Privacy Policy", destination: AppConstants.Legal.privacyURL)
+            }
+            .font(.system(size: 10, weight: .medium, design: .rounded))
+            .foregroundStyle(Color.unbound.textTertiary)
         }
     }
 
@@ -214,16 +227,21 @@ struct PromoExitSheet: View {
 
         services.analytics.track(.paywallPresented(placement: placement))
         do {
-            let success = try await services.subscription.purchase(
+            let outcome = try await services.subscription.purchase(
                 packageId: package.id,
                 fromOffering: package.sourceOfferingId ?? AppConstants.RevenueCat.promoOfferingKey
             )
-            if success {
+            switch outcome {
+            case .purchased:
                 services.analytics.track(.paywallConverted(placement: placement, productId: package.productId))
                 UnboundHaptics.success()
                 onUnlock()
                 dismiss()
-            } else {
+            case .userCancelled:
+                // Backing out of the payment sheet is a choice, not a failure:
+                // show nothing and leave the offer on screen.
+                message = nil
+            case .notEntitled:
                 message = "Purchase was not completed."
             }
         } catch {

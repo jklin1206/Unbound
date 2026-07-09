@@ -5,8 +5,8 @@ import UIKit
 #endif
 
 /// The two sanctioned App Store rating asks, both at aha moments:
-/// 1. Onboarding verdict - fired by `Step_Verdict` a beat after the rank
-///    reveal settles (the peak of the reveal chain, before any price talk).
+/// 1. Scan analyzing - fired by `Step_ScanAnalyzing` a couple seconds into the
+///    cinematic "building your protocol" sweep, before any price talk.
 /// 2. First REAL workout - fired once, right after the first non-rehearsal
 ///    reward sequence dismisses.
 /// Apple throttles the actual sheet (max ~3/year, never twice in quick

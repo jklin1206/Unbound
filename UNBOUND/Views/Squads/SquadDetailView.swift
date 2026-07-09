@@ -9,7 +9,6 @@ import SwiftUI
 struct SquadDetailView: View {
     @EnvironmentObject var services: ServiceContainer
     @State var state: SquadState = .empty
-    @State private var showInviteSheet = false
     @State var memberDetailTarget: SquadMember?
     @State var showLeaveConfirm = false
     @State var showLogoEditor = false

@@ -9,13 +9,13 @@ import SwiftUI
 
 struct ActiveWorkoutContainerView: View {
     @StateObject var session: ActiveWorkoutSession
-    @State private var priorEntries: [ExerciseLogEntry] = []
-    @State private var workingWeightKg: Double? = nil
-    @State private var saving = false
-    @State private var showCompleteConfirm = false
-    @State private var saveError = false
+    @State var priorEntries: [ExerciseLogEntry] = []
+    @State var workingWeightKg: Double? = nil
+    @State var saving = false
+    @State var showCompleteConfirm = false
+    @State var saveError = false
     @State var showExitConfirm = false
-    @State private var draftAutosaveFailed = false
+    @State var draftAutosaveFailed = false
 
     // Swap sheet state
     @State var swapExerciseIndex: Int? = nil
@@ -24,7 +24,7 @@ struct ActiveWorkoutContainerView: View {
     /// equipment-incompatible alternatives. nil = no filter (graceful default).
     @State var swapEquipment: [Equipment]? = nil
     @State private var showingCustomBuilder = false
-    @State private var showingAddExercise = false
+    @State var showingAddExercise = false
 
     // Notes editing state
     @State var notesEditingIndex: Int? = nil
@@ -32,23 +32,23 @@ struct ActiveWorkoutContainerView: View {
     @State var showNotesSheet = false
 
     // Reward state
-    @State private var rewardSequence: WorkoutRewardSequenceSummary? = nil
-    @State private var isFinishingRewardSequence = false
+    @State var rewardSequence: WorkoutRewardSequenceSummary? = nil
+    @State var isFinishingRewardSequence = false
 
     // A passed rank gate: The Crossing overrides the standard reward sequence as the
     // rank-up moment, then chains into it so XP/badges still play.
-    @State private var pendingGateCrossing: GateCrossing? = nil
-    @State private var pendingGateDefiningNumber: String? = nil
-    @State private var stashedGateRewardSummary: WorkoutRewardSequenceSummary? = nil
+    @State var pendingGateCrossing: GateCrossing? = nil
+    @State var pendingGateDefiningNumber: String? = nil
+    @State var stashedGateRewardSummary: WorkoutRewardSequenceSummary? = nil
 
     /// Station-clear beat (spec §6.5): the world floods full-bleed when a rank-trial
     /// station's first working set is logged, then recedes (`GateBeatOverlay`).
     @State private var beatStationTitle: String? = nil
 
     /// Fail verdict (spec §6.7): "THE GATE HOLDS" → ENTER AGAIN on a failed gate.
-    @State private var pendingGateVerdict: GateVerdictContext? = nil
+    @State var pendingGateVerdict: GateVerdictContext? = nil
 
-    private struct GateVerdictContext: Identifiable {
+    struct GateVerdictContext: Identifiable {
         let id = UUID()
         let evaluation: OverallRankTrialEvaluation
         let world: GateWorld
@@ -61,17 +61,17 @@ struct ActiveWorkoutContainerView: View {
     @StateObject var keypad = NumberPadEditorModel<ActiveCell>()
 
     // Rest timer
-    @ObservedObject private var restTimer = RestTimerModel.shared
+    @ObservedObject var restTimer = RestTimerModel.shared
     @State var workoutElapsedSeconds = 0
     private let restClock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
-    @Environment(\.dismiss) private var dismiss
-    @AppStorage(WeightPlatePolicy.unitDefaultsKey) private var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
-    @AppStorage(WeightPlatePolicy.microloadingDefaultsKey) private var microloadingEnabled = false
+    @Environment(\.dismiss) var dismiss
+    @AppStorage(WeightPlatePolicy.unitDefaultsKey) var weightUnitRaw = TrainingWeightUnit.localeDefault.rawValue
+    @AppStorage(WeightPlatePolicy.microloadingDefaultsKey) var microloadingEnabled = false
 
-    private let services: ServiceContainer
-    private let draftStore: WorkoutDraftStore
-    private let onFinished: (() -> Void)?
+    let services: ServiceContainer
+    let draftStore: WorkoutDraftStore
+    let onFinished: (() -> Void)?
     /// A failed rank gate's ENTER AGAIN. The presenter rebuilds a fresh trial
     /// container (new session identity, new performance-log id) so the retry is
     /// a genuinely new attempt; nil falls back to dismissing.
@@ -79,7 +79,7 @@ struct ActiveWorkoutContainerView: View {
     /// Rehearsal = the onboarding taste of logging. The full surface behaves
     /// normally, but finishing writes nothing (no performance log, no XP, no
     /// reward sequence) and drafts are never autosaved for crash recovery.
-    private let isRehearsal: Bool
+    let isRehearsal: Bool
 
     // MARK: - Private types
 
@@ -388,453 +388,8 @@ struct ActiveWorkoutContainerView: View {
         }
     }
 
-    // MARK: - Draft autosave
-
-    /// Single funnel for draft autosave. A failure here means kill/crash
-    /// recovery is broken, so it's logged once and surfaced as a calm warning
-    /// row instead of failing silently.
-    func saveDraft() {
-        guard !isRehearsal else { return }
-        do {
-            try draftStore.save(session)
-            draftAutosaveFailed = false
-        } catch {
-            if !draftAutosaveFailed {
-                LoggingService.shared.log(
-                    "Workout draft autosave failed: \(error)",
-                    level: .error
-                )
-            }
-            draftAutosaveFailed = true
-        }
-    }
-
-    private var trialRestFooter: some View {
-        RestTimerPill(
-            model: restTimer,
-            onAddThirty: { restTimer.addThirty() },
-            onDismiss: { restTimer.dismiss() }
-        )
-        .padding(.bottom, 16)
-        .allowsHitTesting(restTimer.isVisible)
-    }
-
-    /// Free / Quick-Log session — the only mode that supports adding exercises
-    /// live. Program days and rank trials have a fixed prescription.
-    var isCustomSession: Bool {
-        session.source == .custom && !isRankTrial
-    }
-
-    var visibleExerciseCount: Int {
-        session.exercises.filter { !$0.skipped }.count
-    }
-
     /// Same catalog the session editor's ADD EXERCISE picker draws from.
     private var addExerciseCatalog: [CatalogExercise] {
         MovementCatalog.legacyExercises.compactMap(MovementCatalog.catalogExercise(for:))
-    }
-
-    private var emptyQuickLogState: some View {
-        VStack(spacing: 18) {
-            Spacer()
-            Image(systemName: "dumbbell")
-                .font(.system(size: 34, weight: .regular))
-                .foregroundStyle(Color.unbound.textTertiary)
-            VStack(spacing: 6) {
-                Text("No exercises yet")
-                    .font(Font.unbound.titleS)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                Text("Add what you just trained.")
-                    .font(Font.unbound.bodyM)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-            Button {
-                UnboundHaptics.soft()
-                showingAddExercise = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .bold))
-                    Text("ADD EXERCISE")
-                        .font(Font.unbound.bodyMStrong)
-                        .tracking(1.4)
-                }
-                .foregroundStyle(Color.unbound.bg)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 14)
-                .background(Capsule().fill(Color.unbound.accent))
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("workout.addExercise.empty")
-            Spacer()
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, 32)
-    }
-
-    private var completionFooter: some View {
-        let progress = session.progressSummary
-        return VStack(spacing: 10) {
-            RestTimerPill(
-                model: restTimer,
-                onAddThirty: { restTimer.addThirty() },
-                onDismiss: { restTimer.dismiss() }
-            )
-
-            HStack(spacing: 8) {
-                Image(systemName: progress.isComplete ? "checkmark.circle.fill" : "circle.dashed")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(progress.isComplete ? Color.unbound.accent : Color.unbound.textTertiary)
-                Text(progress.footerText.uppercased())
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.1)
-                    .foregroundStyle(Color.unbound.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-                Spacer()
-            }
-            .padding(.horizontal, 4)
-
-            #if DEBUG
-            Button(action: debugFillPlannedSets) {
-                Label("Fill Planned Sets", systemImage: "wand.and.stars")
-                    .font(Font.unbound.captionS.weight(.bold))
-                    .tracking(1.1)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.unbound.surfaceElevated)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                    )
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("workout.debug.fillPlannedSets")
-            #endif
-
-            if isCustomSession {
-                Button {
-                    UnboundHaptics.soft()
-                    showingAddExercise = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 13, weight: .bold))
-                        Text("ADD EXERCISE")
-                            .font(Font.unbound.captionS.weight(.bold))
-                            .tracking(1.4)
-                    }
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.unbound.surfaceElevated)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("workout.addExercise")
-            }
-
-            Button(action: requestComplete) {
-                HStack(spacing: 10) {
-                    if saving {
-                        ProgressView()
-                            .tint(Color.unbound.bg)
-                    }
-                    Text(saving ? "SAVING SESSION" : completionButtonTitle(progress: progress))
-                        .font(Font.unbound.bodyLStrong)
-                        .tracking(2)
-                }
-                .foregroundStyle(Color.unbound.bg)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-                .background(RoundedRectangle(cornerRadius: 18)
-                    .fill(saving ? Color.unbound.textSecondary : Color.unbound.accent))
-                .shadow(color: Color.black.opacity(0.24), radius: 18, x: 0, y: 10)
-            }
-            .buttonStyle(.plain)
-            .disabled(saving)
-            .accessibilityIdentifier("workout.complete")
-            .accessibilityLabel(saving ? "Saving session" : (isRankTrial ? "Complete trial" : "Complete session"))
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 14)
-        .padding(.bottom, 16)
-        .background(Color.unbound.bg.opacity(0.96))
-        .overlay(alignment: .top) {
-            LinearGradient(
-                colors: [Color.unbound.bg.opacity(0), Color.unbound.bg.opacity(0.96)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 42)
-            .offset(y: -42)
-            .allowsHitTesting(false)
-        }
-    }
-
-    private func completionButtonTitle(progress: ActiveWorkoutSession.ProgressSummary) -> String {
-        if isRankTrial {
-            return progress.isComplete ? "FINISH TRIAL" : "COMPLETE TRIAL"
-        }
-        return progress.isComplete ? "FINISH SESSION" : "COMPLETE SESSION"
-    }
-
-    // MARK: - Rest timer
-
-    private func startRest(ei: Int, si: Int) {
-        guard session.exercises.indices.contains(ei) else { return }
-        let setRest = session.exercises[ei].sets.indices.contains(si)
-            ? session.exercises[ei].sets[si].suggestedRestSeconds
-            : nil
-        let secs = setRest ?? session.exercises[ei].restSeconds
-        let next = session.exercises[ei].name
-        restTimer.onElapsed = { UnboundHaptics.success() }
-        restTimer.start(seconds: secs, nextLabel: next)
-    }
-
-    /// Fired exactly once per set on the SUGGESTED→LOGGED edge.
-    private func transition(ei: Int, si: Int) {
-        UnboundHaptics.success()
-        startRest(ei: ei, si: si)
-    }
-
-    /// After loadContext resolves history/working-weight, fill each set's
-    /// dim suggested weight via the existing SetPrefill ghost.
-    private func applySuggestedWeights() {
-        for ei in session.exercises.indices {
-            for si in session.exercises[ei].sets.indices
-            where session.exercises[ei].sets[si].suggestedWeightKg == nil {
-                let fallbackWeight = ei == session.currentExerciseIndex ? workingWeightKg : nil
-                if let g = SetPrefill.ghost(
-                    exerciseName: session.exercises[ei].name,
-                    setIndex: si,
-                    priorEntries: priorEntries,
-                    workingWeightKg: fallbackWeight) {
-                    session.exercises[ei].sets[si].suggestedWeightKg = g.weightKg.map {
-                        WeightPlatePolicy.snappedSuggestionKilograms(
-                            $0,
-                            unit: weightUnit,
-                            microloadingEnabled: microloadingEnabled
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    private func requestComplete() {
-        if session.hasUnloggedWorkingSets {
-            showCompleteConfirm = true
-        } else {
-            Task { await complete() }
-        }
-    }
-
-    // MARK: - Ghost prefill
-
-    private func ghost(ei: Int, si: Int) -> SetPrefill.Ghost? {
-        guard session.exercises.indices.contains(ei) else { return nil }
-        return SetPrefill.ghost(
-            exerciseName: session.exercises[ei].name,
-            setIndex: si,
-            priorEntries: priorEntries,
-            workingWeightKg: workingWeightKg
-        )
-    }
-
-    // MARK: - Load context (wired to real APIs)
-
-    private func loadContext() async {
-        guard let uid = services.auth.currentUserId else { return }
-
-        // Gear for the swap picker's compatibility badges (graceful: nil = no filter).
-        if let profileEquipment = (try? await services.user.fetchProfile(userId: uid))?.equipment,
-           !profileEquipment.isEmpty {
-            swapEquipment = profileEquipment
-        }
-
-        // Wire point 1: fetchRecentLogs(userId:limit:) exists on WorkoutLogServiceProtocol.
-        // Flatten exerciseEntries from the most-recent logs so SetPrefill can
-        // find last-session values per exercise (most-recent last = .last(where:) picks latest).
-        let recentLogs: [WorkoutLog] = (try? await services.workoutLog.fetchRecentLogs(userId: uid, limit: 40)) ?? []
-        priorEntries = recentLogs
-            .sorted { $0.startedAt < $1.startedAt } // oldest first → SetPrefill.last picks newest
-            .flatMap { $0.exerciseEntries }
-
-        // Last-performance: most-recent prior WorkoutLogs → per-set reference + prefill source.
-        let lookup = LastPerformanceLookup(logs: recentLogs, excludingLogId: nil)  // live session has no persisted WorkoutLog yet
-        for ei in session.exercises.indices {
-            let mid = session.exercises[ei].movementId
-            let name = session.exercises[ei].name
-            var workingIndex = 0
-            for si in session.exercises[ei].sets.indices {
-                guard !session.exercises[ei].sets[si].isWarmup else { continue }
-                session.exercises[ei].sets[si].lastPerformance =
-                    lookup.lastWorkingSet(movementId: mid, exerciseName: name, workingIndex: workingIndex)
-                workingIndex += 1
-            }
-        }
-
-        // Wire point 2: fetchWeight(userId:exerciseName:) returns WorkingWeight? with .weightKg:Double.
-        // Use the normalized name (lowercased, spaces→"_") for the working-weight key.
-        if let ex = session.currentExercise {
-            let normalized = ex.name.lowercased().replacingOccurrences(of: " ", with: "_")
-            if let ww = try? await services.workingWeight.fetchWeight(userId: uid, exerciseName: normalized) {
-                workingWeightKg = ww.weightKg
-            }
-        }
-        applySuggestedWeights()
-    }
-
-    private var weightUnit: TrainingWeightUnit {
-        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
-    }
-
-    // MARK: - Save + reward
-
-    private func complete() async {
-        guard !saving else { return }
-        if isRehearsal {
-            HapticManager.notification(.success)
-            restTimer.stop()
-            finishDismiss()
-            return
-        }
-        guard let uid = services.auth.currentUserId else {
-            // No session — don't trap the user behind a disabled dismiss.
-            dismiss()
-            return
-        }
-        saving = true
-        #if DEBUG
-        let performanceLog = session.assemblePerformanceLog(userId: uid, completedAt: DevProgramClock.now)
-        #else
-        let performanceLog = session.assemblePerformanceLog(userId: uid)
-        #endif
-        do {
-            let completionResult = try await TrainingCompletionService.shared.complete(performanceLog, services: services)
-            let rankTrialResult = OverallRankTrialRunner.shared.recordCompletedAttempt(
-                performanceLog: performanceLog,
-                completionResult: completionResult,
-                bodyweightKg: (try? await services.user.fetchProfile(userId: uid))?.weightKg
-            )
-            HapticManager.notification(.success)
-            restTimer.stop()
-            draftStore.clear()
-            // Finished training — drop squad presence so squadmates stop seeing
-            // us as live (best-effort; the row also auto-expires after 3h).
-            Task { await services.squadPresence.clearPresence(userId: uid) }
-
-            var summary = makeRewardSequenceSummary(
-                performanceLog: performanceLog,
-                completionResult: completionResult,
-                rankTrialResult: rankTrialResult
-            )
-            // Tag the final beat so it can offer an opt-in post-workout photo
-            // linked to this session. Travels with the summary into the gate tail too.
-            summary.workoutPhotoContext = WorkoutPhotoSummary(performanceLog: performanceLog)
-            let hasReward = totalLoggedWorkingSets > 0
-                || summary.progression?.hasContent == true
-                || summary.rankTrialCallout != nil
-            saving = false
-            if let rt = rankTrialResult, rt.didAdvanceRank {
-                // The Crossing IS the gate's reward moment and rank-up announcement;
-                // chain the remaining spoils afterward, minus the redundant verdict beat.
-                pendingGateDefiningNumber = gateDefiningNumber(rt.evaluation)
-                stashedGateRewardSummary = gateRewardTail(from: summary)
-                pendingGateCrossing = GateCrossingCatalog.crossing(for: rt.definition.format)
-            } else if let rt = rankTrialResult, !rt.evaluation.passed {
-                // Failed gate — "THE GATE HOLDS" verdict + ENTER AGAIN. The
-                // sequence is skipped, so the verdict carries a one-line spoils
-                // note or the banked XP/Arcs would vanish invisibly.
-                pendingGateVerdict = GateVerdictContext(
-                    evaluation: rt.evaluation,
-                    world: GateWorldCatalog.world(for: rt.definition.format),
-                    spoils: gateSpoilsLine(from: summary))
-            } else if hasReward {
-                rewardSequence = summary
-            } else {
-                finishDismiss()
-            }
-        } catch {
-            HapticManager.notification(.error)
-            saving = false
-            saveError = true   // surface it + offer Retry / Leave — never trap
-        }
-    }
-
-    private var gateWorld: GateWorld? {
-        rankTrialDefinition.map { GateWorldCatalog.world(for: $0.format) }
-    }
-
-    /// How many rank-trial stations have a logged working set — drives the beat.
-    private var rankTrialClearedStations: Int {
-        session.rankTrialLoggedStationCount { $0.hasLoggedRankTrialWorkingSet }
-    }
-
-    /// "passed / scored" stations, e.g. "4/4", for the minted gate card.
-    private func gateDefiningNumber(_ evaluation: OverallRankTrialEvaluation) -> String {
-        let scored = evaluation.stationResults.filter(\.isScored)
-        let passed = scored.filter { $0.status == .passed }.count
-        return "\(passed)/\(scored.count)"
-    }
-
-    /// The Crossing IS the rank-up announcement, so the chained reward tail drops
-    /// the redundant rank-trial receipt beat and keeps only the rest of the spoils.
-    private func gateRewardTail(from summary: WorkoutRewardSequenceSummary) -> WorkoutRewardSequenceSummary? {
-        var tail = summary
-        tail.rankTrialCallout = nil
-        let hasTailReward = totalLoggedWorkingSets > 0
-            || tail.progression?.hasContent == true
-            || !tail.badges.isEmpty
-            || tail.xp.total > 0
-        return hasTailReward ? tail : nil
-    }
-
-    /// One quiet line for the fail verdict: the XP/Arcs banked during the
-    /// attempt, which would otherwise never be shown (a failed gate skips the
-    /// reward sequence entirely).
-    private func gateSpoilsLine(from summary: WorkoutRewardSequenceSummary) -> String? {
-        var parts: [String] = []
-        if summary.xp.total > 0 { parts.append("+\(summary.xp.total) XP") }
-        if summary.arcsEarned > 0 { parts.append("+\(summary.arcsEarned) ARCS") }
-        guard !parts.isEmpty else { return nil }
-        return parts.joined(separator: " · ") + " BANKED"
-    }
-
-    private func finishDismiss() {
-        if let onFinished {
-            onFinished()
-        } else {
-            dismiss()
-        }
-    }
-
-    private func finishRewardSequence() {
-        guard !isFinishingRewardSequence else { return }
-        isFinishingRewardSequence = true
-        rewardSequence = nil
-        if !isRehearsal {
-            AppStoreReviewPrompt.requestAfterFirstRealWorkoutIfNeeded()
-        }
-        finishDismiss()
-    }
-}
-
-extension ActiveWorkoutContainerView {
-    var editWeightUnit: TrainingWeightUnit {
-        TrainingWeightUnit(rawValue: weightUnitRaw) ?? .localeDefault
     }
 }

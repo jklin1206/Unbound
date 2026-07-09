@@ -14,13 +14,13 @@ struct Step_ProblemFrame: View {
     @State private var hasAnimated = false
     @State private var visibleLines = 0
 
-    // The open question, then WHY regular fitness feels boring. The game is
-    // the next screen's answer — this one only names the emptiness.
+    // Continues the SYSTEM's voice from the cost beat: names why the old way
+    // never held (no stakes), then hands into the game. Two tight lines; any
+    // more reads as a wall of text under the silhouette.
     private var storyLines: [String] {
         [
-            L10n.onboarding("problemOpening.story.silence", defaultValue: "Right now training is sets, reps, and silence."),
-            L10n.onboarding("problemOpening.story.stakes", defaultValue: "No score. No rank. Nothing at stake."),
-            L10n.onboarding("problemOpening.story.noticed", defaultValue: "You show up and nothing notices.")
+            L10n.onboarding("problemOpening.story.silence", defaultValue: "No rank. No proof. Not yet."),
+            L10n.onboarding("problemOpening.story.stakes", defaultValue: "That changes the moment you begin.")
         ]
     }
 
@@ -37,12 +37,12 @@ struct Step_ProblemFrame: View {
                 Spacer().frame(height: 44)
 
                 VStack(spacing: 9) {
-                    Text(L10n.onboarding("problemOpening.eyebrow", defaultValue: "DAY ZERO"))
-                        .font(Font.unbound.monoS)
-                        .tracking(2.0)
-                        .foregroundStyle(Color.unbound.accent)
+                    Text(L10n.onboarding("problemOpening.eyebrow", defaultValue: "[ SYSTEM ]"))
+                        .font(.system(size: 12, weight: .black, design: .monospaced))
+                        .tracking(2.4)
+                        .foregroundStyle(Color.unbound.coachCyan)
 
-                    Text(L10n.onboarding("problemOpening.title", defaultValue: "What if training played like a game?"))
+                    Text(L10n.onboarding("problemOpening.title", defaultValue: "Right now, you are no one here."))
                         .font(Font.unbound.displayM)
                         .foregroundStyle(Color.unbound.textPrimary)
                         .multilineTextAlignment(.center)
@@ -67,24 +67,24 @@ struct Step_ProblemFrame: View {
 
                 Spacer(minLength: 8)
 
-                VStack(alignment: .trailing, spacing: 10) {
+                VStack(alignment: .center, spacing: 10) {
                     ForEach(Array(storyLines.enumerated()), id: \.offset) { index, line in
                         Text(line)
                             .font(Font.unbound.bodyL.weight(.semibold))
                             .foregroundStyle(Color.unbound.textPrimary.opacity(0.94))
-                            .multilineTextAlignment(.trailing)
+                            .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
                             .shadow(color: .black.opacity(0.8), radius: 3, y: 1)
                             .opacity(visibleLines > index ? 1 : 0)
                             .offset(y: visibleLines > index ? 0 : 10)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal, 28)
 
                 Spacer(minLength: 20)
 
-                UnboundButton(title: L10n.onboarding("problemOpening.cta", defaultValue: "Show me the game"), icon: "arrow.right", action: onContinue)
+                UnboundButton(title: L10n.onboarding("problemOpening.cta", defaultValue: "Change the game"), icon: "arrow.right", action: onContinue)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                     .opacity(visibleLines >= storyLines.count ? 1 : 0)

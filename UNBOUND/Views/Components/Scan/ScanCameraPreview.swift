@@ -23,23 +23,15 @@ struct ScanCameraPreview: UIViewRepresentable {
 }
 
 /// UIView that owns the AVCaptureVideoPreviewLayer and keeps it sized to bounds.
-/// Mirrored on layout to match selfie behavior.
+/// Orientation + selfie mirroring are owned by `ImageCaptureService` (via its
+/// RotationCoordinator); this view only keeps the layer filling its bounds so it
+/// never fights the service for the connection's rotation angle.
 final class ScanCameraPreviewHostView: UIView {
     private var previewLayer: AVCaptureVideoPreviewLayer?
 
     func attach(previewLayer: AVCaptureVideoPreviewLayer) {
         self.previewLayer?.removeFromSuperlayer()
         previewLayer.videoGravity = .resizeAspectFill
-        if let connection = previewLayer.connection {
-            if connection.isVideoMirroringSupported {
-                connection.automaticallyAdjustsVideoMirroring = false
-                connection.isVideoMirrored = true
-            }
-            let portraitAngle: CGFloat = 90
-            if connection.isVideoRotationAngleSupported(portraitAngle) {
-                connection.videoRotationAngle = portraitAngle
-            }
-        }
         previewLayer.frame = bounds
         layer.addSublayer(previewLayer)
         self.previewLayer = previewLayer
