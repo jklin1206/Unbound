@@ -12,7 +12,11 @@ Movement/exercise identity layer: the canonical `MovementCatalog` of `MovementDe
 | `ExerciseLibrarySearch.swift` | Exercise-library search model: `ExerciseLibrarySearchSignals` (Recent/Favorite badges), `ExerciseLibraryCompatibilityState`, `ExerciseLibrarySearchResult`, `ExerciseLibraryContextFilter`. |
 | `ExercisePreference.swift` | `ExercisePreferenceStatus` (available / substitute / avoid — the YES/SUB/NO marks) + `ExercisePreference` record. |
 | `MovementCatalog.swift` | `enum MovementCatalog` — assembles the canonical `definitions: [MovementDefinition]` list from skill-tree definitions + every `ExerciseCatalog` exercise. |
-| `MovementCatalog+Classification.swift` | Classification tables, e.g. `variantRankStandardNames` mapping exercise variants ("wide grip lat pulldown") to their rank-standard movement ("lat pulldown"). |
+| `MovementCatalog+ClassificationAssociations.swift` | Associated classification metadata: `substitutionGroup`, `skillAssociations`, `contraindicationTags`, logger mode/metric, and `exerciseAliases` for logged-name matching. |
+| `MovementCatalog+ClassificationBodyRegions.swift` | `bodyRegions(for:)` — which `BodyRegion`s an exercise (or raw muscle group list) trains, with isolation-exercise overrides. |
+| `MovementCatalog+ClassificationIdentity.swift` | Rank-standard identity tables: `variantRankStandardNames` (variant → rank-standard movement, e.g. "wide grip lat pulldown" → "lat pulldown"), `exerciseSkillTwins` / `skillDrillCanonicalStandard` / `owningSkillId`, and the `exerciseAttributeWeights` feed. |
+| `MovementCatalog+ClassificationSelection.swift` | Program-generation selection: `movementSlot` mapping, `alternativeScore` / `programScore` ranking, and equipment capability resolution (`movementCapabilities`, `requiredProgramEquipment`). |
+| `MovementCatalog+ClassificationTraits.swift` | Per-exercise traits derived from the exercise name: `blockKind`, `rankTemplate`, `equipment(for:)`, `difficulty`. |
 | `MovementCatalog+Definitions.swift` | Additional `MovementDefinition` tables, e.g. `cardioDefinitions` generated from `CardioType` with aliases and attribute weights. |
 | `MovementCoaching.swift` | `enum MovementCoaching` — curated form cues + common mistakes for non-skill gym lifts (specific by canonical name, with a `MovementSlot` pattern fallback). `resolved(for:)` is the shared entry the rank detail uses; skill-linked movements borrow their skill node's cues instead. |
 | `MovementCatalogTypes.swift` | The catalog's enum vocabulary: `MovementRole`, `MovementLoggerMode`, `MovementVariationTag`, `MovementRankTemplate`, `MovementEquipment`. |
@@ -23,8 +27,8 @@ Movement/exercise identity layer: the canonical `MovementCatalog` of `MovementDe
 
 ## Where to find X
 
-- **"What movement is this logged string?" (name → identity):** `MovementResolver.swift`, normalization + alias tables in `MovementCatalog.swift` / `MovementCatalog+Classification.swift`
-- **Which rank standard a variant rolls up to:** `MovementCatalog+Classification.swift` (`variantRankStandardNames`)
+- **"What movement is this logged string?" (name → identity):** `MovementResolver.swift`, normalization in `MovementCatalog.swift`, alias tables in `MovementCatalog+ClassificationAssociations.swift`
+- **Which rank standard a variant rolls up to:** `MovementCatalog+ClassificationIdentity.swift` (`variantRankStandardNames`)
 - **Adding or auditing catalog entries:** `MovementCatalog.swift` / `MovementCatalog+Definitions.swift`, validated by `MovementCatalogValidation.swift`
 - **Whether a set counts as proof for a skill/tier:** `MovementProofMatcher.swift`
 - **Gym exercise list by pattern (program gen, preferences):** `ExerciseCatalog.swift` + `ExercisePreference.swift`

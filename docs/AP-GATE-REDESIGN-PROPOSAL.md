@@ -290,3 +290,11 @@ check. Accumulated rank **stays as a profile stat** — we just stop gating on i
   distinct so the two axes stay separate.
 - Reach-time numbers (§4) are unverified until the new AP value lands and the sim is
   re-run with attribute/level tracking instrumented.
+
+## Addendum - movement-key retune (2026-07-09)
+
+The gate-key pacing harness (`GateKeyPacingSimulationTests`) showed the `movementsAtRank` keys were non-binding at the top gates: a gym intermediate's experience head start turned "4 @ Master" months before The Threshold's L72 level floor.
+Retune: Seven Seals `movements(3, veteran)` → `movements(4, master)`; The Threshold `movements(4, master)` → `movements(5, vessel)`; The Last Gate `movements(4, master)` → `movements(6, vessel)`; every attribute key, the earlier gates' movement keys, and `gatesAnswered(7)` are unchanged.
+Requiring Ascendant was rejected as too elite (the harness puts Ascendant-tier lifts at year 4-6 for a dedicated trainee); Vessel keeps the top keys binding but reachable, so the old "capped at Master" rule becomes "capped at Vessel."
+The counts only rise because the counted pool widened with them: `gateKeyMovementTiers` now spans all skills plus every loaded movement StrengthStandards ranks (the 6 compounds incl. barbell row, weighted pull-up, and the accessory families - counted one per FAMILY and deduped by canonical identity, tiered by the same `movement_progress` / `MovementProgressTierResolver` computation the rank library shows) instead of skills + the big-4 only.
+The cosmetic aggregate (`LiftTierService`, `RankService.aggregateTier`) is untouched - this retune moves trial gating only.

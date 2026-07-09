@@ -20,14 +20,17 @@ final class GateKeysTests: XCTestCase {
                        [.attributesAtRank(count: 2, rank: .forged), .movementsAtRank(count: 3, rank: .forged)])
         XCTAssertEqual(metrics(.theAscent),
                        [.attributesAtRank(count: 2, rank: .veteran), .movementsAtRank(count: 3, rank: .veteran)])
+        // Top gates (2026-07-09 retune): movement keys tightened onto the
+        // widened skills-or-lifts pool - counts 4/5/6, required rank one tier
+        // below the gate target capped at Vessel. Attribute keys unchanged.
         XCTAssertEqual(metrics(.sevenSeals),
-                       [.attributesAtRank(count: 3, rank: .veteran), .movementsAtRank(count: 3, rank: .veteran)])
+                       [.attributesAtRank(count: 3, rank: .veteran), .movementsAtRank(count: 4, rank: .master)])
         XCTAssertEqual(metrics(.theThreshold),
-                       [.attributesAtRank(count: 3, rank: .master), .movementsAtRank(count: 4, rank: .master)])
+                       [.attributesAtRank(count: 3, rank: .master), .movementsAtRank(count: 5, rank: .vessel)])
 
         // The final gate also adds the structural "prior gates cleared" meta-gate.
         XCTAssertEqual(metrics(.theLastGate),
-                       [.gatesAnswered(7), .attributesAtRank(count: 3, rank: .master), .movementsAtRank(count: 4, rank: .master)])
+                       [.gatesAnswered(7), .attributesAtRank(count: 3, rank: .master), .movementsAtRank(count: 6, rank: .vessel)])
     }
 
     // MARK: - "Any K attributes at rank R"
@@ -153,6 +156,100 @@ final class GateKeysTests: XCTestCase {
         XCTAssertFalse(oneShort.satisfies(key, bodyweightKg: 70))
         XCTAssertTrue(higherTiersAlsoCount.satisfies(key, bodyweightKg: 70))
         XCTAssertFalse(belowRankDoesNotCount.satisfies(key, bodyweightKg: 70))
+    }
+
+    // MARK: - Widened movement pool (skills + every StrengthStandards-ranked lift)
+
+    func testGateKeyMovementPoolCountsAccessoryFamilyAndRowAndCollapsesVariants() throws {
+        // 80kg male. Two bench VARIANTS (must count once), barbell row, and two
+        // curl VARIANTS (one accessory FAMILY, must count once) + a lat
+        // pulldown (verticalPull family) - 6 logged standards, 4 movements.
+        let bodyweight = 80.0
+        let states = [
+            loadedState("Bench Press", id: "exercise.bench-press", loadKg: 130),
+            loadedState("Incline Bench Press", id: "exercise.incline-bench-press", loadKg: 120),
+            loadedState("Barbell Row", id: "exercise.barbell-row", loadKg: 100),
+            loadedState("Lat Pulldown", id: "exercise.lat-pulldown", loadKg: 80, template: .machineStrength),
+            loadedState("Cable Curl", id: "exercise.cable-curl", loadKg: 40, template: .machineStrength),
+            loadedState("EZ Bar Curl", id: "exercise.ez-bar-curl", loadKg: 52, template: .machineStrength)
+        ]
+        let pool = TrialReadinessService.gateKeyMovementTierPool(
+            skillTiers: .empty,
+            progressStates: states,
+            bodyweightKg: bodyweight,
+            sex: .male
+        )
+
+        XCTAssertEqual(pool.count, 4, "6 logged standards must dedupe to 4 canonical movements")
+
+        // Tiers come from the SAME StrengthStandards math the rank library
+        // shows; per identity the best variant wins.
+        func expectedTier(_ key: String, _ loadKg: Double) throws -> RankTier {
+            try XCTUnwrap(StrengthStandards.rank(
+                liftKg: loadKg, bodyweightKg: bodyweight, exerciseKey: key, sex: .male
+            ))
+        }
+        let expected = try [
+            expectedTier("bench press", 130),      // best bench variant
+            expectedTier("barbell row", 100),
+            expectedTier("lat pulldown", 80),
+            expectedTier("ez bar curl", 52)        // best curl-family variant
+        ]
+        XCTAssertEqual(pool.sorted(), expected.sorted())
+
+        // The widened pool feeds the real key: sevenSeals' movement key (read
+        // off the gate) turns only because the accessory family and barbell
+        // row count - with the curl family removed the pool is one short, and
+        // the surviving bench duplicate must not fill the gap.
+        let key = try XCTUnwrap(GateKeys.keys(for: .sevenSeals).first {
+            if case .movementsAtRank = $0.metric { return true }
+            return false
+        })
+        XCTAssertTrue(FixtureGateKeyHistory(movementTiers: pool).satisfies(key, bodyweightKg: bodyweight))
+
+        let withoutCurls = TrialReadinessService.gateKeyMovementTierPool(
+            skillTiers: .empty,
+            progressStates: states.filter { !$0.displayName.contains("Curl") },
+            bodyweightKg: bodyweight,
+            sex: .male
+        )
+        XCTAssertEqual(withoutCurls.count, 3)
+        XCTAssertFalse(FixtureGateKeyHistory(movementTiers: withoutCurls).satisfies(key, bodyweightKg: bodyweight))
+    }
+
+    func testGateKeyMovementPoolFoldsSkillOwnedLoadedStandardsIntoTheSkill() {
+        // Weighted pull-up is BOTH a loaded standard and a skill node; the
+        // owning-skill join makes the skill the single rank source, so the
+        // pair must count as ONE movement.
+        let skillTiers = UserSkillTierState(
+            perSkill: ["pp.weighted-pullup": .vessel],
+            rankUpsEarned: 0,
+            ascendantSkills: []
+        )
+        let pool = TrialReadinessService.gateKeyMovementTierPool(
+            skillTiers: skillTiers,
+            progressStates: [
+                loadedState("Weighted Pull-Up", id: "exercise.weighted-pullup", loadKg: 40, template: .weightedBodyweight)
+            ],
+            bodyweightKg: 80,
+            sex: .male
+        )
+        XCTAssertEqual(pool, [.vessel])
+    }
+
+    private func loadedState(
+        _ displayName: String,
+        id: String,
+        loadKg: Double,
+        template: MovementRankTemplate = .barbellStrength
+    ) -> MovementProgressState {
+        MovementProgressState(
+            userId: "u1",
+            rankStandardMovementId: id,
+            displayName: displayName,
+            rankTemplate: template,
+            bestLoadKg: loadKg
+        )
     }
 
     // MARK: - Fixtures

@@ -44,7 +44,7 @@ The readiness requirements are built in `TrialReadinessService.requirementLines`
 2. **Equipment** - your gear must resolve a runnable loadout (`resolution.isReady`).
 3. **Gate keys** for the gate's `format`, defined in `GateKeys.swift`. Two kinds, both kept light and achievable:
    - `attributesAtRank` - "have K attributes at rank R" (build-expressive; you pick which axes).
-   - `movementsAtRank` - "have K proven movements at rank R" (any skills or the 4 barbell compounds; required rank stays one tier below the gate target, capped at Master). Counted from `gateKeyMovementTiers` = skill tiers (`UserSkillTierStore`) + lift tiers (`LiftTierService`).
+   - `movementsAtRank` - "have K proven movements at rank R" (any skills or any loaded lifts `StrengthStandards` ranks: the 6 compounds incl. barbell row, weighted pull-up, and the accessory families counted one per FAMILY; required rank stays one tier below the gate target, capped at Vessel, with counts 4/5/6 on the top three gates). Counted from `gateKeyMovementTiers` = skill tiers (`UserSkillTierStore`) + loaded-movement tiers from `movement_progress` (`MovementProgressTierResolver` - the same tiers the rank library shows), deduped by canonical identity in `TrialReadinessService.gateKeyMovementTierPool`.
    K and R scale per gate; `GateKeys.swift` is the source for the exact numbers, and the final gate also needs `gatesAnswered(7)`.
 
 Both gate keys ultimately reflect your trained exercises (attribute ranks and movement tiers are both derived from what you log).

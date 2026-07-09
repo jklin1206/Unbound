@@ -215,6 +215,77 @@ final class SkillStandardConsistencyTests: XCTestCase {
         )
     }
 
+    // MARK: - nodeProgress name gate (reward-card path)
+
+    /// `nodeProgress` must name-gate authored variant ladders exactly like the
+    /// exercise-key path: a raw rep count logged as one variant must NOT clear
+    /// rungs whose criterion names a different variant (1 nordic curl is not
+    /// the one-leg nordic curl Unbound rung), while the correctly-named
+    /// variant still clears its own rung.
+    func testNodeProgressNameGatesAuthoredVariantLadders() {
+        // 1 rep logged AS the node's own movement clears its Forged rung
+        // ("nordic curl" ×1) — pre-fix this graded .unbound off the one-leg
+        // rung's reps(1) threshold.
+        XCTAssertEqual(
+            SkillStandards.nodeProgress(skillId: "ld.nordic-curl", exerciseKey: "nordic curl", peakReps: 1, peakSeconds: 0)?.current,
+            .forged
+        )
+
+        // Even a huge rep count of the base movement caps at the highest rung
+        // NAMING it (Master, "nordic curl" ×3) — Vessel+ name other variants.
+        let maxed = SkillStandards.nodeProgress(skillId: "ld.nordic-curl", exerciseKey: "nordic curl", peakReps: 50, peakSeconds: 0)
+        XCTAssertEqual(maxed?.current, .master)
+        XCTAssertNil(maxed?.next, "no rung above Master names 'nordic curl' — next must be gated out")
+        XCTAssertNil(
+            SkillStandards.nodeNextThresholdText(skillId: "ld.nordic-curl", exerciseKey: "nordic curl", peakReps: 50, peakSeconds: 0),
+            "micro-target text must not point at another variant's rung"
+        )
+
+        // The correctly-named variants still clear their own rungs.
+        XCTAssertEqual(
+            SkillStandards.nodeProgress(skillId: "ld.nordic-curl", exerciseKey: "one-leg nordic curl", peakReps: 1, peakSeconds: 0)?.current,
+            .unbound
+        )
+        XCTAssertEqual(
+            SkillStandards.nodeProgress(skillId: "ld.nordic-curl", exerciseKey: "nordic curl negative", peakReps: 5, peakSeconds: 0)?.current,
+            .apprentice
+        )
+    }
+
+    /// Normal single-movement nodes must behave identically with the gate —
+    /// the logged name IS the node movement, so every rung stays reachable and
+    /// the walk matches the ungated one.
+    func testNodeProgressUnchangedForSingleMovementNodes() {
+        let authoredVariantLadders: Set<String> = ["ld.pistol-squat", "ld.shrimp-squat", "ld.nordic-curl"]
+        for (name, node) in repMovements where !authoredVariantLadders.contains(node) {
+            for reps in [1, 5, 12, 25, 50] {
+                let gated = SkillStandards.nodeProgress(skillId: node, exerciseKey: name, peakReps: reps, peakSeconds: 0)
+                let ungated = SkillStandards.nodeProgress(skillId: node, exerciseKey: nil, peakReps: reps, peakSeconds: 0)
+                XCTAssertEqual(gated?.current, ungated?.current, "\(name) @ \(reps) reps")
+                XCTAssertEqual(gated?.next, ungated?.next, "\(name) @ \(reps) reps")
+            }
+        }
+        for (name, node) in holdMovements {
+            for seconds in [10, 30, 60, 120] {
+                let gated = SkillStandards.nodeProgress(skillId: node, exerciseKey: name, peakReps: 0, peakSeconds: seconds)
+                let ungated = SkillStandards.nodeProgress(skillId: node, exerciseKey: nil, peakReps: 0, peakSeconds: seconds)
+                XCTAssertEqual(gated?.current, ungated?.current, "\(name) @ \(seconds)s")
+                XCTAssertEqual(gated?.next, ungated?.next, "\(name) @ \(seconds)s")
+            }
+        }
+    }
+
+    /// A key that names NO rung of a ladder cannot gate it (vocabulary drift
+    /// between a node's target text and its anchor text, e.g. pp.row's
+    /// "inverted row" target vs its "row" anchor, must never zero a node) —
+    /// the walk falls back to the ungated pre-fix behavior.
+    func testNodeProgressForeignKeyFallsBackToUngatedWalk() {
+        let ungated = SkillStandards.nodeProgress(skillId: "pp.pullup", exerciseKey: nil, peakReps: 6, peakSeconds: 0)
+        let foreign = SkillStandards.nodeProgress(skillId: "pp.pullup", exerciseKey: "step up", peakReps: 6, peakSeconds: 0)
+        XCTAssertEqual(foreign?.current, ungated?.current)
+        XCTAssertEqual(foreign?.next, ungated?.next)
+    }
+
     func testDefyingGravityLegGoalPlansNameTheAuthoredRungs() {
         func names(for skillId: String) -> Set<String> {
             guard let plan = SkillTrainingPlanLibrary.plan(for: skillId) else {

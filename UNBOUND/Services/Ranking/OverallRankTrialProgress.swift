@@ -185,6 +185,9 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
     let aggregateRank: RankTier
     let equipment: Set<MovementEquipment>
     let clearedGateKeys: Set<String>
+    /// Movement-tier pool behind the `movementsAtRank` key, used for progress
+    /// copy ("3 of 5"); empty when the caller didn't compute it.
+    let gateKeyMovementTiers: [RankTier]
     let attempts: [OverallRankTrialAttempt]
 
     init(
@@ -194,6 +197,7 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
         aggregateRank: RankTier,
         equipment: Set<MovementEquipment> = [.bodyweight],
         clearedGateKeys: Set<String>,
+        gateKeyMovementTiers: [RankTier] = [],
         attempts: [OverallRankTrialAttempt] = []
     ) {
         self.userId = userId
@@ -202,6 +206,7 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
         self.aggregateRank = aggregateRank
         self.equipment = equipment
         self.clearedGateKeys = clearedGateKeys
+        self.gateKeyMovementTiers = gateKeyMovementTiers
         self.attempts = attempts
     }
 }
