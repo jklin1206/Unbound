@@ -59,7 +59,13 @@ final class BadgeService: BadgeServiceProtocol {
     private let defaults = UserDefaults.standard
     private let database = DatabaseService.shared
     private let workoutLogService: WorkoutLogServiceProtocol = WorkoutLogService.shared
-    private let keyPrefix = "unbound.badges."
+
+    /// Optional cloud mirror fired after `evaluate` persists new unlocks —
+    /// several badges are NOT recomputable after a reinstall (streak badges
+    /// unlock at a transient streak peak; `first_*` badges scan a bounded log
+    /// window). The production singleton wires the real backup; tests may nil
+    /// it so evaluation never touches the outbox / SyncedDatabase.
+    var achievementsBackup: (any AchievementsBackuping)? = AchievementsCloudBackup.shared
 
     private var boundUserId: String?
 
@@ -100,6 +106,9 @@ final class BadgeService: BadgeServiceProtocol {
 
         if !newlyUnlocked.isEmpty {
             persistUnlocked(unlocked, userId: userId)
+            // Mirror the freshly persisted unlock map onto the synced `users`
+            // doc. Fire-and-forget; local remains authoritative.
+            achievementsBackup?.backup(userId: userId)
             for badge in newlyUnlocked {
                 // Each badge also grants a wearable profile title.
                 WeeklyVowsService.shared.unlockBadgeTitle(badgeId: badge.id, userId: userId)
@@ -399,16 +408,12 @@ final class BadgeService: BadgeServiceProtocol {
 
     // MARK: Persistence
 
-    private func key(for userId: String) -> String { keyPrefix + userId }
-
     private func loadUnlocked(userId: String) -> [String: Date] {
-        guard let data = defaults.data(forKey: key(for: userId)) else { return [:] }
-        return (try? JSONDecoder.unbound.decode([String: Date].self, from: data)) ?? [:]
+        BadgeUnlockStore.load(userId: userId, defaults: defaults)
     }
 
     private func persistUnlocked(_ map: [String: Date], userId: String) {
-        guard let data = try? JSONEncoder.unbound.encode(map) else { return }
-        defaults.set(data, forKey: key(for: userId))
+        BadgeUnlockStore.save(map, userId: userId, defaults: defaults)
     }
 
     private func userIdFor(_ trigger: BadgeTrigger) -> String? {
@@ -417,6 +422,27 @@ final class BadgeService: BadgeServiceProtocol {
         case .rankAdvanced(let advance): return advance.userId
         default: return boundUserId
         }
+    }
+}
+
+// MARK: - BadgeUnlockStore
+
+/// Persistence for the badgeId -> unlockedAt map, split from the service so
+/// the cloud backup/restore seam (`AchievementsCloudBackup`) reads and writes
+/// the SAME key + ISO-8601 encoding without crossing the @MainActor boundary.
+/// Keep the key prefix + `JSONEncoder.unbound` pair in lockstep — decoding
+/// with a mismatched date strategy silently drops the whole map.
+enum BadgeUnlockStore {
+    private static let keyPrefix = "unbound.badges."
+
+    static func load(userId: String, defaults: UserDefaults = .standard) -> [String: Date] {
+        guard let data = defaults.data(forKey: keyPrefix + userId) else { return [:] }
+        return (try? JSONDecoder.unbound.decode([String: Date].self, from: data)) ?? [:]
+    }
+
+    static func save(_ map: [String: Date], userId: String, defaults: UserDefaults = .standard) {
+        guard let data = try? JSONEncoder.unbound.encode(map) else { return }
+        defaults.set(data, forKey: keyPrefix + userId)
     }
 }
 

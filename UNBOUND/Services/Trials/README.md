@@ -6,6 +6,7 @@ The Weekly Vows system — historically named "Trials", and most types here carr
 
 | File | Purpose |
 | --- | --- |
+| `AchievementsCloudBackup.swift` | Cloud mirror for the durable achievements: patches titles/kept-vows/lane counters/ledgers + badge map onto the synced `users` doc (`achievementsBackup` field) and seeds them back on restore with never-regressing union merges. |
 | `TitleCatalog.swift` | Single naming source for `TitleID` → display name: rank titles (The Unwritten → Gatebreaker), axis titles (the axis's `BuildClass` name), badge/shop/squad paths, plus legacy v1 cardKind names. |
 | `TitleGrants.swift` | Entitlement + granting for rank and axis titles: pure `entitledTitles(confirmedRank:profile:)` and quiet `reconcile` backfill (announced grants live at the crossing sites in `OverallRankTrialRunner` / `AttributeService`). |
 | `TrialsNotifications.swift` | `Notification.Name` constants for vow lifecycle (+ legacy `trial*` adapter names) and the `TrialsService = WeeklyVowsService` typealias. |
@@ -25,3 +26,4 @@ The Weekly Vows system — historically named "Trials", and most types here carr
 - **Vow lifecycle orchestration + state** → `TrialsService.swift` + `TrialsStore.swift`.
 - **Title names + who earns which title** → `TitleCatalog.swift` (names) + `TitleGrants.swift` (entitlement/backfill).
 - **Vow badge milestones** → `VowBadgeTrack.swift`.
+- **Cloud backup/restore of titles, kept vows + badges** → `AchievementsCloudBackup.swift` (hooked from `TrialsStore.save` and `BadgeService.evaluate`).

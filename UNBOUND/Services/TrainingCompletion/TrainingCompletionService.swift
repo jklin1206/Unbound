@@ -274,6 +274,17 @@ final class TrainingCompletionService {
             documentId: record.id
         )
 
+        // Both progression writers have finished by here — movement ingest
+        // (progressionResult -> MovementProgressService.ingestStrict) and load
+        // progression (recordLoadProgression -> ProgressionEngine.ingest) — so
+        // mirror the local-only progression collections to the users doc.
+        // Fire-and-forget: completion UX never blocks on the patch, and the
+        // backup's ordered tail chain keeps rapid completions in order.
+        let backupUserId = performanceLog.userId
+        Task {
+            await ProgressSnapshotCloudBackup.shared.backup(userId: backupUserId)
+        }
+
         return result
     }
 

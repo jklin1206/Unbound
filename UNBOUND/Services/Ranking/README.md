@@ -20,6 +20,7 @@ Per-lift RankTier and skill-tier state, the overall rank-trial system (the gym e
 | `RankService.swift` | Owns per-lift `RankTier` state, triggered from ProgressionEngine on every ingested log; emits `.rankAdvanced`. Ratio/added-load/rep/hold anchors per lift family. |
 | `RankServiceProtocol.swift` | Protocol: pure `computeTier(skill:history:bodyweightKg:)` + `evaluateTierCrossings(log:userId:)`. |
 | `RankTrialLoadoutResolver.swift` | Resolves a trial definition + the user's available equipment into a concrete `RankTrialResolution` (preferred loadout variant, blockers). |
+| `SessionXPCloudBackup.swift` | Mirrors the session-XP streak record + bonus ledger onto the synced `users` doc (`streakBackup` jsonb) through the outbox choke point, and seeds the local store back on launch via the never-regressing `SessionXPRecord.merging` — so a reinstall restores the streak instead of zeroing it (`SessionXPBackuping`). |
 | `SessionXPService.swift` | Session record + streak/weekly counters with a source-idempotent `recordSession` variant; posts `.sessionXPUpdated`. |
 | `SkillTierMigration.swift` | One-time idempotent migration that walks full log history to seed `UserSkillTierState` (called from `UnboundApp` RootView task). |
 | `TierCriterionEvaluator.swift` | Pure single source of truth for `TierCriterion` semantics against log history (case-insensitive names, warmups excluded, `.seconds` reads `SetLog.durationSeconds`). |
@@ -32,6 +33,6 @@ Per-lift RankTier and skill-tier state, the overall rank-trial system (the gym e
 - **How a lift's rank/tier is computed** → `RankService.swift` (orchestration) + `TierCriterionEvaluator.swift` (criterion semantics).
 - **Rank trials (definitions, readiness, running one)** → `OverallRankTrialDefinitions.swift` → `TrialReadinessService.swift` → `RankTrialLoadoutResolver.swift` → `OverallRankTrialRunner.swift`; model types in `OverallRankTrialService.swift`.
 - **What a finished workout "proves" (unlocks, bests, prereqs)** → `ProofEngine.swift` + `PrereqClearer.swift`.
-- **Streak rules** → `ProgramAwareStreakPolicy.swift`; counters persist via `SessionXPService.swift`.
+- **Streak rules** → `ProgramAwareStreakPolicy.swift`; counters persist via `SessionXPService.swift` and mirror to the cloud via `SessionXPCloudBackup.swift`.
 - **Rank decay / recalibration banner** → `RankDecayService.swift`.
 - **LV/XP multipliers** → `VelocityService.swift` (session XP recording is `SessionXPService.swift`).

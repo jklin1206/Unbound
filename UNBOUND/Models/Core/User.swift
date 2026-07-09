@@ -54,6 +54,19 @@ struct UserProfile: Codable, Identifiable {
     var overallRankTrials: OverallRankTrialProgress?
     var liftTiers: [String: SkillTier]?
 
+    // MARK: Progress cloud backup expansion (2026-07-09)
+    //
+    // The rest of the device-local progress a reinstall would lose, mirrored
+    // the same way: overall level XP (the number every rank gate floors on),
+    // the streak record, a compact movement-tier + working-load snapshot,
+    // wallet/shop/cosmetic state, and titles/kept-vows/badges. Each field is
+    // owned by its matching *CloudBackup service; local stays source of truth.
+    var overallLevelBackup: OverallLevelProgress?
+    var streakBackup: SessionXPBackup?
+    var progressSnapshot: ProgressSnapshot?
+    var rewardsBackup: RewardsBackup?
+    var achievementsBackup: AchievementsBackup?
+
     // MARK: Initializers
     //
     // Swift stops synthesizing the memberwise init once any explicit init
@@ -107,6 +120,8 @@ struct UserProfile: Codable, Identifiable {
         case pactSignature
         case trainingFeedbackMode, trainingStyleOverride, trainingDays, cutMode
         case overallRankTrials, liftTiers
+        case overallLevelBackup, streakBackup, progressSnapshot
+        case rewardsBackup, achievementsBackup
     }
 
     init(from decoder: Decoder) throws {
@@ -153,6 +168,12 @@ struct UserProfile: Codable, Identifiable {
 
         self.overallRankTrials = try c.decodeIfPresent(OverallRankTrialProgress.self, forKey: .overallRankTrials)
         self.liftTiers = try c.decodeIfPresent([String: SkillTier].self, forKey: .liftTiers)
+
+        self.overallLevelBackup = try c.decodeIfPresent(OverallLevelProgress.self, forKey: .overallLevelBackup)
+        self.streakBackup = try c.decodeIfPresent(SessionXPBackup.self, forKey: .streakBackup)
+        self.progressSnapshot = try c.decodeIfPresent(ProgressSnapshot.self, forKey: .progressSnapshot)
+        self.rewardsBackup = try c.decodeIfPresent(RewardsBackup.self, forKey: .rewardsBackup)
+        self.achievementsBackup = try c.decodeIfPresent(AchievementsBackup.self, forKey: .achievementsBackup)
     }
 }
 

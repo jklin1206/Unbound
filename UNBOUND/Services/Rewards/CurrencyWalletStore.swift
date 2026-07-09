@@ -7,7 +7,7 @@ enum ShopPurchaseResult: Equatable {
 }
 
 final class CurrencyWalletStore: ObservableObject {
-    static let shared = CurrencyWalletStore()
+    static let shared = CurrencyWalletStore(backup: RewardsCloudBackup.shared)
 
     private static let balanceKeyPrefix = "unbound.wallet.vows."
     private static let grantLedgerKeyPrefix = "unbound.wallet.vows.grantLedger."
@@ -18,17 +18,24 @@ final class CurrencyWalletStore: ObservableObject {
     #endif
 
     private let defaults: UserDefaults
+    /// Optional cloud mirror. The production `.shared` store wires the real
+    /// backup; test-constructed stores get `nil` so unit tests never touch
+    /// the outbox / SyncedDatabase. Local UserDefaults stays the source of
+    /// truth. Dev-credit short-circuits never fire it — a dev-inflated wallet
+    /// must not be mirrored.
+    private let backup: (any RewardsBackuping)?
     private var userId = "anonymous"
 
     @Published private(set) var balance: Int = 0
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, backup: (any RewardsBackuping)? = nil) {
         self.defaults = defaults
+        self.backup = backup
     }
 
     func bind(userId: String) {
         self.userId = userId
-        if Self.usesUnlimitedDevCredits(userId) {
+        if Self.usesUnlimitedDevCredits(userId, defaults: defaults) {
             balance = Self.debugBalance
             persistStoredBalanceWithoutBroadcast()
             return
@@ -39,32 +46,34 @@ final class CurrencyWalletStore: ObservableObject {
     }
 
     func canAfford(_ amount: Int) -> Bool {
-        if Self.usesUnlimitedDevCredits(userId) { return true }
+        if Self.usesUnlimitedDevCredits(userId, defaults: defaults) { return true }
         return balance >= max(0, amount)
     }
 
     @discardableResult
     func spend(_ amount: Int) -> Bool {
         let price = max(0, amount)
-        if Self.usesUnlimitedDevCredits(userId) {
+        if Self.usesUnlimitedDevCredits(userId, defaults: defaults) {
             restoreDebugBalance()
             return true
         }
         guard balance >= price else { return false }
         balance -= price
         persist()
+        backup?.backup(userId: userId)
         return true
     }
 
     func grant(_ amount: Int) {
         let reward = max(0, amount)
         guard reward > 0 else { return }
-        if Self.usesUnlimitedDevCredits(userId) {
+        if Self.usesUnlimitedDevCredits(userId, defaults: defaults) {
             restoreDebugBalance()
             return
         }
         balance += reward
         persist()
+        backup?.backup(userId: userId)
     }
 
     func hasGranted(sourceId: String) -> Bool {
@@ -79,24 +88,50 @@ final class CurrencyWalletStore: ObservableObject {
 
         var ledger = Set(defaults.stringArray(forKey: Self.grantLedgerKeyPrefix + userId) ?? [])
         guard !ledger.contains(sourceId) else {
-            if Self.usesUnlimitedDevCredits(userId) { restoreDebugBalance() }
+            if Self.usesUnlimitedDevCredits(userId, defaults: defaults) { restoreDebugBalance() }
             return false
         }
         ledger.insert(sourceId)
         defaults.set(ledger.sorted(), forKey: Self.grantLedgerKeyPrefix + userId)
 
-        if Self.usesUnlimitedDevCredits(userId) {
+        if Self.usesUnlimitedDevCredits(userId, defaults: defaults) {
             restoreDebugBalance()
             return true
         }
         balance += reward
         persist()
+        backup?.backup(userId: userId)
         return true
     }
 
     static func storedBalance(userId: String, defaults: UserDefaults = .standard) -> Int {
-        if usesUnlimitedDevCredits(userId) { return debugBalance }
+        if usesUnlimitedDevCredits(userId, defaults: defaults) { return debugBalance }
         return defaults.integer(forKey: balanceKeyPrefix + userId)
+    }
+
+    // MARK: - Cloud backup seams
+
+    /// Raw persisted values for `RewardsCloudBackup`. Unlike `storedBalance`,
+    /// these deliberately bypass the DEBUG unlimited-credits short-circuit —
+    /// a dev-inflated read must never be mirrored to the cloud.
+    static func persistedBalance(userId: String, defaults: UserDefaults = .standard) -> Int {
+        defaults.integer(forKey: balanceKeyPrefix + userId)
+    }
+
+    static func persistedGrantLedger(userId: String, defaults: UserDefaults = .standard) -> Set<String> {
+        Set(defaults.stringArray(forKey: grantLedgerKeyPrefix + userId) ?? [])
+    }
+
+    /// Restore-path writes (cloud seed only). Statics on purpose: the seed
+    /// merges into the given user's keys and rebinds any live instance
+    /// afterward so `@Published` state refreshes.
+    static func restorePersisted(balance: Int, userId: String, defaults: UserDefaults = .standard) {
+        defaults.set(balance, forKey: balanceKeyPrefix + userId)
+        NotificationCenter.default.post(name: .vowsBalanceChanged, object: nil)
+    }
+
+    static func restorePersisted(grantLedger: Set<String>, userId: String, defaults: UserDefaults = .standard) {
+        defaults.set(grantLedger.sorted(), forKey: grantLedgerKeyPrefix + userId)
     }
 
     private func persist() {
@@ -121,9 +156,9 @@ final class CurrencyWalletStore: ObservableObject {
         #endif
     }
 
-    private static func usesUnlimitedDevCredits(_ userId: String) -> Bool {
+    private static func usesUnlimitedDevCredits(_ userId: String, defaults: UserDefaults) -> Bool {
         #if DEBUG
-        if UserDefaults.standard.string(forKey: devAccountModeKey) == freshLoginDevAccountMode {
+        if defaults.string(forKey: devAccountModeKey) == freshLoginDevAccountMode {
             return false
         }
         return userId == "dev-player" || userId.hasPrefix("dev-player-")
@@ -134,7 +169,7 @@ final class CurrencyWalletStore: ObservableObject {
 }
 
 final class ShopInventoryStore: ObservableObject {
-    static let shared = ShopInventoryStore()
+    static let shared = ShopInventoryStore(backup: RewardsCloudBackup.shared)
 
     private static let purchasedKeyPrefix = "unbound.shop.inventory."
     private static let equippedHomeBackgroundKeyPrefix = "unbound.shop.equippedHomeBackground."
@@ -144,12 +179,17 @@ final class ShopInventoryStore: ObservableObject {
     private static let equippedProfileBackdropKeyPrefix = "unbound.shop.equippedBackdrop.profile."
 
     private let defaults: UserDefaults
+    /// Optional cloud mirror (see `CurrencyWalletStore.backup`). Fired after
+    /// purchases and equip changes; the snapshot is full-state, so a hook that
+    /// follows a guard-rejected no-op collapses in the redundant-patch cache.
+    private let backup: (any RewardsBackuping)?
     private var userId = "anonymous"
 
     @Published private(set) var purchasedItemIDs: Set<String> = []
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, backup: (any RewardsBackuping)? = nil) {
         self.defaults = defaults
+        self.backup = backup
     }
 
     func bind(userId: String) {
@@ -173,6 +213,7 @@ final class ShopInventoryStore: ObservableObject {
         Self.persist(purchasedItemIDs, userId: userId, defaults: defaults)
         applyReward(item)
         NotificationCenter.default.post(name: .shopInventoryChanged, object: item)
+        backup?.backup(userId: userId)
         return .purchased
     }
 
@@ -248,34 +289,42 @@ final class ShopInventoryStore: ObservableObject {
 
     func setEquippedHomeBackground(_ background: ShopHomeBackgroundID) {
         Self.setEquippedHomeBackground(background, userId: userId, defaults: defaults)
+        backup?.backup(userId: userId)
     }
 
     func clearEquippedHomeBackground() {
         Self.clearEquippedHomeBackground(userId: userId, defaults: defaults)
+        backup?.backup(userId: userId)
     }
 
     func setEquippedProfileBorder(_ border: ShopProfileBorderID) {
         Self.setEquippedProfileBorder(border, userId: userId, defaults: defaults)
+        backup?.backup(userId: userId)
     }
 
     func clearEquippedProfileBorder() {
         Self.clearEquippedProfileBorder(userId: userId, defaults: defaults)
+        backup?.backup(userId: userId)
     }
 
     func setEquippedProfileBackground(_ background: ShopProfileBackgroundID) {
         Self.setEquippedProfileBackground(background, userId: userId, defaults: defaults)
+        backup?.backup(userId: userId)
     }
 
     func setEquippedBackdrop(_ item: ShopItem, for surface: ShopBackdropSurface) {
         Self.setEquippedBackdrop(item, for: surface, userId: userId, defaults: defaults)
+        backup?.backup(userId: userId)
     }
 
     func clearEquippedProfileBackground() {
         Self.clearEquippedProfileBackground(userId: userId, defaults: defaults)
+        backup?.backup(userId: userId)
     }
 
     func clearEquippedBackdrop(for surface: ShopBackdropSurface) {
         Self.clearEquippedBackdrop(for: surface, userId: userId, defaults: defaults)
+        backup?.backup(userId: userId)
     }
 
     static func equippedProfileBorder(userId: String, defaults: UserDefaults = .standard) -> ShopProfileBorderID? {
@@ -422,6 +471,52 @@ final class ShopInventoryStore: ObservableObject {
         case .profile:
             return equippedProfileBackdropKeyPrefix
         }
+    }
+
+    // MARK: - Cloud backup seams
+
+    /// Raw persisted equip-slot values (no ownership filtering): the cloud
+    /// backup mirrors exactly what is stored, and the ownership guard
+    /// re-applies through the setters on restore.
+    struct EquippedSlotSnapshot: Equatable {
+        var homeBackground: String?
+        var homeBackdrop: String?
+        var profileBorder: String?
+        var profileBackground: String?
+        var profileBackdrop: String?
+
+        func backdropItemId(for surface: ShopBackdropSurface) -> String? {
+            switch surface {
+            case .home:
+                return homeBackdrop
+            case .profile:
+                return profileBackdrop
+            }
+        }
+    }
+
+    static func equippedSlotSnapshot(userId: String, defaults: UserDefaults = .standard) -> EquippedSlotSnapshot {
+        EquippedSlotSnapshot(
+            homeBackground: defaults.string(forKey: equippedHomeBackgroundKeyPrefix + userId),
+            homeBackdrop: defaults.string(forKey: equippedHomeBackdropKeyPrefix + userId),
+            profileBorder: defaults.string(forKey: equippedBorderKeyPrefix + userId),
+            profileBackground: defaults.string(forKey: equippedBackgroundKeyPrefix + userId),
+            profileBackdrop: defaults.string(forKey: equippedProfileBackdropKeyPrefix + userId)
+        )
+    }
+
+    /// Union cloud-restored purchase ids into the persisted set (purchases
+    /// are permanent). Ids missing from the current catalog are kept verbatim
+    /// so a backup written by a newer build never loses items. Returns the
+    /// ids that were newly added.
+    @discardableResult
+    static func restorePurchased(_ ids: Set<String>, userId: String, defaults: UserDefaults = .standard) -> Set<String> {
+        let existing = purchasedItemIDs(userId: userId, defaults: defaults)
+        let added = ids.subtracting(existing)
+        guard !added.isEmpty else { return [] }
+        persist(existing.union(added), userId: userId, defaults: defaults)
+        NotificationCenter.default.post(name: .shopInventoryChanged, object: nil)
+        return added
     }
 
     private static func rewards(userId: String, defaults: UserDefaults) -> [ShopItemReward] {

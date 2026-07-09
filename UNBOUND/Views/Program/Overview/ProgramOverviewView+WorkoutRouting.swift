@@ -67,7 +67,7 @@ extension ProgramOverviewView {
         return ProgramWorkoutDraftResolver(
             userId: userId,
             programId: programId,
-            progressionStates: viewModel.progressionStates ?? [:],
+            progressionStates: viewModel.progressionStates,
             modifierContext: modifierContext
         )
         .draft(from: day, date: date)

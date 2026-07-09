@@ -193,7 +193,7 @@ final class WeeklyVowsService: WeeklyVowsServiceProtocol {
         // detached Task) so the grant is part of the seal's completion path and
         // isn't dropped if the app backgrounds immediately after sealing. The
         // grant is idempotent by sourceId.
-        try? await OverallLevelService.shared.grantFlatXPStrict(
+        _ = try? await OverallLevelService.shared.grantFlatXPStrict(
             amount: current.chosenCard.bet.winXP,
             sourceId: "weeklyVowWin:\(current.id)",
             userId: userId,

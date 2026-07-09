@@ -126,9 +126,6 @@ struct RootView: View {
                         try? await services.subscription.login(userId: userId)
                         #endif
 
-                        // Backfill the 6-axis hex from existing logs on first launch
-                        // (no-op if the profile already exists in the store).
-                        await services.attribute.backfillFromExistingLogs(userId: userId)
                         // Trials: roll week on Monday or first launch. Marks prior
                         // uncompleted trial as .missed and generates 3 fresh cards.
                         await services.trials.ensureCurrentWeek(userId: userId)
@@ -157,6 +154,14 @@ struct RootView: View {
                                 ProgramStore.shared.adopt(prog, userId: userId)
                             }
                         }
+                        // Backfill the 6-axis hex from existing logs. Runs AFTER
+                        // restore-on-sign-in so a reinstall replays the restored
+                        // log history instead of seeing an empty local DB; running
+                        // it earlier risks a first post-reinstall workout creating
+                        // a one-session profile that latches the backfill off and
+                        // permanently undercounts attributes. No-op once a profile
+                        // exists in the store.
+                        await services.attribute.backfillFromExistingLogs(userId: userId)
                         // One-time skill-tier migration: replay full log history
                         // to seed UserSkillTierState. Idempotent — guarded by
                         // a UserDefaults flag so it only runs once per user.
@@ -168,6 +173,21 @@ struct RootView: View {
                         // never lower a locally-earned rank or tier.
                         if let profile {
                             RankProgressCloudBackup.shared.seedLocalStores(from: profile, userId: userId)
+                            // Same contract for every seed below: conservative,
+                            // never-regressing merges that only raise or fill
+                            // empty local state, so running on every launch is
+                            // safe. The movement/load snapshot must land before
+                            // MovementProgressConsolidationMigration below so
+                            // consolidation merges restored rows, not a void.
+                            await OverallLevelCloudBackup.shared.seedLocalStores(from: profile, userId: userId)
+                            SessionXPCloudBackup.shared.seedLocalStores(from: profile, userId: userId)
+                            RewardsCloudBackup.shared.seedLocalStores(from: profile, userId: userId)
+                            AchievementsCloudBackup.shared.seedLocalStores(from: profile, userId: userId)
+                            await ProgressSnapshotCloudBackup.shared.seedLocalStores(from: profile, userId: userId)
+                            // Sweep up equips made outside shop flows (rank
+                            // cosmetics, showcase, skin) — free when unchanged
+                            // thanks to the redundant-patch cache.
+                            RewardsCloudBackup.shared.backup(userId: userId)
                         }
                         let bodyweightKg = profile?.weightKg ?? 70.0
                         let logs = (try? await services.workoutLog.fetchLogs(userId: userId, programId: nil)) ?? []
