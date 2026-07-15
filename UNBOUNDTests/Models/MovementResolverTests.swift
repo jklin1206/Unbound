@@ -398,7 +398,7 @@ final class MovementResolverTests: XCTestCase {
             "Variants must resolve directly to a ranked standard:\n\(invalidVariants.joined(separator: "\n"))"
         )
 
-        XCTAssertEqual(MovementCatalog.catalogExercises(for: .pullVertical).count, 21)
+        XCTAssertEqual(MovementCatalog.catalogExercises(for: .pullVertical).count, 22)
         XCTAssertEqual(
             MovementCatalog.catalogExercise(named: "Barbell Bench Press")?.name,
             "bench press"
@@ -924,8 +924,11 @@ final class MovementResolverTests: XCTestCase {
         XCTAssertEqual(hollowRock.rankTemplate, .bodyweightReps)
         XCTAssertEqual(hollowRock.loggerMode, .bodyweightSets)
 
+        // Tucked L-sit follows its core-lever tier (2 → intermediate). The old
+        // .beginner hardcode fed L-sits to never-trained users' general pools
+        // (2026-07-13 generator review, F7).
         let tuckedLSit = MovementCatalog.definition(for: "exercise.l-sit-tucked")
-        XCTAssertEqual(tuckedLSit?.difficulty, .beginner)
+        XCTAssertEqual(tuckedLSit?.difficulty, .intermediate)
 
         let straightBarDip = MovementResolver.resolve("Straight Bar Dip")
         XCTAssertEqual(straightBarDip.movementSlot, .arms)
@@ -1088,5 +1091,191 @@ final class MovementResolverTests: XCTestCase {
             sex: .male,
             blockStartDate: Date(timeIntervalSince1970: 1_700_000_000)
         )
+    }
+
+    // MARK: - Gym vocabulary search
+
+    /// "bicep curl" is the single most common thing a lifter types, and it used
+    /// to return NOTHING: the catalog says "Dumbbell Curl" / "Arms", never
+    /// "bicep", and the matcher required the query to be one contiguous run of
+    /// the joined terms.
+    func testSearchFindsCurlsByTheWordLiftersActuallyType() {
+        let all = ExerciseCatalog.allExercises
+
+        for query in ["bicep curl", "biceps curl", "bicep", "db curl", "curl dumbbell"] {
+            let matches = ExerciseLibrarySearch.filteredAlternatives(all, searchText: query)
+            XCTAssertFalse(matches.isEmpty, "search '\(query)' should find something")
+        }
+
+        let bicepCurl = ExerciseLibrarySearch.filteredAlternatives(all, searchText: "bicep curl")
+        XCTAssertTrue(
+            bicepCurl.contains { $0.name == "dumbbell curl" },
+            "'bicep curl' must surface the Dumbbell Curl"
+        )
+        // Every hit is genuinely a curl — Arms-filed triceps work must not answer
+        // to "bicep" just because it shares a muscle group.
+        XCTAssertTrue(
+            bicepCurl.allSatisfy { $0.name.contains("curl") },
+            "'bicep curl' returned non-curls: \(bicepCurl.map(\.name))"
+        )
+        XCTAssertFalse(bicepCurl.contains { $0.name == "tricep pushdown" })
+
+        let tricep = ExerciseLibrarySearch.filteredAlternatives(all, searchText: "tricep")
+        XCTAssertTrue(tricep.contains { $0.name == "tricep pushdown" })
+        XCTAssertFalse(tricep.contains { $0.name == "dumbbell curl" })
+
+        // Word order must not matter, and the anatomical name still works.
+        XCTAssertTrue(
+            ExerciseLibrarySearch.filteredAlternatives(all, searchText: "curl dumbbell")
+                .contains { $0.name == "dumbbell curl" }
+        )
+    }
+
+    /// The picker filters by BODY PART, not by movement pattern. "Horizontal
+    /// Push" is generator vocabulary; a lifter picks by "Chest".
+    func testExerciseLibraryFiltersByBodyPart() {
+        let all = ExerciseCatalog.allExercises
+
+        let chips = ExerciseLibrarySearch.availableMuscleGroups(in: all)
+        XCTAssertEqual(chips, ExerciseLibrarySearch.muscleFilterOrder.filter { chips.contains($0) },
+                       "chips must keep a stable anatomical order")
+        for expected: MuscleGroup in [.chest, .back, .shoulders, .arms, .legs, .glutes, .core, .traps] {
+            XCTAssertTrue(chips.contains(expected), "expected a \(expected.displayName) chip")
+        }
+
+        let chest = ExerciseLibrarySearch.filteredAlternatives(all, searchText: "", selectedMuscle: .chest)
+        XCTAssertFalse(chest.isEmpty)
+        XCTAssertTrue(chest.allSatisfy { $0.muscleGroups.contains(.chest) })
+        XCTAssertTrue(chest.contains { $0.name == "bench press" })
+        XCTAssertFalse(chest.contains { $0.name == "barbell curl" })
+
+        // Body part cuts ACROSS movement patterns — the whole point. Chest work
+        // lives in horizontal push, but the arms slot holds chest work too.
+        let chestSlots = Set(chest.compactMap { MovementCatalog.canonicalExercise(named: $0.name)?.movementSlot })
+        XCTAssertTrue(chestSlots.contains(.horizontalPush))
+        XCTAssertTrue(chestSlots.contains(.arms), "Dip / bench dip are chest work filed under arms")
+
+        // Traps: previously unreachable by any filter.
+        let traps = ExerciseLibrarySearch.filteredAlternatives(all, searchText: "", selectedMuscle: .traps)
+        XCTAssertTrue(traps.contains { $0.name == "barbell shrug" })
+        XCTAssertTrue(traps.allSatisfy { $0.muscleGroups.contains(.traps) })
+
+        // A body-part chip composes with the text query.
+        let chestCable = ExerciseLibrarySearch.filteredAlternatives(
+            all, searchText: "cable", selectedMuscle: .chest
+        )
+        XCTAssertFalse(chestCable.isEmpty)
+        XCTAssertTrue(chestCable.allSatisfy { $0.muscleGroups.contains(.chest) })
+    }
+
+    /// Traps had no direct work at all in the catalog before the shrug family.
+    func testTrapsHaveDirectWorkAndShrugsResolve() {
+        let all = ExerciseCatalog.allExercises
+        let trapWork = all.filter { $0.muscleGroups.contains(.traps) }
+        XCTAssertFalse(trapWork.isEmpty, "no exercise trains traps")
+
+        let shrugs = ExerciseLibrarySearch.filteredAlternatives(all, searchText: "shrug")
+        XCTAssertGreaterThanOrEqual(shrugs.count, 5, "expected the full shrug family")
+        XCTAssertTrue(
+            ExerciseLibrarySearch.filteredAlternatives(all, searchText: "traps")
+                .contains { $0.name == "barbell shrug" },
+            "'traps' should surface the Barbell Shrug"
+        )
+    }
+
+    /// Shrugs live in the horizontal-pull pattern so they sit with the other
+    /// upper-back pulls — but they are single-joint, so the generator must never
+    /// let one anchor a day in place of an actual row.
+    func testShrugsNeverAnchorADayAsThePrimaryMovement() throws {
+        let shrug = try XCTUnwrap(MovementCatalog.canonicalExercise(named: "barbell shrug"))
+        XCTAssertEqual(shrug.movementSlot, .horizontalPull)
+        XCTAssertTrue(DeterministicProgramGenerator.isSingleJointAccessory(shrug))
+        XCTAssertFalse(DeterministicProgramGenerator.isPrimaryMovement(shrug))
+
+        let row = try XCTUnwrap(MovementCatalog.canonicalExercise(named: "bent-over row"))
+        XCTAssertTrue(DeterministicProgramGenerator.isPrimaryMovement(row))
+    }
+
+    /// The equipment classifier is keyword-driven, so a variant that shares a
+    /// name with a barbell lift ("skull crusher") must not inherit the barbell.
+    func testNewArmVariantsClassifyToTheRightImplement() throws {
+        func equipment(_ name: String) throws -> [MovementEquipment] {
+            try XCTUnwrap(MovementCatalog.canonicalExercise(named: name)).equipment
+        }
+
+        XCTAssertTrue(try equipment("dumbbell skull crusher").contains(.dumbbell))
+        XCTAssertFalse(
+            try equipment("dumbbell skull crusher").contains(.barbell),
+            "a dumbbell skull crusher must not require a barbell"
+        )
+        XCTAssertTrue(try equipment("skull crushers").contains(.barbell))
+
+        XCTAssertTrue(try equipment("zottman curl").contains(.dumbbell))
+        XCTAssertTrue(try equipment("drag curl").contains(.barbell))
+        XCTAssertTrue(try equipment("trap bar shrug").contains(.barbell))
+        XCTAssertTrue(try equipment("reverse curl").contains(.barbell))
+        XCTAssertTrue(try equipment("cable shrug").contains(.cable))
+
+        // Bench dip is bodyweight — it must never demand loading equipment.
+        let benchDip = try XCTUnwrap(MovementCatalog.canonicalExercise(named: "bench dip"))
+        XCTAssertEqual(benchDip.blockKind, .bodyweight)
+        XCTAssertTrue(benchDip.equipment.contains(.bodyweight))
+    }
+
+    /// A bar lift whose common name never contains the word "barbell" used to
+    /// resolve to an EMPTY equipment set and fall through to `.bodyweight` —
+    /// which would have offered a Power Clean to someone training on a floor.
+    func testBarLiftsWithoutTheWordBarbellStillRequireABarbell() throws {
+        for name in ["power clean", "hang clean", "clean and jerk", "power snatch",
+                     "thruster", "rack pull", "barbell high pull", "zercher squat",
+                     "box squat", "front rack lunge", "sumo deadlift", "seal row"] {
+            let def = try XCTUnwrap(MovementCatalog.canonicalExercise(named: name), name)
+            XCTAssertTrue(def.equipment.contains(.barbell), "\(name) must require a barbell")
+            XCTAssertFalse(
+                def.equipment.contains(.bodyweight),
+                "\(name) must not be offered as bodyweight work"
+            )
+        }
+    }
+
+    /// Program score is equipment-intent minus a difficulty tiebreaker, so a lift
+    /// left at the default `.beginner` outranks the staple it should sit behind.
+    /// Olympic lifts floor at `.advanced`; heavy partials at `.intermediate`.
+    func testTechnicalLiftsNeverOutrankTheStapleTheySitBehind() throws {
+        func def(_ n: String) throws -> MovementDefinition {
+            try XCTUnwrap(MovementCatalog.canonicalExercise(named: n), n)
+        }
+        for name in ["power clean", "hang clean", "clean and jerk", "power snatch", "thruster",
+                     "rack pull", "barbell high pull"] {
+            XCTAssertEqual(try def(name).difficulty, .advanced, "\(name) is not novice work")
+        }
+
+        // Lower programScore wins. The staples must still beat the technical lifts.
+        let squat = MovementCatalog.programScore(try def("back squat"), style: .freeWeights)
+        let deadlift = MovementCatalog.programScore(try def("deadlift"), style: .freeWeights)
+        for name in ["power clean", "clean and jerk", "power snatch", "rack pull"] {
+            let score = MovementCatalog.programScore(try def(name), style: .freeWeights)
+            XCTAssertGreaterThan(score, squat, "\(name) must not outrank the back squat")
+            XCTAssertGreaterThan(score, deadlift, "\(name) must not outrank the deadlift")
+        }
+    }
+
+    /// "fly" and "lateral raise" name a pattern, not an implement. Claiming the
+    /// dumbbell unconditionally made a Cable Fly require dumbbells, hiding every
+    /// cable/machine fly and raise from a gym with no free weights.
+    func testCableAndMachineFliesDoNotRequireDumbbells() throws {
+        func equipment(_ n: String) throws -> [MovementEquipment] {
+            try XCTUnwrap(MovementCatalog.canonicalExercise(named: n), n).equipment
+        }
+        for name in ["cable fly", "incline cable fly", "lateral raise (cable)", "cable rear delt fly"] {
+            XCTAssertTrue(try equipment(name).contains(.cable), "\(name) should need a cable")
+            XCTAssertFalse(try equipment(name).contains(.dumbbell), "\(name) must not need dumbbells")
+        }
+        for name in ["machine lateral raise", "rear delt fly (machine)"] {
+            XCTAssertFalse(try equipment(name).contains(.dumbbell), "\(name) must not need dumbbells")
+        }
+        // The genuine free-weight versions still do.
+        XCTAssertTrue(try equipment("dumbbell fly").contains(.dumbbell))
+        XCTAssertTrue(try equipment("lateral raise (db)").contains(.dumbbell))
     }
 }

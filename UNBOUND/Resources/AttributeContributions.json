@@ -801,6 +801,301 @@
     "wide grip pullup": {
       "power": 0.7386,
       "control": 0.2614
+    },
+    "seated dumbbell curl": {
+      "power": 0.78,
+      "control": 0.22
+    },
+    "alternating dumbbell curl": {
+      "power": 0.75,
+      "control": 0.25
+    },
+    "drag curl": {
+      "power": 0.8,
+      "control": 0.2
+    },
+    "reverse curl": {
+      "power": 0.6,
+      "control": 0.4
+    },
+    "zottman curl": {
+      "power": 0.55,
+      "control": 0.45
+    },
+    "cross-body hammer curl": {
+      "power": 0.75,
+      "control": 0.25
+    },
+    "ez bar preacher curl": {
+      "control": 0.6,
+      "power": 0.4
+    },
+    "high cable curl": {
+      "control": 0.3,
+      "endurance": 0.7
+    },
+    "behind the back cable curl": {
+      "control": 0.35,
+      "endurance": 0.65
+    },
+    "single-arm tricep pushdown": {
+      "control": 0.2632,
+      "endurance": 0.7368
+    },
+    "reverse grip tricep pushdown": {
+      "control": 0.2632,
+      "endurance": 0.7368
+    },
+    "dumbbell overhead tricep extension": {
+      "power": 0.6,
+      "control": 0.4
+    },
+    "single-arm overhead tricep extension": {
+      "power": 0.5,
+      "control": 0.5
+    },
+    "dumbbell tricep kickback": {
+      "control": 0.65,
+      "endurance": 0.35
+    },
+    "cable tricep kickback": {
+      "control": 0.7,
+      "endurance": 0.3
+    },
+    "dumbbell skull crusher": {
+      "power": 0.7,
+      "control": 0.3
+    },
+    "bench dip": {
+      "power": 0.65,
+      "control": 0.35
+    },
+    "barbell wrist curl": {
+      "power": 0.5,
+      "control": 0.5
+    },
+    "dumbbell wrist curl": {
+      "power": 0.45,
+      "control": 0.55
+    },
+    "reverse wrist curl": {
+      "control": 0.6,
+      "power": 0.4
+    },
+    "barbell shrug": {
+      "power": 0.85,
+      "control": 0.15
+    },
+    "dumbbell shrug": {
+      "power": 0.8,
+      "control": 0.2
+    },
+    "trap bar shrug": {
+      "power": 0.85,
+      "control": 0.15
+    },
+    "smith machine shrug": {
+      "power": 0.75,
+      "control": 0.25
+    },
+    "cable shrug": {
+      "control": 0.4,
+      "endurance": 0.6
+    },
+    "seal row": {
+      "power": 0.75,
+      "control": 0.25
+    },
+    "yates row": {
+      "power": 0.8,
+      "control": 0.2
+    },
+    "incline dumbbell row": {
+      "power": 0.72,
+      "control": 0.28
+    },
+    "smith machine row": {
+      "power": 0.7,
+      "control": 0.3
+    },
+    "renegade row": {
+      "power": 0.45,
+      "control": 0.55
+    },
+    "neutral grip pullup": {
+      "power": 0.7,
+      "control": 0.3
+    },
+    "decline dumbbell press": {
+      "power": 0.8,
+      "control": 0.2
+    },
+    "floor press": {
+      "power": 0.85,
+      "control": 0.15
+    },
+    "dumbbell floor press": {
+      "power": 0.78,
+      "control": 0.22
+    },
+    "incline cable fly": {
+      "control": 0.7,
+      "endurance": 0.3
+    },
+    "dumbbell pullover": {
+      "control": 0.6,
+      "power": 0.4
+    },
+    "push press": {
+      "power": 0.65,
+      "explosiveness": 0.35
+    },
+    "seated dumbbell shoulder press": {
+      "power": 0.7,
+      "control": 0.3
+    },
+    "dumbbell upright row": {
+      "power": 0.72,
+      "control": 0.28
+    },
+    "cable rear delt fly": {
+      "control": 0.75,
+      "endurance": 0.25
+    },
+    "leaning cable lateral raise": {
+      "control": 0.3,
+      "endurance": 0.7
+    },
+    "reverse lunge": {
+      "power": 0.65,
+      "control": 0.35
+    },
+    "lateral lunge": {
+      "power": 0.45,
+      "control": 0.3,
+      "mobility": 0.25
+    },
+    "curtsy lunge": {
+      "power": 0.45,
+      "control": 0.35,
+      "mobility": 0.2
+    },
+    "front rack lunge": {
+      "power": 0.6,
+      "control": 0.4
+    },
+    "box squat": {
+      "power": 0.8,
+      "control": 0.2
+    },
+    "zercher squat": {
+      "power": 0.75,
+      "control": 0.25
+    },
+    "sissy squat": {
+      "control": 0.65,
+      "power": 0.35
+    },
+    "single-leg press": {
+      "power": 0.7,
+      "control": 0.3
+    },
+    "sumo deadlift": {
+      "power": 0.85,
+      "explosiveness": 0.15
+    },
+    "deficit deadlift": {
+      "power": 0.8,
+      "control": 0.2
+    },
+    "snatch grip deadlift": {
+      "power": 0.75,
+      "control": 0.25
+    },
+    "rack pull": {
+      "power": 0.9,
+      "control": 0.1
+    },
+    "stiff leg deadlift": {
+      "power": 0.65,
+      "control": 0.2,
+      "mobility": 0.15
+    },
+    "power clean": {
+      "explosiveness": 0.55,
+      "power": 0.45
+    },
+    "hang clean": {
+      "explosiveness": 0.55,
+      "power": 0.45
+    },
+    "clean and jerk": {
+      "explosiveness": 0.5,
+      "power": 0.4,
+      "control": 0.1
+    },
+    "power snatch": {
+      "explosiveness": 0.6,
+      "power": 0.3,
+      "control": 0.1
+    },
+    "barbell high pull": {
+      "explosiveness": 0.5,
+      "power": 0.5
+    },
+    "thruster": {
+      "explosiveness": 0.35,
+      "power": 0.4,
+      "endurance": 0.25
+    },
+    "side plank": {
+      "control": 0.85,
+      "endurance": 0.15
+    },
+    "crunch": {
+      "control": 0.7,
+      "endurance": 0.3
+    },
+    "situp": {
+      "control": 0.65,
+      "endurance": 0.35
+    },
+    "bicycle crunch": {
+      "control": 0.6,
+      "endurance": 0.4
+    },
+    "russian twist": {
+      "control": 0.7,
+      "endurance": 0.3
+    },
+    "v-up": {
+      "control": 0.75,
+      "power": 0.25
+    },
+    "flutter kick": {
+      "control": 0.55,
+      "endurance": 0.45
+    },
+    "dead bug": {
+      "control": 0.9,
+      "endurance": 0.1
+    },
+    "bird dog": {
+      "control": 0.85,
+      "mobility": 0.15
+    },
+    "mountain climber": {
+      "endurance": 0.6,
+      "control": 0.25,
+      "explosiveness": 0.15
+    },
+    "toes to bar": {
+      "control": 0.7,
+      "power": 0.3
+    },
+    "cable woodchopper": {
+      "control": 0.7,
+      "power": 0.3
     }
   },
   "skill_nodes": {}

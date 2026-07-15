@@ -62,7 +62,7 @@ enum CoreSkillAnchors {
         "cl.reverse-crunch":  .init(exerciseName: "reverse crunch",    metric: .reps, spec: .full([5, 10, 20, 35, 55])),    // harder than crunch, lower volume
         "cl.knee-raise":      .init(exerciseName: "knee raise",        metric: .reps, spec: .full([5, 10, 18, 30, 45])),    // floor/parallel-bar, easier than hanging
         "cl.levitation-crunch":.init(exerciseName: "levitation crunch", metric: .reps, spec: .full([3, 6, 12, 20, 30])),    // advanced hip-float crunch
-        "cl.toes-to-bar":     .init(exerciseName: "toes to bar",       metric: .reps, spec: .full([1, 5, 12, 22, 35])),     // max hip-flexion hang, harder than HLR
+        "cl.toes-to-bar":     .init(exerciseName: "toes to bar",       metric: .reps, spec: .full([1, 3, 6, 10, 16])),      // StrengthLevel row <1/4/16/31/48 (65,599 lifts) is kipping-inclusive; this node is STRICT, so bands take the same strict discount as HLR and sit just UNDER it (harder movement, fewer reps)
         "cl.decline-situp":   .init(exerciseName: "decline sit-up",    metric: .reps, spec: .full([5, 15, 35, 60, 90])),    // sit-ups <1/23/57/99/146 scaled for decline
         "cl.knee-ab-rollout": .init(exerciseName: "ab wheel kneeling", metric: .reps, spec: .full([2, 5, 12, 22, 35])),     // kneeling ab wheel
         "cl.dragon-flag-hip-raise":.init(exerciseName: "dragon flag hip raise", metric: .reps, spec: .full([5, 10, 18, 30, 45])), // dragon-flag lead-up

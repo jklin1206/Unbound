@@ -68,12 +68,18 @@ extension MovementCatalog {
         "exercise.archer-pushup": "cal.archer-pushup",
         "exercise.pike-pushup": "cal.pike-pushup",
         "exercise.pseudo-planche-pushup": "cal.pseudo-planche-pushup",
+        // The `cal.bench-dip` node's target is `.reps(exercise: "bench dip", 10)`,
+        // so the skill has always pointed at this movement by name — the library
+        // exercise just did not exist until the arms batch added it.
+        "exercise.bench-dip": "cal.bench-dip",
         "exercise.plank": "cal.plank-30",
         "exercise.l-sit": "cal.l-sit-10",
         // Core levers
         "exercise.hollow-hold": "cl.hollow-body-30",
         "exercise.dragon-flag": "cl.dragon-flag",
         "exercise.decline-situp": "cl.decline-situp",
+        "exercise.crunch": "cl.crunch",
+        "exercise.toes-to-bar": "cl.toes-to-bar",
         "exercise.hanging-knee-raise": "cl.hanging-knee-raise",
         "exercise.hanging-leg-raise": "cl.hanging-leg-raise",
         "exercise.tuck-front-lever": "cl.tuck-front-lever",
@@ -92,6 +98,7 @@ extension MovementCatalog {
         "exercise.glute-bridge": "ld.glute-bridge",
         "exercise.goblet-squat": "ld.goblet-20",
         "exercise.nordic-curl": "ld.nordic-curl",
+        "exercise.sissy-squat": "ld.sissy-squat",
         "exercise.bodyweight-leg-extension": "ld.leg-extensions"
     ]
 

@@ -18,7 +18,7 @@ struct ProgramExerciseLibraryView: View {
     var onDismiss: () -> Void = {}
 
     @State private var searchText = ""
-    @State private var selectedSlot: MovementSlot?
+    @State private var selectedMuscle: MuscleGroup?
     @State private var contextFilter: ExerciseLibraryContextFilter = .best
     @FocusState private var searchIsFocused: Bool
 
@@ -26,7 +26,7 @@ struct ProgramExerciseLibraryView: View {
         ExerciseLibrarySearch.filteredResults(
             alternatives,
             searchText: searchText,
-            selectedSlot: selectedSlot,
+            selectedMuscle: selectedMuscle,
             contextFilter: contextFilter,
             recentExerciseNames: recentExerciseNames,
             preferenceStatusesByKey: preferenceStatusesByKey,
@@ -34,8 +34,11 @@ struct ProgramExerciseLibraryView: View {
         )
     }
 
-    private var availableSlots: [MovementSlot] {
-        ExerciseLibrarySearch.availableSlots(in: alternatives)
+    /// Filter by body part, not by movement pattern. "Horizontal Push" is how the
+    /// program generator thinks; "Chest" is how the person holding the phone at
+    /// the rack thinks.
+    private var availableMuscles: [MuscleGroup] {
+        ExerciseLibrarySearch.availableMuscleGroups(in: alternatives)
     }
 
     /// Optional context chips — shown only when they'd match something.
@@ -116,7 +119,7 @@ struct ProgramExerciseLibraryView: View {
     }
 
     private var searchAndFilters: some View {
-        let slots = availableSlots
+        let muscles = availableMuscles
         let filters = availableContextFilters
 
         return VStack(alignment: .leading, spacing: 10) {
@@ -156,11 +159,11 @@ struct ProgramExerciseLibraryView: View {
                     .strokeBorder(Color.unbound.borderSubtle, lineWidth: 1)
             )
 
-            if !slots.isEmpty {
+            if !muscles.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        filterChip(title: "All", isSelected: selectedSlot == nil && contextFilter == .best) {
-                            selectedSlot = nil
+                        filterChip(title: "All", isSelected: selectedMuscle == nil && contextFilter == .best) {
+                            selectedMuscle = nil
                             contextFilter = .best
                         }
                         ForEach(filters, id: \.self) { filter in
@@ -168,9 +171,9 @@ struct ProgramExerciseLibraryView: View {
                                 contextFilter = contextFilter == filter ? .best : filter
                             }
                         }
-                        ForEach(slots, id: \.self) { slot in
-                            filterChip(title: slot.displayName, isSelected: selectedSlot == slot) {
-                                selectedSlot = selectedSlot == slot ? nil : slot
+                        ForEach(muscles, id: \.self) { muscle in
+                            filterChip(title: muscle.displayName, isSelected: selectedMuscle == muscle) {
+                                selectedMuscle = selectedMuscle == muscle ? nil : muscle
                             }
                         }
                     }
@@ -272,7 +275,7 @@ struct ProgramExerciseLibraryView: View {
             Text("No matches")
                 .font(Font.unbound.titleS)
                 .foregroundStyle(Color.unbound.textPrimary)
-            Text("Try a movement pattern, muscle, equipment, or clear the filter.")
+            Text("Try a body part, exercise name, or equipment — or clear the filter.")
                 .font(Font.unbound.bodyS)
                 .foregroundStyle(Color.unbound.textSecondary)
                 .multilineTextAlignment(.center)
@@ -461,13 +464,8 @@ struct ProgramExerciseLibraryView: View {
 
     private func libraryMetadata(for definition: MovementDefinition) -> String {
         let equipment = ExerciseLibrary.equipmentLabels(for: definition).prefix(2).joined(separator: " · ")
-        return [
-            definition.movementSlot.displayName,
-            definition.rankTemplate.displayName,
-            definition.loggerMode.displayName,
-            equipment
-        ]
-        .filter { !$0.isEmpty }
-        .joined(separator: " · ")
+        return [ExerciseLibrarySearch.muscleSummary(for: definition.muscleGroups), equipment]
+            .filter { !$0.isEmpty }
+            .joined(separator: "  •  ")
     }
 }

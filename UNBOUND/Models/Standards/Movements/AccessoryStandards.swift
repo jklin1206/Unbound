@@ -64,10 +64,16 @@ enum AccessoryStandards {
             "band curl"
         ], .curl)
         // F2 — triceps extension (total)
+        // "dumbbell skull crusher" is a per-hand pair movement → ×2 via
+        // dumbbellPairs. StrengthLevel lying-dumbbell-tricep-extension
+        // (165,627 lifts; male @80kg: 6/12/21/33/47 kg per DB) runs lighter
+        // than the F2 stack bands — same accepted approximation as the F1
+        // dumbbell curls.
         add([
             "tricep pushdown", "rope tricep pushdown", "straight bar tricep pushdown",
             "overhead tricep extension", "rope overhead tricep extension",
-            "machine triceps extension", "band tricep extension", "skull crushers"
+            "machine triceps extension", "band tricep extension", "skull crushers",
+            "dumbbell skull crusher"
         ], .triceps)
         // F4 — leg extension (total)
         add(["leg extension", "single-leg extension"], .legExtension)
@@ -96,8 +102,10 @@ enum AccessoryStandards {
 
     /// Dumbbell-pair movements logged per-hand that compare to a TOTAL-load
     /// family table → multiply logged load ×2 (PHASE3-ACCESSORY-RATIOS §3.1).
-    /// Only F1 curls need this; F3 lateral stays per-hand (and is unranked).
+    /// F1 curls and the F2 dumbbell skull crusher; F3 lateral stays per-hand
+    /// (and is unranked).
     static let dumbbellPairs: Set<String> = [
-        "dumbbell curl", "incline dumbbell curl", "hammer curl"
+        "dumbbell curl", "incline dumbbell curl", "hammer curl",
+        "dumbbell skull crusher"
     ]
 }

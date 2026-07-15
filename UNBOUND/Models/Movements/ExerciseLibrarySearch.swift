@@ -90,10 +90,29 @@ enum ExerciseLibrarySearch {
         return slots.filter { seen.insert($0).inserted }
     }
 
+    /// Body parts present in this candidate set, in a fixed anatomical order so
+    /// the chips never reshuffle between two different exercise lists.
+    ///
+    /// This is what the picker filters by. It used to offer `MovementSlot`
+    /// ("Horizontal Push", "Hinge / Posterior") — programming vocabulary that
+    /// answers "what pattern is this" when the person at the rack is asking
+    /// "what am I training today". It was also nearly inert in swap mode, where
+    /// every candidate is same-slot by construction, so the chips filtered nothing.
+    static let muscleFilterOrder: [MuscleGroup] = [
+        .chest, .back, .lats, .traps, .shoulders, .arms, .forearms,
+        .core, .legs, .glutes, .calves, .neck
+    ]
+
+    static func availableMuscleGroups(in alternatives: [CatalogExercise]) -> [MuscleGroup] {
+        let present = Set(alternatives.flatMap(\.muscleGroups))
+        return muscleFilterOrder.filter { present.contains($0) }
+    }
+
     static func filteredAlternatives(
         _ alternatives: [CatalogExercise],
         searchText: String,
         selectedSlot: MovementSlot? = nil,
+        selectedMuscle: MuscleGroup? = nil,
         contextFilter: ExerciseLibraryContextFilter = .best,
         recentExerciseNames: Set<String> = [],
         preferenceStatusesByKey: [String: ExercisePreferenceStatus] = [:],
@@ -103,6 +122,7 @@ enum ExerciseLibrarySearch {
             alternatives,
             searchText: searchText,
             selectedSlot: selectedSlot,
+            selectedMuscle: selectedMuscle,
             contextFilter: contextFilter,
             recentExerciseNames: recentExerciseNames,
             preferenceStatusesByKey: preferenceStatusesByKey,
@@ -115,6 +135,7 @@ enum ExerciseLibrarySearch {
         _ alternatives: [CatalogExercise],
         searchText: String,
         selectedSlot: MovementSlot? = nil,
+        selectedMuscle: MuscleGroup? = nil,
         contextFilter: ExerciseLibraryContextFilter = .best,
         recentExerciseNames: Set<String> = [],
         preferenceStatusesByKey: [String: ExercisePreferenceStatus] = [:],
@@ -125,6 +146,7 @@ enum ExerciseLibrarySearch {
             .compactMap { alt -> ExerciseLibrarySearchResult? in
                 let definition = MovementCatalog.canonicalExercise(named: alt.name)
                 guard matchesSelectedSlot(definition, selectedSlot: selectedSlot) else { return nil }
+                guard matchesSelectedMuscle(alt, selectedMuscle: selectedMuscle) else { return nil }
 
                 let signals = signals(
                     for: alt,
@@ -245,23 +267,24 @@ enum ExerciseLibrarySearch {
     }
 
     static func matchesSearch(_ alt: CatalogExercise, query: String) -> Bool {
-        guard !query.isEmpty else { return true }
-        return searchTerms(for: alt)
-            .map { MovementCatalog.normalized($0) }
-            .joined(separator: " ")
-            .contains(query)
+        matchesSearch(alt, definition: MovementCatalog.canonicalExercise(named: alt.name), query: query)
     }
 
+    /// Every word of the query must appear somewhere in the movement's terms —
+    /// they do not have to be adjacent. A plain `contains(query)` on the joined
+    /// terms only ever matched a *contiguous* run, so "bicep curl" found nothing
+    /// (the gym word "bicep" and the name "curl" live in different terms) and
+    /// "curl dumbbell" failed purely on word order.
     private static func matchesSearch(
         _ alt: CatalogExercise,
         definition: MovementDefinition?,
         query: String
     ) -> Bool {
         guard !query.isEmpty else { return true }
-        return searchTerms(for: alt, definition: definition)
+        let haystack = searchTerms(for: alt, definition: definition)
             .map { MovementCatalog.normalized($0) }
             .joined(separator: " ")
-            .contains(query)
+        return query.split(separator: " ").allSatisfy { haystack.contains($0) }
     }
 
     private static func matchesSelectedSlot(_ alt: CatalogExercise, selectedSlot: MovementSlot?) -> Bool {
@@ -272,6 +295,11 @@ enum ExerciseLibrarySearch {
     private static func matchesSelectedSlot(_ definition: MovementDefinition?, selectedSlot: MovementSlot?) -> Bool {
         guard let selectedSlot else { return true }
         return definition?.movementSlot == selectedSlot
+    }
+
+    private static func matchesSelectedMuscle(_ alt: CatalogExercise, selectedMuscle: MuscleGroup?) -> Bool {
+        guard let selectedMuscle else { return true }
+        return alt.muscleGroups.contains(selectedMuscle)
     }
 
     private static func matchesContextFilter(
@@ -427,7 +455,8 @@ enum ExerciseLibrarySearch {
         var terms: [String] = [
             alt.name,
             alt.displayName,
-            alt.muscleGroups.map(\.displayName).joined(separator: " ")
+            alt.muscleGroups.map(\.displayName).joined(separator: " "),
+            gymVocabulary(for: alt).joined(separator: " ")
         ]
 
         if let definition {
@@ -441,15 +470,86 @@ enum ExerciseLibrarySearch {
         return terms
     }
 
+    /// How lifters actually type. The catalog's own vocabulary is anatomical
+    /// ("Arms", "Dumbbell Curl"), so without this a search for the single most
+    /// common gym phrase — "bicep curl" — returns nothing at all. Keyed off the
+    /// movement name rather than its muscle group, so a Tricep Pushdown never
+    /// answers to "bicep" just because both are filed under Arms.
+    ///
+    /// Search-only. Deliberately NOT added to `MovementDefinition.aliases`, which
+    /// is the logging-resolution index: a shared "bicep curl" alias there would
+    /// make a logged "bicep curl" resolve to an arbitrary one of a dozen curls.
+    static func gymVocabulary(for alt: CatalogExercise) -> [String] {
+        let name = MovementCatalog.normalized("\(alt.displayName) \(alt.name)")
+        var terms: [String] = []
+
+        let isLimbCurl = name.contains("leg curl") || name.contains("nordic")
+        if name.contains("wrist curl") || name.contains("wrist roller") {
+            terms += ["forearm", "forearms", "grip", "wrist"]
+        } else if name.contains("curl"), !isLimbCurl {
+            terms += ["bicep", "biceps", "arm", "arms"]
+        }
+
+        if name.contains("tricep") || name.contains("pushdown") || name.contains("skull crusher")
+            || name.contains("kickback") || name.contains("dip") || name.contains("close grip") {
+            terms += ["tricep", "triceps", "arm", "arms"]
+        }
+        if name.contains("shrug") { terms += ["trap", "traps", "trapezius"] }
+        if name.contains("lateral raise") || name.contains("front raise") || name.contains("rear delt")
+            || name.contains("face pull") || name.contains("overhead press") || name.contains("shoulder press") {
+            terms += ["delt", "delts", "deltoid", "shoulder"]
+        }
+        if name.contains("fly") || name.contains("bench press") || name.contains("chest press") || name.contains("pec") {
+            terms += ["pec", "pecs", "chest"]
+        }
+        if name.contains("pulldown") || name.contains("pullup") || name.contains("pull up") || name.contains("row") {
+            terms += ["lat", "lats", "back"]
+        }
+        if name.contains("squat") || name.contains("leg press") || name.contains("leg extension") || name.contains("lunge") {
+            terms += ["quad", "quads", "leg", "legs"]
+        }
+        if name.contains("deadlift") || name.contains("leg curl") || name.contains("nordic")
+            || name.contains("good morning") || name.contains("rdl") {
+            terms += ["hamstring", "hamstrings", "ham", "posterior"]
+        }
+        if name.contains("hip thrust") || name.contains("glute") || name.contains("bridge") {
+            terms += ["glute", "glutes", "butt"]
+        }
+        if name.contains("calf") || name.contains("calve") || name.contains("tibialis") {
+            terms += ["calf", "calves"]
+        }
+
+        if alt.muscleGroups.contains(.core) {
+            terms += ["ab", "abs", "abdominal", "core"]
+        }
+
+        // Implement shorthand: "db curl", "bb row", "kb swing".
+        if name.contains("dumbbell") { terms.append("db") }
+        if name.contains("barbell") { terms.append("bb") }
+        if name.contains("kettlebell") { terms.append("kb") }
+        if name.contains("ez bar") { terms += ["ezbar", "ez"] }
+
+        return terms
+    }
+
+    /// What the row says under the name. Body parts first, then what you need to
+    /// perform it — the two things you actually pick on. The old line led with
+    /// the movement slot and rank template ("Horizontal Push · Barbell Strength ·
+    /// Bodyweight Sets"), which is internal vocabulary and pushed the equipment
+    /// off the end of the line.
     private static func compatibilityDetail(for definition: MovementDefinition) -> String {
         let equipment = ExerciseLibrary.equipmentLabels(for: definition).prefix(2).joined(separator: " · ")
-        return [
-            definition.movementSlot.displayName,
-            definition.rankTemplate.displayName,
-            equipment
-        ]
-        .filter { !$0.isEmpty }
-        .joined(separator: " · ")
+        return [muscleSummary(for: definition.muscleGroups), equipment]
+            .filter { !$0.isEmpty }
+            .joined(separator: "  •  ")
+    }
+
+    /// Keep the catalog's own ordering — it is authored prime-mover first
+    /// (`[.legs, .glutes, .core]` for a squat). Re-sorting these into the chip's
+    /// anatomical order surfaced a squat as "Core · Legs · Glutes", which reads
+    /// like a core exercise.
+    static func muscleSummary(for muscleGroups: [MuscleGroup]) -> String {
+        muscleGroups.prefix(3).map(\.displayName).joined(separator: " · ")
     }
 }
 
