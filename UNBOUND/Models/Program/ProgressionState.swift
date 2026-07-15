@@ -81,6 +81,11 @@ struct ProgressionState: Codable, Identifiable, Sendable {
     /// Current working weight in kg. 0 for bodyweight-only movements.
     var currentWorkingWeightKg: Double
 
+    /// The first evidence-backed working load for this movement. Automatic
+    /// accessory ramps are bounded from this anchor; a heavier load the user
+    /// actually logs can still become the new working load.
+    var initialWorkingWeightKg: Double? = nil
+
     /// Rep range — e.g. 6...8 for strength, 8...12 for hypertrophy.
     var targetRepMin: Int
     var targetRepMax: Int
@@ -110,6 +115,11 @@ struct ProgressionState: Codable, Identifiable, Sendable {
     var underTargetSessionCount: Int? = nil
     var prescriptionBias: ProgressionPrescriptionBias? = nil
 
+    /// Timed isometrics keep their own seconds-based track. Optional fields
+    /// preserve decoding for progression rows written before timed progression.
+    var targetDurationSeconds: Int? = nil
+    var lastSessionDurationSeconds: Int? = nil
+
     // MARK: Convenience
 
     var targetRepRange: ClosedRange<Int> { targetRepMin...targetRepMax }
@@ -126,6 +136,10 @@ struct ProgressionState: Codable, Identifiable, Sendable {
             return targetRepMin
         }
         return min(max(last + 1, targetRepMin), targetRepMax)
+    }
+
+    var currentTargetDurationSeconds: Int {
+        targetDurationSeconds ?? IsometricDurationPolicy.startingTarget(for: exerciseKey)
     }
 
     /// Classification of this exercise for weight-bump increments.
@@ -150,6 +164,7 @@ struct ProgressionState: Codable, Identifiable, Sendable {
             exerciseKey: normalized,
             displayName: exercise.capitalized,
             currentWorkingWeightKg: startingWeightKg,
+            initialWorkingWeightKg: startingWeightKg,
             targetRepMin: repRange.lowerBound,
             targetRepMax: repRange.upperBound,
             targetRPE: block.targetRPE,
@@ -159,6 +174,70 @@ struct ProgressionState: Codable, Identifiable, Sendable {
             weekInBlock: weekInBlock,
             updatedAt: Date()
         )
+    }
+
+
+    /// Converts calibration proof into the first real prescription state.
+    /// Loaded baselines keep the user's exact load; rep tests start at a
+    /// conservative percentage of demonstrated clean capacity instead of a
+    /// classification-wide default.
+    static func calibrated(userId: String, baseline: CalibrationBaseline) -> ProgressionState? {
+        guard baseline.isKnown, baseline.value > 0 else { return nil }
+
+        switch baseline.kind {
+        case .weight:
+            guard let kilograms = baseline.weightInKg, kilograms > 0 else { return nil }
+            var state = seed(
+                userId: userId,
+                exercise: baseline.exerciseKey,
+                startingWeightKg: kilograms
+            )
+            state.displayName = baseline.displayName
+            return state
+
+        case .reps:
+            let demonstratedReps = max(1, Int(baseline.value.rounded(.down)))
+            let upper = max(2, Int((Double(demonstratedReps) * 0.8).rounded(.down)))
+            let lower = max(1, min(upper, Int((Double(demonstratedReps) * 0.6).rounded(.down))))
+            var state = seed(
+                userId: userId,
+                exercise: baseline.exerciseKey,
+                startingWeightKg: 0
+            )
+            state.displayName = baseline.displayName
+            state.targetRepMin = lower
+            state.targetRepMax = max(lower, upper)
+            return state
+        }
+    }
+}
+
+// MARK: - Timed isometric progression
+
+enum IsometricDurationPolicy {
+    static func ladder(for exerciseKey: String) -> [Int] {
+        let key = MovementCatalog.normalized(exerciseKey)
+        if ["planche", "front lever", "back lever", "dragon flag", "l sit", "l-sit"]
+            .contains(where: key.contains) {
+            return [8, 12, 15, 20, 30]
+        }
+        if ["plank", "wall sit", "dead hang", "hollow hold"]
+            .contains(where: key.contains) {
+            return [20, 30, 45, 60]
+        }
+        return [15, 20, 30, 45]
+    }
+
+    static func startingTarget(for exerciseKey: String) -> Int {
+        ladder(for: exerciseKey).first ?? 15
+    }
+
+    static func nextTarget(after seconds: Int, exerciseKey: String) -> Int {
+        ladder(for: exerciseKey).first(where: { $0 > seconds }) ?? ladder(for: exerciseKey).last ?? seconds
+    }
+
+    static func previousTarget(before seconds: Int, exerciseKey: String) -> Int {
+        ladder(for: exerciseKey).last(where: { $0 < seconds }) ?? ladder(for: exerciseKey).first ?? seconds
     }
 }
 
@@ -179,11 +258,22 @@ enum ExerciseClassification: String, Codable {
             return .bodyweightSkill
         }
 
+        // Single-joint moves that would otherwise match a compound keyword
+        // ("straight-arm pulldown" is a lat isolation, not a pulldown pattern;
+        // "upright row" is a delt accessory, not a row).
+        let isolationOverrides = ["straight arm", "upright row"]
+        if isolationOverrides.contains(where: { normalized.contains(MovementCatalog.normalized($0)) }) {
+            return .accessory
+        }
+
         let upperCompoundKeywords = [
             "bench press", "bench", "overhead press", "ohp", "military press",
             "weighted pullup", "weighted chin", "weighted dip",
             "chest press", "shoulder press", "plate loaded", "hammer strength",
-            "machine row", "t-bar row", "landmine row", "pulldown"
+            "machine row", "t-bar row", "landmine row", "pulldown",
+            "barbell row", "bent over row", "bent-over row", "pendlay row",
+            "meadows row", "seal row", "cable row", "seated row",
+            "chest supported row", "dumbbell row"
         ]
         let lowerCompoundKeywords = [
             "back squat", "front squat", "squat",

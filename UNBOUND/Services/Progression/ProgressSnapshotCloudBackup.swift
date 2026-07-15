@@ -109,8 +109,10 @@ struct LoadSnapshotEntry: Codable, Equatable, Sendable {
     var key: String
     var displayName: String
     var weightKg: Double
+    var initialWeightKg: Double?
     var repMin: Int
     var repMax: Int
+    var durationSeconds: Int?
     var block: BlockType
     var week: Int
     var bias: ProgressionPrescriptionBias?
@@ -119,8 +121,10 @@ struct LoadSnapshotEntry: Codable, Equatable, Sendable {
         key = state.exerciseKey
         displayName = state.displayName
         weightKg = state.currentWorkingWeightKg
+        initialWeightKg = state.initialWorkingWeightKg
         repMin = state.targetRepMin
         repMax = state.targetRepMax
+        durationSeconds = state.targetDurationSeconds
         block = state.blockType
         week = state.weekInBlock
         bias = state.prescriptionBias
@@ -134,6 +138,7 @@ struct LoadSnapshotEntry: Codable, Equatable, Sendable {
             exerciseKey: key,
             displayName: displayName,
             currentWorkingWeightKg: weightKg,
+            initialWorkingWeightKg: initialWeightKg,
             targetRepMin: repMin,
             targetRepMax: repMax,
             targetRPE: block.targetRPE,
@@ -144,6 +149,7 @@ struct LoadSnapshotEntry: Codable, Equatable, Sendable {
             updatedAt: date
         )
         state.prescriptionBias = bias
+        state.targetDurationSeconds = durationSeconds
         return state
     }
 }

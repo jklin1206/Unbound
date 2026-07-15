@@ -36,6 +36,9 @@ struct ProgramGeneratorInput {
     let blockStartDate: Date
     var exercisePreferences: [ExercisePreference] = []
     var calibration: ProgramCalibrationInput = .standardReady()
+    /// Skill-tree nodes the user actively trains (program focus). Gymnastics
+    /// skill movements enter general programming only through this set.
+    var engagedSkillIds: Set<String> = []
 }
 
 struct ProgramCalibrationInput {

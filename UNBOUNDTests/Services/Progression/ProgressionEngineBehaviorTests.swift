@@ -154,16 +154,13 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
         XCTAssertNil(variantState)
     }
 
-    // RPE is no longer logged or gated on, so hitting the top of the rep range
-    // advances purely on reps — even at high perceived effort. (This replaces the
-    // old "grindy RPE blocks the advance" behavior, which no longer exists.)
     @MainActor
-    func testTopOfRangeAdvancesRegardlessOfEffort() async {
+    func testGrindyTopOfRangeSetsDoNotAdvanceLoad() async {
         let userId = "rep-advance-\(UUID().uuidString)"
         let startedAt = Date(timeIntervalSince1970: 3_000)
 
         // Fresh bench press seeds at accumulation range 8...10 → top of range = 10.
-        // Two sessions at 10 reps (high effort, no RPE recorded) bump the weight.
+        // Two sessions at 10 reps above the planned effort should hold the load.
         await ProgressionEngine.shared.ingest(
             log: progressionLog(
                 id: "bench-rep-1-\(UUID().uuidString)",
@@ -193,13 +190,108 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
             collection: "progression_states",
             documentId: "\(userId):bench press"
         )
-        XCTAssertGreaterThan(state?.currentWorkingWeightKg ?? 0, 60, "two top-of-range sessions bump the weight")
-        XCTAssertEqual(state?.consecutiveSessionsAtTarget, 0, "counter resets after the bump")
+        XCTAssertEqual(state?.currentWorkingWeightKg, 60)
+        XCTAssertEqual(state?.consecutiveSessionsAtTarget, 0)
         XCTAssertEqual(state?.lastSessionReps, 10)
-        XCTAssertNil(state?.lastSessionRPE, "RPE is no longer stored")
-        XCTAssertEqual(state?.lastSessionHitTarget, true)
-        XCTAssertEqual(state?.lastSessionWasGrindy, false, "no RPE → no grind signal")
-        XCTAssertEqual(state?.prescriptionBias, .hold)
+        XCTAssertEqual(state?.lastSessionRPE, 9)
+        XCTAssertEqual(state?.lastSessionHitTarget, false)
+        XCTAssertEqual(state?.lastSessionWasGrindy, true)
+        XCTAssertEqual(state?.prescriptionBias, .easier)
+    }
+
+    @MainActor
+    func testLowRPEOverPerformanceAdvancesAfterOneSession() async {
+        let userId = "over-performance-\(UUID().uuidString)"
+        await ProgressionEngine.shared.ingest(
+            log: progressionLog(
+                id: "easy-bench-\(UUID().uuidString)",
+                userId: userId,
+                exerciseName: "bench press",
+                reps: 12,
+                plannedReps: 8,
+                weightKg: 60,
+                rpe: 7,
+                at: Date(timeIntervalSince1970: 3_250)
+            ),
+            mode: .advance
+        )
+
+        let state: ProgressionState? = try? await DatabaseService.shared.read(
+            collection: "progression_states",
+            documentId: "\(userId):bench press"
+        )
+        XCTAssertGreaterThan(state?.currentWorkingWeightKg ?? 0, 60)
+        XCTAssertEqual(state?.lastSessionReps, 12)
+        XCTAssertEqual(state?.lastSessionRPE, 7)
+        XCTAssertEqual(state?.prescriptionBias, .harder)
+    }
+
+    @MainActor
+    func testTimedHoldOverPerformanceAdvancesSecondsLadder() async {
+        let userId = "hold-over-performance-\(UUID().uuidString)"
+        let date = Date(timeIntervalSince1970: 3_300)
+        let log = WorkoutLog(
+            id: "hold-log-\(UUID().uuidString)",
+            userId: userId,
+            programId: "program-hold",
+            dayNumber: 1,
+            plannedWorkoutName: "Core",
+            startedAt: date,
+            completedAt: date.addingTimeInterval(600),
+            exerciseEntries: [
+                ExerciseLogEntry(
+                    id: "hold-entry",
+                    exerciseName: "Plank",
+                    plannedSets: 1,
+                    plannedReps: "20s hold",
+                    sets: [
+                        SetLog(
+                            id: "hold-set",
+                            setNumber: 1,
+                            weightKg: nil,
+                            reps: 0,
+                            rpe: 7,
+                            isWarmup: false,
+                            durationSeconds: 30
+                        )
+                    ],
+                    skipped: false,
+                    notes: nil
+                )
+            ]
+        )
+
+        await ProgressionEngine.shared.ingest(log: log, mode: .advance)
+
+        let state: ProgressionState? = try? await DatabaseService.shared.read(
+            collection: "progression_states",
+            documentId: "\(userId):plank"
+        )
+        XCTAssertEqual(state?.lastSessionDurationSeconds, 30)
+        XCTAssertNil(state?.lastSessionReps)
+        XCTAssertGreaterThan(state?.currentTargetDurationSeconds ?? 0, 30)
+        XCTAssertEqual(state?.prescriptionBias, .harder)
+    }
+
+    func testRepCalibrationSeedsFromDemonstratedCapacity() throws {
+        let baseline = CalibrationBaseline(
+            userId: "calibration-user",
+            exerciseKey: "pushup",
+            displayName: "Pushup",
+            kind: .reps,
+            value: 12,
+            unit: "reps",
+            isKnown: true
+        )
+        let state = try XCTUnwrap(ProgressionState.calibrated(
+            userId: baseline.userId,
+            baseline: baseline
+        ))
+
+        XCTAssertEqual(state.currentWorkingWeightKg, 0)
+        XCTAssertEqual(state.targetRepMin, 7)
+        XCTAssertEqual(state.targetRepMax, 9)
+        XCTAssertEqual(state.currentTargetReps, 7)
     }
 
     @MainActor
@@ -320,6 +412,7 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
         userId: String,
         exerciseName: String,
         reps: Int,
+        plannedReps: Int? = nil,
         weightKg: Double,
         rpe: Int,
         at date: Date
@@ -337,7 +430,7 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
                     id: "entry-\(id)",
                     exerciseName: exerciseName,
                     plannedSets: 1,
-                    plannedReps: "\(reps)",
+                    plannedReps: "\(plannedReps ?? reps)",
                     sets: [
                         SetLog(
                             id: "set-\(id)",

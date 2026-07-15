@@ -223,7 +223,12 @@ struct BaselineYearProgramSimulator {
         var blockNumber = 1
         let maximumBlocks = 80
         var previousBlock: ProgramBlock?
-        var progression = SimulationProgressionTracker(userId: persona.id, experience: persona.experience)
+        let simulatedBodyweightKg: Double = persona.experience == .current ? 82 : 72
+        var progression = SimulationProgressionTracker(
+            userId: persona.id,
+            experience: persona.experience,
+            bodyweightKg: simulatedBodyweightKg
+        )
         var exerciseBlockCounts: [String: Int] = [:]
         var previousBlockExercises = Set<String>()
         var days: [YearDayExport] = []
@@ -469,12 +474,13 @@ struct BaselineYearProgramSimulator {
                 dayNumber: day.dayNumber,
                 date: date,
                 scheduledSkillIds: scheduledSkillIds,
-                modifierContext: modifierContext
+                modifierContext: modifierContext,
+                progressionStates: progression.states
             )
             if shouldAttachCarry {
                 draft.blocks.append(carryFinisherBlock())
             }
-            return (resolvedWorkout, draft)
+            return (workoutApplyingResolvedPrescriptions(resolvedWorkout, draft: draft), draft)
         }
         let effectiveWorkout = resolved.0
         let bodyLoads = missed ? [] : BodyRegionTrainingLedger.loads(for: resolved.1)
@@ -587,6 +593,7 @@ struct BaselineYearProgramSimulator {
                 rpe: exercise.rpe,
                 completedSets: missed ? 0 : exercise.sets,
                 simulatedTopSetReps: missed ? 0 : outcome.reps,
+                simulatedTopSetHoldSeconds: missed ? nil : outcome.holdSeconds,
                 simulatedTopSetRPE: missed ? nil : outcome.rpe,
                 simulatedWeightKg: outcome.weightKg,
                 classification: outcome.classification.rawValue,
@@ -623,6 +630,27 @@ struct BaselineYearProgramSimulator {
         guard !persona.simulatedSkillIds.isEmpty else { return [] }
         let week = max(0, (absoluteDay - 1) / 7)
         return [persona.simulatedSkillIds[week % persona.simulatedSkillIds.count]]
+    }
+
+    private func workoutApplyingResolvedPrescriptions(
+        _ workout: Workout,
+        draft: TrainingSessionDraft
+    ) -> Workout {
+        let prescriptions = draft.blocks.flatMap(\.prescriptions)
+        var resolved = workout
+        resolved.mainExercises = workout.mainExercises.map { exercise in
+            guard let prescription = prescriptions.first(where: {
+                MovementCatalog.normalized($0.exerciseName) == MovementCatalog.normalized(exercise.name)
+            }) else { return exercise }
+            var updated = exercise
+            updated.sets = prescription.sets
+            updated.reps = prescription.target.displayText
+            updated.restSeconds = prescription.restSeconds
+            updated.rpe = prescription.rpe
+            updated.suggestedWeightKg = prescription.suggestedWeightKg
+            return updated
+        }
+        return resolved
     }
 
     private func shouldAttachCarryFinisher(persona: YearSimulationPersona, absoluteDay: Int) -> Bool {
@@ -726,7 +754,8 @@ struct BaselineYearProgramSimulator {
             sex: .male,
             blockStartDate: date,
             exercisePreferences: [],
-            calibration: calibration
+            calibration: calibration,
+            engagedSkillIds: Set(persona.simulatedSkillIds)
         )
     }
 

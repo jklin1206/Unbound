@@ -10,7 +10,7 @@ Training-program model types: the generated program itself (days, waves, arcs), 
 | `ProgramBlock.swift` | `ProgramBlock` — a persisted numbered block of a program for a user. |
 | `ProgramRationale.swift` | `ProgramRationale` + nested `Decision` — why the generator made each program choice; `ProgramRationaleCopy` for display strings. |
 | `ProgramSurfaceState.swift` | `ProgramSurfaceState` — what the Program tab surface shows (noProgram / loading / loadError / blockComplete…); proof-state enums and `ProgramProofProgramFactory`. |
-| `ProgressionState.swift` | Per-exercise progression: `ProgressionState`, `BlockType`, `ProgressionPrescriptionBias`, `ExerciseClassification`, `ProgressionAdvance`, `ProgressionFamilyState`, `TierUnlock`, related notification names. |
+| `ProgressionState.swift` | Per-exercise progression: load/rep/hold targets, calibration seeding, isometric duration ladders, `BlockType`, prescription bias, classification, advances, and family unlock state. |
 | `TrainingFeedbackMode.swift` | `TrainingFeedbackMode` — how much feedback the user wants during training. |
 | `TrainingGoal.swift` | `TrainingGoal` — the user's training objective (strength / hypertrophy / skill) that drives rep ranges + sets, replacing the per-day `BlockType` phase cycle; derived from `BuildIdentity`'s programTemplateKey until an explicit onboarding choice lands. |
 | `TrainingStyle.swift` | `TrainingStyle` plus the program training-context system: scope/mode enums, `ProgramTrainingContextSelection` / `Resolution` / `Resolver`. |

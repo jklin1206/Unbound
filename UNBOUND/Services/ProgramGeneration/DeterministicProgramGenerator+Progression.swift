@@ -1,5 +1,73 @@
 import Foundation
 
+/// Four-part loading wave inside each 30-day Arc. The normalized day mapping
+/// keeps the deload to roughly one week even though an Arc is not 28 days.
+enum ProgramTrainingWave: String, CaseIterable {
+    case accumulation
+    case build
+    case intensification
+    case deload
+
+    static func forDay(_ dayNumber: Int?) -> ProgramTrainingWave {
+        guard let dayNumber, dayNumber > 0 else { return .accumulation }
+        let normalizedIndex = min(3, ((dayNumber - 1) * 4) / Arc.durationDays)
+        return allCases[normalizedIndex]
+    }
+
+    var blockType: BlockType {
+        switch self {
+        case .accumulation, .build: return .accumulation
+        case .intensification: return .intensification
+        case .deload: return .deload
+        }
+    }
+
+    var loadFactor: Double {
+        switch self {
+        case .accumulation, .build: return 1
+        case .intensification: return 1.025
+        case .deload: return 0.85
+        }
+    }
+
+    func adjustedRepTarget(_ target: Int, state: ProgressionState?) -> Int {
+        switch self {
+        case .accumulation:
+            return target
+        case .build:
+            return min(target + 1, state?.targetRepMax ?? target + 1)
+        case .intensification:
+            return max(state?.targetRepMin ?? 1, target - 1)
+        case .deload:
+            return max(1, state?.targetRepMin ?? target - 2)
+        }
+    }
+
+    func adjustedHoldTarget(_ target: Int, exerciseKey: String) -> Int {
+        switch self {
+        case .accumulation, .intensification:
+            return target
+        case .build:
+            return IsometricDurationPolicy.nextTarget(after: target, exerciseKey: exerciseKey)
+        case .deload:
+            return IsometricDurationPolicy.previousTarget(before: target, exerciseKey: exerciseKey)
+        }
+    }
+
+    func adjustedSets(_ sets: Int) -> Int {
+        self == .deload ? max(2, sets - 1) : sets
+    }
+
+    var note: String {
+        switch self {
+        case .accumulation: return "Wave 1/4: establish clean volume."
+        case .build: return "Wave 2/4: build reps or hold time."
+        case .intensification: return "Wave 3/4: slightly heavier work with clean reps."
+        case .deload: return "Wave 4/4: planned deload with lower load and volume."
+        }
+    }
+}
+
 extension DeterministicProgramGenerator {
     static func progressionState(
         for definition: MovementDefinition,
@@ -173,12 +241,39 @@ extension DeterministicProgramGenerator {
 
     static func suggestedWeightKg(
         for state: ProgressionState?,
-        bias: ProgressionPrescriptionBias?
+        bias: ProgressionPrescriptionBias?,
+        wave: ProgramTrainingWave = .accumulation
     ) -> Double? {
         guard let weight = state?.currentWorkingWeightKg, weight > 0 else { return nil }
-        if bias == .easier {
-            return WeightPlatePolicy.snappedSuggestionKilograms(max(0, weight * 0.95))
+        let biasFactor = bias == .easier ? 0.95 : 1
+        let adjusted = max(0, weight * biasFactor * wave.loadFactor)
+        return WeightPlatePolicy.snappedSuggestionKilograms(adjusted)
+    }
+
+    static func waveAdjustedPrescription(
+        _ prescription: GeneratedPrescription,
+        state: ProgressionState?,
+        definition: MovementDefinition,
+        wave: ProgramTrainingWave
+    ) -> GeneratedPrescription {
+        var adjusted = prescription
+        adjusted.sets = wave.adjustedSets(adjusted.sets)
+
+        if definition.defaultMetric == .holdSeconds || definition.defaultMetric == .durationSeconds {
+            let baseSeconds = state?.currentTargetDurationSeconds
+                ?? RepRange.lowerBound(adjusted.reps)
+                ?? IsometricDurationPolicy.startingTarget(for: definition.displayName)
+            let seconds = wave.adjustedHoldTarget(baseSeconds, exerciseKey: definition.displayName)
+            adjusted.reps = "\(seconds)s"
+        } else if !adjusted.reps.contains("-") {
+            let baseReps = RepRange.lowerBound(adjusted.reps) ?? state?.currentTargetReps
+            if let baseReps {
+                let suffix = repSuffix(from: adjusted.reps)
+                adjusted.reps = "\(wave.adjustedRepTarget(baseReps, state: state))\(suffix)"
+            }
         }
-        return WeightPlatePolicy.snappedSuggestionKilograms(weight)
+
+        adjusted.note = appendNote(wave.note, to: adjusted.note)
+        return adjusted
     }
 }

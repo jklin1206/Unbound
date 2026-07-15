@@ -4,7 +4,8 @@ extension DeterministicProgramGenerator {
     static func toExercise(
         definition: MovementDefinition,
         input: ProgramGeneratorInput,
-        goal: TrainingGoal
+        goal: TrainingGoal,
+        wave: ProgramTrainingWave = .accumulation
     ) -> Exercise {
         let resolution = progressionResolution(for: definition, input: input)
         let definition = resolution.definition
@@ -18,12 +19,18 @@ extension DeterministicProgramGenerator {
             definition: definition,
             input: input
         )
-        let prescription = overloadAdjustedPrescription(
+        let overloadPrescription = overloadAdjustedPrescription(
             basePrescription,
             state: state,
             bias: resolution.bias,
             isPrimary: primary,
             definition: definition
+        )
+        let prescription = waveAdjustedPrescription(
+            overloadPrescription,
+            state: state,
+            definition: definition,
+            wave: wave
         )
         let note = [prescription.note, resolution.variationNote]
             .compactMap { $0 }
@@ -47,7 +54,7 @@ extension DeterministicProgramGenerator {
             rpe: prescription.rpe > 0 ? prescription.rpe : nil,
             notes: note.isEmpty ? nil : note,
             substitution: substitute?.displayName,
-            suggestedWeightKg: suggestedWeightKg(for: state, bias: resolution.bias)
+            suggestedWeightKg: suggestedWeightKg(for: state, bias: resolution.bias, wave: wave)
         )
     }
 
@@ -66,6 +73,20 @@ extension DeterministicProgramGenerator {
                 isPrimary: isPrimary,
                 fallbackRPE: fallbackRPE,
                 definition: definition
+            )
+        }
+
+        // Isometric holds are prescribed in seconds for EVERY style — "3x5"
+        // on a plank is a unit error, not a prescription.
+        if definition.defaultMetric == .holdSeconds || definition.defaultMetric == .durationSeconds {
+            let seconds = state?.currentTargetDurationSeconds
+                ?? IsometricDurationPolicy.startingTarget(for: definition.displayName)
+            return (
+                sets: isPrimary ? 4 : 3,
+                reps: "\(seconds)s",
+                restSeconds: isPrimary ? 105 : 75,
+                rpe: 0,
+                note: "Accumulate clean time. End the set when shape, position, or breathing breaks; progress the variation before adding time."
             )
         }
 
@@ -127,9 +148,11 @@ extension DeterministicProgramGenerator {
         // HOLD track (isometrics → seconds). Single per-Arc build target; the skill
         // tree makes the *variation* harder over time, not these numbers. RPE-free.
         if definition.defaultMetric == .holdSeconds || definition.defaultMetric == .durationSeconds {
+            let seconds = state?.currentTargetDurationSeconds
+                ?? IsometricDurationPolicy.startingTarget(for: definition.displayName)
             return (
                 sets: isPrimary ? 4 : 3,
-                reps: "20s",
+                reps: "\(seconds)s",
                 restSeconds: isPrimary ? 105 : 75,
                 rpe: 0,
                 note: "Accumulate clean time. End the set when shape, shoulder position, or breathing breaks; progress the variation before adding time."
@@ -150,15 +173,20 @@ extension DeterministicProgramGenerator {
         )
     }
 
-    static func blockProgrammingNote(for goal: TrainingGoal) -> String {
+    static func blockProgrammingNote(
+        for goal: TrainingGoal,
+        wave: ProgramTrainingWave = .accumulation
+    ) -> String {
+        let goalNote: String
         switch goal {
         case .strength:
-            return "Strength arc: heavy clean reps; add weight at the top of the range."
+            goalNote = "Strength arc: heavy clean reps; add weight at the top of the range."
         case .hypertrophy:
-            return "Build arc: chase the top of each rep range, then add weight."
+            goalNote = "Build arc: chase the top of each rep range, then add weight."
         case .skill:
-            return "Skills arc: strict reps and holds; progress the variation before load."
+            goalNote = "Skills arc: strict reps and holds; progress the variation before load."
         }
+        return "\(goalNote) \(wave.note)"
     }
 
     struct WorkoutCompressionResult {
@@ -178,26 +206,30 @@ extension DeterministicProgramGenerator {
 
         var compressed = exercises
         let originalCount = compressed.count
-        let minimumExerciseCount = min(2, compressed.count)
+        // A session should never collapse below what its time budget can hold:
+        // roughly one movement per 15 minutes, floored at 3.
+        let minimumExerciseCount = min(compressed.count, max(3, budgetMinutes / 15))
         var usedCompression = false
 
+        // Cheapest savings first: tighten rest, then trim accessory sets, and
+        // only delete whole exercises as a last resort before touching primary sets.
         while estimatedWorkoutMinutes(warmup: warmup, main: compressed, cooldown: cooldown) > budgetMinutes,
-              compressed.count > minimumExerciseCount,
-              let index = compressed.lastIndex(where: { !isPrimaryExercise($0) }) {
-            compressed.remove(at: index)
+              let index = compressed.lastIndex(where: { $0.restSeconds > 60 }) {
+            compressed[index].restSeconds = max(60, compressed[index].restSeconds - 30)
             usedCompression = true
         }
 
         while estimatedWorkoutMinutes(warmup: warmup, main: compressed, cooldown: cooldown) > budgetMinutes,
-              let index = compressed.lastIndex(where: { !isPrimaryExercise($0) && $0.sets > 1 }) {
+              let index = compressed.lastIndex(where: { !isPrimaryExercise($0) && $0.sets > 2 }) {
             compressed[index].sets -= 1
             compressed[index].restSeconds = min(compressed[index].restSeconds, 60)
             usedCompression = true
         }
 
         while estimatedWorkoutMinutes(warmup: warmup, main: compressed, cooldown: cooldown) > budgetMinutes,
-              let index = compressed.lastIndex(where: { $0.restSeconds > 60 }) {
-            compressed[index].restSeconds = max(60, compressed[index].restSeconds - 30)
+              compressed.count > minimumExerciseCount,
+              let index = compressed.lastIndex(where: { !isPrimaryExercise($0) }) {
+            compressed.remove(at: index)
             usedCompression = true
         }
 

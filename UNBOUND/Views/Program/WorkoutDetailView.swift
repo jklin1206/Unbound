@@ -155,7 +155,8 @@ struct WorkoutDetailView: View {
                 from: day,
                 userId: userId,
                 programId: programId.isEmpty ? nil : programId,
-                modifierContext: modifierContext
+                modifierContext: modifierContext,
+                progressionStates: programViewModel?.progressionStates ?? [:]
            ) {
             return draft
         }
@@ -164,7 +165,8 @@ struct WorkoutDetailView: View {
             userId: userId,
             programId: programId.isEmpty ? nil : programId,
             dayNumber: dayNumber,
-            modifierContext: modifierContext
+            modifierContext: modifierContext,
+            progressionStates: programViewModel?.progressionStates ?? [:]
         )
     }
 

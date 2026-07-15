@@ -21,9 +21,19 @@ extension DeterministicProgramGenerator {
     }
 
     static func labelFor(template: DayTemplate, bias: [MuscleGroup: Int]) -> String {
-        guard let biggest = bias.max(by: { $0.value < $1.value }) else {
-            return template.displayLabel
-        }
+        // Only advertise a bias the day can actually express — a "Legs Bias"
+        // tag on a push day is a placebo label. Deterministic tie-break so the
+        // same inputs always produce the same label.
+        let relevantGroups: Set<MuscleGroup> = template == .weakPoint
+            ? Set(bias.keys)
+            : Set(template.muscleGroups)
+        let biggest = bias
+            .filter { relevantGroups.contains($0.key) }
+            .sorted { lhs, rhs in
+                lhs.value != rhs.value ? lhs.value > rhs.value : lhs.key.rawValue < rhs.key.rawValue
+            }
+            .first
+        guard let biggest else { return template.displayLabel }
         return "\(template.displayLabel) + \(biggest.key.displayName) Bias"
     }
 

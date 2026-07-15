@@ -2,6 +2,64 @@ import XCTest
 @testable import UNBOUND
 
 final class YearProgramSimulationTests: XCTestCase {
+    func testSimulatorSeedsPerMovementAndReportsHoldSeconds() {
+        var tracker = SimulationProgressionTracker(
+            userId: "sim-profile",
+            experience: .current,
+            bodyweightKg: 82
+        )
+        let curl = Exercise(
+            id: "curl",
+            name: "Cable Curl",
+            muscleGroups: [.arms],
+            sets: 3,
+            reps: "10 reps",
+            restSeconds: 60
+        )
+        let raise = Exercise(
+            id: "raise",
+            name: "Dumbbell Lateral Raise",
+            muscleGroups: [.shoulders],
+            sets: 3,
+            reps: "10 reps",
+            restSeconds: 60
+        )
+        let hold = Exercise(
+            id: "plank",
+            name: "Plank",
+            muscleGroups: [.core],
+            sets: 3,
+            reps: "20s hold",
+            restSeconds: 60
+        )
+
+        let curlOutcome = tracker.log(
+            exercise: curl,
+            date: Date(),
+            shouldGrind: false,
+            shouldUnderperform: false,
+            cutModeActive: false
+        )
+        let raiseOutcome = tracker.log(
+            exercise: raise,
+            date: Date(),
+            shouldGrind: false,
+            shouldUnderperform: false,
+            cutModeActive: false
+        )
+        let holdOutcome = tracker.log(
+            exercise: hold,
+            date: Date(),
+            shouldGrind: false,
+            shouldUnderperform: false,
+            cutModeActive: false
+        )
+
+        XCTAssertNotEqual(curlOutcome.weightKg, raiseOutcome.weightKg)
+        XCTAssertEqual(holdOutcome.reps, 0)
+        XCTAssertEqual(holdOutcome.holdSeconds, 20)
+    }
+
     func testBaselineYearSimulationSmokeExportsDebugArtifacts() async throws {
         try await runYearSimulation(
             personas: [try XCTUnwrap(BaselineYearProgramSimulator.personas.first { $0.id == "home-bodyweight-beginner" })],

@@ -58,7 +58,8 @@ extension DeterministicProgramGenerator {
                         input: input,
                         bias: bias,
                         goal: input.goal,
-                        sessionIndex: sessionIndex
+                        sessionIndex: sessionIndex,
+                        dayNumber: dayNumber
                     )
                     label = labelFor(template: template, bias: bias)
                 }

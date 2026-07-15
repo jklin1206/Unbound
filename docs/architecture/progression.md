@@ -6,6 +6,8 @@ Progression owns how training adapts over time: programs, deloads, checkpoints, 
 
 The program layer answers "what should the user do next?" The completion layer answers "what did the user earn?" Keep those separate.
 
+Generated 30-day Arcs carry a four-part loading wave (accumulation, build, intensification, planned deload). At session launch, `TrainingPrescriptionResolver` overlays the latest per-movement `ProgressionState`, so completed-session over-performance can change the next prescription without rewriting the user's authored program. Loaded movements seed from calibration/log proof; timed isometrics retain seconds and progress on movement-specific duration ladders.
+
 ## Owners
 
 - `UNBOUND/Services/ProgramGeneration/DeterministicProgramGenerator.swift`: deterministic plan generation.

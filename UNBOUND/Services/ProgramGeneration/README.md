@@ -20,9 +20,10 @@ Deterministic, on-device training-program generation: turns scan/profile/progres
 | `DeterministicProgramGenerator+Metadata.swift` | Generator extension: program metadata. |
 | `DeterministicProgramGenerator+MovementSelection.swift` | Generator extension: per-day exercise pool selection. |
 | `DeterministicProgramGenerator+Prescription.swift` | Generator extension: sets/reps/RPE prescription. |
-| `DeterministicProgramGenerator+Progression.swift` | Generator extension: progression-state-aware adjustments. |
+| `DeterministicProgramGenerator+Progression.swift` | Generator extension: progression-state-aware adjustments plus the four-part Arc loading wave. |
 | `DeterministicProgramGenerator+Schedule.swift` | Generator extension: weekday scheduling. |
 | `DeterministicProgramGenerator+SessionDetails.swift` | Generator extension: session detail assembly. |
+| `DeterministicProgramGenerator+SessionFill.swift` | Generator extension: budget back-fill, slot fallback chains, block/weekly rotation offsets, skill-engagement gating. |
 | `DeterministicProgramGenerator+WorkoutBuilder.swift` | Generator extension: builds the per-day `Workout`. |
 | `DurableWrite.swift` | Retry-and-log wrapper for best-effort side-effect writes (scan status, `users.currentProgramId` patches, local program fallbacks); replaces bare `try?` so a silently dropped write can't resurrect stale-pointer bugs. |
 | `ExerciseEquipmentClassifier.swift` | Compatibility facade — equipment categories read from MovementCatalog, unknown names fall back to the dumbbell/accessory bucket. |
@@ -39,7 +40,7 @@ Deterministic, on-device training-program generation: turns scan/profile/progres
 | `SessionRoleTagger.swift` | Infers a `SessionRole` (push/pull/legs/rest/...) for a day, workout, or draft from title + muscle groups. |
 | `SplitLookup.swift` | Deterministic (buildIdentity, frequency) → `Split` lookup; calisthenic branch gated on control-primary identities. |
 | `SupabaseProgramService.swift` | Cloud-backed program persistence (`ProgramRemote`): saves after every generate, patches `current_program_id` on the user row. |
-| `TrainingPrescriptionResolver.swift` | Overlays stored `ProgressionState` onto a draft's prescriptions so today's numbers reflect earned progression. |
+| `TrainingPrescriptionResolver.swift` | Overlays current `ProgressionState` and the day's loading wave onto a draft so stale generated loads, rep targets, and hold durations cannot replay. |
 | `WeakPointBiaser.swift` | Converts focus-area inputs into per-muscle-group bias weights; biased candidate picking and accessory appends (generic over exercise type). |
 
 ## Where to find X

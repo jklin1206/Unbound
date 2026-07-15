@@ -287,6 +287,7 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
         let progressions = await progressionTask
         let progressionFamilyStates = await familyTask
         let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userId)) ?? []
+        let engagedSkillIds = await MainActor.run { SkillProgressService.shared.programFocusIds }
         let progressionStates = progressionStateMap(
             userId: userId,
             progressions: progressions,
@@ -321,7 +322,8 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             calibration: calibrationInput(
                 calibrations: calibrations,
                 progressionStates: Array(progressionStates.values)
-            )
+            ),
+            engagedSkillIds: engagedSkillIds
         )
     }
 
@@ -341,17 +343,12 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
             map[MovementCatalog.normalized(state.exerciseKey)] = state
         }
 
-        for baseline in calibrations where isUsableCalibrationBaseline(baseline) && baseline.kind == .weight {
+        for baseline in calibrations where isUsableCalibrationBaseline(baseline) {
             let key = MovementCatalog.normalized(baseline.exerciseKey)
             guard map[key] == nil,
-                  let kg = baseline.weightInKg,
-                  kg > 0
+                  let state = ProgressionState.calibrated(userId: userId, baseline: baseline)
             else { continue }
-            map[key] = ProgressionState.seed(
-                userId: userId,
-                exercise: baseline.displayName,
-                startingWeightKg: kg
-            )
+            map[key] = state
         }
         return map
     }

@@ -6,9 +6,11 @@ extension DeterministicProgramGenerator {
         input: ProgramGeneratorInput,
         bias: [MuscleGroup: Int],
         goal: TrainingGoal,
-        sessionIndex: Int = 0
+        sessionIndex: Int = 0,
+        dayNumber: Int = 1
     ) -> Workout {
         let compatibleCatalog = movementPool(input: input)
+        let wave = ProgramTrainingWave.forDay(dayNumber)
 
         // Which muscle groups does this template emphasize? weakPoint days
         // pull from the biased set; everything else uses the template's own
@@ -39,18 +41,32 @@ extension DeterministicProgramGenerator {
             eligiblePool = eligiblePool.filter { $0.movementSlot != .skill }
         }
 
-        let compounds = rotateDefinitions(
-            rotationFiltered(eligiblePool.filter(isPrimaryMovement), input: input),
-            by: sessionIndex
+        let budgetMinutes = sessionBudgetMinutes(for: input)
+        // Primaries anchor every recurrence of this template within the head
+        // anchor tier of the score-sorted pool — block-to-block variety cycles
+        // the few best-fit lifts, never an arbitrary pool position — and the
+        // user's explicit substitute picks are pinned in front of everything.
+        // Accessories rotate weekly instead of churning every session.
+        let compounds = pinnedFirst(
+            anchorTierRotated(
+                rotationFiltered(eligiblePool.filter(isPrimaryMovement), input: input),
+                by: blockRotationOffset(for: input)
+            ),
+            input: input
         )
-        let accessories = rotateDefinitions(
-            rotationFiltered(eligiblePool.filter { !isPrimaryMovement($0) }, input: input),
-            by: sessionIndex
+        let accessories = pinnedFirst(
+            rotateDefinitions(
+                rotationFiltered(eligiblePool.filter { !isPrimaryMovement($0) }, input: input),
+                by: weeklyRotationOffset(for: input, sessionIndex: sessionIndex)
+            ),
+            input: input
         )
 
         // Compounds: prefer the biased pick first, then the next available
-        // different entry. If compounds is empty (very possible in a pure
-        // bodyweight catalog subset), skip — accessories carry the workout.
+        // distinct entries — covering a second movement pattern (e.g. a
+        // vertical push next to a horizontal one) before doubling the first.
+        // If compounds is empty (very possible in a pure bodyweight catalog
+        // subset), skip — accessories carry the workout.
         var primaries: [MovementDefinition] = []
         let firstPrimary = bias.isEmpty
             ? compounds.first
@@ -61,8 +77,18 @@ extension DeterministicProgramGenerator {
             )
         if let first = firstPrimary {
             primaries.append(first)
-            if let second = compounds.first(where: { $0 != first }) {
-                primaries.append(second)
+            let primaryCap = budgetMinutes >= 60 ? 3 : 2
+            var usedPrimaryKeys: Set<String> = [workoutEquivalenceKey(for: first)]
+            var usedSlots: Set<MovementSlot> = [first.movementSlot]
+            for pass in 0..<2 where primaries.count < primaryCap {
+                for candidate in compounds where primaries.count < primaryCap {
+                    let key = workoutEquivalenceKey(for: candidate)
+                    guard !usedPrimaryKeys.contains(key) else { continue }
+                    if pass == 0, usedSlots.contains(candidate.movementSlot) { continue }
+                    usedPrimaryKeys.insert(key)
+                    usedSlots.insert(candidate.movementSlot)
+                    primaries.append(candidate)
+                }
             }
         }
 
@@ -89,13 +115,18 @@ extension DeterministicProgramGenerator {
         if !variedSlotPicks.isEmpty {
             pickedForTemplate = variedSlotPicks
         } else if template == .skill {
-            let skillPicks = Array(
-                rotationFiltered(
-                    eligiblePool.filter { $0.movementSlot == .skill },
-                    input: input
-                )
-                .prefix(2)
+            // Skill days serve the skills the user actually engaged in the
+            // tree; only fall back to the general skill pool when nothing is
+            // engaged yet.
+            let skillPool = rotationFiltered(
+                eligiblePool.filter { $0.movementSlot == .skill },
+                input: input
             )
+            let engaged = skillPool.filter {
+                matchesEngagedSkills($0, engagedSkillIds: input.engagedSkillIds)
+            }
+            let skillCap = budgetMinutes >= 60 ? 3 : 2
+            let skillPicks = Array((engaged.isEmpty ? skillPool : engaged).prefix(skillCap))
             let supportPicks = (primaries + accessoriesBiased)
                 .filter { $0.movementSlot != .skill }
             pickedForTemplate = skillPicks + supportPicks
@@ -114,14 +145,40 @@ extension DeterministicProgramGenerator {
 
         let warmup = warmupExercises(for: template, input: input)
         let cooldown = cooldownExercises(for: template)
-        let mainExercises = uniqueWorkoutDefinitions(picked).map {
-            toExercise(definition: $0, input: input, goal: goal)
+        let pickedUnique = uniqueWorkoutDefinitions(picked)
+        let mainExercises = pickedUnique.map {
+            toExercise(definition: $0, input: input, goal: goal, wave: wave)
         }
-        let compressed = compressedMainExercises(
+
+        // Back-fill toward the time budget: remaining slot-aligned accessories
+        // first, then borrowed secondary-slot accessories, then further
+        // compounds. Skill movements never enter through back-fill.
+        let secondaryPool = rotateDefinitions(
+            rotationFiltered(
+                compatibleCatalog.filter {
+                    secondaryAccessorySlots(for: template).contains($0.movementSlot)
+                },
+                input: input
+            ),
+            by: weeklyRotationOffset(for: input, sessionIndex: sessionIndex)
+        )
+        let expansionCandidates = (accessories + secondaryPool + compounds)
+            .filter { $0.movementSlot != .skill }
+        let filled = backfilledMainExercises(
             mainExercises,
+            alreadyPicked: pickedUnique,
+            candidates: expansionCandidates,
             warmup: warmup,
             cooldown: cooldown,
-            budgetMinutes: sessionBudgetMinutes(for: input)
+            budgetMinutes: budgetMinutes
+        ) {
+            toExercise(definition: $0, input: input, goal: goal, wave: wave)
+        }
+        let compressed = compressedMainExercises(
+            filled,
+            warmup: warmup,
+            cooldown: cooldown,
+            budgetMinutes: budgetMinutes
         )
         let estimatedMinutes = estimatedWorkoutMinutes(
             warmup: warmup,
@@ -129,7 +186,7 @@ extension DeterministicProgramGenerator {
             cooldown: cooldown
         )
         let notes = [
-            blockProgrammingNote(for: goal),
+            blockProgrammingNote(for: goal, wave: wave),
             compressed.note
         ]
         .compactMap { $0 }
@@ -143,7 +200,7 @@ extension DeterministicProgramGenerator {
             cooldown: cooldown,
             estimatedMinutes: estimatedMinutes,
             notes: notes,
-            blockType: .accumulation
+            blockType: wave.blockType
         )
     }
 
@@ -157,29 +214,58 @@ extension DeterministicProgramGenerator {
         var picked: [MovementDefinition] = []
 
         for slot in plan.slots {
-            guard let definition = calibrationPick(
-                slot: slot,
-                from: compatibleCatalog,
-                alreadyPicked: picked,
-                input: input,
-                bias: bias
-            ) else { continue }
-            picked.append(definition)
+            // Walk the fallback chain so an unfillable slot degrades to a
+            // nearby pattern instead of silently shrinking the session.
+            for fallbackSlot in slotFallbackChain(for: slot) {
+                guard let definition = calibrationPick(
+                    slot: fallbackSlot,
+                    from: compatibleCatalog,
+                    alreadyPicked: picked,
+                    input: input,
+                    bias: bias
+                ) else { continue }
+                picked.append(definition)
+                break
+            }
         }
 
         if picked.isEmpty {
             picked = Array(compatibleCatalog.prefix(3))
         }
 
+        let budgetMinutes = sessionBudgetMinutes(for: input)
         let warmup = calibrationWarmup(input: input, planName: plan.name)
-        let exercises = uniqueWorkoutDefinitions(picked).map { definition in
+        let pickedUnique = uniqueWorkoutDefinitions(picked)
+        let exercises = pickedUnique.map { definition in
             toCalibrationExercise(definition: definition, input: input)
         }
-        let compressed = compressedMainExercises(
+
+        // Calibration back-fill adds more standards to learn, never extra
+        // sets — every calibration prescription stays a light 2-set probe.
+        let calibrationCandidates = compatibleCatalog.filter { definition in
+            switch definition.movementSlot {
+            case .squat, .hinge, .horizontalPush, .verticalPush, .horizontalPull, .verticalPull, .core, .arms, .calves:
+                return true
+            case .skill, .carry, .cardio, .mobility, .routine:
+                return false
+            }
+        }
+        let filled = backfilledMainExercises(
             exercises,
+            alreadyPicked: pickedUnique,
+            candidates: calibrationCandidates,
             warmup: warmup,
             cooldown: [],
-            budgetMinutes: sessionBudgetMinutes(for: input)
+            budgetMinutes: budgetMinutes,
+            allowSetBumps: false
+        ) {
+            toCalibrationExercise(definition: $0, input: input)
+        }
+        let compressed = compressedMainExercises(
+            filled,
+            warmup: warmup,
+            cooldown: [],
+            budgetMinutes: budgetMinutes
         )
         let muscleGroups = Array(Set(exercises.flatMap(\.muscleGroups)))
         let estimatedMinutes = estimatedWorkoutMinutes(
@@ -321,17 +407,34 @@ extension DeterministicProgramGenerator {
 
         var picked: [MovementDefinition] = []
         for (slotOffset, slot) in slots.enumerated() {
-            guard let definition = slotPick(
-                slot: slot,
-                from: eligiblePool,
-                alreadyPicked: picked,
-                input: input,
-                bias: bias,
-                rotationOffset: sessionIndex + slotOffset
-            ) else {
-                continue
+            // Compound patterns anchor to the block so they can be overloaded;
+            // accessory slots rotate weekly. Unfillable slots degrade through
+            // the fallback chain instead of silently dropping.
+            let isCompoundSlot: Bool
+            switch slot {
+            case .squat, .hinge, .horizontalPush, .verticalPush, .horizontalPull, .verticalPull:
+                isCompoundSlot = true
+            default:
+                isCompoundSlot = false
             }
-            picked.append(definition)
+            let rotationOffset = isCompoundSlot
+                ? blockRotationOffset(for: input) + slotOffset
+                : weeklyRotationOffset(for: input, sessionIndex: sessionIndex) + slotOffset
+            for fallbackSlot in slotFallbackChain(for: slot) {
+                guard let definition = slotPick(
+                    slot: fallbackSlot,
+                    from: eligiblePool,
+                    alreadyPicked: picked,
+                    input: input,
+                    bias: bias,
+                    rotationOffset: rotationOffset,
+                    anchored: isCompoundSlot
+                ) else {
+                    continue
+                }
+                picked.append(definition)
+                break
+            }
         }
         return picked
     }
@@ -377,13 +480,18 @@ extension DeterministicProgramGenerator {
         alreadyPicked: [MovementDefinition],
         input: ProgramGeneratorInput,
         bias: [MuscleGroup: Int],
-        rotationOffset: Int
+        rotationOffset: Int,
+        anchored: Bool = false
     ) -> MovementDefinition? {
         let usedKeys = Set(alreadyPicked.map { workoutEquivalenceKey(for: $0) })
         let candidates = catalog
             .filter { $0.movementSlot == slot }
             .filter { !usedKeys.contains(workoutEquivalenceKey(for: $0)) }
-        let rotationAware = rotateDefinitions(rotationFiltered(candidates, input: input), by: rotationOffset)
+        let ordered = rotationFiltered(candidates, input: input)
+        let rotated = anchored
+            ? anchorTierRotated(ordered, by: rotationOffset)
+            : rotateDefinitions(ordered, by: rotationOffset)
+        let rotationAware = pinnedFirst(rotated, input: input)
         guard !rotationAware.isEmpty else { return nil }
 
         let biasedCandidates = rotationAware.filter { containsBiasedGroup($0, bias: bias) }

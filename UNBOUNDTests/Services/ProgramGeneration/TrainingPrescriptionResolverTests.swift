@@ -102,4 +102,70 @@ final class TrainingPrescriptionResolverTests: XCTestCase {
 
         XCTAssertEqual(resolved.blocks[0].prescriptions[0], prescription)
     }
+
+    func testCurrentProgressionWeightReplacesStaleGeneratedSuggestion() {
+        let prescription = TrainingBlockPrescription(
+            exerciseName: "Bench Press",
+            sets: 3,
+            target: .reps(8),
+            restSeconds: 120,
+            suggestedWeightKg: 60
+        )
+        let progression = state(exercise: "bench press", weightKg: 80)
+
+        let resolved = TrainingPrescriptionResolver.resolve(
+            draft: draft(with: prescription),
+            progressionStates: ["bench press": progression]
+        )
+
+        XCTAssertEqual(
+            resolved.blocks[0].prescriptions[0].suggestedWeightKg,
+            WeightPlatePolicy.snappedSuggestionKilograms(80)
+        )
+    }
+
+    func testProgramDeloadWaveReducesCurrentLoad() {
+        let prescription = TrainingBlockPrescription(
+            exerciseName: "Bench Press",
+            sets: 3,
+            target: .reps(8),
+            restSeconds: 120,
+            suggestedWeightKg: 100
+        )
+        var programDraft = draft(with: prescription)
+        programDraft.source = .program
+        programDraft.dayNumber = 26
+
+        let resolved = TrainingPrescriptionResolver.resolve(
+            draft: programDraft,
+            progressionStates: ["bench press": state(exercise: "bench press", weightKg: 100)]
+        )
+
+        XCTAssertEqual(ProgramTrainingWave.forDay(26), .deload)
+        XCTAssertEqual(
+            resolved.blocks[0].prescriptions[0].suggestedWeightKg,
+            WeightPlatePolicy.snappedSuggestionKilograms(
+                WeightPlatePolicy.snappedSuggestionKilograms(100)
+                    * ProgramTrainingWave.deload.loadFactor
+            )
+        )
+    }
+
+    func testTimedHoldStateStaysSecondsBased() {
+        var progression = state(exercise: "plank", weightKg: 0)
+        progression.targetDurationSeconds = 30
+        let prescription = TrainingBlockPrescription(
+            exerciseName: "Plank",
+            sets: 3,
+            target: .holdSeconds(20),
+            restSeconds: 60
+        )
+
+        let resolved = TrainingPrescriptionResolver.resolve(
+            draft: draft(with: prescription),
+            progressionStates: ["plank": progression]
+        )
+
+        XCTAssertEqual(resolved.blocks[0].prescriptions[0].target, .holdSeconds(30))
+    }
 }

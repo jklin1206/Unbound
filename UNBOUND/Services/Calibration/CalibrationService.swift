@@ -66,13 +66,8 @@ final class CalibrationService: CalibrationServiceProtocol, @unchecked Sendable 
 
     private func seedProgressionStates(from baselines: [CalibrationBaseline], userId: String) async {
         let store = await MainActor.run { ProgressionStateStore.shared }
-        for baseline in baselines where baseline.kind == .weight {
-            guard baseline.isKnown, let kg = baseline.weightInKg, kg > 0 else { continue }
-            let state = ProgressionState.seed(
-                userId: userId,
-                exercise: baseline.exerciseKey,
-                startingWeightKg: kg
-            )
+        for baseline in baselines {
+            guard let state = ProgressionState.calibrated(userId: userId, baseline: baseline) else { continue }
             await store.save(state)
         }
     }

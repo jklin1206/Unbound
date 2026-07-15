@@ -313,6 +313,7 @@ enum BlockRolloverService {
         let feedback = profile.trainingFeedbackMode ?? TrainingFeedbackMode.default(for: generationExperience)
 
         let preferences = (try? await ExercisePreferenceService.shared.fetchPreferences(userId: userId)) ?? []
+        let engagedSkillIds = await MainActor.run { SkillProgressService.shared.programFocusIds }
 
         let input = ProgramGeneratorInput(
             userId: userId,
@@ -339,7 +340,8 @@ enum BlockRolloverService {
             sex: sex,
             blockStartDate: now,
             exercisePreferences: preferences,
-            calibration: .standardReady(knownExerciseKeys: Set(progressionStates.keys))
+            calibration: .standardReady(knownExerciseKeys: Set(progressionStates.keys)),
+            engagedSkillIds: engagedSkillIds
         )
 
         let program: TrainingProgram

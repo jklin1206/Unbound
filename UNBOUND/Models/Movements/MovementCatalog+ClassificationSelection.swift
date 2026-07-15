@@ -86,14 +86,17 @@ extension MovementCatalog {
         switch style {
         case .bodyweight:
             if definition.blockKind != .bodyweight { score += 1_000 }
-            if definition.rankTemplate == .holdControl { score -= 15 }
+            // Mild preference only: rep work is the backbone of a bodyweight
+            // program; holds must not outrank basics for general slots.
+            if definition.rankTemplate == .holdControl { score -= 5 }
             if definition.rankTemplate == .bodyweightReps { score -= 10 }
         case .freeWeights:
             if definition.equipment.contains(.barbell) { score -= 20 }
             if definition.equipment.contains(.dumbbell) || definition.equipment.contains(.kettlebell) { score -= 10 }
-            // Machines and cables are first-class for a full gym - no penalty. The
-            // best tool for the pattern (e.g. a cable lat pulldown for a vertical
-            // pull) should win on its own merits, not be pushed below a band.
+            // Machines and cables are first-class for a full gym: score them
+            // with dumbbells so they genuinely compete. In a relative sort,
+            // "no penalty" alone still always loses to a bonus.
+            if definition.equipment.contains(.machine) || definition.equipment.contains(.cable) || definition.equipment.contains(.smithMachine) { score -= 10 }
         case .machines:
             if definition.equipment.contains(.machine) || definition.equipment.contains(.cable) || definition.equipment.contains(.smithMachine) { score -= 20 }
             if definition.equipment.contains(.barbell) || definition.equipment.contains(.dumbbell) { score += 50 }
@@ -113,7 +116,11 @@ extension MovementCatalog {
         if definition.variantOfMovementId != nil {
             score += 5
         }
-        score += difficultyScore(definition.difficulty) * 10
+        // Difficulty is a tiebreaker, not the headline: at *5 an adjacent
+        // difficulty step (5) can never outweigh the style's equipment intent
+        // (barbell -20 / dumbbell -10), so a full gym anchors real lifts
+        // instead of whatever happens to be easiest.
+        score += difficultyScore(definition.difficulty) * 5
         score += (definition.progressionTier ?? 0)
         return score
     }

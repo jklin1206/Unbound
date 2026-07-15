@@ -235,6 +235,11 @@ struct ProgramOverviewView: View {
             openRoutineForProofIfRequested()
             openWorkoutsTabIfRequested()
             openScheduleEditorIfRequested()
+            // Dev harness: `--unbound-open-exercise-library` opens the add-exercise
+            // picker on launch for on-sim screenshots (idb taps are unavailable here).
+            if ProcessInfo.processInfo.arguments.contains("--unbound-open-exercise-library") {
+                showExerciseStarterLibrary = true
+            }
             #endif
         }
         .sheet(isPresented: $showPaywall) {

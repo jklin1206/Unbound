@@ -154,7 +154,7 @@ final class ProgramAwareLoggingTests: XCTestCase {
 
         let log = s.assembleWorkoutLog(userId: "u")
         XCTAssertEqual(log.exerciseEntries[0].sets[0].durationSeconds, 20)
-        XCTAssertEqual(log.exerciseEntries[0].sets[0].reps, 20)
+        XCTAssertEqual(log.exerciseEntries[0].sets[0].reps, 0)
     }
 
     func testReplaceExerciseRefreshesMovementMetadataForSwaps() throws {

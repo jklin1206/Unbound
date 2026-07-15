@@ -16,7 +16,7 @@ Post-workout progression ingest: deterministic RPE-based weight/rep advancement 
 | `OverallLevelService.swift` | Accumulates weighted XP into `OverallLevelProgress` (total XP / level); caches last-known progress for synchronous reward previews. |
 | `PlateauDetector.swift` | Flags exercises stalled at the same weight for consecutive sessions (`PlateauedExercise`). |
 | `ProgressSnapshotCloudBackup.swift` | Compact cloud mirror of the local-only progression collections (`movement_progress`, `progression_states`, `progression_families`) patched onto the synced users doc as `progressSnapshot`; never-regressing `seedLocalStores` restore after reinstall. |
-| `ProgressionEngine.swift` | The deterministic RPE-based progression rules: block target RPEs, add weight after 2 top-of-range sessions at target RPE, plate-policy jumps, accessories add reps first. |
+| `ProgressionEngine.swift` | Deterministic autoregulation: two clean top-range sessions advance, low-RPE over-performance advances immediately, accessories add reps first with bounded auto-load ramps, and isometrics climb seconds ladders. |
 | `ProgressionMode.swift` | `advance` (default) vs `preserve` (Cut mode: hold weights, tier unlocks still fire). |
 | `ProgressionStateStore.swift` | Persistence for `ProgressionState` records via `SyncedDatabase` (collection `"progression_states"`). |
 | `ResolvedMovement+Definition.swift` | Tiny extension: `ResolvedMovement.definition` lookup into `MovementCatalog`. |

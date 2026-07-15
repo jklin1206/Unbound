@@ -290,6 +290,7 @@ struct DaySimulationResult {
 
 struct ProgressionLogOutcome {
     let reps: Int
+    let holdSeconds: Int?
     let rpe: Int
     let weightKg: Double
     let classification: ExerciseClassification
@@ -379,6 +380,7 @@ struct YearExerciseExport: Codable {
     let rpe: Int?
     let completedSets: Int
     let simulatedTopSetReps: Int
+    let simulatedTopSetHoldSeconds: Int?
     let simulatedTopSetRPE: Int?
     let simulatedWeightKg: Double
     let classification: String

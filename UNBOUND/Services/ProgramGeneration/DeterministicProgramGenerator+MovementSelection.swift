@@ -23,7 +23,18 @@ extension DeterministicProgramGenerator {
         let equipmentFiltered = Equipment.isFloorOnlySelection(Set(input.equipment))
             ? resolved.filter(isFloorOnlyProgramMovement)
             : resolved
-        return uniqueDefinitions(experienceFiltered(equipmentFiltered, input: input))
+        // Gymnastics skill movements only enter general programming once the
+        // user engaged them in the skill tree; dedicated skill days and
+        // scheduled skill practice keep their own channels.
+        let skillGated = equipmentFiltered.filter { definition in
+            guard isGatedSkillMovement(definition) else { return true }
+            return matchesEngagedSkills(definition, engagedSkillIds: input.engagedSkillIds)
+        }
+        // Catalog order (programScore) stays authoritative: equipment intent
+        // must outrank difficulty shaping, or a full-gym pool leads with floor
+        // and band work. The regression filter plus difficulty gating above
+        // handle level-appropriateness.
+        return uniqueDefinitions(experienceFiltered(skillGated, input: input))
     }
 
     static func isFloorOnlyProgramMovement(_ definition: MovementDefinition) -> Bool {
@@ -59,9 +70,25 @@ extension DeterministicProgramGenerator {
         _ definitions: [MovementDefinition],
         input: ProgramGeneratorInput
     ) -> [MovementDefinition] {
-        definitions.filter { definition in
+        let allowed = definitions.filter { definition in
             difficultyAllowed(definition.difficulty, for: input.experience)
         }
+        // Assisted/negative regressions are for building toward a movement;
+        // experienced users get the real thing unless nothing else exists.
+        switch input.experience {
+        case .never, .tried:
+            return allowed
+        case .used, .current:
+            let withoutRegressions = allowed.filter { !isRegressionMovement($0) }
+            return withoutRegressions.isEmpty ? allowed : withoutRegressions
+        }
+    }
+
+    static func isRegressionMovement(_ definition: MovementDefinition) -> Bool {
+        let name = MovementCatalog.normalized(
+            "\(definition.displayName) \(definition.canonicalExerciseName ?? "")"
+        )
+        return name.contains("assisted") || name.contains("negative")
     }
 
     static func difficultyAllowed(
@@ -145,10 +172,37 @@ extension DeterministicProgramGenerator {
     static func isPrimaryMovement(_ definition: MovementDefinition) -> Bool {
         switch definition.movementSlot {
         case .squat, .hinge, .horizontalPush, .verticalPush, .horizontalPull, .verticalPull:
-            return definition.muscleGroups.count > 1
+            return definition.muscleGroups.count > 1 && !isSingleJointAccessory(definition)
         case .arms, .core, .calves, .carry, .cardio, .mobility, .routine, .skill:
             return false
         }
+    }
+
+    /// Single-joint work that lives in a compound slot (flys, raises, face
+    /// pulls, pullovers) must never anchor a day as its primary movement,
+    /// whatever its muscle-group list claims.
+    static func isSingleJointAccessory(_ definition: MovementDefinition) -> Bool {
+        let name = MovementCatalog.normalized(
+            "\(definition.displayName) \(definition.canonicalExerciseName ?? "")"
+        )
+        let singleJointTerms = [
+            "back extension",
+            "face pull",
+            "fly",
+            "kickback",
+            "leg curl",
+            "leg extension",
+            "pull apart",
+            "pull over",
+            "pullover",
+            "pushdown",
+            "raise",
+            "reverse hyper",
+            "shrug",
+            "straight arm",
+            "superman"
+        ]
+        return singleJointTerms.contains { name.contains($0) }
     }
 
     static func eligibleDefinitions(
@@ -210,6 +264,15 @@ extension DeterministicProgramGenerator {
     }
 
     static func workoutEquivalenceKey(for definition: MovementDefinition) -> String {
+        // Same-pattern isolation variants (three kinds of lateral raise) and
+        // rank-standard variants (grip variations of one lift) count as ONE
+        // movement inside a single workout.
+        if let family = workoutVariantFamily(for: definition) {
+            return family
+        }
+        if definition.rankStandardMovementId != definition.id {
+            return "standard.\(definition.rankStandardMovementId)"
+        }
         if let canonical = definition.canonicalExerciseName {
             return "exercise.\(MovementCatalog.normalized(canonical))"
         }
@@ -220,6 +283,22 @@ extension DeterministicProgramGenerator {
         }
 
         return "movement.\(definition.rankStandardMovementId)"
+    }
+
+    /// Workout-scoped fold for isolation families whose members keep separate
+    /// rank standards but are interchangeable within one session.
+    static func workoutVariantFamily(for definition: MovementDefinition) -> String? {
+        let name = MovementCatalog.normalized(
+            "\(definition.displayName) \(definition.canonicalExerciseName ?? "")"
+        )
+        if name.contains("rear delt") { return "family.rear-delt" }
+        if name.contains("lateral raise") { return "family.lateral-raise" }
+        if name.contains("front raise") { return "family.front-raise" }
+        if name.contains("calf raise") { return "family.calf-raise" }
+        if name.contains("leg curl") { return "family.leg-curl" }
+        if name.contains("leg extension") { return "family.leg-extension" }
+        if name.contains("fly") || name.contains("pec deck") { return "family.chest-fly" }
+        return nil
     }
 
     static func canonicalExerciseEquivalent(for definition: MovementDefinition) -> MovementDefinition? {

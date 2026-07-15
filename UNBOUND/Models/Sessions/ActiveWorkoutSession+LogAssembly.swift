@@ -19,7 +19,7 @@ extension ActiveWorkoutSession {
                         id: set.id,
                         setNumber: i + 1,
                         weightKg: set.weightKg,
-                        reps: set.reps ?? set.holdSeconds ?? set.durationSeconds ?? 0,
+                        reps: ex.metricKind == .reps ? (set.reps ?? 0) : 0,
                         rpe: set.rpe,
                         isWarmup: set.isWarmup,
                         durationSeconds: ex.metricKind == .holdSeconds ? set.holdSeconds : (

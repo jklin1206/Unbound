@@ -343,12 +343,25 @@ enum TrainingSessionAdapters {
         )
     }
 
-    private static func target(from reps: String) -> TrainingTarget {
+    private static func target(
+        from reps: String,
+        definitionDefault: TrainingMetricKind?
+    ) -> TrainingTarget {
         let trimmed = reps.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.lowercased().contains("amrap") { return .amrap }
-        if trimmed.lowercased().contains("cal"), let first = RepRange.lowerBound(trimmed) { return .calories(first) }
-        if trimmed.lowercased().contains("m"), let first = RepRange.lowerBound(trimmed) { return .distanceMeters(first) }
-        if trimmed.lowercased().contains("s"), let first = RepRange.lowerBound(trimmed) { return .holdSeconds(first) }
+        let lowercased = trimmed.lowercased()
+        if lowercased.contains("amrap") { return .amrap }
+        if lowercased.contains("cal"), let first = RepRange.lowerBound(trimmed) { return .calories(first) }
+        if (lowercased.contains("meter")
+            || lowercased.range(of: #"\d+\s*m\b"#, options: .regularExpression) != nil),
+           let first = RepRange.lowerBound(trimmed) {
+            return .distanceMeters(first)
+        }
+        if (lowercased.contains("sec")
+            || lowercased.contains("second")
+            || lowercased.range(of: #"\d+\s*s\b"#, options: .regularExpression) != nil),
+           let first = RepRange.lowerBound(trimmed) {
+            return definitionDefault == .durationSeconds ? .timedSeconds(first) : .holdSeconds(first)
+        }
         if trimmed.contains("-") || trimmed.contains("–") {
             let parts = trimmed
                 .replacingOccurrences(of: "–", with: "-")
@@ -376,7 +389,7 @@ enum TrainingSessionAdapters {
             movementId: definition?.id,
             rankStandardMovementId: definition?.rankStandardMovementId,
             sets: exercise.sets,
-            target: target(from: exercise.reps),
+            target: target(from: exercise.reps, definitionDefault: definition?.defaultMetric),
             restSeconds: exercise.restSeconds,
             muscleGroups: muscleGroups,
             rpe: exercise.rpe,

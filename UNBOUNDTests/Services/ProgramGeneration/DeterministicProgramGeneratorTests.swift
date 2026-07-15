@@ -541,8 +541,14 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
 
         let program = try DeterministicProgramGenerator.generate(input: input)
         let names = program.days.compactMap(\.workout).flatMap(\.mainExercises).map(\.name)
-        XCTAssertFalse(names.contains(original.displayName))
-        XCTAssertTrue(names.contains(replacement.displayName))
+        XCTAssertFalse(
+            names.contains(original.displayName),
+            "original \(original.displayName) still present"
+        )
+        XCTAssertTrue(
+            names.contains(replacement.displayName),
+            "substitute \(replacement.displayName) for \(original.displayName) missing from: \(Set(names).sorted().joined(separator: ", "))"
+        )
     }
 
     func testProgressionStateFeedsGeneratedPrescriptionRPEAndRepRange() throws {
@@ -586,13 +592,17 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
     }
 
     func testGrindyProgressionStateRegressesLoadRepsRestAndRPE() throws {
-        let baseInput = makeInput(
+        var baseInput = makeInput(
             frequency: .five,
             trainingDays: [.monday, .tuesday, .wednesday, .thursday, .friday],
             buildIdentity: BuildIdentity(primary: .power, secondary: nil, shape: .balancedAthlete),
             trainingStyle: .freeWeights,
             equipment: [.fullGym]
         )
+        // Generous budget keeps session-fit compression out of the way: this
+        // test checks the easier-bias per-exercise contract, and rest deltas
+        // are legitimately trimmed when a session has to fit its window.
+        baseInput.sessionLengthMinutes = 90
         let baseline = try DeterministicProgramGenerator.generate(input: baseInput)
         let baselineExercise = try XCTUnwrap(
             baseline.days
@@ -637,8 +647,22 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         XCTAssertEqual(adjusted.suggestedWeightKg, 95)
         XCTAssertEqual(adjusted.reps, "6-8")
         XCTAssertNil(adjusted.rpe, "prescriptions are RPE-free now")
-        XCTAssertEqual(adjusted.restSeconds, baselineExercise.restSeconds + 30)
         XCTAssertEqual(adjusted.notes?.contains("Progression adjusted"), true)
+
+        // The +30s recovery contract is asserted at the prescription layer:
+        // the assembled program legitimately re-tightens rest when the
+        // back-filled session has to fit its time window.
+        let baselineDirect = DeterministicProgramGenerator.toExercise(
+            definition: definition,
+            input: baseInput,
+            goal: baseInput.goal
+        )
+        let adjustedDirect = DeterministicProgramGenerator.toExercise(
+            definition: definition,
+            input: progressedInput,
+            goal: progressedInput.goal
+        )
+        XCTAssertEqual(adjustedDirect.restSeconds, baselineDirect.restSeconds + 30)
     }
 
     func testExerciseRotationsAvoidStaleMovementWhenAlternativeExists() throws {
@@ -666,6 +690,82 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
 
         XCTAssertFalse(rotatedNames.contains(staleName))
         XCTAssertEqual(rotated.days.count, baseline.days.count)
+    }
+
+    func testArcUsesAccumulationBuildIntensificationAndDeloadWaves() {
+        XCTAssertEqual(ProgramTrainingWave.forDay(1), .accumulation)
+        XCTAssertEqual(ProgramTrainingWave.forDay(9), .build)
+        XCTAssertEqual(ProgramTrainingWave.forDay(16), .intensification)
+        XCTAssertEqual(ProgramTrainingWave.forDay(30), .deload)
+    }
+
+    func testWaveChangesLoadAndVolumeFromSameProgressionState() throws {
+        let definition = try XCTUnwrap(MovementCatalog.canonicalExercise(named: "Bench Press"))
+        var state = ProgressionState.seed(
+            userId: "u-1",
+            exercise: definition.canonicalExerciseName ?? definition.displayName,
+            startingWeightKg: 100
+        )
+        state.targetRepMin = 6
+        state.targetRepMax = 10
+        var input = makeInput(
+            frequency: .four,
+            trainingDays: [.monday, .tuesday, .thursday, .friday],
+            buildIdentity: BuildIdentity(primary: .power, secondary: nil, shape: .specialist),
+            trainingStyle: .freeWeights,
+            equipment: [.fullGym]
+        )
+        input.progressionStates = [
+            MovementCatalog.normalized(state.exerciseKey): state
+        ]
+
+        let base = DeterministicProgramGenerator.toExercise(
+            definition: definition,
+            input: input,
+            goal: .strength,
+            wave: .accumulation
+        )
+        let heavy = DeterministicProgramGenerator.toExercise(
+            definition: definition,
+            input: input,
+            goal: .strength,
+            wave: .intensification
+        )
+        let deload = DeterministicProgramGenerator.toExercise(
+            definition: definition,
+            input: input,
+            goal: .strength,
+            wave: .deload
+        )
+
+        XCTAssertGreaterThan(heavy.suggestedWeightKg ?? 0, base.suggestedWeightKg ?? 0)
+        XCTAssertLessThan(deload.suggestedWeightKg ?? 0, base.suggestedWeightKg ?? 0)
+        XCTAssertLessThan(deload.sets, base.sets)
+    }
+
+    func testIsometricPrescriptionUsesMovementDurationLadder() throws {
+        let definition = try XCTUnwrap(MovementCatalog.canonicalExercise(named: "Plank"))
+        let input = makeInput(
+            frequency: .three,
+            trainingDays: [.monday, .wednesday, .friday]
+        )
+
+        let base = DeterministicProgramGenerator.toExercise(
+            definition: definition,
+            input: input,
+            goal: .skill,
+            wave: .accumulation
+        )
+        let build = DeterministicProgramGenerator.toExercise(
+            definition: definition,
+            input: input,
+            goal: .skill,
+            wave: .build
+        )
+
+        XCTAssertEqual(base.reps, "20s")
+        XCTAssertEqual(build.reps, "30s")
+        XCTAssertFalse(base.reps.localizedCaseInsensitiveContains("rep"))
     }
 
     // MARK: — helper

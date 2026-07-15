@@ -6,12 +6,19 @@ enum TrainingPrescriptionResolver {
         progressionStates: [String: ProgressionState]
     ) -> TrainingSessionDraft {
         guard !progressionStates.isEmpty else { return draft }
+        let wave = draft.source == .program
+            ? ProgramTrainingWave.forDay(draft.dayNumber)
+            : .accumulation
         var resolved = draft
         resolved.blocks = draft.blocks.map { block in
             guard block.kind != .routine else { return block }
             var updated = block
             updated.prescriptions = block.prescriptions.map {
-                resolve(prescription: $0, progressionStates: progressionStates)
+                resolve(
+                    prescription: $0,
+                    progressionStates: progressionStates,
+                    wave: wave
+                )
             }
             return updated
         }
@@ -20,7 +27,8 @@ enum TrainingPrescriptionResolver {
 
     private static func resolve(
         prescription: TrainingBlockPrescription,
-        progressionStates: [String: ProgressionState]
+        progressionStates: [String: ProgressionState],
+        wave: ProgramTrainingWave
     ) -> TrainingBlockPrescription {
         guard let state = state(for: prescription, progressionStates: progressionStates) else {
             return prescription
@@ -32,15 +40,23 @@ enum TrainingPrescriptionResolver {
             && !prescription.hasCustomSetPlanValues
 
         var updated = prescription
-        if state.currentWorkingWeightKg > 0, updated.suggestedWeightKg == nil {
+        // Always refresh a generated suggestion from current progression.
+        // Keeping a non-nil load stamped at Arc generation time was the seam
+        // that made future sessions replay stale weights indefinitely.
+        if state.currentWorkingWeightKg > 0 {
             updated.suggestedWeightKg = suggestedWeight(for: state)
         }
         // RPE-free: the engine no longer prescribes or displays RPE, so we do not
         // re-add a stored targetRPE here (it would leak RPE back onto the card).
         if state.targetRepMin > 0, state.targetRepMax >= state.targetRepMin {
-            updated.target = resolvedTarget(current: updated.target, state: state)
+            updated.target = resolvedTarget(current: updated.target, state: state, wave: wave)
         }
         updated = applyBias(to: updated, state: state)
+        if let weight = updated.suggestedWeightKg, weight > 0 {
+            updated.suggestedWeightKg = WeightPlatePolicy.snappedSuggestionKilograms(
+                weight * wave.loadFactor
+            )
+        }
 
         // Materialized set plans mask the summary at session-build time
         // (ActiveWorkoutSession reads effectiveSetPlans), so a resolved
@@ -62,14 +78,25 @@ enum TrainingPrescriptionResolver {
 
     private static func resolvedTarget(
         current: TrainingTarget,
-        state: ProgressionState
+        state: ProgressionState,
+        wave: ProgramTrainingWave
     ) -> TrainingTarget {
         switch current {
         case .reps, .repsRange, .amrap:
             // One number, not a window: the min...max range stays the engine's
             // internal rails; the user sees only today's climbing target.
-            return .reps(state.currentTargetReps)
-        case .holdSeconds, .distanceMeters, .calories, .timedSeconds:
+            return .reps(wave.adjustedRepTarget(state.currentTargetReps, state: state))
+        case .holdSeconds:
+            return .holdSeconds(wave.adjustedHoldTarget(
+                state.currentTargetDurationSeconds,
+                exerciseKey: state.exerciseKey
+            ))
+        case .timedSeconds:
+            return .timedSeconds(wave.adjustedHoldTarget(
+                state.currentTargetDurationSeconds,
+                exerciseKey: state.exerciseKey
+            ))
+        case .distanceMeters, .calories:
             return current
         }
     }

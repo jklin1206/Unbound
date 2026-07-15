@@ -154,7 +154,10 @@ extension DeterministicProgramGenerator {
 
     static func estimatedSeconds(for exercise: Exercise, defaultWorkSeconds: Int) -> Int {
         let workSeconds = durationSeconds(in: exercise.reps) ?? defaultWorkSeconds
-        return max(1, exercise.sets) * (workSeconds + max(0, exercise.restSeconds))
+        let sets = max(1, exercise.sets)
+        // Rest is only paid between sets; the transition allowance in
+        // estimatedWorkoutMinutes covers moving on after the last set.
+        return sets * workSeconds + (sets - 1) * max(0, exercise.restSeconds)
     }
 
     static func durationSeconds(in reps: String) -> Int? {
