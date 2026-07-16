@@ -235,6 +235,9 @@ struct RankBadgeRevealView: View {
                 .opacity(badgeIn ? 1 : 0)
 
             ZStack {
+                // Living light behind the badge: breathing bloom + shockwave.
+                RankRevealBloom(tint: tier.rewardTint, active: badgeIn, badgeSize: 172)
+
                 // Sparkle burst — small particles flung outward (no ring/disc behind).
                 ForEach(0..<12, id: \.self) { i in
                     let angle = Double(i) / 12 * 2 * .pi
@@ -345,6 +348,8 @@ private struct RankStandardBadgeNode: View {
 
     var body: some View {
         ZStack {
+            RankRevealBloom(tint: reward.tint, active: revealed, badgeSize: 74)
+
             ForEach(0..<10, id: \.self) { i in
                 let angle = Double(i) / 10 * 2 * .pi
                 Circle()

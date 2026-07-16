@@ -120,16 +120,14 @@ struct ProgramRankAttemptRevealOverlay: View {
 
     private var revealGlow: some View {
         ZStack {
+            // Living light behind the badge — breathing bloom + landing shockwave.
+            RankRevealBloom(tint: tint, active: isPresented, badgeSize: 196)
+
             Circle()
                 .stroke(tint.opacity(pulse ? 0 : 0.38), lineWidth: 1)
                 .frame(width: 210, height: 210)
                 .scaleEffect(pulse ? 1.38 : 0.86)
                 .opacity(pulse ? 0 : 1)
-
-            Circle()
-                .fill(tint.opacity(0.12))
-                .frame(width: 196, height: 196)
-                .blur(radius: 18)
         }
     }
 

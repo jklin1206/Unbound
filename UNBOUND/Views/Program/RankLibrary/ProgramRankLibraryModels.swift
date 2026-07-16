@@ -8,6 +8,17 @@ struct ProgramRankLibrarySection: Identifiable {
     var id: String { title }
 }
 
+extension ProgramRankLibrarySection: Hashable {
+    // Identity is the stable section title; used by navigationDestination(item:).
+    static func == (lhs: ProgramRankLibrarySection, rhs: ProgramRankLibrarySection) -> Bool {
+        lhs.title == rhs.title
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(title)
+    }
+}
+
 struct ProgramRankLibraryRow: Identifiable {
     let id: String
     let title: String

@@ -11,6 +11,7 @@ struct ProgramRankLibraryView: View {
     @State private var searchText = ""
     @State private var selectedFilter: ProgramRankLibraryFilter = .all
     @State private var selectedDetailRow: ProgramRankLibraryRow?
+    @State private var selectedSection: ProgramRankLibrarySection?
     @State private var isLoading = true
 
     private var filteredRows: [ProgramRankLibraryRow] {
@@ -19,32 +20,41 @@ struct ProgramRankLibraryView: View {
             .sorted(by: sortRankRows)
     }
 
-    private var groupedSections: [ProgramRankLibrarySection] {
-        let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if selectedFilter != .all || !trimmedSearch.isEmpty {
-            return filteredRows.isEmpty ? [] : [ProgramRankLibrarySection(title: "Results", rows: filteredRows)]
-        }
+    /// Browse mode is the default catalog map; any search text or filter
+    /// switches to the flat result list.
+    private var isBrowsing: Bool {
+        selectedFilter == .all
+            && searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
-        var sections: [ProgramRankLibrarySection] = []
-
-        // Trophy case: everything the user holds a rank on, best tier first.
-        let earned = filteredRows.filter(\.isEarned).sorted(by: sortRankRows)
-        if !earned.isEmpty {
-            sections.append(ProgramRankLibrarySection(title: "Your Ranks", rows: earned))
-        }
-
-        // The rest of the catalog to chase, grouped by category.
-        let unearned = filteredRows.filter { !$0.isEarned }
-        let categorySections = Dictionary(grouping: unearned, by: \.sectionTitle)
+    /// Every category (skills clusters, movement patterns, drills), each
+    /// holding ALL of its rows — earned first. Feeds the tile grid and the
+    /// per-category drill-in.
+    private var browseSections: [ProgramRankLibrarySection] {
+        Dictionary(grouping: rows, by: \.sectionTitle)
             .map { title, rows in
                 ProgramRankLibrarySection(title: title, rows: rows.sorted(by: sortRowsWithinSection))
             }
             .sorted {
                 ($0.rows.first?.sectionOrder ?? Int.max) < ($1.rows.first?.sectionOrder ?? Int.max)
             }
-        sections.append(contentsOf: categorySections)
+    }
 
-        return sections
+    /// The trophy shelf: best earned ranks, capped so browse stays one calm screen.
+    private var trophyRows: [ProgramRankLibraryRow] {
+        Array(rows.filter(\.isEarned).sorted(by: sortRankRows).prefix(12))
+    }
+
+    /// Earned count per tier, best tier first, for the ledger.
+    private var tierLedgerCounts: [(tier: SkillTier, count: Int)] {
+        Dictionary(grouping: rows.filter { $0.isEarned && !$0.isRankHidden }, by: \.tier)
+            .map { (tier: $0.key, count: $0.value.count) }
+            .filter { $0.tier > .initiate }
+            .sorted { $0.tier > $1.tier }
+    }
+
+    private var resultSections: [ProgramRankLibrarySection] {
+        filteredRows.isEmpty ? [] : [ProgramRankLibrarySection(title: "Results", rows: filteredRows)]
     }
 
     private var earnedCount: Int {
@@ -66,10 +76,12 @@ struct ProgramRankLibraryView: View {
 
                     if isLoading {
                         loadingState
-                    } else if groupedSections.isEmpty {
+                    } else if isBrowsing {
+                        browseContent
+                    } else if resultSections.isEmpty {
                         emptyState
                     } else {
-                        ForEach(groupedSections) { section in
+                        ForEach(resultSections) { section in
                             rankSection(section)
                         }
                     }
@@ -87,9 +99,64 @@ struct ProgramRankLibraryView: View {
                 await loadRanks()
             }
         }
+        .navigationDestination(item: $selectedSection) { section in
+            RankLibraryCategoryDetailView(section: section) { row in
+                selectedDetailRow = row
+            }
+        }
         .task {
             await loadRanks()
             openRequestedDetailIfNeeded()
+        }
+    }
+
+    /// The catalog as a map, not a wall: trophy shelf, then a grid of
+    /// category progress tiles that drill into their own lists. (The tier
+    /// ledger renders in the hero, as part of the summary.)
+    @ViewBuilder
+    private var browseContent: some View {
+        if !trophyRows.isEmpty {
+            VStack(alignment: .leading, spacing: 14) {
+                sectionHeading("Your Best", count: earnedCount)
+                RankLibraryTrophyShelf(rows: trophyRows) { row in
+                    selectedDetailRow = row
+                }
+            }
+        }
+
+        VStack(alignment: .leading, spacing: 14) {
+            sectionHeading("The Catalog", count: rows.count)
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: 11),
+                    GridItem(.flexible(), spacing: 11)
+                ],
+                spacing: 11
+            ) {
+                ForEach(browseSections) { section in
+                    Button {
+                        UnboundHaptics.soft()
+                        selectedSection = section
+                    } label: {
+                        RankLibraryCategoryTile(section: section)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func sectionHeading(_ title: String, count: Int) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title.uppercased())
+                .font(Font.unbound.captionS.weight(.heavy))
+                .tracking(1.5)
+                .foregroundStyle(Color.unbound.accent)
+            Spacer(minLength: 0)
+            Text("\(count)")
+                .font(Font.unbound.monoS.weight(.bold))
+                .foregroundStyle(Color.unbound.textTertiary)
+                .monospacedDigit()
         }
     }
 
@@ -118,24 +185,31 @@ struct ProgramRankLibraryView: View {
     }
 
     private var rankLibraryHeader: some View {
-        HStack(alignment: .center, spacing: 14) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Rank Library")
-                    .font(Font.unbound.titleL)
-                    .foregroundStyle(Color.unbound.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-                MetaLine([
-                    "\(earnedCount) of \(rows.count) ranked",
-                    "Top \(topTier.displayName)"
-                ], emphasized: true)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 14) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Rank Library")
+                        .font(Font.unbound.titleL)
+                        .foregroundStyle(Color.unbound.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                    MetaLine([
+                        "\(earnedCount) of \(rows.count) ranked",
+                        "Top \(topTier.displayName)"
+                    ], emphasized: true)
+                }
+                Spacer(minLength: 0)
+                Image(topTier.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 56, height: 56)
+                    .shadow(color: topTier.rewardTextTint.opacity(0.35), radius: 14)
             }
-            Spacer(minLength: 0)
-            Image(topTier.assetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 56, height: 56)
-                .shadow(color: topTier.rewardTextTint.opacity(0.35), radius: 14)
+
+            // What you hold, by tier — part of the summary, not a section.
+            if isBrowsing, !tierLedgerCounts.isEmpty {
+                RankLibraryTierLedger(counts: tierLedgerCounts)
+            }
         }
         .accessibilityIdentifier("program.rankLibrary.header")
     }
@@ -274,10 +348,16 @@ struct ProgramRankLibraryView: View {
         isLoading = false
     }
 
-    /// Screenshot harness: push a specific detail straight from a launch arg
-    /// (`--unbound-open-rank-detail <sourceId|rowId>`). DEBUG-only.
+    /// Screenshot harness: push a specific detail or category section straight
+    /// from a launch arg (`--unbound-open-rank-detail <sourceId|rowId>`,
+    /// `--unbound-open-rank-section <sectionTitle>`). DEBUG-only.
     private func openRequestedDetailIfNeeded() {
         #if DEBUG
+        if selectedSection == nil,
+           let title = Self.launchArgValue(for: "--unbound-open-rank-section"),
+           let match = browseSections.first(where: { $0.title.localizedCaseInsensitiveContains(title) }) {
+            selectedSection = match
+        }
         guard selectedDetailRow == nil,
               let id = Self.launchArgValue(for: "--unbound-open-rank-detail"),
               let match = rows.first(where: { $0.sourceId == id || $0.id == id })

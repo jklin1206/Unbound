@@ -7,6 +7,7 @@ The rank library (exercise ranks) surface inside the Program tab: browsable sect
 | File | What it is |
 |---|---|
 | `ProgramRankLibraryModels.swift` | Value models: `ProgramRankLibrarySection/Row/Source/Filter`. |
+| `ProgramRankLibraryBrowse.swift` | Browse mode: tier ledger, trophy shelf, category progress tiles, and the per-category drill-in list (`RankLibraryCategoryDetailView`). |
 | `ProgramRankAttemptRevealOverlay.swift` | Attempt-reveal overlay: `ProgramRankAttemptReveal` + the full-screen rank-result reveal. |
 | `ProgramRankProofHistoryLineGraph.swift` | Proof history line graph (+ `ProgramRankRepGraphRange` / `ProgramRankProofGraphPoint` models). |
 | `ProgramRankMetricRuler.swift` | Metric ruler (`RulerPicker` wrapper) + `ProgramRankWeightRulerConfig`. |
