@@ -48,9 +48,11 @@ final class VariantStandardConsistencyTests: XCTestCase {
         }
 
         // Tripwire: if the overlap set changes, re-confirm the maps still agree.
+        // 7th overlap verified 2026-07-16: "single-arm cable row" — both paths
+        // resolve to barbell row (direct alias, and via base "cable row seated").
         XCTAssertEqual(
-            overlapCount, 6,
-            "The variant/compound key overlap changed (was 6). Re-verify the two "
+            overlapCount, 7,
+            "The variant/compound key overlap changed (was 7). Re-verify the two "
             + "maps remain consistent before updating this count."
         )
     }

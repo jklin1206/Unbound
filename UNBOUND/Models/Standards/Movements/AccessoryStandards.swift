@@ -21,6 +21,8 @@ enum AccessoryStandards {
         case verticalPull    // F7 — machine vertical pull, total stack
         case hipThrust       // F8 — total load incl. bar
         case loadedAb        // F9 — total stack
+        case shrug           // F10 — total bar/stack load (DB ×2 rule applies); StrengthLevel barbell shrug, 372,602 lifts
+        case wristCurl       // F11 — total bar load (DB ×2 rule applies); StrengthLevel wrist curl, 176,595 lifts
     }
 
     /// MALE per-tier ratios for each accessory family. Index = ordinal 0…8.
@@ -33,7 +35,9 @@ enum AccessoryStandards {
         .calfRaise:      [0.00, 0.25, 0.50, 0.75, 1.00, 1.25, 1.63, 2.00, 3.00],
         .verticalPull:   [0.00, 0.50, 0.63, 0.75, 0.88, 1.00, 1.25, 1.50, 1.75],
         .hipThrust:      [0.00, 0.50, 0.75, 1.00, 1.38, 1.75, 2.13, 2.50, 3.50],
-        .loadedAb:       [0.00, 0.25, 0.38, 0.50, 0.75, 1.00, 1.25, 1.50, 2.25]
+        .loadedAb:       [0.00, 0.25, 0.38, 0.50, 0.75, 1.00, 1.25, 1.50, 2.25],
+        .shrug:          [0.00, 0.66, 0.86, 1.06, 1.32, 1.58, 1.89, 2.19, 2.88],
+        .wristCurl:      [0.00, 0.09, 0.18, 0.26, 0.41, 0.55, 0.74, 0.93, 1.38]
     ]
 
     /// FEMALE per-tier ratios, authored from the cited per-family female bands
@@ -47,7 +51,9 @@ enum AccessoryStandards {
         .calfRaise:      [0.00, 0.25, 0.38, 0.50, 0.75, 1.00, 1.38, 1.75, 2.50],
         .verticalPull:   [0.00, 0.30, 0.38, 0.45, 0.58, 0.70, 0.83, 0.95, 1.30],
         .hipThrust:      [0.00, 0.50, 0.75, 1.00, 1.25, 1.50, 1.88, 2.25, 3.00],
-        .loadedAb:       [0.00, 0.25, 0.38, 0.50, 0.75, 1.00, 1.25, 1.50, 2.25]
+        .loadedAb:       [0.00, 0.25, 0.38, 0.50, 0.75, 1.00, 1.25, 1.50, 2.25],
+        .shrug:          [0.00, 0.28, 0.43, 0.58, 0.80, 1.02, 1.30, 1.58, 2.23],
+        .wristCurl:      [0.00, 0.02, 0.08, 0.13, 0.25, 0.37, 0.55, 0.72, 1.13]
     ]
 
     /// Accessory family members, keyed by normalized exercise name.
@@ -61,7 +67,11 @@ enum AccessoryStandards {
             "barbell curl", "ez bar curl", "dumbbell curl", "incline dumbbell curl",
             "concentration curl", "spider curl", "cable curl", "rope cable curl",
             "hammer curl", "rope hammer curl", "preacher curl", "machine biceps curl",
-            "band curl"
+            "band curl",
+            "seated dumbbell curl", "alternating dumbbell curl", "drag curl",
+            "reverse curl", "zottman curl", "high cable curl",
+            "behind the back cable curl", "cross-body hammer curl",
+            "ez bar preacher curl"
         ], .curl)
         // F2 — triceps extension (total)
         // "dumbbell skull crusher" is a per-hand pair movement → ×2 via
@@ -73,12 +83,17 @@ enum AccessoryStandards {
             "tricep pushdown", "rope tricep pushdown", "straight bar tricep pushdown",
             "overhead tricep extension", "rope overhead tricep extension",
             "machine triceps extension", "band tricep extension", "skull crushers",
-            "dumbbell skull crusher"
+            "dumbbell skull crusher",
+            "reverse grip tricep pushdown", "single-arm tricep pushdown",
+            "dumbbell overhead tricep extension",
+            "single-arm overhead tricep extension",
+            "dumbbell tricep kickback", "cable tricep kickback"
         ], .triceps)
         // F4 — leg extension (total)
         add(["leg extension", "single-leg extension"], .legExtension)
-        // F5 — leg curl (total)
-        add(["leg curl (lying)", "leg curl (seated)", "single-leg curl"], .legCurl)
+        // F5 — leg curl (total; glute-ham raise is the same knee-flexion
+        // pattern with plate load)
+        add(["leg curl (lying)", "leg curl (seated)", "single-leg curl", "glute ham raise"], .legCurl)
         // F6 — calf raise (added load)
         add([
             "standing calf raise", "seated calf raise", "leg press calf raise",
@@ -89,23 +104,40 @@ enum AccessoryStandards {
             "lat pulldown", "lat pulldown (neutral)", "wide grip lat pulldown",
             "close grip lat pulldown", "reverse grip lat pulldown", "single arm pulldown",
             "straight arm pulldown", "machine pullover", "band lat pull",
-            "assisted pullup machine"
+            "assisted pullup machine",
+            "lat pullover", "dumbbell pullover"
         ], .verticalPull)
-        // F8 — hip thrust / glute (total incl. bar)
+        // F8 — hip thrust / glute / loaded hinge-extension (total incl. bar)
         add([
-            "hip thrust", "smith machine hip thrust", "glute bridge", "cable pull through"
+            "hip thrust", "smith machine hip thrust", "glute bridge", "cable pull through",
+            "back extension", "reverse hyper"
         ], .hipThrust)
         // F9 — loaded ab / trunk (total)
         add(["cable crunch", "machine crunch"], .loadedAb)
+        // F10 — shrug (total)
+        add([
+            "barbell shrug", "trap bar shrug", "smith machine shrug",
+            "cable shrug", "dumbbell shrug"
+        ], .shrug)
+        // F11 — wrist curl (total)
+        add([
+            "barbell wrist curl", "reverse wrist curl", "dumbbell wrist curl"
+        ], .wristCurl)
         return map
     }()
 
-    /// Dumbbell-pair movements logged per-hand that compare to a TOTAL-load
-    /// family table → multiply logged load ×2 (PHASE3-ACCESSORY-RATIOS §3.1).
-    /// F1 curls and the F2 dumbbell skull crusher; F3 lateral stays per-hand
-    /// (and is unranked).
+    /// Per-limb movements that compare to a TOTAL-load family table →
+    /// multiply logged load ×2 (PHASE3-ACCESSORY-RATIOS §3.1). Covers
+    /// dumbbell pairs and single-arm cable work; F3 lateral stays per-hand
+    /// (and is unranked). Two-hands-one-dumbbell moves (dumbbell overhead
+    /// tricep extension, dumbbell pullover) log total load and stay out.
     static let dumbbellPairs: Set<String> = [
         "dumbbell curl", "incline dumbbell curl", "hammer curl",
-        "dumbbell skull crusher"
+        "dumbbell skull crusher",
+        "seated dumbbell curl", "alternating dumbbell curl", "zottman curl",
+        "cross-body hammer curl",
+        "single-arm tricep pushdown", "single-arm overhead tricep extension",
+        "dumbbell tricep kickback", "cable tricep kickback",
+        "dumbbell shrug", "dumbbell wrist curl"
     ]
 }

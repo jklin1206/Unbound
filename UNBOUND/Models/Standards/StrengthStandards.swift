@@ -62,6 +62,23 @@ enum StrengthStandards {
         "pendulum squat": "back squat",
         "v-squat machine": "back squat",
         "belt squat": "back squat",
+        "box squat": "back squat",
+        "zercher squat": "back squat",
+        // Per-leg load on roughly half a bilateral leg-press stack lands in
+        // the squat table's ballpark — same accepted approximation as leg press.
+        "single-leg press": "back squat",
+        // lunges / loaded single-leg — StrengthLevel barbell-lunge table
+        // (total load). Loaded split squats and step-ups share it; their
+        // bodyweight twins still rank via the skill nodes.
+        "reverse lunge": "lunge",
+        "lateral lunge": "lunge",
+        "curtsy lunge": "lunge",
+        "front rack lunge": "lunge",
+        "bulgarian split squat": "lunge",
+        "smith machine split squat": "lunge",
+        "dumbbell step up": "lunge",
+        // machine dip presses track the close-grip-bench pattern
+        "dip machine": "bench press",
         // bench / horizontal push
         "bench": "bench press",
         "barbell bench press": "bench press",
@@ -75,6 +92,9 @@ enum StrengthStandards {
         "smith machine incline press": "bench press",
         "seated machine press": "overhead press",
         "close grip bench press": "bench press",
+        "floor press": "bench press",
+        "dumbbell floor press": "bench press",
+        "decline dumbbell press": "bench press",
         // deadlift / hinge
         "conventional deadlift": "deadlift",
         "trap bar deadlift": "deadlift",
@@ -83,6 +103,18 @@ enum StrengthStandards {
         "smith machine romanian deadlift": "deadlift",
         "single-leg rdl": "deadlift",
         "good morning": "deadlift",
+        "sumo deadlift": "deadlift",
+        "deficit deadlift": "deadlift",
+        "snatch grip deadlift": "deadlift",
+        "stiff leg deadlift": "deadlift",
+        // olympic / explosive barbell — StrengthLevel power-clean and snatch
+        // tables; hang clean and clean & jerk track the clean, high pull runs
+        // a touch harsh against the clean table (lighter loads by design).
+        "hang clean": "power clean",
+        "clean and jerk": "power clean",
+        "barbell high pull": "power clean",
+        "power snatch": "snatch",
+        "thruster": "push press",
         // overhead press / vertical push
         "ohp": "overhead press",
         "military press": "overhead press",
@@ -92,6 +124,7 @@ enum StrengthStandards {
         "landmine press": "overhead press",
         "smith machine shoulder press": "overhead press",
         "plate loaded shoulder press": "overhead press",
+        "seated dumbbell shoulder press": "overhead press",
         // barbell row / horizontal pull
         "bent-over row": "barbell row",
         "pendlay row": "barbell row",
@@ -108,6 +141,12 @@ enum StrengthStandards {
         "hammer strength row": "barbell row",
         "hammer strength high row": "barbell row",
         "hammer strength low row": "barbell row",
+        "seal row": "barbell row",
+        "yates row": "barbell row",
+        "incline dumbbell row": "barbell row",
+        "smith machine row": "barbell row",
+        "band row": "barbell row",
+        "single-arm cable row": "barbell row",
         // weighted bodyweight (added-kg path)
         "weighted pull-up": "weighted pullup",
         "weighted chin": "weighted pullup",
@@ -420,7 +459,8 @@ enum StrengthStandards {
         "jumping squat": ["jump squat", "squat jump"],
         "bodyweight leg extension": ["bodyweight leg extensions", "reverse nordic", "reverse nordic curl", "kneeling leg extension"],
         "weighted pistol": ["weighted pistol squat"],
-        "row": ["inverted row", "bodyweight row", "ring row", "australian row"]
+        "row": ["inverted row", "bodyweight row", "ring row", "australian row"],
+        "pullup": ["neutral grip pullup"]
     ]
 
     private static func exerciseNameMatches(logged: String, required: String) -> Bool {
@@ -454,16 +494,30 @@ enum StrengthStandards {
         "assisted shrimp squat": [3, 8, 15, 25, 40],
         "beginner shrimp squat": [2, 5, 10, 18, 28],
         "intermediate shrimp squat": [1, 3, 7, 12, 20],
-        "two-hand shrimp squat": [1, 2, 4, 8, 12],
-        "elevated two-hand shrimp squat": [1, 2, 3, 5, 8],
+        // Keys are looked up via MovementCatalog.normalized (hyphens become
+        // spaces) — hyphenated keys never match.
+        "two hand shrimp squat": [1, 2, 4, 8, 12],
+        "elevated two hand shrimp squat": [1, 2, 3, 5, 8],
         "nordic curl negative": [1, 3, 5, 8, 12],
         "nordic curl arms overhead": [1, 2, 3, 5, 8],
-        "tuck one-leg nordic curl": [1, 2, 3, 4, 6],
-        "one-leg nordic curl": [1, 2, 3, 4, 6],
+        "tuck one leg nordic curl": [1, 2, 3, 4, 6],
+        "one leg nordic curl": [1, 2, 3, 4, 6],
+        "superman pull": [5, 15, 30, 55, 85],
         "captains chair knee raise": [5, 10, 18, 30, 45],
         "captains chair leg raise": [1, 4, 8, 12, 20],
         "hollow rock": [5, 12, 25, 45, 70],
-        "roman chair situp": [3, 10, 25, 45, 70]
+        "roman chair situp": [3, 10, 25, 45, 70],
+        // 2026-07 core additions. Sit-up anchors to the StrengthLevel
+        // sit-ups row (<1/23/57/99/146); the rest are monotonic bands
+        // relative to it and the crunch node, per this file's convention.
+        "situp": [1, 23, 57, 99, 146],
+        "bicycle crunch": [5, 20, 45, 80, 120],
+        "russian twist": [10, 25, 50, 85, 130],
+        "v-up": [3, 10, 22, 40, 60],
+        "flutter kick": [10, 30, 60, 100, 150],
+        "mountain climber": [10, 30, 60, 100, 150],
+        "dead bug": [5, 15, 30, 55, 85],
+        "bird dog": [5, 15, 30, 55, 85]
     ]
 
     private static func fallbackBodyweightAnchors(

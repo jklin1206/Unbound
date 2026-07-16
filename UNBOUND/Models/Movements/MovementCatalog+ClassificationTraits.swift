@@ -18,9 +18,13 @@ extension MovementCatalog {
             "assisted squat", "parallel squat", "split squat", "walking lunge", "step up",
             "deep step up", "cossack squat", "partial pistol squat", "assisted pistol squat",
             "pistol squat", "weighted pistol", "assisted shrimp squat", "beginner shrimp squat",
-            "intermediate shrimp squat", "shrimp squat", "two-hand shrimp squat",
-            "elevated two-hand shrimp squat", "nordic curl negative", "nordic curl",
-            "nordic curl arms overhead", "tuck one-leg nordic curl", "one-leg nordic curl",
+            // Entries are compared against `normalized(...)` output, which
+            // turns every non-alphanumeric into a space — so keys here must be
+            // space-separated ("two hand", not "two-hand") or they never match.
+            "intermediate shrimp squat", "shrimp squat", "two hand shrimp squat",
+            "elevated two hand shrimp squat", "nordic curl negative", "nordic curl",
+            "nordic curl arms overhead", "tuck one leg nordic curl", "one leg nordic curl",
+            "superman pull",
             "bodyweight leg extension", "glute bridge", "inverted row", "prone shoulder raise", "ab wheel", "decline situp", "roman chair situp",
             "hollow rock", "jump squat",
             // Core work is logged as reps/holds, never as load.
