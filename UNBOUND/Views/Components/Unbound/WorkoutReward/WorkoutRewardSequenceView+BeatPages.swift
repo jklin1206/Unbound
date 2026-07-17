@@ -53,7 +53,11 @@ extension WorkoutRewardSequenceView {
 
     var sessionCompleteBeat: some View {
         // Whole numbers only — "9435.8 LB" is decimal noise at hero size.
-        let volumeValue = "\(Int(weightUnit.displayValue(fromKilograms: summary.volumeKg).rounded()))"
+        // The number counts up fast from zero as the page reveals (odometer),
+        // in the user's configured unit; Reduce Motion lands it instantly.
+        let volumeTarget = weightUnit.displayValue(fromKilograms: summary.volumeKg)
+        let volumeRevealed = currentBeatKind == .sessionComplete && pageRevealed
+        let countsUp = !UIAccessibility.isReduceMotionEnabled
         let volumeUnit = weightUnit.shortLabel.uppercased()
 
         return RewardPanel(tint: Color.unbound.textPrimary, active: currentBeatKind == .sessionComplete) {
@@ -78,10 +82,11 @@ extension WorkoutRewardSequenceView {
                         .shadow(color: Color.rewardBlue.opacity(0.55), radius: 10)
 
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(volumeValue)
+                        CountUpNumberText(value: (volumeRevealed || !countsUp) ? volumeTarget : 0)
                             .font(.system(size: 66, weight: .black, design: .monospaced))
                             .foregroundStyle(Color.unbound.textPrimary)
                             .shadow(color: Color.white.opacity(0.35), radius: 18)
+                            .animation(countsUp ? .easeOut(duration: 1.1) : nil, value: volumeRevealed)
                         Text(volumeUnit)
                             .font(.system(size: 30, weight: .black, design: .monospaced))
                             .foregroundStyle(Color.unbound.textPrimary.opacity(0.85))

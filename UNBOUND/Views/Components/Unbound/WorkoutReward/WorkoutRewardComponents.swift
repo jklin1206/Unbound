@@ -7,6 +7,24 @@ func formatWhole(_ value: Double) -> String {
     "\(Int(value.rounded()))"
 }
 
+/// Odometer count-up: renders a whole number that interpolates with the
+/// surrounding animation, so `CountUpNumberText(value: revealed ? total : 0)`
+/// under an `.animation(...)` spins fast and settles on the total. Styling
+/// (font, color, shadows) comes from the environment like plain `Text`.
+struct CountUpNumberText: View, Animatable {
+    var value: Double
+
+    var animatableData: Double {
+        get { value }
+        set { value = newValue }
+    }
+
+    var body: some View {
+        Text(formatWhole(value))
+            .monospacedDigit()
+    }
+}
+
 struct CinematicRewardHUD: View {
     let progress: Double
     let tint: Color
