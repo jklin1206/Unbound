@@ -165,13 +165,11 @@ extension UnboundHomeView {
     }
 
     var homeCommandStrip: some View {
-        // One icon language for the whole dock: every glyph in the app accent,
-        // every label in tertiary — two colors, no per-command tints or art.
         HStack(alignment: .top, spacing: 0) {
             HomeCommandStripButton(
                 artwork: .weight,
                 title: "Weight",
-                tint: Color.unbound.accent,
+                tint: bodyWeightStatusColor,
                 accessibilityLabel: "Open bodyweight log"
             ) {
                 handleBodyWeightCommand()
@@ -180,7 +178,7 @@ extension UnboundHomeView {
             HomeCommandStripButton(
                 artwork: .backdrops,
                 title: "Backdrops",
-                tint: Color.unbound.accent,
+                tint: equippedHomeBackdrop?.accent ?? Color.skinHex("2DD4BF"),
                 accessibilityLabel: "Change home backdrop"
             ) {
                 UnboundHaptics.medium()
@@ -190,7 +188,7 @@ extension UnboundHomeView {
             HomeCommandStripButton(
                 artwork: .rankLibrary,
                 title: "Ranks",
-                tint: Color.unbound.accent,
+                tint: model.aggregateTier.rewardTextTint,
                 accessibilityLabel: "Open rank library"
             ) {
                 UnboundHaptics.soft()
@@ -200,7 +198,7 @@ extension UnboundHomeView {
             HomeCommandStripButton(
                 artwork: .shop,
                 title: "Shop",
-                tint: Color.unbound.accent,
+                tint: Color.skinHex("8B5CF6"),
                 accessibilityLabel: "Open cosmetics shop"
             ) {
                 UnboundHaptics.medium()
@@ -324,7 +322,7 @@ private struct HomeCommandStripButton: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .center, spacing: 5) {
-                HomeCommandMiniGlyph(kind: artwork, tint: tint)
+                HomeCommandArtwork(kind: artwork, tint: tint)
                     .frame(width: 40, height: 40)
 
                 Text(title.uppercased())

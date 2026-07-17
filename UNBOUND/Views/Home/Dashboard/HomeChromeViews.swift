@@ -52,6 +52,81 @@ enum HomeCommandArtworkKind {
     case backdrops
     case rankLibrary
     case weight
+
+    /// Rendered 3D tile artwork, when one exists for this command. Falls back to
+    /// the tinted SF glyph (`HomeCommandMiniGlyph`) when nil.
+    var assetName: String? {
+        switch self {
+        case .weight:      return "home_dock_weight"
+        case .backdrops:   return "home_dock_backdrops"
+        case .rankLibrary: return "home_dock_rank_library"
+        case .shop:        return "home_dock_shop"
+        case .rankTrial, .trialKey, .vow: return nil
+        }
+    }
+}
+
+/// A home command icon — the rendered 3D tile when an asset exists, otherwise the
+/// tinted SF glyph. Scales to the caller's frame.
+struct HomeCommandArtwork: View {
+    let kind: HomeCommandArtworkKind
+    let tint: Color
+
+    var body: some View {
+        if let asset = kind.assetName, UIImage(named: asset) != nil {
+            Image(asset)
+                .resizable()
+                .scaledToFit()
+                .accessibilityHidden(true)
+        } else {
+            HomeCommandMiniGlyph(kind: kind, tint: tint)
+        }
+    }
+}
+
+struct HomeIconCommand: View {
+    let artwork: HomeCommandArtworkKind
+    let title: String
+    let value: String
+    let tint: Color
+    let accessibilityLabel: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 5) {
+                HomeCommandMiniGlyph(kind: artwork, tint: tint)
+                    .frame(width: 30, height: 30)
+                    .shadow(color: tint.opacity(0.22), radius: 6)
+
+                Text(value.uppercased())
+                    .font(.system(size: 11.5, weight: .black, design: .rounded))
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
+                    .allowsTightening(true)
+                    .fixedSize(horizontal: true, vertical: false)
+
+                Text(title.uppercased())
+                    .font(.system(size: 8.7, weight: .black, design: .monospaced))
+                    .tracking(0.65)
+                    .foregroundStyle(Color.unbound.textTertiary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.64)
+                    .allowsTightening(true)
+                    .frame(height: 22, alignment: .top)
+                    .frame(maxWidth: .infinity)
+            }
+            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity)
+            .frame(height: 79)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+    }
 }
 
 struct HomeCommandMiniGlyph: View {
