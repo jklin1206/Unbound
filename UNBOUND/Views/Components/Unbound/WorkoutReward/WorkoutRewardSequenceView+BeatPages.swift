@@ -103,8 +103,10 @@ extension WorkoutRewardSequenceView {
                 .opacity(pageRevealed ? 1 : 0)
 
                 HStack(spacing: 0) {
-                    readout(value: "\(summary.durationMinutes)m", label: "DURATION")
-                    readout(value: "\(summary.workSets)", label: "SETS")
+                    // Duration and sets ride the volume odometer; RPE is a
+                    // rating, not a tally, so it lands as-is.
+                    countingReadout(value: summary.durationMinutes, suffix: "m", label: "DURATION", active: volumeRevealed)
+                    countingReadout(value: summary.workSets, label: "SETS", active: volumeRevealed)
                     readout(value: summary.rpe.map { "\($0)" } ?? "—", label: "RPE")
                 }
                 .opacity(pageRevealed ? 1 : 0)

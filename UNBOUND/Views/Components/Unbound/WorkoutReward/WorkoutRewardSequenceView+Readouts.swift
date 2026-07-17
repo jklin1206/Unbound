@@ -88,6 +88,30 @@ extension WorkoutRewardSequenceView {
         .frame(maxWidth: .infinity)
     }
 
+    /// A readout whose number rides the same odometer as the volume hero.
+    /// `suffix` trails the number ("m" for minutes). Reduce Motion lands the
+    /// final value instantly.
+    func countingReadout(value: Int, suffix: String = "", label: String, active: Bool) -> some View {
+        let countsUp = !UIAccessibility.isReduceMotionEnabled
+        return VStack(spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 0) {
+                CountUpNumberText(value: (active || !countsUp) ? Double(value) : 0)
+                if !suffix.isEmpty {
+                    Text(suffix)
+                }
+            }
+            .font(Font.unbound.monoM.weight(.semibold))
+            .foregroundStyle(Color.unbound.textPrimary)
+            .animation(countsUp ? .easeOut(duration: 1.1) : nil, value: active)
+
+            Text(label)
+                .font(Font.unbound.captionS)
+                .tracking(1.4)
+                .foregroundStyle(Color.unbound.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     func beatHeader(kicker: String, title: String, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(kicker)
