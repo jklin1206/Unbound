@@ -103,8 +103,4 @@ extension UnboundHomeView {
         }
         return "NO LOGS YET"
     }
-
-    var bodyWeightStatusColor: Color {
-        model.hasLoggedBodyWeightToday ? Color.unbound.success : Color.unbound.accent
-    }
 }
