@@ -149,6 +149,35 @@ final class ActiveWorkoutSessionTests: XCTestCase {
         XCTAssertLessThan(completedAt.timeIntervalSince(performanceLog.startedAt), 60)
     }
 
+    func test_appendCatalogExercise_storesSingleNumberReps() throws {
+        // The app must never show a rep RANGE. A Quick-Log-added exercise gets
+        // a default prescription, but the stored planned reps is one number
+        // (the window lower bound), never "8-12".
+        let s = ActiveWorkoutSession(workout: workout(), programId: "p", dayNumber: 1)
+        let catalog = CatalogExercise(
+            name: "barbell bench press",
+            displayName: "Barbell Bench Press",
+            muscleGroups: [.chest],
+            defaultSubstitute: nil
+        )
+        s.appendCatalogExercise(catalog)
+
+        let added = try XCTUnwrap(s.exercises.last)
+        XCTAssertEqual(added.name, "Barbell Bench Press")
+        XCTAssertEqual(added.plannedSets, 3)
+        XCTAssertEqual(added.sets.count, 3)
+        XCTAssertEqual(added.plannedReps, "8")
+        XCTAssertFalse(added.plannedReps.contains("-"), "planned reps must never be a range")
+    }
+
+    func test_repRangeLowerBound_collapsesRangeToSingleNumber() {
+        // The display seam collapses any "a-b" prescription to its lower bound
+        // via this helper before rendering.
+        XCTAssertEqual(RepRange.lowerBound("8-12"), 8)
+        XCTAssertEqual(RepRange.lowerBound("8"), 8)
+        XCTAssertNil(RepRange.lowerBound("AMRAP"))
+    }
+
     func test_snapshotRoundTrip() throws {
         let s = ActiveWorkoutSession(workout: workout(), programId: "p", dayNumber: 1)
         s.logCurrentSet(weightKg: 80, reps: 8)

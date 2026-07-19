@@ -177,22 +177,9 @@ extension GateKeyHistory {
         case .movementsAtRank(let count, let rank):
             return gateKeyMovementTiers.filter { $0 >= rank }.count >= count
         case .gatesAnswered(let count):
-            return passedGateCount >= count
+            // Derived from the monotonic `highestPassedRank`, not the trimmed
+            // attempt log - see OverallRankTrialProgress.answeredGateCount.
+            return gateKeyTrialProgress.answeredGateCount >= count
         }
-    }
-
-    private var passedGateCount: Int {
-        let passedDefinitionIds = Set(
-            gateKeyTrialProgress.attempts
-                .filter(\.passed)
-                .map(\.definitionId)
-        )
-        return OverallRankTrialDefinitions.all
-            .filter { $0.format != .theLastGate }
-            .filter { definition in
-                passedDefinitionIds.contains(definition.id)
-                    || !passedDefinitionIds.isDisjoint(with: definition.legacyIds)
-            }
-            .count
     }
 }

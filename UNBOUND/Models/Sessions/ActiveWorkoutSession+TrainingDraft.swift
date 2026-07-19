@@ -34,7 +34,10 @@ extension ActiveWorkoutSession {
                             isWarmup: plan.isWarmup,
                             logged: false,
                             suggestedWeightKg: plan.suggestedWeightKg.map {
-                                WeightPlatePolicy.snappedSuggestionKilograms($0)
+                                WeightPlatePolicy.snappedSuggestionKilograms(
+                                    $0,
+                                    exerciseKey: prescription.exerciseName
+                                )
                             },
                             suggestedReps: metricKind == .reps ? plan.target.metricLowerBound : nil,
                             suggestedHoldSeconds: metricKind == .holdSeconds ? plan.target.metricLowerBound : nil,

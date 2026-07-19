@@ -1,14 +1,14 @@
 # Views/Squads
 
 The SQUAD tab: squad creation/joining, the squad detail surface (crew roster, weekly mission, season board, shared activity), 1v1 friend challenges, shared routine drops, and squad-scoped toasts.
-`SquadTabView` is the tab root and also handles the `https://unboundbtr.com/squad/<code>` universal-link join path.
+`SquadTabView` is the tab root. The `https://unboundbtr.com/squad/<code>` universal-link join path is parsed + persisted by `SquadInviteLink` / `PendingSquadInvite` (Services/Squads) and consumed centrally by `HomeTabView`, which switches to this tab and presents `JoinSquadSheet` — so an invite survives cold-launch through onboarding/auth.
 Every screen follows the squads section-card language (`SquadSectionStyles.swift`): each section is ONE tinted box (streak = ember, crew = cyan, recent = violet, routines = orange, board = gold, rewards = impact violet) with flat `MetaLine` rows inside, per-member identity colors from `SquadMemberPalette`, and the viewer's own row highlighted by a full-width elevated fill that never indents the text.
 
 ## Files
 
 | File | What it is |
 |---|---|
-| `SquadTabView.swift` | Tab root; routes empty vs detail, handles universal-link squad codes. |
+| `SquadTabView.swift` | Tab root; routes empty vs detail. Invite deep-link handling lives in `HomeTabView` + `PendingSquadInvite` (Services/Squads), not here. |
 | `SquadEmptyView.swift` | No-squad state with create/join entry points. |
 | `CreateSquadSheet.swift` | Sheet for creating a squad (name + crest picker). |
 | `JoinSquadSheet.swift` | Sheet for joining a squad by code. |
@@ -37,7 +37,7 @@ Every screen follows the squads section-card language (`SquadSectionStyles.swift
 
 ## Where to find X
 
-- **Join via link or code** → `SquadTabView.swift` (universal links) + `JoinSquadSheet.swift`.
+- **Join via link or code** → invite links: `PendingSquadInvite.swift` (Services/Squads) → consumed by `HomeTabView` → `JoinSquadSheet.swift`; manual code entry: `JoinSquadSheet.swift`.
 - **Workout sharing (what squadmates see after you train)** → activity entries render in `ActivityFeedRow.swift` (posted by `TrainingCompletionService`); per-member stats come through `SquadDetailView+Data.swift`.
 - **Friend challenge lifecycle UI** → `FriendChallengeCreateSheet.swift` → `FriendChallengeRow.swift` (accept/decline/withdraw) → `FriendChallengeOutcomeToast.swift`.
 - **Leaderboard / season rewards / honors** → `SquadLeaderboardViews.swift` + `SquadSeasonTab.swift`.

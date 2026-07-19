@@ -129,4 +129,80 @@ final class TrainingWeightPolicyTests: XCTestCase {
             "235"
         )
     }
+
+    // MARK: - Implement-aware loads
+
+    func testImplementResolution() {
+        XCTAssertEqual(LoadImplement.resolve(exerciseKey: "barbell back squat"), .barbell)
+        XCTAssertEqual(LoadImplement.resolve(exerciseKey: "goblet squat"), .dumbbell)
+        XCTAssertEqual(LoadImplement.resolve(exerciseKey: "kettlebell swing"), .kettlebell)
+        XCTAssertEqual(LoadImplement.resolve(exerciseKey: "lat pulldown"), .machine)
+        // Unknown custom names get the bounded dumbbell treatment.
+        XCTAssertEqual(LoadImplement.resolve(exerciseKey: "garage lever contraption"), .dumbbell)
+    }
+
+    func testKettlebellSnapsToFourKilogramLadderInAnyUnit() {
+        XCTAssertEqual(
+            WeightPlatePolicy.snappedSuggestionKilograms(22.7, implement: .kettlebell, unit: .pounds),
+            24
+        )
+        XCTAssertEqual(
+            WeightPlatePolicy.snappedSuggestionKilograms(17, implement: .kettlebell, unit: .kilograms),
+            16
+        )
+        let next = WeightPlatePolicy.progressedWeightKilograms(
+            from: 16,
+            classification: .lowerCompound,
+            implement: .kettlebell,
+            unit: .pounds,
+            microloadingEnabled: false
+        )
+        XCTAssertEqual(next, 20)
+    }
+
+    func testMachineStackMovesInCoarserPitch() {
+        XCTAssertEqual(
+            WeightPlatePolicy.snappedSuggestionKilograms(31.8, implement: .machine, unit: .kilograms),
+            30
+        )
+        let next = WeightPlatePolicy.progressedWeightKilograms(
+            from: 30,
+            classification: .accessory,
+            implement: .machine,
+            unit: .kilograms,
+            microloadingEnabled: false
+        )
+        XCTAssertEqual(next, 35)
+    }
+
+    func testDumbbellProgressionStopsAtImplementCap() {
+        let capped = WeightPlatePolicy.progressedWeightKilograms(
+            from: 50,
+            classification: .lowerCompound,
+            implement: .dumbbell,
+            unit: .kilograms,
+            microloadingEnabled: false
+        )
+        XCTAssertEqual(capped, 50, "No heavier dumbbell exists to prescribe")
+
+        let underCap = WeightPlatePolicy.progressedWeightKilograms(
+            from: 45,
+            classification: .lowerCompound,
+            implement: .dumbbell,
+            unit: .kilograms,
+            microloadingEnabled: false
+        )
+        XCTAssertEqual(underCap, 47.5, "Dumbbells jump one plate size, not the barbell double jump")
+    }
+
+    func testBarbellProgressionStaysUncapped() {
+        let next = WeightPlatePolicy.progressedWeightKilograms(
+            from: 200,
+            classification: .lowerCompound,
+            implement: .barbell,
+            unit: .kilograms,
+            microloadingEnabled: false
+        )
+        XCTAssertEqual(next, 205)
+    }
 }

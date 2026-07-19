@@ -9,8 +9,8 @@ struct Step23_Notifications: View {
 
     var body: some View {
         OnboardingScaffold(
-            title: L10n.onboarding("notifications.title", defaultValue: "Stay on track."),
-            subtitle: L10n.onboarding("notifications.subtitle", defaultValue: "A nudge when it's time."),
+            title: L10n.onboarding("notifications.title", defaultValue: "The System will call you back."),
+            subtitle: L10n.onboarding("notifications.subtitle", defaultValue: "Only when your training window opens."),
             progress: progress,
             primaryTitle: flow.notificationsRequested
                 ? L10n.onboarding("common.continue", defaultValue: "Continue")
@@ -45,8 +45,8 @@ struct Step23_Notifications: View {
                 }
 
                 VStack(spacing: 12) {
-                    hudBenefitRow(icon: "bell.fill", text: L10n.onboarding("notifications.benefit.streak", defaultValue: "A clean nudge when it is time to train"))
-                    hudBenefitRow(icon: "calendar", text: L10n.onboarding("notifications.benefit.schedule", defaultValue: "Gym reminders that match your schedule"))
+                    hudBenefitRow(icon: "bell.fill", text: L10n.onboarding("notifications.benefit.streak", defaultValue: "A directive when it is time to train"))
+                    hudBenefitRow(icon: "calendar", text: L10n.onboarding("notifications.benefit.schedule", defaultValue: "Timing matched to your chosen schedule"))
                     hudBenefitRow(icon: "moon.zzz.fill", text: L10n.onboarding("notifications.benefit.monthly", defaultValue: "No extra progress or streak alerts by default"))
                 }
 

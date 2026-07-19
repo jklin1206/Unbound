@@ -136,12 +136,21 @@ struct ExerciseLogCard: View {
         }
     }
 
+    // The app never paints a rep RANGE. Any "a-b"-shaped prescription
+    // collapses to its lower bound - the single climbing target - before it
+    // reaches a label, so no data path can render "8-12".
+    private var displayReps: String {
+        guard plannedReps.contains("-"),
+              let low = RepRange.lowerBound(plannedReps) else { return plannedReps }
+        return String(low)
+    }
+
     @ViewBuilder
     private func targetSummary(calm: Bool) -> some View {
         if calm {
             MetaLine(
                 [
-                    "\(plannedSets)×\(plannedReps)",
+                    "\(plannedSets)×\(displayReps)",
                     targetRPE.map { "RPE \($0)" },
                     calmRestText
                 ],
@@ -150,7 +159,7 @@ struct ExerciseLogCard: View {
             .padding(.bottom, isExpanded ? 0 : 2)
         } else {
             HStack(spacing: 8) {
-                targetPill("\(plannedSets) x \(plannedReps)", icon: "scope")
+                targetPill("\(plannedSets) x \(displayReps)", icon: "scope")
                 if let targetRPE {
                     targetPill("RPE \(targetRPE)", icon: "gauge.medium")
                 }

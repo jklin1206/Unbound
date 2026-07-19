@@ -50,7 +50,7 @@ struct ProgramFocusSwitchSheet: View {
         if selectedMode == .calisthenics || selectedMode == .hybrid {
             equipment.insert(.bodyweight)
         }
-        let selectedExperience = selectedMode.needsAbility && (currentExperience != nil || abilityWasTouched)
+        let selectedExperience = (currentExperience != nil || abilityWasTouched)
             ? selectedAbility.experience
             : nil
         return ProgramFocusSwitchSelection(
@@ -72,9 +72,7 @@ struct ProgramFocusSwitchSheet: View {
                     contextControls
                     modePicker
                     setupPicker
-                    if selectedMode.needsAbility {
-                        abilityPicker
-                    }
+                    abilityPicker
                     if let errorMessage {
                         errorRow(errorMessage)
                     }

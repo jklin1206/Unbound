@@ -45,12 +45,66 @@ struct TrainTimeNotificationScheduler {
         "\(identifierPrefix).\(day.rawValue)"
     }
 
-    private static func title(for _: WorkoutTime) -> String {
-        L10n.string(.notificationWorkoutVariesTitle, defaultValue: "Time to go to the gym.")
+    private static func title(for workoutTime: WorkoutTime) -> String {
+        let key: L10n.Key
+        let defaultValue: String
+
+        switch workoutTime {
+        case .earlyMorning:
+            key = .notificationWorkoutEarlyMorningTitle
+            defaultValue = "[ SYSTEM ] DAWN DIRECTIVE"
+        case .morning:
+            key = .notificationWorkoutMorningTitle
+            defaultValue = "[ SYSTEM ] MORNING DIRECTIVE"
+        case .lunch:
+            key = .notificationWorkoutLunchTitle
+            defaultValue = "[ SYSTEM ] MIDDAY DIRECTIVE"
+        case .afternoon:
+            key = .notificationWorkoutAfternoonTitle
+            defaultValue = "[ SYSTEM ] TRAINING WINDOW"
+        case .evening:
+            key = .notificationWorkoutEveningTitle
+            defaultValue = "[ SYSTEM ] EVENING DIRECTIVE"
+        case .lateNight:
+            key = .notificationWorkoutLateNightTitle
+            defaultValue = "[ SYSTEM ] NIGHT DIRECTIVE"
+        case .varies:
+            key = .notificationWorkoutVariesTitle
+            defaultValue = "[ SYSTEM ] DIRECTIVE ISSUED"
+        }
+
+        return L10n.string(key, defaultValue: defaultValue)
     }
 
-    private static func body(for _: WorkoutTime) -> String {
-        L10n.string(.notificationWorkoutVariesBody, defaultValue: "Your workout is scheduled. Head in and start.")
+    private static func body(for workoutTime: WorkoutTime) -> String {
+        let key: L10n.Key
+        let defaultValue: String
+
+        switch workoutTime {
+        case .earlyMorning:
+            key = .notificationWorkoutEarlyMorningBody
+            defaultValue = "The day is quiet. Complete today's Arc."
+        case .morning:
+            key = .notificationWorkoutMorningBody
+            defaultValue = "Set the pace. Today's Arc is ready."
+        case .lunch:
+            key = .notificationWorkoutLunchBody
+            defaultValue = "Your midday window is open. Begin the Arc."
+        case .afternoon:
+            key = .notificationWorkoutAfternoonBody
+            defaultValue = "Your training window is open. Begin the Arc."
+        case .evening:
+            key = .notificationWorkoutEveningBody
+            defaultValue = "Close the day by completing today's Arc."
+        case .lateNight:
+            key = .notificationWorkoutLateNightBody
+            defaultValue = "The night window is open. Complete today's Arc."
+        case .varies:
+            key = .notificationWorkoutVariesBody
+            defaultValue = "Today's training is ready. Begin your Arc."
+        }
+
+        return L10n.string(key, defaultValue: defaultValue)
     }
 }
 
@@ -98,11 +152,11 @@ struct RetentionNudgeScheduler {
             identifier: Self.identifier,
             title: L10n.string(
                 .notificationRetentionRescanTitle,
-                defaultValue: "30-day check. Time for a checkpoint."
+                defaultValue: "[ SYSTEM ] SCAN DUE"
             ),
             body: L10n.string(
                 .notificationRetentionRescanBody,
-                defaultValue: "A month of reps. Lock in the proof."
+                defaultValue: "Your 30-day checkpoint is ready. Record new proof."
             ),
             trigger: .calendar(components, repeats: false)
         )

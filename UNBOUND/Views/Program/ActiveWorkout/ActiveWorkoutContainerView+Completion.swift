@@ -46,7 +46,7 @@ extension ActiveWorkoutContainerView {
             )
             HapticManager.notification(.success)
             restTimer.stop()
-            draftStore.clear()
+            draftStore.clear(for: session)
             // Finished training — drop squad presence so squadmates stop seeing
             // us as live (best-effort; the row also auto-expires after 3h).
             Task { await services.squadPresence.clearPresence(userId: uid) }

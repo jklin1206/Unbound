@@ -6,6 +6,7 @@ The post-training reward surface: diffing user state across a training event int
 
 | File | Purpose |
 | --- | --- |
+| `ArcRecapBuilder.swift` | Assembles the end-of-Arc recap (`ArcRecapSummary`): level climb from dated completion receipts, attribute hex before/after from the block's pinned start snapshot, and notable highlights (load/rep climbs, rank gates, best streak) from the block window's performance logs. |
 | `CurrencyWalletStore.swift` | UserDefaults-backed Arcs currency wallet + `ShopInventoryStore` (`ObservableObject`s): earn-only balance, grant ledger, `ShopPurchaseResult` (purchased / alreadyOwned / insufficientFunds), DEBUG unlimited-balance mode, purchases + ownership-guarded equip slots; both fire the `RewardsCloudBackup` seam after durable writes. |
 | `RewardComputer.swift` | Central before/after snapshot differ: every caller (QuickLog, session end, ...) takes a snapshot before writing the log, then `after(snapshot:...)` derives PRs / rank-ups / badge unlocks / first-set into a `RewardSummary` for `WorkoutRewardSequenceView`. |
 | `RewardsCloudBackup.swift` | Cloud mirror for the wallet, shop inventory, and cosmetic preferences: full-snapshot `users.rewardsBackup` patches (ordered write chain, redundant-patch skip) plus the restore-side merge — wallet adopts only into an empty wallet with a both-ways ledger union, purchases union, equips restore after ownership, preferences adopt-when-unset, highest cosmetic tier maxes. |

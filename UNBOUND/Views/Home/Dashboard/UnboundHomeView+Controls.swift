@@ -55,12 +55,15 @@ extension UnboundHomeView {
     /// All gate worlds with their cleared / current / locked state, in order — the
     /// swipeable deck source.
     private var trialDeckGates: [HomeTrialDeck.Gate] {
-        let passedRanks = Set(rankGateProgress.attempts.filter { $0.passed }.map { $0.targetRank })
+        // Cleared state comes from the monotonic `highestPassedRank`, not the
+        // trimmed attempt log (which drops early passes past its 50-entry tail) -
+        // matching TrialRecordsShelf so a cleared gate never reverts to locked.
+        let highestPassedOrder = rankGateProgress.highestPassedRank.overallRankTrialOrder
         let currentFormat = model.overallRankTrialReadiness?.definition?.format
         return RankTrialFormat.allCases.enumerated().map { index, format in
             let definition = OverallRankTrialDefinitions.all.first { $0.format == format }
             let state: HomeTrialDeck.GateState
-            if let definition, passedRanks.contains(definition.targetRank) {
+            if let definition, definition.targetRank.overallRankTrialOrder <= highestPassedOrder {
                 state = .cleared
             } else if format == currentFormat {
                 state = .current
@@ -129,9 +132,11 @@ extension UnboundHomeView {
         OverallRankTrialStore.shared.load(userId: services.auth.currentUserId ?? "anonymous")
     }
 
-    /// Distinct ranks whose gate has at least one passing attempt.
+    /// Prior rank gates answered - the single canonical source
+    /// (`OverallRankTrialProgress.answeredGateCount`), derived from the
+    /// monotonic `highestPassedRank`, not the trimmed attempt log.
     var passedGateCount: Int {
-        Set(rankGateProgress.attempts.filter { $0.passed }.map { $0.targetRank }).count
+        rankGateProgress.answeredGateCount
     }
 
     /// ENTER on the world card → straight into the trial workout cover (no detail

@@ -12,6 +12,7 @@ Settings screens: account, notifications, equipment, exercise preferences, cosme
 | `ProfileCosmeticsView.swift` | The Profile Kit hub: IDENTITY surface (hosts `ProfileIdentityForm`) plus border/banner equipping. |
 | `SkinPickerView.swift` | Lists every `SkillTreeSkin` with lock states + live tree-map swatch; switches `SkinService`. |
 | `DevPlayerToolsView.swift` | DEBUG tools screen + `DevBuildBootstrapper` (@MainActor enum) for seeding dev builds. |
+| `DevBuildBootstrapper+ArcRecapDemo.swift` | Bootstrapper extension: `--unbound-arc-recap-demo` seeds a block-complete surface with a full recap story (logs, hex snapshot, level receipt). |
 | `DevBuildBootstrapper+ProgramScenarios.swift` | Bootstrapper extension: program scenario seeding. |
 | `DevBuildBootstrapper+ProofState.swift` | Bootstrapper extension: proof/rank state seeding. |
 | `DevBuildBootstrapper+Rewards.swift` | Bootstrapper extension: rewards/cosmetics seeding. |

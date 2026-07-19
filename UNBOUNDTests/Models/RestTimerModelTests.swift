@@ -4,9 +4,13 @@ import XCTest
 final class SpyRestNotifier: RestNotifying, @unchecked Sendable {
     var authRequested = 0
     var scheduled: [TimeInterval] = []
+    var scheduledCopy: [(title: String, body: String)] = []
     var cancels = 0
     func requestAuthIfNeeded() async { authRequested += 1 }
-    func schedule(after seconds: TimeInterval, title: String, body: String) { scheduled.append(seconds) }
+    func schedule(after seconds: TimeInterval, title: String, body: String) {
+        scheduled.append(seconds)
+        scheduledCopy.append((title, body))
+    }
     func cancelPending() { cancels += 1 }
 }
 
@@ -20,6 +24,8 @@ final class RestTimerModelTests: XCTestCase {
         XCTAssertEqual(m.remaining, 90)
         XCTAssertTrue(m.isActive)
         XCTAssertEqual(spy.scheduled, [90])
+        XCTAssertEqual(spy.scheduledCopy.first?.title, "[ SYSTEM ] RECOVERY COMPLETE")
+        XCTAssertEqual(spy.scheduledCopy.first?.body, "Next set: Bench.")
         m.tick(now: start.addingTimeInterval(2))
         XCTAssertEqual(m.remaining, 88)
     }

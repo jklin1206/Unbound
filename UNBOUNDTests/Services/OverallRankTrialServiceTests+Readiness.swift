@@ -8,7 +8,6 @@ extension OverallRankTrialServiceTests {
                 userId: "u1",
                 currentRank: .initiate,
                 overallLevel: 0,
-                aggregateRank: .initiate,
                 equipment: [.bodyweight],
                 clearedGateKeys: []
             )
@@ -26,7 +25,6 @@ extension OverallRankTrialServiceTests {
                 userId: "u1",
                 currentRank: .initiate,
                 overallLevel: definition.minOverallLevel,
-                aggregateRank: definition.targetRank,
                 equipment: [.bodyweight],
                 clearedGateKeys: []
             )
@@ -61,7 +59,6 @@ extension OverallRankTrialServiceTests {
                 userId: "u1",
                 currentRank: .novice,
                 overallLevel: definition.minOverallLevel - 1,
-                aggregateRank: .initiate,
                 equipment: [.bodyweight],
                 clearedGateKeys: []
             )
@@ -82,7 +79,6 @@ extension OverallRankTrialServiceTests {
                 userId: "u1",
                 currentRank: .novice,
                 overallLevel: definition.minOverallLevel,
-                aggregateRank: definition.targetRank,
                 equipment: readyEquipment(),
                 clearedGateKeys: clearedGateKeyIds(for: definition)
             )
@@ -103,7 +99,6 @@ extension OverallRankTrialServiceTests {
                 userId: "u1",
                 currentRank: .apprentice,
                 overallLevel: definition.minOverallLevel - 1,
-                aggregateRank: .initiate,
                 equipment: [.bodyweight],
                 clearedGateKeys: []
             )
@@ -124,7 +119,6 @@ extension OverallRankTrialServiceTests {
                 userId: "u1",
                 currentRank: .apprentice,
                 overallLevel: definition.minOverallLevel,
-                aggregateRank: definition.targetRank,
                 equipment: readyEquipment(),
                 clearedGateKeys: clearedGateKeyIds(for: definition)
             )
@@ -157,7 +151,6 @@ extension OverallRankTrialServiceTests {
                 userId: "u1",
                 currentRank: .apprentice,
                 overallLevel: definition.minOverallLevel,
-                aggregateRank: definition.targetRank,
                 equipment: readyEquipment(),
                 clearedGateKeys: clearedGateKeyIds(for: definition),
                 attempts: [attempt]
@@ -196,7 +189,6 @@ extension OverallRankTrialServiceTests {
                 userId: "u1",
                 currentRank: .apprentice,
                 overallLevel: 0,
-                aggregateRank: .initiate,
                 equipment: [.bodyweight],
                 clearedGateKeys: [],
                 attempts: progress.attempts
@@ -214,7 +206,6 @@ extension OverallRankTrialServiceTests {
                 userId: "u1",
                 currentRank: .forged,
                 overallLevel: definition.minOverallLevel,
-                aggregateRank: definition.targetRank,
                 equipment: [.bodyweight, .openSpace],
                 clearedGateKeys: clearedGateKeyIds(for: definition)
             )
@@ -234,7 +225,6 @@ extension OverallRankTrialServiceTests {
                 userId: "u1",
                 currentRank: .forged,
                 overallLevel: definition.minOverallLevel,
-                aggregateRank: definition.targetRank,
                 equipment: readyEquipment(),
                 clearedGateKeys: clearedGateKeyIds(for: definition)
             )
@@ -254,7 +244,6 @@ extension OverallRankTrialServiceTests {
                 userId: "u1",
                 currentRank: .veteran,
                 overallLevel: definition.minOverallLevel - 1,
-                aggregateRank: .initiate,
                 equipment: [.bodyweight, .openSpace],
                 clearedGateKeys: []
             )
@@ -275,7 +264,6 @@ extension OverallRankTrialServiceTests {
                 userId: "u1",
                 currentRank: .veteran,
                 overallLevel: definition.minOverallLevel,
-                aggregateRank: definition.targetRank,
                 equipment: readyEquipment(),
                 clearedGateKeys: clearedGateKeyIds(for: definition)
             )
@@ -297,7 +285,6 @@ extension OverallRankTrialServiceTests {
                     userId: "u1",
                     currentRank: trialCase.sourceRank,
                     overallLevel: definition.minOverallLevel - 1,
-                    aggregateRank: .initiate,
                     equipment: [.bodyweight],
                     clearedGateKeys: []
                 )
@@ -315,7 +302,6 @@ extension OverallRankTrialServiceTests {
                     userId: "u1",
                     currentRank: trialCase.sourceRank,
                     overallLevel: definition.minOverallLevel,
-                    aggregateRank: definition.targetRank,
                     equipment: readyEquipment(),
                     clearedGateKeys: clearedGateKeyIds(for: definition)
                 )
@@ -328,6 +314,85 @@ extension OverallRankTrialServiceTests {
             XCTAssertTrue(ready.missingRequirements.isEmpty, definition.displayName)
             XCTAssertEqual(ready.definition?.id, definition.id, definition.displayName)
         }
+    }
+
+    // Regression for the permanent Last Gate lockout: a player with >50 lifetime
+    // attempts loses their early gate-pass records to the store's 50-entry trim,
+    // yet the final gate's `gatesAnswered(7)` key - computed from the trimmed log
+    // via GateKeys.clearedKeys - must still clear because it now reads the
+    // monotonic `highestPassedRank`. Prove the gate-count key is met and never a
+    // blocker in the real readiness evaluation.
+    func testLastGateReadinessGateCountKeyNotBlockedByTrimmedAttemptLog() {
+        let definition = OverallRankTrialDefinitions.theLastGate
+        let gatesKey = GateKeys.keys(for: .theLastGate).first { $0.metric == .gatesAnswered(7) }!
+
+        let trimmedLog = (0..<50).map { i in
+            OverallRankTrialAttempt(
+                id: "lastgate-fail-\(i)",
+                userId: "u1",
+                definitionId: definition.id,
+                targetRank: definition.targetRank,
+                startedAt: Date(timeIntervalSince1970: 100),
+                completedAt: Date(timeIntervalSince1970: 1_000 + Double(i)),
+                performanceLogId: "lastgate-log-\(i)",
+                passed: false,
+                movementAPGained: 0,
+                overallLevelXPGained: 0
+            )
+        }
+        let progress = OverallRankTrialProgress(highestPassedRank: .ascendant, attempts: trimmedLog)
+        let history = WorkoutLogGateKeyHistory(
+            workoutLogs: [],
+            attributeProfile: nil,
+            trialProgress: progress,
+            movementTiers: []
+        )
+        let clearedGateKeys = GateKeys.clearedKeys(for: .theLastGate, history: history, bodyweightKg: 100)
+
+        let readiness = TrialReadinessService.shared.evaluate(
+            OverallRankTrialReadinessInput(
+                userId: "u1",
+                currentRank: .ascendant,
+                overallLevel: definition.minOverallLevel,
+                equipment: readyEquipment(),
+                clearedGateKeys: clearedGateKeys,
+                attempts: progress.attempts
+            )
+        )
+
+        let gatesLine = readiness.requirements.first { $0.id == gatesKey.id }
+        XCTAssertEqual(gatesLine?.isMet, true, "gatesAnswered(7) must be met once Ascendant is confirmed")
+        XCTAssertFalse(
+            readiness.missingRequirements.contains { $0.id == gatesKey.id },
+            "the gate-count key must never block the Last Gate after the trim"
+        )
+    }
+
+    // CLAUDE.md contract lock: real readiness = overall level + equipment + gate
+    // keys ONLY. The build-weighted aggregate rank gates NOTHING. Drive the real
+    // readiness path twice, varying ONLY the aggregate, and require an identical
+    // verdict. (The aggregate is no longer even fetched here; this guards against
+    // anyone re-wiring it into the hot path.)
+    func testReadinessIgnoresAggregateStrengthSignal() async throws {
+        let database = MockDatabaseService()
+        try await database.create(
+            OverallLevelProgress(userId: "u1", totalXP: OverallLevelCurve.xpRequired(forLevel: 100)),
+            collection: "overall_level_progress",
+            documentId: "u1"
+        )
+        store.save(.empty, userId: "u1") // next trial = First Light (a level-only gate)
+        let services = makeServices(database: database)
+        let mockRank = try XCTUnwrap(services.rank as? MockRankService)
+
+        mockRank.aggregateRankOverride = .initiate
+        let low = await TrialReadinessService.shared.readiness(userId: "u1", services: services, store: store)
+
+        mockRank.aggregateRankOverride = .unbound
+        let high = await TrialReadinessService.shared.readiness(userId: "u1", services: services, store: store)
+
+        XCTAssertEqual(low.status, high.status, "aggregate rank must not change readiness status")
+        XCTAssertEqual(low.status, .ready, "level + equipment satisfied and First Light has no gate keys → ready")
+        XCTAssertEqual(low.targetRank, .novice)
     }
 
 }

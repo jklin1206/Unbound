@@ -54,7 +54,8 @@ enum TrainingPrescriptionResolver {
         updated = applyBias(to: updated, state: state)
         if let weight = updated.suggestedWeightKg, weight > 0 {
             updated.suggestedWeightKg = WeightPlatePolicy.snappedSuggestionKilograms(
-                weight * wave.loadFactor
+                weight * wave.loadFactor,
+                exerciseKey: state.exerciseKey
             )
         }
 
@@ -112,7 +113,10 @@ enum TrainingPrescriptionResolver {
         case .easier:
             updated.restSeconds = min(240, updated.restSeconds + (isPrimary ? 30 : 15))
             if let weight = updated.suggestedWeightKg, weight > 0 {
-                updated.suggestedWeightKg = WeightPlatePolicy.snappedSuggestionKilograms(max(0, weight * 0.95))
+                updated.suggestedWeightKg = WeightPlatePolicy.snappedSuggestionKilograms(
+                    max(0, weight * 0.95),
+                    exerciseKey: state.exerciseKey
+                )
             }
             updated.notes = appendNote("Progression adjusted: easier target after recent grind.", to: updated.notes)
         case .harder:
@@ -169,7 +173,10 @@ enum TrainingPrescriptionResolver {
 
     private static func suggestedWeight(for state: ProgressionState) -> Double? {
         guard state.currentWorkingWeightKg > 0 else { return nil }
-        return WeightPlatePolicy.snappedSuggestionKilograms(state.currentWorkingWeightKg)
+        return WeightPlatePolicy.snappedSuggestionKilograms(
+            state.currentWorkingWeightKg,
+            exerciseKey: state.exerciseKey
+        )
     }
 
     private static func isPrimaryPrescription(_ prescription: TrainingBlockPrescription) -> Bool {

@@ -303,12 +303,61 @@ enum MovementCatalog {
         userEquipment: [Equipment],
         excludedNames: Set<String> = []
     ) -> CatalogExercise? {
-        catalogAlternatives(
+        // The catalog author picked each movement's natural stand-in
+        // (`defaultSubstitute`); honor that chain before falling back to the
+        // generic same-slot scoring, which can only approximate intent.
+        if let authored = authoredSubstitute(
+            for: rawName,
+            style: style,
+            userEquipment: userEquipment,
+            excludedNames: excludedNames
+        ) {
+            return authored
+        }
+        return catalogAlternatives(
             to: rawName,
             style: style,
             userEquipment: userEquipment,
             excludedNames: excludedNames
         ).first
+    }
+
+    private static func authoredSubstitute(
+        for rawName: String,
+        style: TrainingStyle,
+        userEquipment: [Equipment],
+        excludedNames: Set<String>
+    ) -> CatalogExercise? {
+        guard let current = canonicalExercise(named: rawName) else { return nil }
+        let excluded = Set(excludedNames.map(normalized))
+        var visited: Set<String> = [normalized(current.canonicalExerciseName ?? rawName)]
+        var nextName = authoredSubstituteName(for: current, fallbackName: rawName)
+
+        while let name = nextName, !visited.contains(normalized(name)) {
+            visited.insert(normalized(name))
+            guard let candidate = canonicalExercise(named: name) else { return nil }
+            let identities = [
+                candidate.id,
+                candidate.displayName,
+                candidate.canonicalExerciseName ?? name,
+                candidate.rankStandardMovementId
+            ].map(normalized)
+            if !identities.contains(where: excluded.contains),
+               isProgramCompatible(candidate, style: style, userEquipment: userEquipment) {
+                return uniqueCatalogExercises(from: [candidate]).first
+            }
+            nextName = authoredSubstituteName(for: candidate, fallbackName: name)
+        }
+        return nil
+    }
+
+    private static func authoredSubstituteName(
+        for definition: MovementDefinition,
+        fallbackName: String
+    ) -> String? {
+        ExerciseCatalog.exercise(
+            named: definition.canonicalExerciseName ?? fallbackName
+        )?.defaultSubstitute
     }
 
     static func isProgramCompatible(

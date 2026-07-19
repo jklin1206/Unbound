@@ -101,16 +101,16 @@ struct MilestoneNotificationPlanner {
             return genericDescriptor(
                 kind: "badge",
                 subject: "unlocked",
-                title: "Badge unlocked",
-                body: "A new proof mark is in your collection."
+                title: "[ SYSTEM ] PROOF REGISTERED",
+                body: "A new badge is in your proof archive."
             )
         }
 
         return genericDescriptor(
             kind: "badge",
             subject: event.badge.id,
-            title: "Badge unlocked: \(event.badge.displayName)",
-            body: event.badge.vowReward
+            title: "[ SYSTEM ] PROOF REGISTERED",
+            body: "\(event.badge.displayName) is now in your archive."
         )
     }
 
@@ -119,16 +119,16 @@ struct MilestoneNotificationPlanner {
             return genericDescriptor(
                 kind: "rank",
                 subject: "advanced",
-                title: "Rank advanced",
-                body: "A lift crossed into new territory."
+                title: "[ SYSTEM ] RANK ADVANCED",
+                body: "A movement crossed into a new rank."
             )
         }
 
         return genericDescriptor(
             kind: "rank",
             subject: "\(event.exerciseKey)-\(event.toRank.token)",
-            title: "\(event.displayName) ranked up",
-            body: "\(event.fromRank.displayName) -> \(event.toRank.displayName)"
+            title: "[ SYSTEM ] RANK ADVANCED",
+            body: "\(event.displayName): \(event.fromRank.displayName) → \(event.toRank.displayName)."
         )
     }
 
@@ -137,16 +137,16 @@ struct MilestoneNotificationPlanner {
             return genericDescriptor(
                 kind: "skill",
                 subject: "advanced",
-                title: "Skill tier advanced",
-                body: "A skill moved up the ladder."
+                title: "[ SYSTEM ] SKILL ADVANCED",
+                body: "A skill reached a new rank."
             )
         }
 
         return genericDescriptor(
             kind: "skill",
             subject: advance.id,
-            title: "Skill tier advanced",
-            body: "\(advance.skillId) reached \(advance.to.displayName)."
+            title: "[ SYSTEM ] SKILL ADVANCED",
+            body: "New rank: \(advance.to.displayName)."
         )
     }
 
@@ -155,7 +155,7 @@ struct MilestoneNotificationPlanner {
             return genericDescriptor(
                 kind: "progression",
                 subject: "advanced",
-                title: "Progression advanced",
+                title: "[ SYSTEM ] LOAD INCREASED",
                 body: "Your next working weight is ready."
             )
         }
@@ -163,8 +163,8 @@ struct MilestoneNotificationPlanner {
         return genericDescriptor(
             kind: "progression",
             subject: "\(event.exerciseKey)-\(event.newWeightKg)",
-            title: "\(event.displayName) weight bumped",
-            body: "New working weight: \(WeightPlatePolicy.formatLoggedWeightWithUnit(event.newWeightKg, separator: " "))."
+            title: "[ SYSTEM ] LOAD INCREASED",
+            body: "\(event.displayName): \(WeightPlatePolicy.formatLoggedWeightWithUnit(event.newWeightKg, separator: " ")) is next."
         )
     }
 
@@ -173,7 +173,7 @@ struct MilestoneNotificationPlanner {
             return genericDescriptor(
                 kind: "title",
                 subject: "unlocked",
-                title: "Title unlocked",
+                title: "[ SYSTEM ] TITLE UNLOCKED",
                 body: "A new title is ready on your profile."
             )
         }
@@ -182,8 +182,8 @@ struct MilestoneNotificationPlanner {
         return genericDescriptor(
             kind: "title",
             subject: displayName,
-            title: "Title unlocked",
-            body: displayName
+            title: "[ SYSTEM ] TITLE UNLOCKED",
+            body: "\(displayName) is ready to equip."
         )
     }
 
@@ -192,16 +192,16 @@ struct MilestoneNotificationPlanner {
             return genericDescriptor(
                 kind: "attribute",
                 subject: "advanced",
-                title: "Attribute rank up",
-                body: "Your build profile advanced."
+                title: "[ SYSTEM ] BUILD ADVANCED",
+                body: "An attribute reached a new rank."
             )
         }
 
         return genericDescriptor(
             kind: "attribute",
             subject: "\(event.axis.rawValue)-\(event.toTitle.token)",
-            title: "\(event.axis.displayName) advanced",
-            body: "\(event.fromTitle.displayName) -> \(event.toTitle.displayName)"
+            title: "[ SYSTEM ] BUILD ADVANCED",
+            body: "\(event.axis.displayName): \(event.fromTitle.displayName) → \(event.toTitle.displayName)."
         )
     }
 

@@ -306,6 +306,28 @@ extension ProgramOverviewView {
         return programDraft(from: day, date: date)
     }
 
+    /// Quick Log entry point. If a stashed custom draft holds logged work, offer
+    /// to resume it; otherwise drop straight into a fresh empty Quick Log.
+    func launchQuickLog() {
+        if let stashed = resumableCustomDraft() {
+            quickLogResumeCandidate = stashed
+        } else {
+            activeWorkoutDraft = QuickLogDraftFactory.empty(userId: services.auth.currentUserId ?? "")
+        }
+    }
+
+    /// Discard the stashed custom draft and start a fresh Quick Log - the
+    /// resume prompt's escape hatch.
+    func startFreshQuickLog() {
+        draftStore.clear(.custom)
+        quickLogResumeCandidate = nil
+        let userId = services.auth.currentUserId ?? ""
+        // Defer the cover so it isn't swallowed while the dialog dismisses.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+            activeWorkoutDraft = QuickLogDraftFactory.empty(userId: userId)
+        }
+    }
+
     func openStartEmptyWorkout(title: String = "Extra Quest") {
         if !services.entitlement.isEntitled {
             showPaywall = true

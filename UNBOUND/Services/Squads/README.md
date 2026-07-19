@@ -12,6 +12,7 @@ Everything social: squad membership/state, the activity feed, presence, weekly m
 | `LocalSquadDirectory.swift` | UserDefaults-backed local squad+members record (debug/local-only squad support). |
 | `MockSquadActivityBackend.swift` | In-memory `SquadActivityBackendProtocol` for tests. |
 | `MockSquadBackend.swift` | In-memory `SquadBackendProtocol` for tests. |
+| `PendingSquadInvite.swift` | Persists a tapped `/squad/<code>` universal link (UserDefaults, global key, 7-day TTL) so it survives cold-launch through onboarding/auth; plus `SquadInviteLink`, the pure host/segment-tolerant URL parser. Consumed by `HomeTabView`. |
 | `SquadActivityBackend.swift` | Production backend for the `squad_activity` Supabase table. |
 | `SquadActivityBackendProtocol.swift` | Protocol isolating activity-feed persistence. |
 | `SquadActivityService.swift` | Records squad activity events (trial completions, title unlocks, linked sessions, joins...); installs NotificationCenter observers on init. |
@@ -39,6 +40,7 @@ Everything social: squad membership/state, the activity feed, presence, weekly m
 ## Where to find X
 
 - **Join/create/leave a squad, squad state** → `SquadService.swift` (+ `SquadStore.swift` cache, `SquadBackend.swift` Supabase).
+- **Invite deep link (`/squad/<code>`) parsing + survival across cold-launch** → `PendingSquadInvite.swift` (`SquadInviteLink` parser + `PendingSquadInvite` store); parsed/persisted in `UnboundApp.onContinueUserActivity`, consumed by `HomeTabView`.
 - **Activity feed entries** → `SquadActivityService.swift` / `SquadActivityBackend.swift`.
 - **Linked-session +20% XP bonus** → `LinkedSessionEvaluator.swift` (the bonus math) and `SquadLoopReconciler.swift` (the production trigger + dedup).
 - **Weekly missions** → `SquadMissionService.swift` + `SquadMissionCatalog.swift`.

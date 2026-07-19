@@ -3,11 +3,18 @@ import SwiftUI
 struct AuthContainerView: View {
     @EnvironmentObject private var services: ServiceContainer
 
+    // Escape hatch: invoked when the user taps "continue for now". RootView wires
+    // this to record an offline deferral and route into the main app. Defaults to
+    // a no-op so isolated hosts (the `-authScreenDemo` harness, previews) can still
+    // render the screen — and the affordance — without any routing.
+    var onContinueWithoutAccount: () -> Void = {}
+
     var body: some View {
         AuthContainerContentView(
             auth: services.auth,
             user: services.user,
-            analytics: services.analytics
+            analytics: services.analytics,
+            onContinueWithoutAccount: onContinueWithoutAccount
         )
         .id(ObjectIdentifier(services))
     }
@@ -15,17 +22,20 @@ struct AuthContainerView: View {
 
 private struct AuthContainerContentView: View {
     @StateObject private var viewModel: AuthViewModel
+    private let onContinueWithoutAccount: () -> Void
 
     init(
         auth: any AuthServiceProtocol,
         user: any UserServiceProtocol,
-        analytics: any AnalyticsServiceProtocol
+        analytics: any AnalyticsServiceProtocol,
+        onContinueWithoutAccount: @escaping () -> Void
     ) {
         _viewModel = StateObject(wrappedValue: AuthViewModel(
             auth: auth,
             user: user,
             analytics: analytics
         ))
+        self.onContinueWithoutAccount = onContinueWithoutAccount
     }
 
     var body: some View {
@@ -113,6 +123,31 @@ private struct AuthContainerContentView: View {
                         // Email auth
                         EmailAuthView(viewModel: viewModel)
                     }
+                    .padding(.horizontal, 24)
+
+                    // Quiet escape hatch. Deliberately tertiary — a text-style
+                    // button, no fill, below the providers — so signing in stays
+                    // the obvious path. It exists so a network outage right after
+                    // payment can't wall a paying customer out: progress is kept
+                    // locally until they link (see the Settings > Account row).
+                    VStack(spacing: 6) {
+                        Button {
+                            onContinueWithoutAccount()
+                        } label: {
+                            Text(L10n.string(.authDeferContinue, defaultValue: "Not now - continue without an account"))
+                                .font(.bodyMedium(14))
+                                .foregroundColor(Color.unbound.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .buttonStyle(.plain)
+
+                        Text(L10n.string(.authDeferNote, defaultValue: "Your progress stays saved on this device until you link an account."))
+                            .font(.caption(12))
+                            .foregroundColor(Color.unbound.textTertiary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, 28)
                     .padding(.horizontal, 24)
 
                     Spacer(minLength: 40)

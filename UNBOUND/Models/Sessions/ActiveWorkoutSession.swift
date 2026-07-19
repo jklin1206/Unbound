@@ -259,7 +259,12 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
             ?? MovementCatalog.canonicalExercise(named: catalog.name)
         let resolved = MovementResolver.resolve(catalog.displayName)
         let plannedSets = 3
-        let plannedReps = "8-12"
+        // A fresh Quick-Log exercise carries no prescription. Default to an
+        // 8-12 hypertrophy window but STORE only its lower bound - the app
+        // shows one climbing number, never a range (see the RepRange collapse
+        // convention in TrainingTarget.displayText / SetLoggerSheet).
+        let defaultRepWindow = "8-12"
+        let plannedReps = RepRange.lowerBound(defaultRepWindow).map(String.init) ?? defaultRepWindow
         let targetRPE = 8
         let restSeconds = 90
         let metricKind = Self.metricKind(for: plannedReps, definitionDefault: definition?.defaultMetric)

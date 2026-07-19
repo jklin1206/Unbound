@@ -93,8 +93,8 @@ final class RestTimerModel: ObservableObject {
         guard isActive, remaining > 0 else { return }
         notifier.schedule(
             after: TimeInterval(remaining),
-            title: "Rest complete",
-            body: nextLabel.isEmpty ? "Back to it." : "Next: \(nextLabel)"
+            title: "[ SYSTEM ] RECOVERY COMPLETE",
+            body: nextLabel.isEmpty ? "Your next set is ready." : "Next set: \(nextLabel)."
         )
     }
 

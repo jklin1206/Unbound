@@ -6,7 +6,9 @@ final class YearProgramSimulationTests: XCTestCase {
         var tracker = SimulationProgressionTracker(
             userId: "sim-profile",
             experience: .current,
-            bodyweightKg: 82
+            bodyweightKg: 82,
+            feedbackMode: .quick,
+            mode: .advance
         )
         let curl = Exercise(
             id: "curl",
@@ -33,31 +35,33 @@ final class YearProgramSimulationTests: XCTestCase {
             restSeconds: 60
         )
 
-        let curlOutcome = tracker.log(
+        // synthesize() is the pure performance-synthesis seam (no engine): it
+        // seeds each movement's first demonstrated load and reports hold seconds.
+        let curlPerformance = tracker.synthesize(
             exercise: curl,
-            date: Date(),
+            absoluteDay: 1,
+            sequence: 0,
             shouldGrind: false,
-            shouldUnderperform: false,
-            cutModeActive: false
+            shouldUnderperform: false
         )
-        let raiseOutcome = tracker.log(
+        let raisePerformance = tracker.synthesize(
             exercise: raise,
-            date: Date(),
+            absoluteDay: 1,
+            sequence: 1,
             shouldGrind: false,
-            shouldUnderperform: false,
-            cutModeActive: false
+            shouldUnderperform: false
         )
-        let holdOutcome = tracker.log(
+        let holdPerformance = tracker.synthesize(
             exercise: hold,
-            date: Date(),
+            absoluteDay: 1,
+            sequence: 2,
             shouldGrind: false,
-            shouldUnderperform: false,
-            cutModeActive: false
+            shouldUnderperform: false
         )
 
-        XCTAssertNotEqual(curlOutcome.weightKg, raiseOutcome.weightKg)
-        XCTAssertEqual(holdOutcome.reps, 0)
-        XCTAssertEqual(holdOutcome.holdSeconds, 20)
+        XCTAssertNotEqual(curlPerformance.usedWeightKg, raisePerformance.usedWeightKg)
+        XCTAssertEqual(holdPerformance.reps, 0)
+        XCTAssertEqual(holdPerformance.holdSeconds, 20)
     }
 
     func testBaselineYearSimulationSmokeExportsDebugArtifacts() async throws {
@@ -163,17 +167,21 @@ final class YearProgramSimulationTests: XCTestCase {
         XCTAssertEqual(report.personaRuns.count, expectedPersonaCount)
         XCTAssertTrue(report.personaRuns.allSatisfy { $0.days.count == simulationDays })
         XCTAssertTrue(report.personaRuns.allSatisfy { !$0.programs.isEmpty })
-        if simulationDays >= BaselineYearProgramSimulator.fullYearSimulationDays {
-            let criticals = report.personaRuns.flatMap { run in
-                run.violations.filter { $0.severity == .critical }
-            }
-            XCTAssertTrue(
-                criticals.isEmpty,
-                criticals.map { "\($0.code): \($0.detail)" }.joined(separator: "\n"),
-                file: sourceFile,
-                line: sourceLine
-            )
+
+        // Critical violations (equipment mismatch, no-time-advance, block-limit,
+        // grindy load bumps that escaped the engine) must be empty at ANY length,
+        // so the default 56-day smoke run actually guards them. Annual checks
+        // (arcs >= 10, adherence, cut-mode bumps) stay full-year-gated inside the
+        // simulator because they genuinely need 365 days of history.
+        let criticals = report.personaRuns.flatMap { run in
+            run.violations.filter { $0.severity == .critical }
         }
+        XCTAssertTrue(
+            criticals.isEmpty,
+            "Critical simulation violations:\n" + criticals.map { "\($0.code): \($0.detail)" }.joined(separator: "\n"),
+            file: sourceFile,
+            line: sourceLine
+        )
 
         await XCTContext.runActivity(named: "UNBOUND year simulation artifacts: \(label)") { activity in
             activity.add(XCTAttachment(string: outputURL.path))

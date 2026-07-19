@@ -205,14 +205,16 @@ final class HomeViewModel: ObservableObject {
 
     /// Recover a missing or undecodable profile so first-run program generation is
     /// never permanently blocked. Creates a complete `UserProfile` (with `id`) and
-    /// replays any stashed onboarding answers onto it. `take()` does NOT clear the
-    /// stash, so a later sign-in still replays the same answers onto the real
-    /// account. Returns nil only if the create/refetch itself fails.
+    /// replays any stashed onboarding answers onto it. The replay clears the stash
+    /// only on a successful write, so a failed replay still retries on a later
+    /// launch/sign-in. Returns nil only if the create/refetch itself fails.
     private func healProfile(_ userId: String) async -> UserProfile? {
         do {
             _ = try await services.user.createUserIfNeeded(userId: userId, email: nil)
-            if let pending = PendingOnboardingProfile.take() {
-                try? await services.user.updateProfile(userId: userId, fields: pending)
+            // Clears the stash only on a successful write; a failure survives
+            // for a later retry.
+            try? await PendingOnboardingProfile.replay { fields in
+                try await services.user.updateProfile(userId: userId, fields: fields)
             }
             let healed = try await services.user.fetchProfile(userId: userId)
             LoggingService.shared.log(

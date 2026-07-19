@@ -17,6 +17,23 @@
     "targetKind" : "reps"
   },
   {
+    "criterion" : "10 bench dip",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.bench-dip",
+        "name" : "Bench Dip",
+        "rankStandard" : "exercise.bench-dip",
+        "rankTemplate" : "bodyweightReps",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cal.bench-dip",
+    "skillNodeTitle" : "Bench Dip",
+    "targetKind" : "reps"
+  },
+  {
     "criterion" : "10 decline pushup",
     "divergentNames" : false,
     "folded" : [
@@ -177,6 +194,23 @@
     "targetKind" : "reps"
   },
   {
+    "criterion" : "20 crunch",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.crunch",
+        "name" : "Crunch",
+        "rankStandard" : "exercise.crunch",
+        "rankTemplate" : "bodyweightReps",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cl.crunch",
+    "skillNodeTitle" : "Crunch",
+    "targetKind" : "reps"
+  },
+  {
     "criterion" : "15 decline sit-up",
     "divergentNames" : false,
     "folded" : [
@@ -310,6 +344,23 @@
     "skillNodeId" : "cl.straddle-front-lever",
     "skillNodeTitle" : "Straddle Front Lever",
     "targetKind" : "hold"
+  },
+  {
+    "criterion" : "5 toes to bar",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.toes-to-bar",
+        "name" : "Toes-to-Bar",
+        "rankStandard" : "exercise.toes-to-bar",
+        "rankTemplate" : "bodyweightReps",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "cl.toes-to-bar",
+    "skillNodeTitle" : "Toes-to-Bar",
+    "targetKind" : "reps"
   },
   {
     "criterion" : "tuck front lever 10s",
@@ -571,6 +622,23 @@
     ],
     "skillNodeId" : "ld.shrimp-squat",
     "skillNodeTitle" : "Shrimp Squat",
+    "targetKind" : "reps"
+  },
+  {
+    "criterion" : "8 sissy squat",
+    "divergentNames" : false,
+    "folded" : [
+      {
+        "id" : "exercise.sissy-squat",
+        "name" : "Sissy Squat",
+        "rankStandard" : "exercise.sissy-squat",
+        "rankTemplate" : "bodyweightReps",
+        "role" : "canonicalExercise",
+        "skillId" : ""
+      }
+    ],
+    "skillNodeId" : "ld.sissy-squat",
+    "skillNodeTitle" : "Sissy Squat",
     "targetKind" : "reps"
   },
   {

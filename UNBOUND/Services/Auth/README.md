@@ -9,6 +9,7 @@ Only a real Supabase session flips `isCloudLinked`, which is what gates the forc
 
 | File | Purpose |
 | --- | --- |
+| `AuthDeferralStore.swift` | UserDefaults-backed offline escape hatch for the forced-auth screen: a global (not identity-keyed) timestamp recording "continue for now", with a 3-day re-prompt window. `App/RootView.swift` observes its key (`deferredAtKey`) to route past the wall; cleared once `isCloudLinked`. |
 | `AuthService.swift` | Supabase-backed auth: `signInWithIdToken(.apple/.google, ...)` (Apple via `ASAuthorizationController`, Google via `GIDSignIn`), UserDefaults-cached `currentUserId` for synchronous reads, `isCloudLinked` for the forced-auth gate, session listener, triggers the legacy-UUID migration on first sign-in (`adoptSupabaseSession`). |
 | `AuthServiceProtocol.swift` | Protocol: `currentUserId`/`isAuthenticated`/`isCloudLinked`/`authStatePublisher` + `signInWithApple`/`signInWithGoogle`/email sign-in/out, create, `deleteAccount`. |
 | `LocalToSupabaseMigration.swift` | One-time background re-key of all local JSON docs from the anonymous UUID to the Supabase UID, then best-effort cloud upload (local stays source of truth). |
@@ -25,3 +26,4 @@ Only a real Supabase session flips `isCloudLinked`, which is what gates the forc
 - **How level / movement tiers / working loads / wallet / titles survive sign-in** → `Migration/UserDataMigrationStores+Progress.swift` (collection docs) and `Migration/UserDataMigrationStores+Rewards.swift` (UserDefaults domains); merge semantics live in each domain's `*CloudBackup` service.
 - **Account deletion** → `AuthServiceProtocol.swift` (`deleteAccount`) implemented in `AuthService.swift` (server side is the `delete_account` Edge Function).
 - **Faking auth in tests** → `MockAuthService.swift`.
+- **The "continue for now" offline escape hatch on the forced-auth screen** → `AuthDeferralStore.swift` (persistence + 3-day re-prompt cadence); routing that honors it lives in `../../App/RootRoute.swift` + `../../App/RootView.swift`; the affordance is in `../../Views/Auth/AuthContainerView.swift`. Sign-in from `../../Views/Settings/SettingsView.swift` later runs the same migration/replay path.

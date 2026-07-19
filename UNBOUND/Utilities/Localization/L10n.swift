@@ -182,6 +182,8 @@ enum L10n {
         case authSignInSubtitle = "auth.signIn.subtitle"
         case authProtectTitle = "auth.protect.title"
         case authProtectBody = "auth.protect.body"
+        case authDeferContinue = "auth.defer.continue"
+        case authDeferNote = "auth.defer.note"
         case authAppleSignIn = "auth.apple.signIn"
         case authGoogleSignIn = "auth.google.signIn"
         case authEmailDivider = "auth.email.divider"

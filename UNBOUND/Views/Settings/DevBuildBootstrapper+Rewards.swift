@@ -472,10 +472,10 @@ extension DevBuildBootstrapper {
             documentId: userId
         )
 
-        // Phase 7: eligibility = aggregateRank >= targetRank. Seed all four
-        // tracked lifts at the target tier (clears the ≥4-movement coverage
-        // floor and lands the weighted mean on the target), with fresh,
-        // mid-level attributes so freshness stays at 1.0.
+        // Seed the real gate-key inputs (the aggregate rank gates nothing): all
+        // four tracked lifts at the target tier feed the `movementsAtRank` key's
+        // movement-tier pool, and fresh mid-level attributes feed the
+        // `attributesAtRank` key.
         seedLiftTiers(tier: definition.targetRank)
         applyAttributes(
             Dictionary(uniqueKeysWithValues: AttributeKey.allCases.map { key in (key, 50.0) })

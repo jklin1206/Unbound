@@ -694,6 +694,9 @@ enum DevBuildBootstrapper {
         if let rawProgramState = launchArgumentValue(for: programStateProofArg) {
             await seedProgramProofState(rawValue: rawProgramState)
         }
+        if ProcessInfo.processInfo.arguments.contains(arcRecapDemoArg) {
+            await seedArcRecapDemo()
+        }
         if let rawSandboxState = launchArgumentValue(for: devProgramSandboxArg),
            let sandboxState = DevProgramSandboxState(rawValue: rawSandboxState) {
             await seedProgramScanSandbox(services: services, state: sandboxState)

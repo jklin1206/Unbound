@@ -34,16 +34,27 @@ extension ProgramOverviewView {
         guard let day,
               let program = viewModel.program,
               day.workout != nil,
-              draftStore.hasDraft
+              draftStore.hasDraft(in: .program)
         else { return nil }
 
-        guard let draft = draftStore.load() else { return nil }
+        guard let draft = draftStore.load(.program) else { return nil }
 
         guard draft.programId == program.id,
               draft.dayNumber == day.dayNumber,
               !draft.exercises.isEmpty
         else { return nil }
 
+        return draft
+    }
+
+    /// The stashed Quick-Log / custom draft, offered when the user reopens Quick
+    /// Log. Only surfaced when it actually holds logged work, so an untouched
+    /// Quick Log never resurrects a stale prompt.
+    func resumableCustomDraft() -> ActiveWorkoutSession? {
+        guard draftStore.hasDraft(in: .custom),
+              let draft = draftStore.load(.custom),
+              !draft.exercises.isEmpty
+        else { return nil }
         return draft
     }
 

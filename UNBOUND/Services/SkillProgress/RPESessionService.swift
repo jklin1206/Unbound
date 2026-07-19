@@ -166,7 +166,7 @@ final class RPESessionService {
         }
 
         let lastSummary = summarize(sets: lastEx.sets)
-        let suggestion = suggestNextLoad(sets: lastEx.sets)
+        let suggestion = suggestNextLoad(sets: lastEx.sets, exerciseName: lastEx.name)
         var lastBlock = "Last: \(lastSummary)"
         if let suggestion {
             lastBlock += " — \(suggestion)"
@@ -208,7 +208,7 @@ final class RPESessionService {
     /// Computes the "next session" suggestion based on RPE math. Returns
     /// nil for bodyweight sets without RPE (no signal to act on) so we
     /// don't overpromise progressive overload.
-    private func suggestNextLoad(sets: [LoggedSet]) -> String? {
+    private func suggestNextLoad(sets: [LoggedSet], exerciseName: String) -> String? {
         // Use the heaviest top set as the anchor for adjustment.
         guard let topSet = sets.max(by: { (a, b) in
             (a.weightKg ?? 0) < (b.weightKg ?? 0)
@@ -222,7 +222,7 @@ final class RPESessionService {
             // Weighted: percent-based load adjustment.
             let factor = 1.0 + Self.percentPerRPEPoint * Double(delta)
             let raw = weight * factor
-            let stepped = WeightPlatePolicy.snappedSuggestionKilograms(raw)
+            let stepped = WeightPlatePolicy.snappedSuggestionKilograms(raw, exerciseKey: exerciseName)
             if stepped == weight { return "hold load" }
             let direction = stepped > weight ? "bump to" : "drop to"
             return "\(direction) \(formatWeight(stepped))"

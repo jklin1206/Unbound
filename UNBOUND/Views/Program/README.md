@@ -7,6 +7,7 @@ The Program tab: the three-tab training-plan surface (`ProgramOverviewView`) plu
 | Folder | What lives there |
 | --- | --- |
 | `ActiveWorkout/` | Live in-workout logging surface — container view, exercise log cards, set grid, rest timer, keypad, trial stages (tower ascent, deck of proof). |
+| `ArcRecap/` | End-of-Arc recap sequence — full-screen beats (progress photo, level climb, attribute hex shift, notable highlights) that hand off into the next Arc's build. |
 | `MyWorkouts/` | My Workouts tab — saved-workout list, inline list component, schedule-date sheet, demo harness. |
 | `Overview/` | Internals behind `ProgramOverviewView` — overview state machine, day-panel resolvers/previews, command dock, block rollover/complete, focus-switch coordinator, dev simulation. |
 | `RankLibrary/` | Rank library detail layer — exercise rank detail view, row/models, proof + ruler visuals, target body figure. |

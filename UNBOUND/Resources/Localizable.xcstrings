@@ -1616,6 +1616,30 @@
         }
       }
     },
+    "auth.defer.continue" : {
+      "comment" : "Forced auth screen quiet escape hatch (continue without linking).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not now - continue without an account"
+          }
+        }
+      }
+    },
+    "auth.defer.note" : {
+      "comment" : "Forced auth screen escape-hatch supporting line (progress stays local until linked).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your progress stays saved on this device until you link an account."
+          }
+        }
+      }
+    },
     "auth.email.createAccount" : {
       "comment" : "Create account button title.",
       "extractionState" : "stale",
@@ -3113,7 +3137,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A month of reps. Lock in the proof."
+            "value" : "Your 30-day checkpoint is ready. Record new proof."
           }
         }
       }
@@ -3125,7 +3149,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "30-day check. Time for a checkpoint."
+            "value" : "[ SYSTEM ] SCAN DUE"
           }
         }
       }
@@ -3137,7 +3161,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Afternoon window. Your protocol is waiting."
+            "value" : "Your training window is open. Begin the Arc."
           }
         }
       }
@@ -3149,7 +3173,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Afternoon grind."
+            "value" : "[ SYSTEM ] TRAINING WINDOW"
           }
         }
       }
@@ -3161,7 +3185,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gym is empty. Reps are yours."
+            "value" : "The day is quiet. Complete today's Arc."
           }
         }
       }
@@ -3173,7 +3197,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Early birds get the reps."
+            "value" : "[ SYSTEM ] DAWN DIRECTIVE"
           }
         }
       }
@@ -3185,7 +3209,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The day's almost done. Finish it right."
+            "value" : "Close the day by completing today's Arc."
           }
         }
       }
@@ -3197,7 +3221,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Evening session. Don't skip."
+            "value" : "[ SYSTEM ] EVENING DIRECTIVE"
           }
         }
       }
@@ -3209,7 +3233,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Everyone else is asleep. You're building."
+            "value" : "The night window is open. Complete today's Arc."
           }
         }
       }
@@ -3221,7 +3245,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Late-night rep. Most people sleep."
+            "value" : "[ SYSTEM ] NIGHT DIRECTIVE"
           }
         }
       }
@@ -3233,7 +3257,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This is the one most people skip. You're not most people."
+            "value" : "Your midday window is open. Begin the Arc."
           }
         }
       }
@@ -3245,7 +3269,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Midday window is open."
+            "value" : "[ SYSTEM ] MIDDAY DIRECTIVE"
           }
         }
       }
@@ -3257,7 +3281,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Set the tone before the day sets it for you."
+            "value" : "Set the pace. Today's Arc is ready."
           }
         }
       }
@@ -3269,7 +3293,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Morning session. Go."
+            "value" : "[ SYSTEM ] MORNING DIRECTIVE"
           }
         }
       }
@@ -3281,7 +3305,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your workout is scheduled. Head in and start."
+            "value" : "Today's training is ready. Begin your Arc."
           }
         }
       }
@@ -3293,7 +3317,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Time to go to the gym."
+            "value" : "[ SYSTEM ] DIRECTIVE ISSUED"
           }
         }
       }
@@ -5211,7 +5235,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gym reminders that match your schedule"
+            "value" : "Timing matched to your chosen schedule"
           }
         }
       }
@@ -5223,7 +5247,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A clean nudge when it is time to train"
+            "value" : "A directive when it is time to train"
           }
         }
       }
@@ -5259,7 +5283,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A nudge when it's time."
+            "value" : "Only when your training window opens."
           }
         }
       }
@@ -5271,7 +5295,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stay on track."
+            "value" : "The System will call you back."
           }
         }
       }

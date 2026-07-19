@@ -13,6 +13,10 @@ struct ProgramBlock: Codable, Identifiable, Equatable {
     var cutModeActive: Bool
     var biasRefreshedFromPrevious: Bool
     var exerciseRotationsThisBlock: [String]
+    /// Attribute state at the moment the block began — the "before" side of
+    /// the end-of-Arc recap hex. Optional so blocks written before recap
+    /// shipped still decode.
+    var startAttributes: AttributeProfileSnapshot?
 
     init(
         id: String,
@@ -25,7 +29,8 @@ struct ProgramBlock: Codable, Identifiable, Equatable {
         accessoryBias: [MuscleGroup: Int] = [:],
         cutModeActive: Bool = false,
         biasRefreshedFromPrevious: Bool = false,
-        exerciseRotationsThisBlock: [String] = []
+        exerciseRotationsThisBlock: [String] = [],
+        startAttributes: AttributeProfileSnapshot? = nil
     ) {
         self.id = id
         self.userId = userId
@@ -38,5 +43,6 @@ struct ProgramBlock: Codable, Identifiable, Equatable {
         self.cutModeActive = cutModeActive
         self.biasRefreshedFromPrevious = biasRefreshedFromPrevious
         self.exerciseRotationsThisBlock = exerciseRotationsThisBlock
+        self.startAttributes = startAttributes
     }
 }

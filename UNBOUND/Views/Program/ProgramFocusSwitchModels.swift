@@ -147,10 +147,6 @@ enum ProgramFocusSwitchModeChoice: String, CaseIterable, Identifiable {
         }
     }
 
-    var needsAbility: Bool {
-        self == .calisthenics || self == .hybrid
-    }
-
     var gearOptions: [ProgramFocusSwitchGear] {
         switch self {
         case .calisthenics:
@@ -215,22 +211,14 @@ enum ProgramFocusSwitchAbilityLevel: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
-        switch self {
-        case .foundation: return "Foundation"
-        case .baseStrength: return "Base strength"
-        case .skillReady: return "Skill-ready"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .foundation:
-            return "No strict pullups yet, pushups still building, joints need easy volume."
-        case .baseStrength:
-            return "Some strict pushups, assisted or negative pullups, basic holds."
-        case .skillReady:
-            return "Strict reps are owned; skills can enter as serious practice."
+    /// Level names read differently per mode: lifting users think in barbell
+    /// terms, not skill-readiness.
+    func title(for mode: ProgramFocusSwitchModeChoice) -> String {
+        switch (self, mode) {
+        case (.foundation, _): return "Foundation"
+        case (.baseStrength, _): return "Base strength"
+        case (.skillReady, .lifting): return "Advanced"
+        case (.skillReady, _): return "Skill-ready"
         }
     }
 
@@ -242,11 +230,14 @@ enum ProgramFocusSwitchAbilityLevel: String, CaseIterable, Identifiable {
         }
     }
 
-    var assetName: String {
-        switch self {
-        case .foundation: return "exercise_visual_exercise_bodyweight-squat"
-        case .baseStrength: return "exercise_visual_exercise_assisted-pullup-band"
-        case .skillReady: return "exercise_visual_exercise_straddle-planche"
+    func assetName(for mode: ProgramFocusSwitchModeChoice) -> String {
+        switch (self, mode) {
+        case (.foundation, .lifting): return "exercise_visual_exercise_bench-press"
+        case (.baseStrength, .lifting): return "exercise_visual_exercise_back-squat"
+        case (.skillReady, .lifting): return "exercise_visual_exercise_deadlift"
+        case (.foundation, _): return "exercise_visual_exercise_bodyweight-squat"
+        case (.baseStrength, _): return "exercise_visual_exercise_assisted-pullup-band"
+        case (.skillReady, _): return "exercise_visual_exercise_straddle-planche"
         }
     }
 
@@ -255,17 +246,6 @@ enum ProgramFocusSwitchAbilityLevel: String, CaseIterable, Identifiable {
         case .foundation: return .never
         case .baseStrength: return .tried
         case .skillReady: return .current
-        }
-    }
-
-    var programmingCopy: String {
-        switch self {
-        case .foundation:
-            return "Programs beginner progressions only. No dips, muscle-ups, lever work, or handstand pressure unless the catalog has a true entry path."
-        case .baseStrength:
-            return "Allows beginner and intermediate progressions. Advanced skills stay out until logs prove the base."
-        case .skillReady:
-            return "Allows advanced calisthenics progressions when your equipment supports them. Elite work still stays gated."
         }
     }
 

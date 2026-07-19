@@ -18,8 +18,11 @@ final class PlateauDetector {
     private init() {}
 
     /// An exercise is considered plateaued when its `consecutiveSessionsAtTarget`
-    /// has been zero across its last 3 appearances in the workout log — i.e.
-    /// the athlete has trained it 3 times without hitting the advance threshold.
+    /// has been zero across its last `DeloadPolicy.plateauAppearanceWindow`
+    /// appearances in the workout log — i.e. the athlete has trained it that
+    /// many times without hitting the advance threshold. Exercises already in a
+    /// deload, or inside the post-deload cooldown, are skipped so a just-applied
+    /// or just-exited deload cannot immediately re-register as a plateau.
     func detect(userId: String, states: [ProgressionState]) async -> [PlateauedExercise] {
         let logs = (try? await workoutLog.fetchRecentLogs(userId: userId, limit: 30)) ?? []
         guard !logs.isEmpty else { return [] }
@@ -35,9 +38,11 @@ final class PlateauDetector {
         var result: [PlateauedExercise] = []
         for state in states {
             let appearances = appearancesByKey[state.exerciseKey] ?? 0
-            guard appearances >= 3 else { continue }
+            guard appearances >= DeloadPolicy.plateauAppearanceWindow else { continue }
             guard state.consecutiveSessionsAtTarget == 0 else { continue }
             guard state.classification != .bodyweightSkill else { continue }
+            guard state.blockType != .deload else { continue }
+            guard (state.deloadCooldownRemaining ?? 0) == 0 else { continue }
 
             result.append(PlateauedExercise(
                 exerciseKey: state.exerciseKey,

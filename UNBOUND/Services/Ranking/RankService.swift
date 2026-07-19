@@ -215,12 +215,17 @@ final class RankService: RankServiceProtocol {
 
         // Loaded path: compound (or variant), accessory family, or weighted
         // pullup. StrengthStandards.rank resolves all three and returns the
-        // sex-correct RankTier from a bodyweight-relative load ratio.
-        if StrengthStandards.isBarbellLift(exerciseKey: key)
-            || StrengthStandards.accessoryFamily(for: key) != nil {
-            let heaviest = workingSets.compactMap { $0.weightKg }.max() ?? 0
+        // sex-correct RankTier from a bodyweight-relative load ratio. A key
+        // claimed by BOTH ladders (bulgarian split squat: lunge family AND
+        // skill node) ranks here only when the set actually carries load;
+        // unloaded sets fall through to the skill path below.
+        let heaviestLoadKg = workingSets.compactMap { $0.weightKg }.max() ?? 0
+        let ranksAsLoaded = StrengthStandards.isBarbellLift(exerciseKey: key)
+            || StrengthStandards.accessoryFamily(for: key) != nil
+        let hasBodyweightNode = SkillStandards.isBodyweightSkill(exerciseKey: key)
+        if ranksAsLoaded && !(hasBodyweightNode && heaviestLoadKg <= 0) {
             return StrengthStandards.rank(
-                liftKg: heaviest,
+                liftKg: heaviestLoadKg,
                 bodyweightKg: bodyweightKg,
                 exerciseKey: key,
                 sex: sex

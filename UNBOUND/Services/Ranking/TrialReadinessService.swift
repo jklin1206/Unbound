@@ -70,7 +70,6 @@ final class TrialReadinessService {
             documentId: userId
         )
 
-        let aggregateRank = await services.rank.aggregateRank(userId: userId)
         let userProfile = try? await services.user.fetchProfile(userId: userId)
         let equipment = Self.movementEquipment(from: userProfile?.equipment ?? [.bodyweight])
         let workoutLogs = (try? await services.workoutLog.fetchLogs(userId: userId, programId: nil)) ?? []
@@ -111,7 +110,6 @@ final class TrialReadinessService {
                 userId: userId,
                 currentRank: progress.currentRank,
                 overallLevel: overallProgress?.level ?? 0,
-                aggregateRank: aggregateRank,
                 equipment: equipment,
                 clearedGateKeys: clearedGateKeys,
                 gateKeyMovementTiers: movementTiers,

@@ -91,6 +91,16 @@ final class SupabaseRemoteSync: RemoteSync, @unchecked Sendable {
         if let programId = payload["program_id"] as? String, UUID(uuidString: programId) == nil {
             payload["program_id"] = NSNull()
         }
+        // The generic snake-caser splits the "RPE" acronym char-by-char into
+        // "overall_r_p_e", but the real column is "overall_rpe" — rename it so
+        // the session RPE survives `sync_merge_row` instead of being dropped.
+        // Scoped to workoutLogs so no other table's key mapping changes; the
+        // source key is derived from the same caser so it tracks any future
+        // change to it.
+        let mangledRPE = snakeCasedKey("overallRPE")
+        if let rpe = payload.removeValue(forKey: mangledRPE) {
+            payload["overall_rpe"] = rpe
+        }
         return (try? JSONSerialization.data(withJSONObject: payload)) ?? data
     }
 
@@ -161,6 +171,13 @@ final class SupabaseRemoteSync: RemoteSync, @unchecked Sendable {
         }
         if payload["programId"] is NSNull {
             payload["programId"] = ""
+        }
+        // Reverse of the push rename: the camel-caser turns column "overall_rpe"
+        // into "overallRpe", but WorkoutLog's CodingKey is the "overallRPE"
+        // acronym — move the value so it lands on the property instead of
+        // decoding nil. Scoped to workoutLogs.
+        if let rpe = payload.removeValue(forKey: "overallRpe") {
+            payload["overallRPE"] = rpe
         }
         return (try? JSONSerialization.data(withJSONObject: payload)) ?? data
     }

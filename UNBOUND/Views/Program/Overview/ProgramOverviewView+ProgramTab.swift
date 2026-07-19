@@ -10,24 +10,36 @@ extension ProgramOverviewView {
             selectedDate: selectedDayDate,
             now: programNow
         )
-        switch surfaceState.kind {
-        case .noProgram:
-            ProgramNoProgramState()
-        case .loading:
-            ProgramLoadingStateView()
-        case .loadError:
-            ProgramErrorStateView(error: viewModel.state.errorValue, onRetry: reloadProgramSurface)
-        case .blockComplete:
-            if let program = viewModel.state.value {
-                blockCompleteState(program: program)
-            } else {
-                ProgramErrorStateView(error: nil, onRetry: reloadProgramSurface)
-            }
-        case .restDay, .trainingDay, .missingDay:
-            if let program = viewModel.state.value {
-                programBody(program)
-            } else {
+        Group {
+            switch surfaceState.kind {
+            case .noProgram:
                 ProgramNoProgramState()
+            case .loading:
+                ProgramLoadingStateView()
+            case .loadError:
+                ProgramErrorStateView(error: viewModel.state.errorValue, onRetry: reloadProgramSurface)
+            case .blockComplete:
+                if let program = viewModel.state.value {
+                    blockCompleteState(program: program)
+                } else {
+                    ProgramErrorStateView(error: nil, onRetry: reloadProgramSurface)
+                }
+            case .restDay, .trainingDay, .missingDay:
+                if let program = viewModel.state.value {
+                    programBody(program)
+                } else {
+                    ProgramNoProgramState()
+                }
+            }
+        }
+        // Attached above the surface switch so the cover survives the flip to
+        // the new Arc underneath; dismissal is state-driven after the build.
+        .fullScreenCover(item: $arcRecapSummary) { summary in
+            ArcRecapSequenceView(
+                summary: summary,
+                focusContext: arcRecapFocusContext()
+            ) {
+                runArcRecapBuild()
             }
         }
     }
@@ -46,8 +58,10 @@ extension ProgramOverviewView {
             // programBody — see the comment there before "simplifying".
             VStack(alignment: .leading, spacing: 16) {
                 #if DEBUG
-                AnyView(devDaySimulatorCard)
-                AnyView(devDynamicScenarioRail)
+                if !ProcessInfo.processInfo.arguments.contains("--unbound-appstore-demo") {
+                    AnyView(devDaySimulatorCard)
+                    AnyView(devDynamicScenarioRail)
+                }
                 #endif
                 AnyView(weekStrip(program: program))
                 AnyView(blockCompleteCard(program: program))
@@ -60,7 +74,67 @@ extension ProgramOverviewView {
         .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .task {
             await loadBlockRolloverContext(program: program)
+            await presentArcRecapIfNeeded(program: program)
+        }
+    }
+
+    /// The block-complete beat opens with the Arc recap sequence (photo →
+    /// build → highlights → next arc), whose final beat drives the build.
+    /// Falls back to the silent auto-build when the recap can't be assembled.
+    func presentArcRecapIfNeeded(program: TrainingProgram) async {
+        guard !hasPresentedArcRecap, !isGeneratingNextBlock else { return }
+        hasPresentedArcRecap = true
+
+        guard let userId = services.auth.currentUserId,
+              let summary = await ArcRecapBuilder.build(
+                userId: userId,
+                program: program,
+                database: services.database
+              ) else {
             await autoBuildNextBlockIfNeeded(program: program)
+            return
+        }
+        arcRecapSummary = summary
+    }
+
+    /// Context for the recap's optional "Adjust setup" sheet — the same
+    /// sources the command dock's Setup tile resolves from.
+    func arcRecapFocusContext() -> ArcRecapFocusContext? {
+        guard let program = viewModel.program else { return nil }
+        return ArcRecapFocusContext(
+            style: effectiveTrainingStyle(),
+            equipment: currentEquipmentFallback(program: program),
+            experience: viewModel.currentProfile?.experience,
+            pendingContext: pendingNextBlockContext(program: program)
+        )
+    }
+
+    /// Fired by the recap's final "writing" beat: run the rollover build and
+    /// dismiss the recap once the next Arc lands (or after the bounded retry
+    /// fails, so the compact card's manual CONTINUE takes over).
+    func runArcRecapBuild() {
+        guard let program = viewModel.program, !isGeneratingNextBlock else {
+            arcRecapSummary = nil
+            return
+        }
+        isGeneratingNextBlock = true
+        let vm = viewModel
+        Task {
+            // The writing beat is a ceremony, not a loading state: hold it for
+            // a couple of seconds even when generation returns instantly, so
+            // the hand-off into the new Arc lands instead of flashing.
+            let minimumDwell: TimeInterval = 2.5
+            let start = Date()
+            await runGenerateNextBlock(currentProgram: program, alreadyMarkedGenerating: true)
+            if vm.program?.id == program.id {
+                try? await Task.sleep(for: .seconds(2))
+                await runGenerateNextBlock(currentProgram: program)
+            }
+            let remaining = minimumDwell - Date().timeIntervalSince(start)
+            if remaining > 0 {
+                try? await Task.sleep(for: .seconds(remaining))
+            }
+            await MainActor.run { arcRecapSummary = nil }
         }
     }
 
@@ -207,8 +281,10 @@ extension ProgramOverviewView {
             // bare calls — the crash returns.
             VStack(alignment: .leading, spacing: 16) {
                 #if DEBUG
-                AnyView(devDaySimulatorCard)
-                AnyView(devDynamicScenarioRail)
+                if !ProcessInfo.processInfo.arguments.contains("--unbound-appstore-demo") {
+                    AnyView(devDaySimulatorCard)
+                    AnyView(devDynamicScenarioRail)
+                }
                 #endif
                 AnyView(weekStrip(program: program))
                 AnyView(dayCard(program: program))

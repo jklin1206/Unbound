@@ -115,6 +115,16 @@ struct ProgressionState: Codable, Identifiable, Sendable {
     var underTargetSessionCount: Int? = nil
     var prescriptionBias: ProgressionPrescriptionBias? = nil
 
+    /// Sessions the athlete has trained this exercise while in `.deload`. The
+    /// engine increments it on each deload ingest and, once it reaches
+    /// `DeloadPolicy.sessionsInDeload`, returns the state to accumulation. nil
+    /// means "not in a deload" (legacy rows and normal accumulation).
+    var deloadSessionsCompleted: Int? = nil
+    /// Sessions of immunity from re-plateau detection remaining after a deload
+    /// exit. Decremented on each normal ingest; while > 0 the plateau detector
+    /// skips this exercise so an exit cannot immediately re-trigger a deload.
+    var deloadCooldownRemaining: Int? = nil
+
     /// Timed isometrics keep their own seconds-based track. Optional fields
     /// preserve decoding for progression rows written before timed progression.
     var targetDurationSeconds: Int? = nil
@@ -127,19 +137,43 @@ struct ProgressionState: Codable, Identifiable, Sendable {
     /// The single rep number shown to the user for this exercise today. The
     /// min...max window stays the engine's internal rails; the user chases one
     /// target that climbs it: start at the bottom, ask one more than the last
-    /// session delivered, hold at the top (a second top-hit bumps the weight),
-    /// and restart at the bottom after a weight bump. A widened accessory
-    /// window keeps climbing instead of resetting.
+    /// session delivered, hold at the top. The restart-at-the-bottom after a
+    /// weight bump happens because the engine clears `lastSessionReps` when a
+    /// load bump actually lands — if nothing got harder (bodyweight ceiling,
+    /// implement cap) the ask holds at the top instead of collapsing.
     var currentTargetReps: Int {
         guard let last = lastSessionReps else { return targetRepMin }
-        if lastSessionHitTarget == true, consecutiveSessionsAtTarget == 0, last >= targetRepMax {
-            return targetRepMin
-        }
+        if blockType == .deload { return targetRepMin }
         return min(max(last + 1, targetRepMin), targetRepMax)
     }
 
     var currentTargetDurationSeconds: Int {
         targetDurationSeconds ?? IsometricDurationPolicy.startingTarget(for: exerciseKey)
+    }
+
+    /// Returns this state moved out of a deload and back to accumulation. The
+    /// single source for deload-exit semantics, shared by the engine's bounded
+    /// per-exercise exit and block rollover's clear-lingering-deload sweep.
+    /// Counters reset so plateau detection restarts on fresh evidence; the rep
+    /// window is restored to the accumulation default and `lastSessionReps` is
+    /// cleared so the ask resumes at the restored floor and climbs, never pinned
+    /// at the deload minimum; a cooldown blocks an immediate re-plateau. No-op
+    /// when the state is not in a deload. Callers set `updatedAt` themselves.
+    func exitingDeload() -> ProgressionState {
+        guard blockType == .deload else { return self }
+        var next = self
+        next.blockType = .accumulation
+        let range = next.classification.defaultRepRange(for: .accumulation)
+        next.targetRepMin = range.lowerBound
+        next.targetRepMax = range.upperBound
+        next.targetRPE = BlockType.accumulation.targetRPE
+        next.consecutiveSessionsAtTarget = 0
+        next.underTargetSessionCount = 0
+        next.prescriptionBias = .hold
+        next.lastSessionReps = nil
+        next.deloadSessionsCompleted = nil
+        next.deloadCooldownRemaining = DeloadPolicy.postDeloadCooldownSessions
+        return next
     }
 
     /// Classification of this exercise for weight-bump increments.

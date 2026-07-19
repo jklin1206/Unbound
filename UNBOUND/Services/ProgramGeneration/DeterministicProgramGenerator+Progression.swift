@@ -244,10 +244,10 @@ extension DeterministicProgramGenerator {
         bias: ProgressionPrescriptionBias?,
         wave: ProgramTrainingWave = .accumulation
     ) -> Double? {
-        guard let weight = state?.currentWorkingWeightKg, weight > 0 else { return nil }
+        guard let state, state.currentWorkingWeightKg > 0 else { return nil }
         let biasFactor = bias == .easier ? 0.95 : 1
-        let adjusted = max(0, weight * biasFactor * wave.loadFactor)
-        return WeightPlatePolicy.snappedSuggestionKilograms(adjusted)
+        let adjusted = max(0, state.currentWorkingWeightKg * biasFactor * wave.loadFactor)
+        return WeightPlatePolicy.snappedSuggestionKilograms(adjusted, exerciseKey: state.exerciseKey)
     }
 
     static func waveAdjustedPrescription(

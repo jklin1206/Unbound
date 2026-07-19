@@ -53,25 +53,22 @@ struct UnboundApp: App {
                     _ = GIDSignIn.sharedInstance.handle(url)
                 }
                 .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    // Match /squad/<invite-code> (host/segment casing + optional
+                    // www. tolerant; see SquadInviteLink). PERSIST first so the
+                    // invite survives a cold-launch through onboarding/paywall/
+                    // auth, then post so a warm, already-routed app consumes it
+                    // immediately. The persisted store is the source of truth;
+                    // HomeTabView is the single consumption seam.
                     guard
                         let url = activity.webpageURL,
-                        let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
-                        components.host == "unboundbtr.com"
+                        let code = SquadInviteLink.inviteCode(from: url)
                     else { return }
 
-                    let pathComponents = components.path
-                        .split(separator: "/")
-                        .map(String.init)
-
-                    // Match /squad/<invite-code>
-                    if pathComponents.count == 2,
-                       pathComponents[0] == "squad" {
-                        let code = pathComponents[1]
-                        NotificationCenter.default.post(
-                            name: .squadInviteCodeReceived,
-                            object: code
-                        )
-                    }
+                    PendingSquadInvite.shared.save(code: code)
+                    NotificationCenter.default.post(
+                        name: .squadInviteCodeReceived,
+                        object: code
+                    )
                 }
                 .task { SyncTriggers.shared.start() }
                 .onChange(of: scenePhase) { _, phase in

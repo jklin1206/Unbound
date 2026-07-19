@@ -25,6 +25,11 @@ final class NotificationSchedulersTests: XCTestCase {
                 "com.unbound.workout.thursday"
             ]
         )
+        XCTAssertEqual(plan.requests.first?.title, "[ SYSTEM ] EVENING DIRECTIVE")
+        XCTAssertEqual(
+            plan.requests.first?.body,
+            "Close the day by completing today's Arc."
+        )
 
         guard case .calendar(let monday, let mondayRepeats) = plan.requests[0].trigger else {
             return XCTFail("Expected Monday calendar trigger")
@@ -93,6 +98,11 @@ final class NotificationSchedulersTests: XCTestCase {
 
         XCTAssertEqual(plan.identifiersToCancel, ["com.unbound.rescan"])
         XCTAssertEqual(plan.requests.map(\.identifier), ["com.unbound.rescan"])
+        XCTAssertEqual(plan.requests.first?.title, "[ SYSTEM ] SCAN DUE")
+        XCTAssertEqual(
+            plan.requests.first?.body,
+            "Your 30-day checkpoint is ready. Record new proof."
+        )
 
         guard case .calendar(let components, let repeats) = plan.requests[0].trigger else {
             return XCTFail("Expected retention calendar trigger")
@@ -132,5 +142,16 @@ final class NotificationSchedulersTests: XCTestCase {
 
         XCTAssertEqual(plan.identifiersToCancel, ["com.unbound.rescan"])
         XCTAssertTrue(plan.requests.isEmpty)
+    }
+
+    func testMilestoneFallbackUsesSystemVoice() throws {
+        let descriptor = try XCTUnwrap(
+            MilestoneNotificationPlanner().descriptor(
+                for: Notification(name: .badgeUnlocked)
+            )
+        )
+
+        XCTAssertEqual(descriptor.title, "[ SYSTEM ] PROOF REGISTERED")
+        XCTAssertEqual(descriptor.body, "A new badge is in your proof archive.")
     }
 }

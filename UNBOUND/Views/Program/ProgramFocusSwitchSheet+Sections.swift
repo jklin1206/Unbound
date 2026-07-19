@@ -358,13 +358,17 @@ extension ProgramFocusSwitchSheet {
             }
         } label: {
             VStack(alignment: .leading, spacing: 10) {
-                artworkHeader(assetName: level.assetName, fallbackIcon: level.icon, selected: selected) {
+                artworkHeader(
+                    assetName: level.assetName(for: selectedMode),
+                    fallbackIcon: level.icon,
+                    selected: selected
+                ) {
                     Image(systemName: selected ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(selected ? Color.unbound.coachCyan : Color.unbound.textTertiary)
                 }
 
-                Text(level.title)
+                Text(level.title(for: selectedMode))
                     .font(Font.unbound.captionS.weight(.heavy))
                     .tracking(0.7)
                     .foregroundStyle(Color.unbound.textPrimary)

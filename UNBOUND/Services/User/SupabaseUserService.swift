@@ -95,7 +95,15 @@ final class SupabaseUserService: UserServiceProtocol, @unchecked Sendable {
 
         do {
             let snakeFields = Self.mapFieldsToSnakeCase(fields)
-            let payload = Self.toAnyJSON(snakeFields)
+            // Drop any key that is not a real `public.users` column BEFORE the
+            // PostgREST patch — one unknown column (e.g. seededAttributes /
+            // pactSignature, which persist locally but were never migrated to a
+            // column) makes Postgres reject the ENTIRE patch with 400
+            // undefined_column, wiping the whole profile write. The local
+            // fallback path below keeps `fields` intact (the JSON store merges
+            // arbitrary keys), so nothing is lost off-cloud.
+            let columnSafe = Self.columnSafeFields(snakeFields)
+            let payload = Self.toAnyJSON(columnSafe)
             try await supabase.patch(
                 payload,
                 in: "users",
@@ -179,6 +187,53 @@ final class SupabaseUserService: UserServiceProtocol, @unchecked Sendable {
             out[camelToSnake[k] ?? k] = v
         }
         return out
+    }
+
+    // MARK: - Column safety
+    //
+    // Every real `public.users` column a client patch may target (snake_case,
+    // matching the schema + later migrations). `updateProfile` takes a loose
+    // [String: Any] whose keys come from onboarding / settings dicts; a key
+    // that is NOT a real column (seededAttributes, pactSignature) makes
+    // PostgREST 400 the whole patch. Filter against this set so only real
+    // columns reach the remote patch. Keep this list in sync with the users
+    // columns in supabase/migrations when a new column is added.
+
+    private static let writableUserColumns: Set<String> = [
+        "id", "email", "display_name", "display_handle", "created_at", "updated_at",
+        "onboarding_completed", "total_scans", "current_program_id", "preferred_archetype",
+        "height_cm", "weight_kg", "age", "biological_sex", "gender",
+        "motivations", "goals", "target_areas", "obstacles", "experience",
+        "current_frequency", "target_frequency", "workout_time", "workout_minute_of_day",
+        "equipment", "exercise_styles", "session_length", "prior_attempts",
+        "diet_quality", "sleep_quality", "stress_level", "commitment",
+        "current_body_type", "training_feedback_mode", "training_style_override",
+        "training_days", "cut_mode", "overall_rank_trials", "lift_tiers",
+        "overall_level_backup", "streak_backup", "progress_snapshot",
+        "rewards_backup", "achievements_backup", "is_pro", "is_pro_expires_at"
+    ]
+
+    /// Keep only keys naming a real `public.users` column; drop the rest so a
+    /// stray field never 400s the whole patch. Expects already snake-cased keys
+    /// (post `mapFieldsToSnakeCase`). Dropped keys are logged at debug level.
+    static func columnSafeFields(_ snakeFields: [String: Any]) -> [String: Any] {
+        var kept: [String: Any] = [:]
+        var dropped: [String] = []
+        for (k, v) in snakeFields {
+            if writableUserColumns.contains(k) {
+                kept[k] = v
+            } else {
+                dropped.append(k)
+            }
+        }
+        if !dropped.isEmpty {
+            LoggingService.shared.log(
+                "Dropped unknown user columns from remote patch",
+                level: .debug,
+                context: ["keys": dropped.sorted()]
+            )
+        }
+        return kept
     }
 
     // MARK: - AnyJSON conversion

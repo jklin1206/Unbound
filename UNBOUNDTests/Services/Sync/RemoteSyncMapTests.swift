@@ -140,6 +140,85 @@ final class RemoteSyncMapTests: XCTestCase {
         XCTAssertNotNil(days.first?["recoveryActivities"])
     }
 
+    func test_workout_log_push_payload_maps_overall_rpe_to_column() throws {
+        let log = WorkoutLog(
+            id: UUID().uuidString,
+            userId: UUID().uuidString,
+            programId: UUID().uuidString,
+            dayNumber: 3,
+            plannedWorkoutName: "Push Day",
+            startedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            completedAt: Date(timeIntervalSince1970: 1_700_000_600),
+            exerciseEntries: [],
+            overallNotes: nil,
+            overallRPE: 8,
+            durationMinutes: 42
+        )
+
+        let normalized = SupabaseRemoteSync.normalizedPayload(
+            collection: "workoutLogs",
+            data: try JSONEncoder.unbound.encode(log)
+        )
+        let payload = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: normalized) as? [String: Any]
+        )
+
+        // Real column name, not the char-by-char acronym mangle.
+        XCTAssertEqual(payload["overall_rpe"] as? Int, 8)
+        XCTAssertNil(payload["overall_r_p_e"], "acronym must not leak the char-by-char snake key")
+        XCTAssertNil(payload["overallRPE"])
+    }
+
+    func test_workout_log_overall_rpe_round_trips_through_push_and_pull() throws {
+        let log = WorkoutLog(
+            id: UUID().uuidString,
+            userId: UUID().uuidString,
+            programId: UUID().uuidString,
+            dayNumber: 3,
+            plannedWorkoutName: "Push Day",
+            startedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            completedAt: Date(timeIntervalSince1970: 1_700_000_600),
+            exerciseEntries: [],
+            overallNotes: nil,
+            overallRPE: 9,
+            durationMinutes: 42
+        )
+
+        // Push shapes the local doc into the remote (snake_case) column layout;
+        // pull shapes a remote row back into the local (camelCase) layout.
+        let pushed = SupabaseRemoteSync.normalizedPayload(
+            collection: "workoutLogs",
+            data: try JSONEncoder.unbound.encode(log)
+        )
+        let restored = SupabaseRemoteSync.localPayload(collection: "workoutLogs", data: pushed)
+        let decoded = try JSONDecoder.unbound.decode(WorkoutLog.self, from: restored)
+
+        XCTAssertEqual(decoded.overallRPE, 9)
+    }
+
+    func test_legacy_local_json_decodes_overall_rpe() throws {
+        // Device-persisted logs store the acronym key verbatim ("overallRPE");
+        // the seam fix does not change the local format, so old data must keep
+        // decoding onto the property.
+        let legacy = """
+        {
+          "id": "log-legacy",
+          "userId": "user-1",
+          "programId": "program-1",
+          "dayNumber": 4,
+          "plannedWorkoutName": "Legacy Day",
+          "startedAt": "2026-06-01T10:00:00Z",
+          "completedAt": "2026-06-01T10:45:00Z",
+          "exerciseEntries": [],
+          "overallRPE": 7,
+          "durationMinutes": 45
+        }
+        """.data(using: .utf8)!
+
+        let log = try JSONDecoder.unbound.decode(WorkoutLog.self, from: legacy)
+        XCTAssertEqual(log.overallRPE, 7)
+    }
+
     func test_workout_log_pull_payload_restores_null_program_id_as_empty_string() throws {
         let remote = """
         {

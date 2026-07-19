@@ -1,21 +1,54 @@
 import XCTest
 @testable import UNBOUND
 
+// Thin glue for the year simulator. It has two jobs and no progression math:
+//   1. Synthesize the athlete's per-session performance (reps / hold seconds /
+//      RPE / the load the app would prescribe) from the current state + flags.
+//   2. Drive the REAL `ProgressionEngine` against the REAL
+//      `ProgressionStateStore` to advance state, then mirror the store back.
+// Weight bumps, tier unlocks, autoregulation, the `.easier` bias, and
+// AutoDeloadService are all decided by the shipping engine, so the sim
+// validates the real code path — never a reimplementation of it.
+
+struct SimulatedExercisePerformance {
+    /// `MovementCatalog.normalized` key used to look the post-state up in the mirror.
+    let exerciseKey: String
+    let entry: ExerciseLogEntry
+    let reps: Int
+    let holdSeconds: Int?
+    let rpe: Int
+    /// The load the athlete actually lifted this session (the app's prescription).
+    let usedWeightKg: Double
+    let wasGrindy: Bool
+    let isTimedHold: Bool
+}
+
 struct SimulationProgressionTracker {
+    /// Mirror of the engine's store for this user, keyed by
+    /// `MovementCatalog.normalized(exerciseKey)` so the generator/resolver find it.
     private(set) var states: [String: ProgressionState] = [:]
     private var bumpCount = 0
     private var grindBumpCount = 0
-    private var accessoryRunawayCount = 0
     private var exposureCounts: [String: Int] = [:]
 
     let userId: String
     let experience: Experience
     let bodyweightKg: Double
+    let feedbackMode: TrainingFeedbackMode
+    let mode: ProgressionMode
 
-    init(userId: String, experience: Experience, bodyweightKg: Double) {
+    init(
+        userId: String,
+        experience: Experience,
+        bodyweightKg: Double,
+        feedbackMode: TrainingFeedbackMode,
+        mode: ProgressionMode
+    ) {
         self.userId = userId
         self.experience = experience
         self.bodyweightKg = bodyweightKg
+        self.feedbackMode = feedbackMode
+        self.mode = mode
     }
 
     var summary: YearProgressionSummary {
@@ -23,7 +56,7 @@ struct SimulationProgressionTracker {
             trackedExerciseCount: states.count,
             totalWeightBumps: bumpCount,
             grindyRPEBumps: grindBumpCount,
-            accessoryRepCeilingWarnings: accessoryRunawayCount,
+            accessoryRepCeilingWarnings: 0,
             finalStates: states.values.sorted { $0.exerciseKey < $1.exerciseKey }.map {
                 YearProgressionStateExport(
                     exerciseKey: $0.exerciseKey,
@@ -39,17 +72,23 @@ struct SimulationProgressionTracker {
         )
     }
 
-    mutating func log(
+    // MARK: Performance synthesis (simulation input — no progression math)
+
+    /// Builds the ExerciseLogEntry a real athlete would produce for one prescribed
+    /// exercise. Silent-feedback personas log no RPE, matching the app. The load
+    /// is whatever the app prescribes (`suggestedWeightKg`), falling back to a
+    /// persona/movement calibration only the first time an exercise is seen.
+    mutating func synthesize(
         exercise: Exercise,
-        date: Date,
+        absoluteDay: Int,
+        sequence: Int,
         shouldGrind: Bool,
-        shouldUnderperform: Bool,
-        cutModeActive: Bool
-    ) -> ProgressionLogOutcome {
+        shouldUnderperform: Bool
+    ) -> SimulatedExercisePerformance {
         let key = exerciseKey(exercise)
-        var state = states[key] ?? seedState(for: exercise, key: key)
         let exposure = exposureCounts[key, default: 0] + 1
         exposureCounts[key] = exposure
+        let state = stateForSynthesis(exercise: exercise, key: key)
         let classification = state.classification
         let definition = MovementCatalog.canonicalExercise(named: exercise.name)
         let prescriptionText = exercise.reps.lowercased()
@@ -58,6 +97,8 @@ struct SimulationProgressionTracker {
         let isTimedHold = definition?.defaultMetric == .holdSeconds
             || definition?.defaultMetric == .durationSeconds
             || hasSecondsTarget
+        let entryId = "sim-\(userId)-d\(absoluteDay)-e\(sequence)"
+        let silent = feedbackMode == .silent
 
         if isTimedHold {
             let prescribed = RepRange.lowerBound(exercise.reps) ?? state.currentTargetDurationSeconds
@@ -70,38 +111,24 @@ struct SimulationProgressionTracker {
                 holdSeconds = prescribed
             }
             let rpe = shouldGrind ? 9 : (holdSeconds > prescribed ? 7 : 8)
-            let effortAllowed = state.targetRPE == 0 || rpe <= state.targetRPE
-            let overPerformed = rpe <= 7 && holdSeconds > prescribed
-            if overPerformed {
-                state.consecutiveSessionsAtTarget = 2
-            } else if holdSeconds >= state.currentTargetDurationSeconds && effortAllowed {
-                state.consecutiveSessionsAtTarget += 1
-            } else {
-                state.consecutiveSessionsAtTarget = 0
-            }
-            if state.consecutiveSessionsAtTarget >= 2 && !cutModeActive {
-                state.targetDurationSeconds = IsometricDurationPolicy.nextTarget(
-                    after: max(state.currentTargetDurationSeconds, holdSeconds),
-                    exerciseKey: key
-                )
-                state.consecutiveSessionsAtTarget = 0
-            } else if state.consecutiveSessionsAtTarget >= 2 {
-                state.consecutiveSessionsAtTarget = 0
-            }
-            state.lastSessionDurationSeconds = holdSeconds
-            state.lastSessionReps = nil
-            state.lastSessionRPE = rpe
-            state.updatedAt = date
-            states[key] = state
-            return ProgressionLogOutcome(
+            let entry = logEntry(
+                id: entryId,
+                exercise: exercise,
+                definition: definition,
+                weightKg: nil,
+                reps: 0,
+                rpe: silent ? nil : rpe,
+                durationSeconds: holdSeconds
+            )
+            return SimulatedExercisePerformance(
+                exerciseKey: key,
+                entry: entry,
                 reps: 0,
                 holdSeconds: holdSeconds,
                 rpe: rpe,
-                weightKg: 0,
-                classification: classification,
-                targetRepMaxAfter: state.targetRepMax,
-                bumpedOnGrindyRPE: false,
-                accessoryRepCeilingTooHigh: false
+                usedWeightKg: 0,
+                wasGrindy: shouldGrind,
+                isTimedHold: true
             )
         }
 
@@ -114,85 +141,171 @@ struct SimulationProgressionTracker {
         } else {
             reps = max(prescribedReps, min(state.targetRepMax, prescribedReps + (exposure.isMultiple(of: 2) ? 1 : 0)))
         }
-        let rpe = shouldGrind ? min(10, max(state.targetRPE + 2, 9)) : (reps >= prescribedReps + 2 ? 7 : max(7, state.targetRPE))
-        let hitTopOfRange = reps >= state.targetRepMax
-        let hitTargetRPE = state.targetRPE == 0 || rpe <= state.targetRPE
-        let overPerformed = reps >= prescribedReps + 2 && rpe <= 7
-        let previousWeight = state.currentWorkingWeightKg
+        let rpe = shouldGrind
+            ? min(10, max(state.targetRPE + 2, 9))
+            : (reps >= prescribedReps + 2 ? 7 : max(7, state.targetRPE))
 
-        state.lastSessionReps = reps
-        state.lastSessionDurationSeconds = nil
-        state.lastSessionRPE = rpe
-        state.lastSessionHitTarget = overPerformed || (hitTopOfRange && hitTargetRPE)
-        state.lastSessionWasGrindy = shouldGrind
-        state.prescriptionBias = overPerformed ? .harder : .hold
-
-        if overPerformed {
-            state.consecutiveSessionsAtTarget = 2
-        } else if hitTopOfRange && hitTargetRPE {
-            state.consecutiveSessionsAtTarget += 1
-        } else {
-            state.consecutiveSessionsAtTarget = 0
-        }
-
-        var bumpedOnGrindyRPE = false
-        let accessoryCeilingTooHigh = false
-        if state.consecutiveSessionsAtTarget >= 2 && cutModeActive {
-            state.consecutiveSessionsAtTarget = 0
-        } else if state.consecutiveSessionsAtTarget >= 2 {
-            switch classification {
-            case .upperCompound, .lowerCompound:
-                if !cutModeActive {
-                    state.currentWorkingWeightKg = WeightPlatePolicy.progressedWeightKilograms(
-                        from: state.currentWorkingWeightKg,
-                        classification: classification,
-                        unit: .kilograms,
-                        microloadingEnabled: false
-                    )
-                    if state.currentWorkingWeightKg > previousWeight {
-                        bumpCount += 1
-                        if shouldGrind {
-                            grindBumpCount += 1
-                            bumpedOnGrindyRPE = true
-                        }
-                    }
-                }
-                state.consecutiveSessionsAtTarget = 0
-            case .accessory:
-                let ceiling = accessoryRepCeiling(for: state)
-                if state.targetRepMax < ceiling {
-                    state.targetRepMax = min(ceiling, state.targetRepMax + 2)
-                    state.consecutiveSessionsAtTarget = 0
-                } else {
-                    let candidate = WeightPlatePolicy.progressedWeightKilograms(
-                        from: state.currentWorkingWeightKg,
-                        classification: classification,
-                        unit: .kilograms,
-                        microloadingEnabled: false
-                    )
-                    if candidate <= maximumAutomaticAccessoryWeight(for: state) {
-                        state.currentWorkingWeightKg = candidate
-                        state.targetRepMax = classification.defaultRepRange(for: state.blockType).upperBound
-                    }
-                    state.consecutiveSessionsAtTarget = 0
-                }
-            case .bodyweightSkill:
-                state.consecutiveSessionsAtTarget = 0
-            }
-        }
-        state.updatedAt = date
-        states[key] = state
-
-        return ProgressionLogOutcome(
+        let isBodyweight = classification == .bodyweightSkill
+        let usedWeightKg = isBodyweight
+            ? 0
+            : (exercise.suggestedWeightKg ?? states[key]?.currentWorkingWeightKg ?? startingWeight(for: exercise, key: key))
+        let entry = logEntry(
+            id: entryId,
+            exercise: exercise,
+            definition: definition,
+            weightKg: isBodyweight ? nil : usedWeightKg,
+            reps: reps,
+            rpe: silent ? nil : rpe,
+            durationSeconds: nil
+        )
+        return SimulatedExercisePerformance(
+            exerciseKey: key,
+            entry: entry,
             reps: reps,
             holdSeconds: nil,
             rpe: rpe,
-            weightKg: rounded(state.currentWorkingWeightKg),
-            classification: classification,
-            targetRepMaxAfter: state.targetRepMax,
-            bumpedOnGrindyRPE: bumpedOnGrindyRPE,
-            accessoryRepCeilingTooHigh: accessoryCeilingTooHigh
+            usedWeightKg: usedWeightKg,
+            wasGrindy: shouldGrind,
+            isTimedHold: false
         )
+    }
+
+    // MARK: Engine drive (real ProgressionEngine + ProgressionStateStore)
+
+    /// Ingests one day's synthesized session through the shipping engine, mirrors
+    /// the store back, and derives per-exercise outcomes by comparing pre/post
+    /// state. `bumpedOnGrindyRPE` is now a genuine assertion against the engine:
+    /// it fires only if the engine actually raised load on a session it itself
+    /// flagged grindy (which correct engine behavior never does).
+    mutating func ingest(
+        performances: [SimulatedExercisePerformance],
+        programId: String,
+        dayNumber: Int,
+        absoluteDay: Int,
+        date: Date
+    ) async -> [String: ProgressionLogOutcome] {
+        guard !performances.isEmpty else { return [:] }
+        let log = WorkoutLog(
+            id: "sim-\(userId)-day\(absoluteDay)",
+            userId: userId,
+            programId: programId,
+            dayNumber: dayNumber,
+            plannedWorkoutName: "Simulated Session",
+            startedAt: date,
+            completedAt: date.addingTimeInterval(1_800),
+            exerciseEntries: performances.map(\.entry)
+        )
+        // Persist the session first, exactly as TrainingCompletionService does
+        // before ingest, so the engine's PlateauDetector (via AutoDeloadService)
+        // sees this and prior sessions in its recent-log window. Without this the
+        // auto-deload path would never fire and the deload lifecycle would stay
+        // invisible to the sim.
+        try? await DatabaseService.shared.create(log, collection: "workoutLogs", documentId: log.id)
+        await ProgressionEngine.shared.ingest(log: log, mode: mode, feedbackMode: feedbackMode)
+        await refreshStates()
+
+        var outcomes: [String: ProgressionLogOutcome] = [:]
+        for performance in performances {
+            let post = states[performance.exerciseKey]
+            // A real progression bump prescribes MORE than the athlete just
+            // lifted. Comparing against the lifted load (not the pre-state) means
+            // plate-snapping the working weight to the prescribed load — which the
+            // engine does even in preserve/cut mode — is not miscounted as a bump.
+            let baseline = performance.usedWeightKg
+            let postWeight = post?.currentWorkingWeightKg ?? baseline
+            let bumped = postWeight > baseline + 0.0001
+            let grindy = post?.lastSessionWasGrindy == true
+            if bumped {
+                bumpCount += 1
+                if grindy { grindBumpCount += 1 }
+            }
+            outcomes[performance.entry.id] = ProgressionLogOutcome(
+                reps: performance.reps,
+                holdSeconds: performance.holdSeconds,
+                rpe: performance.rpe,
+                weightKg: rounded(postWeight),
+                classification: post?.classification
+                    ?? ExerciseClassification.classify(exerciseKey: performance.exerciseKey),
+                targetRepMaxAfter: post?.targetRepMax ?? 0,
+                bumpedOnGrindyRPE: bumped && grindy,
+                accessoryRepCeilingTooHigh: false
+            )
+        }
+        return outcomes
+    }
+
+    /// Deletes this run's engine-owned rows from the shared local store. The
+    /// unique per-run userId makes this a targeted sweep; it keeps the store
+    /// (and every subsequent full-dir query) from growing across personas and
+    /// repeated test runs.
+    func cleanUpEngineState() async {
+        for collection in ["workoutLogs", "progression_states", "progression_families"] {
+            _ = try? await DatabaseService.shared.deleteWhere(
+                collection: collection,
+                field: "userId",
+                isEqualTo: userId
+            )
+        }
+    }
+
+    /// Rebuilds the mirror from the store the engine just wrote. Keyed by
+    /// `MovementCatalog.normalized` so generator/resolver lookups resolve.
+    private mutating func refreshStates() async {
+        let all = await ProgressionStateStore.shared.fetchAll(userId: userId)
+        var rebuilt: [String: ProgressionState] = [:]
+        for state in all {
+            rebuilt[MovementCatalog.normalized(state.exerciseKey)] = state
+        }
+        states = rebuilt
+    }
+
+    // MARK: Seeds / helpers (simulation input — not progression math)
+
+    private func logEntry(
+        id: String,
+        exercise: Exercise,
+        definition: MovementDefinition?,
+        weightKg: Double?,
+        reps: Int,
+        rpe: Int?,
+        durationSeconds: Int?
+    ) -> ExerciseLogEntry {
+        ExerciseLogEntry(
+            id: id,
+            exerciseName: exercise.name,
+            movementId: definition?.id,
+            rankStandardMovementId: definition?.rankStandardMovementId,
+            plannedSets: exercise.sets,
+            plannedReps: exercise.reps,
+            sets: [
+                SetLog(
+                    id: "\(id)-s1",
+                    setNumber: 1,
+                    weightKg: weightKg,
+                    reps: reps,
+                    rpe: rpe,
+                    isWarmup: false,
+                    durationSeconds: durationSeconds
+                )
+            ],
+            skipped: false,
+            notes: nil
+        )
+    }
+
+    /// Ephemeral state used only to read the current rep/hold/RPE targets when
+    /// synthesizing performance. Never persisted — the engine owns real seeding.
+    private func stateForSynthesis(exercise: Exercise, key: String) -> ProgressionState {
+        if let existing = states[key] { return existing }
+        var state = ProgressionState.seed(
+            userId: userId,
+            exercise: key,
+            startingWeightKg: exercise.suggestedWeightKg ?? startingWeight(for: exercise, key: key)
+        )
+        state.displayName = exercise.name
+        state.initialWorkingWeightKg = state.currentWorkingWeightKg
+        state.targetRPE = exercise.rpe ?? feedbackMode.defaultTargetRPE
+        return state
     }
 
     private func exerciseKey(_ exercise: Exercise) -> String {
@@ -202,23 +315,10 @@ struct SimulationProgressionTracker {
         return MovementCatalog.normalized(exercise.name)
     }
 
-    private func seedState(for exercise: Exercise, key: String) -> ProgressionState {
-        var state = ProgressionState.seed(
-            userId: userId,
-            exercise: key,
-            startingWeightKg: exercise.suggestedWeightKg ?? startingWeight(for: exercise, key: key)
-        )
-        state.displayName = exercise.name
-        state.initialWorkingWeightKg = state.currentWorkingWeightKg
-        if let rpe = exercise.rpe {
-            state.targetRPE = rpe
-        }
-        return state
-    }
-
-    /// Persona + movement-specific calibration model. This deliberately avoids
-    /// classification buckets: a curl, row, pulldown, and press no longer share
-    /// one seed merely because their broad classification matches.
+    /// Persona + movement-specific calibration for the FIRST load an athlete
+    /// demonstrates on an exercise the app has not yet prescribed a weight for.
+    /// This is simulation input (demonstrated capacity), not progression logic:
+    /// once seeded, the real engine owns every subsequent working weight.
     private func startingWeight(for exercise: Exercise, key: String) -> Double {
         let classification = ExerciseClassification.classify(exerciseKey: key)
         guard classification != .bodyweightSkill else { return 0 }
@@ -271,15 +371,5 @@ struct SimulationProgressionTracker {
 
     private func rounded(_ value: Double) -> Double {
         (value * 10).rounded() / 10
-    }
-
-    private func accessoryRepCeiling(for state: ProgressionState) -> Int {
-        max(20, state.classification.defaultRepRange(for: state.blockType).upperBound)
-    }
-
-    private func maximumAutomaticAccessoryWeight(for state: ProgressionState) -> Double {
-        let anchor = max(0, state.initialWorkingWeightKg ?? state.currentWorkingWeightKg)
-        guard anchor > 0 else { return 0 }
-        return max(state.currentWorkingWeightKg, min(80, max(anchor * 1.75, anchor + 15)))
     }
 }

@@ -4,6 +4,7 @@ Reward-economy model types: what a user earns from training (XP, badges, rank-up
 
 | File | Contents |
 | --- | --- |
+| `ArcRecapSummary.swift` | `ArcRecapSummary` + `ArcRecapHighlight` — everything the end-of-Arc recap sequence shows (level climb, hex before/after, notable highlights); assembled by `ArcRecapBuilder`. |
 | `Badge.swift` | `Badge` (id/rarity/art), `BadgeTrigger` unlock conditions, `BadgeUnlockEvent`, and the `badgeUnlocked` notification name. |
 | `BadgeCatalog.swift` | `BadgeCatalog` — declarative list of all unlockable badges, ordered roughly by rarity / expected unlock order. |
 | `RankCosmetics.swift` | `RankCosmetics` — maps each rank tier (Initiate → Ascendant) to the cosmetic assets it unlocks; also `CosmeticAvatar` / `CosmeticBackdrop` SwiftUI views and a cosmetics notification name. |

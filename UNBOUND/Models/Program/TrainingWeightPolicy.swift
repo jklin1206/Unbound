@@ -145,12 +145,47 @@ enum WeightPlatePolicy {
         }
     }
 
+    /// Snap pitch in display units for a specific implement. Machine stacks
+    /// move in coarser steps than plates; kettlebells are handled separately
+    /// in kilogram space (see `snappedSuggestionKilograms`).
+    static func loadIncrement(
+        for implement: LoadImplement,
+        unit: TrainingWeightUnit = currentUnit,
+        microloadingEnabled: Bool = isMicroloadingEnabled
+    ) -> Double {
+        switch implement {
+        case .machine:
+            return unit == .pounds
+                ? (microloadingEnabled ? 5.0 : 10.0)
+                : (microloadingEnabled ? 2.5 : 5.0)
+        case .barbell, .dumbbell, .bodyweightLoad, .kettlebell:
+            return loadIncrement(unit: unit, microloadingEnabled: microloadingEnabled)
+        }
+    }
+
+    /// Kettlebells exist on a fixed 4 kg ladder in either unit system.
+    static let kettlebellIncrementKilograms = 4.0
+
     static func progressionJump(
         for classification: ExerciseClassification,
+        implement: LoadImplement = .barbell,
         unit: TrainingWeightUnit = currentUnit,
         microloadingEnabled: Bool = isMicroloadingEnabled
     ) -> Double {
         guard classification != .bodyweightSkill else { return 0 }
+
+        switch implement {
+        case .machine:
+            return loadIncrement(for: .machine, unit: unit, microloadingEnabled: microloadingEnabled)
+        case .dumbbell, .bodyweightLoad:
+            // Hand-held loads jump one size regardless of movement pattern.
+            return loadIncrement(unit: unit, microloadingEnabled: microloadingEnabled)
+        case .kettlebell:
+            // Handled in kilogram space by progressedWeightKilograms.
+            return kettlebellIncrementKilograms
+        case .barbell:
+            break
+        }
 
         switch (unit, microloadingEnabled, classification) {
         case (.pounds, false, .lowerCompound): return 10.0
@@ -178,18 +213,42 @@ enum WeightPlatePolicy {
 
     static func snappedSuggestionKilograms(
         _ kilograms: Double,
+        implement: LoadImplement = .barbell,
         unit: TrainingWeightUnit = currentUnit,
         microloadingEnabled: Bool = isMicroloadingEnabled
     ) -> Double {
         guard kilograms > 0 else { return kilograms }
+        if implement == .kettlebell {
+            return max(kettlebellIncrementKilograms, snap(kilograms, to: kettlebellIncrementKilograms))
+        }
         let display = unit.displayValue(fromKilograms: kilograms)
-        let snapped = snap(display, to: loadIncrement(unit: unit, microloadingEnabled: microloadingEnabled))
+        let snapped = snap(display, to: loadIncrement(
+            for: implement,
+            unit: unit,
+            microloadingEnabled: microloadingEnabled
+        ))
         return unit.kilograms(fromDisplayValue: snapped)
+    }
+
+    /// Snap a suggestion using the implement resolved from the exercise itself.
+    static func snappedSuggestionKilograms(
+        _ kilograms: Double,
+        exerciseKey: String,
+        unit: TrainingWeightUnit = currentUnit,
+        microloadingEnabled: Bool = isMicroloadingEnabled
+    ) -> Double {
+        snappedSuggestionKilograms(
+            kilograms,
+            implement: LoadImplement.resolve(exerciseKey: exerciseKey),
+            unit: unit,
+            microloadingEnabled: microloadingEnabled
+        )
     }
 
     static func progressedWeightKilograms(
         from currentKilograms: Double,
         classification: ExerciseClassification,
+        implement: LoadImplement = .barbell,
         unit: TrainingWeightUnit = currentUnit,
         microloadingEnabled: Bool = isMicroloadingEnabled
     ) -> Double {
@@ -197,15 +256,32 @@ enum WeightPlatePolicy {
             return currentKilograms
         }
 
-        let increment = loadIncrement(unit: unit, microloadingEnabled: microloadingEnabled)
-        let currentDisplay = unit.displayValue(fromKilograms: currentKilograms)
-        let baseDisplay = snap(currentDisplay, to: increment)
-        let nextDisplay = baseDisplay + progressionJump(
-            for: classification,
-            unit: unit,
-            microloadingEnabled: microloadingEnabled
-        )
-        return unit.kilograms(fromDisplayValue: snap(nextDisplay, to: increment))
+        let nextKilograms: Double
+        if implement == .kettlebell {
+            let base = snap(currentKilograms, to: kettlebellIncrementKilograms)
+            nextKilograms = base + kettlebellIncrementKilograms
+        } else {
+            let increment = loadIncrement(
+                for: implement,
+                unit: unit,
+                microloadingEnabled: microloadingEnabled
+            )
+            let currentDisplay = unit.displayValue(fromKilograms: currentKilograms)
+            let baseDisplay = snap(currentDisplay, to: increment)
+            let nextDisplay = baseDisplay + progressionJump(
+                for: classification,
+                implement: implement,
+                unit: unit,
+                microloadingEnabled: microloadingEnabled
+            )
+            nextKilograms = unit.kilograms(fromDisplayValue: snap(nextDisplay, to: increment))
+        }
+
+        // Never auto-prescribe past what the implement physically offers.
+        if let cap = implement.automaticCapKilograms, nextKilograms > cap {
+            return currentKilograms
+        }
+        return nextKilograms
     }
 
     static func snap(_ value: Double, to increment: Double) -> Double {

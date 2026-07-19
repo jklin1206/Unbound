@@ -1078,6 +1078,62 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_reverse-lunge",
+    "displayName" : "Reverse Lunge",
+    "id" : "exercise.reverse-lunge",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_lateral-lunge",
+    "displayName" : "Lateral Lunge",
+    "id" : "exercise.lateral-lunge",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_curtsy-lunge",
+    "displayName" : "Curtsy Lunge",
+    "id" : "exercise.curtsy-lunge",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_front-rack-lunge",
+    "displayName" : "Front Rack Lunge",
+    "id" : "exercise.front-rack-lunge",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_box-squat",
+    "displayName" : "Box Squat",
+    "id" : "exercise.box-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_zercher-squat",
+    "displayName" : "Zercher Squat",
+    "id" : "exercise.zercher-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_sissy-squat",
+    "displayName" : "Sissy Squat",
+    "id" : "exercise.sissy-squat",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_single-leg-press",
+    "displayName" : "Single-Leg Press",
+    "id" : "exercise.single-leg-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_dumbbell-step-up",
     "displayName" : "Dumbbell Step Up",
     "id" : "exercise.dumbbell-step-up",
@@ -1141,6 +1197,13 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_sumo-deadlift",
+    "displayName" : "Sumo Deadlift",
+    "id" : "exercise.sumo-deadlift",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_trap-bar-deadlift",
     "displayName" : "Trap Bar Deadlift",
     "id" : "exercise.trap-bar-deadlift",
@@ -1148,9 +1211,72 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_deficit-deadlift",
+    "displayName" : "Deficit Deadlift",
+    "id" : "exercise.deficit-deadlift",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_snatch-grip-deadlift",
+    "displayName" : "Snatch-Grip Deadlift",
+    "id" : "exercise.snatch-grip-deadlift",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_rack-pull",
+    "displayName" : "Rack Pull",
+    "id" : "exercise.rack-pull",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_romanian-deadlift",
     "displayName" : "Romanian Deadlift",
     "id" : "exercise.romanian-deadlift",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_stiff-leg-deadlift",
+    "displayName" : "Stiff-Leg Deadlift",
+    "id" : "exercise.stiff-leg-deadlift",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_power-clean",
+    "displayName" : "Power Clean",
+    "id" : "exercise.power-clean",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_hang-clean",
+    "displayName" : "Hang Clean",
+    "id" : "exercise.hang-clean",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_clean-and-jerk",
+    "displayName" : "Clean & Jerk",
+    "id" : "exercise.clean-and-jerk",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_power-snatch",
+    "displayName" : "Power Snatch",
+    "id" : "exercise.power-snatch",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_barbell-high-pull",
+    "displayName" : "Barbell High Pull",
+    "id" : "exercise.barbell-high-pull",
     "loads" : true,
     "role" : "canonicalExercise"
   },
@@ -1386,6 +1512,27 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_decline-dumbbell-press",
+    "displayName" : "Decline Dumbbell Press",
+    "id" : "exercise.decline-dumbbell-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_floor-press",
+    "displayName" : "Barbell Floor Press",
+    "id" : "exercise.floor-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-floor-press",
+    "displayName" : "Dumbbell Floor Press",
+    "id" : "exercise.dumbbell-floor-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_cable-fly",
     "displayName" : "Cable Fly",
     "id" : "exercise.cable-fly",
@@ -1407,9 +1554,23 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_incline-cable-fly",
+    "displayName" : "Incline Cable Fly",
+    "id" : "exercise.incline-cable-fly",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_dumbbell-fly",
     "displayName" : "Dumbbell Fly",
     "id" : "exercise.dumbbell-fly",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-pullover",
+    "displayName" : "Dumbbell Pullover",
+    "id" : "exercise.dumbbell-pullover",
     "loads" : true,
     "role" : "canonicalExercise"
   },
@@ -1470,9 +1631,23 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_push-press",
+    "displayName" : "Barbell Push Press",
+    "id" : "exercise.push-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_dumbbell-overhead-press",
     "displayName" : "Dumbbell OHP",
     "id" : "exercise.dumbbell-overhead-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_seated-dumbbell-shoulder-press",
+    "displayName" : "Seated Dumbbell Shoulder Press",
+    "id" : "exercise.seated-dumbbell-shoulder-press",
     "loads" : true,
     "role" : "canonicalExercise"
   },
@@ -1494,6 +1669,13 @@
     "asset" : "exercise_visual_exercise_smith-machine-shoulder-press",
     "displayName" : "Smith Machine Shoulder Press",
     "id" : "exercise.smith-machine-shoulder-press",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_thruster",
+    "displayName" : "Barbell Thruster",
+    "id" : "exercise.thruster",
     "loads" : true,
     "role" : "canonicalExercise"
   },
@@ -1522,6 +1704,27 @@
     "asset" : "exercise_visual_exercise_machine-lateral-raise",
     "displayName" : "Machine Lateral Raise",
     "id" : "exercise.machine-lateral-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_leaning-cable-lateral-raise",
+    "displayName" : "Leaning Cable Lateral Raise",
+    "id" : "exercise.leaning-cable-lateral-raise",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-upright-row",
+    "displayName" : "Dumbbell Upright Row",
+    "id" : "exercise.dumbbell-upright-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cable-rear-delt-fly",
+    "displayName" : "Cable Rear Delt Fly",
+    "id" : "exercise.cable-rear-delt-fly",
     "loads" : true,
     "role" : "canonicalExercise"
   },
@@ -1673,6 +1876,41 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_seal-row",
+    "displayName" : "Barbell Seal Row",
+    "id" : "exercise.seal-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_yates-row",
+    "displayName" : "Yates Row (Barbell)",
+    "id" : "exercise.yates-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_incline-dumbbell-row",
+    "displayName" : "Incline Dumbbell Row",
+    "id" : "exercise.incline-dumbbell-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_smith-machine-row",
+    "displayName" : "Smith Machine Row",
+    "id" : "exercise.smith-machine-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_renegade-row",
+    "displayName" : "Renegade Row (Dumbbell)",
+    "id" : "exercise.renegade-row",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_landmine-row",
     "displayName" : "Landmine Row",
     "id" : "exercise.landmine-row",
@@ -1708,6 +1946,41 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_barbell-shrug",
+    "displayName" : "Barbell Shrug",
+    "id" : "exercise.barbell-shrug",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-shrug",
+    "displayName" : "Dumbbell Shrug",
+    "id" : "exercise.dumbbell-shrug",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_trap-bar-shrug",
+    "displayName" : "Trap Bar Shrug",
+    "id" : "exercise.trap-bar-shrug",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_smith-machine-shrug",
+    "displayName" : "Smith Machine Shrug",
+    "id" : "exercise.smith-machine-shrug",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cable-shrug",
+    "displayName" : "Cable Shrug",
+    "id" : "exercise.cable-shrug",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_superman-pull",
     "displayName" : "Superman Pull",
     "id" : "exercise.superman-pull",
@@ -1739,6 +2012,13 @@
     "asset" : "exercise_visual_exercise_pullup",
     "displayName" : "Pull-Up",
     "id" : "exercise.pullup",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_neutral-grip-pullup",
+    "displayName" : "Neutral-Grip Pull-Up",
+    "id" : "exercise.neutral-grip-pullup",
     "loads" : true,
     "role" : "canonicalExercise"
   },
@@ -1883,6 +2163,20 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_seated-dumbbell-curl",
+    "displayName" : "Seated Dumbbell Curl",
+    "id" : "exercise.seated-dumbbell-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_alternating-dumbbell-curl",
+    "displayName" : "Alternating Dumbbell Curl",
+    "id" : "exercise.alternating-dumbbell-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_incline-dumbbell-curl",
     "displayName" : "Incline Dumbbell Curl",
     "id" : "exercise.incline-dumbbell-curl",
@@ -1904,9 +2198,44 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_drag-curl",
+    "displayName" : "Drag Curl",
+    "id" : "exercise.drag-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_reverse-curl",
+    "displayName" : "Reverse Curl (EZ-Bar)",
+    "id" : "exercise.reverse-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_zottman-curl",
+    "displayName" : "Zottman Curl",
+    "id" : "exercise.zottman-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_cable-curl",
     "displayName" : "Cable Curl",
     "id" : "exercise.cable-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_high-cable-curl",
+    "displayName" : "High Cable Curl",
+    "id" : "exercise.high-cable-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_behind-the-back-cable-curl",
+    "displayName" : "Behind-the-Back Cable Curl",
+    "id" : "exercise.behind-the-back-cable-curl",
     "loads" : true,
     "role" : "canonicalExercise"
   },
@@ -1925,6 +2254,13 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_cross-body-hammer-curl",
+    "displayName" : "Cross-Body Hammer Curl",
+    "id" : "exercise.cross-body-hammer-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_rope-hammer-curl",
     "displayName" : "Rope Hammer Curl",
     "id" : "exercise.rope-hammer-curl",
@@ -1935,6 +2271,13 @@
     "asset" : "exercise_visual_exercise_preacher-curl",
     "displayName" : "Preacher Curl (Machine)",
     "id" : "exercise.preacher-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_ez-bar-preacher-curl",
+    "displayName" : "EZ-Bar Preacher Curl",
+    "id" : "exercise.ez-bar-preacher-curl",
     "loads" : true,
     "role" : "canonicalExercise"
   },
@@ -1981,9 +2324,37 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_single-arm-tricep-pushdown",
+    "displayName" : "Single-Arm Tricep Pushdown",
+    "id" : "exercise.single-arm-tricep-pushdown",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_reverse-grip-tricep-pushdown",
+    "displayName" : "Reverse-Grip Tricep Pushdown",
+    "id" : "exercise.reverse-grip-tricep-pushdown",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_overhead-tricep-extension",
     "displayName" : "Overhead Tricep Ext (Cable)",
     "id" : "exercise.overhead-tricep-extension",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-overhead-tricep-extension",
+    "displayName" : "Dumbbell Overhead Tricep Ext",
+    "id" : "exercise.dumbbell-overhead-tricep-extension",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_single-arm-overhead-tricep-extension",
+    "displayName" : "Single-Arm Overhead Tricep Ext (Cable)",
+    "id" : "exercise.single-arm-overhead-tricep-extension",
     "loads" : true,
     "role" : "canonicalExercise"
   },
@@ -2009,6 +2380,20 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_dumbbell-tricep-kickback",
+    "displayName" : "Dumbbell Tricep Kickback",
+    "id" : "exercise.dumbbell-tricep-kickback",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cable-tricep-kickback",
+    "displayName" : "Cable Tricep Kickback",
+    "id" : "exercise.cable-tricep-kickback",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_skull-crushers",
     "displayName" : "Skull Crushers",
     "id" : "exercise.skull-crushers",
@@ -2016,9 +2401,44 @@
     "role" : "canonicalExercise"
   },
   {
+    "asset" : "exercise_visual_exercise_dumbbell-skull-crusher",
+    "displayName" : "Dumbbell Skull Crusher",
+    "id" : "exercise.dumbbell-skull-crusher",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_barbell-wrist-curl",
+    "displayName" : "Barbell Wrist Curl",
+    "id" : "exercise.barbell-wrist-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dumbbell-wrist-curl",
+    "displayName" : "Dumbbell Wrist Curl",
+    "id" : "exercise.dumbbell-wrist-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_reverse-wrist-curl",
+    "displayName" : "Reverse Wrist Curl (Barbell)",
+    "id" : "exercise.reverse-wrist-curl",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
     "asset" : "exercise_visual_exercise_dip",
     "displayName" : "Dip (Tricep)",
     "id" : "exercise.dip",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bench-dip",
+    "displayName" : "Bench Dip",
+    "id" : "exercise.bench-dip",
     "loads" : true,
     "role" : "canonicalExercise"
   },
@@ -2054,6 +2474,90 @@
     "asset" : "exercise_visual_exercise_high-plank",
     "displayName" : "High Plank",
     "id" : "exercise.high-plank",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_side-plank",
+    "displayName" : "Side Plank",
+    "id" : "exercise.side-plank",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_crunch",
+    "displayName" : "Crunch",
+    "id" : "exercise.crunch",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_situp",
+    "displayName" : "Sit-Up",
+    "id" : "exercise.situp",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bicycle-crunch",
+    "displayName" : "Bicycle Crunch",
+    "id" : "exercise.bicycle-crunch",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_russian-twist",
+    "displayName" : "Russian Twist",
+    "id" : "exercise.russian-twist",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_v-up",
+    "displayName" : "V-Up",
+    "id" : "exercise.v-up",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_flutter-kick",
+    "displayName" : "Flutter Kick",
+    "id" : "exercise.flutter-kick",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_dead-bug",
+    "displayName" : "Dead Bug",
+    "id" : "exercise.dead-bug",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_bird-dog",
+    "displayName" : "Bird Dog",
+    "id" : "exercise.bird-dog",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_mountain-climber",
+    "displayName" : "Mountain Climber",
+    "id" : "exercise.mountain-climber",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_toes-to-bar",
+    "displayName" : "Toes-to-Bar",
+    "id" : "exercise.toes-to-bar",
+    "loads" : true,
+    "role" : "canonicalExercise"
+  },
+  {
+    "asset" : "exercise_visual_exercise_cable-woodchopper",
+    "displayName" : "Cable Woodchopper",
+    "id" : "exercise.cable-woodchopper",
     "loads" : true,
     "role" : "canonicalExercise"
   },

@@ -6,6 +6,7 @@ Training-program model types: the generated program itself (days, waves, arcs), 
 | --- | --- |
 | `CoachAction.swift` | `CoachAction` — actionable coach suggestions (with `SwapScope`: session / week / programme). |
 | `CutMode.swift` | `CutMode` — cut-phase toggle with start date and soft-cap weeks. |
+| `LoadImplement.swift` | `LoadImplement` — barbell/dumbbell/kettlebell/machine implement resolution per exercise, with the automatic-progression load caps. |
 | `Program.swift` | `TrainingProgram`, `ProgramDay`, `DifficultyLevel`, `Wave` / `ArcState` / `Arc` periodization types, `ProgramBodyRegion`. |
 | `ProgramBlock.swift` | `ProgramBlock` — a persisted numbered block of a program for a user. |
 | `ProgramRationale.swift` | `ProgramRationale` + nested `Decision` — why the generator made each program choice; `ProgramRationaleCopy` for display strings. |
@@ -24,5 +25,6 @@ Training-program model types: the generated program itself (days, waves, arcs), 
 - Why the generator chose something (rationale copy) → `ProgramRationale.swift`.
 - Per-exercise progression tracking and advances → `ProgressionState.swift`.
 - Plate rounding or kg/lb unit handling → `TrainingWeightPolicy.swift`.
+- Which implement an exercise loads with (snap pitch, progression caps) → `LoadImplement.swift`.
 - Travel-mode replacement days → `TravelOverride.swift`.
 - Program tab empty/loading/error surface states → `ProgramSurfaceState.swift`.

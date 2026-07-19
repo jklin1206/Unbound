@@ -8,6 +8,22 @@ struct OverallRankTrialProgress: Codable, Equatable, Sendable {
 
     var currentRank: RankTitle { highestPassedRank }
 
+    /// Canonical "prior rank gates answered" count, derived from the
+    /// authoritative monotonic `highestPassedRank` - NEVER the attempt log.
+    /// The store trims `attempts` to a 50-entry tail, so a user with many
+    /// retries/failures could otherwise scroll early gate passes out of the log
+    /// and permanently, unrecoverably lose the final gate's `gatesAnswered` key.
+    /// A confirmed rank R implies its gate and every earlier gate were answered,
+    /// so counting from `highestPassedRank` can never regress. Excludes the
+    /// final gate - this counts the gates that must precede it. Single source
+    /// for both the `gatesAnswered` gate key and the Home deck's gate tally.
+    var answeredGateCount: Int {
+        OverallRankTrialDefinitions.all
+            .filter { $0.format != .theLastGate }
+            .filter { $0.targetRank.overallRankTrialOrder <= highestPassedRank.overallRankTrialOrder }
+            .count
+    }
+
     func latestAttempt(for definition: OverallRankTrialDefinition) -> OverallRankTrialAttempt? {
         attempts
             .filter { definition.matchesAttemptDefinitionId($0.definitionId) }
@@ -181,8 +197,6 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
     let userId: String
     let currentRank: RankTitle
     let overallLevel: Int
-    /// Live build-weighted accumulation (Phase 7). Gates next-rank eligibility.
-    let aggregateRank: RankTier
     let equipment: Set<MovementEquipment>
     let clearedGateKeys: Set<String>
     /// Movement-tier pool behind the `movementsAtRank` key, used for progress
@@ -194,7 +208,6 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
         userId: String,
         currentRank: RankTitle,
         overallLevel: Int,
-        aggregateRank: RankTier,
         equipment: Set<MovementEquipment> = [.bodyweight],
         clearedGateKeys: Set<String>,
         gateKeyMovementTiers: [RankTier] = [],
@@ -203,7 +216,6 @@ struct OverallRankTrialReadinessInput: Equatable, Sendable {
         self.userId = userId
         self.currentRank = currentRank
         self.overallLevel = overallLevel
-        self.aggregateRank = aggregateRank
         self.equipment = equipment
         self.clearedGateKeys = clearedGateKeys
         self.gateKeyMovementTiers = gateKeyMovementTiers

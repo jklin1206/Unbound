@@ -70,26 +70,72 @@ final class GateKeysTests: XCTestCase {
 
     // MARK: - Final-gate structural meta-gate (prior 7 cleared)
 
-    func testLastGateMetaGateUsesPassedGateAttempts() {
+    func testLastGateMetaGateDerivesFromHighestPassedRank() {
         let gatesKey = GateKeys.keys(for: .theLastGate).first { $0.metric == .gatesAnswered(7) }!
-        let firstSeven = OverallRankTrialDefinitions.all.filter { $0.format != .theLastGate }
 
+        // Ascendant confirmed → all seven prior gates were answered.
         let passing = FixtureGateKeyHistory(
-            trialProgress: OverallRankTrialProgress(
-                highestPassedRank: .ascendant,
-                attempts: firstSeven.map { attempt(for: $0, passed: true) }
-            )
+            trialProgress: OverallRankTrialProgress(highestPassedRank: .ascendant, attempts: [])
         )
         XCTAssertTrue(GateKeys.clearedKeys(for: .theLastGate, history: passing, bodyweightKg: 80).contains(gatesKey.id))
 
-        let oneMissing = FixtureGateKeyHistory(
-            trialProgress: OverallRankTrialProgress(
-                highestPassedRank: .vessel,
-                attempts: firstSeven.dropLast().map { attempt(for: $0, passed: true) }
-                    + [attempt(for: OverallRankTrialDefinitions.theThreshold, passed: false)]
-            )
+        // Vessel confirmed → only six prior gates answered, so the final gate's
+        // seven-gate meta-key stays unmet.
+        let oneShort = FixtureGateKeyHistory(
+            trialProgress: OverallRankTrialProgress(highestPassedRank: .vessel, attempts: [])
         )
-        XCTAssertFalse(GateKeys.clearedKeys(for: .theLastGate, history: oneMissing, bodyweightKg: 80).contains(gatesKey.id))
+        XCTAssertFalse(GateKeys.clearedKeys(for: .theLastGate, history: oneShort, bodyweightKg: 80).contains(gatesKey.id))
+    }
+
+    // Regression: the store trims `attempts` to a 50-entry tail. A player with
+    // >50 lifetime attempts loses their early gate-pass records from the log,
+    // but `gatesAnswered(7)` must still hold - it now reads the monotonic
+    // `highestPassedRank`, never the trimmed log. Before the fix this was a
+    // permanent, unrecoverable Last Gate lockout.
+    func testLastGateMetaGateSurvivesAttemptLogTrimming() {
+        let gatesKey = GateKeys.keys(for: .theLastGate).first { $0.metric == .gatesAnswered(7) }!
+
+        // 50 recent FAILED attempts and not a single passing record: exactly the
+        // shape the 50-cap leaves once early passes have scrolled out. Rank is
+        // Ascendant (monotonic state never regressed).
+        let trimmedLog = (0..<50).map { i in
+            attempt(for: OverallRankTrialDefinitions.theLastGate, passed: false, salt: i)
+        }
+        let progress = OverallRankTrialProgress(highestPassedRank: .ascendant, attempts: trimmedLog)
+        XCTAssertFalse(progress.attempts.contains(where: \.passed), "fixture models an all-failure trimmed tail")
+        XCTAssertEqual(progress.answeredGateCount, 7, "answered count comes from highestPassedRank, not the log")
+
+        let history = FixtureGateKeyHistory(trialProgress: progress)
+        XCTAssertTrue(
+            GateKeys.clearedKeys(for: .theLastGate, history: history, bodyweightKg: 80).contains(gatesKey.id),
+            "gatesAnswered(7) must hold once Ascendant is confirmed, regardless of the trimmed attempt log"
+        )
+    }
+
+    // The two former gate-count call sites - the `gatesAnswered` gate key
+    // (GateKeys) and the Home deck tally (UnboundHomeView.passedGateCount) - now
+    // read one source: OverallRankTrialProgress.answeredGateCount. Lock that they
+    // agree across every rank.
+    func testGatesAnsweredKeyAndHomeCountShareOneSource() {
+        for rank in RankTitle.allCases {
+            let progress = OverallRankTrialProgress(highestPassedRank: rank, attempts: [])
+            // What UnboundHomeView.passedGateCount returns for this progress.
+            let homeCount = progress.answeredGateCount
+            let expected = min(rank.overallRankTrialOrder, 7)
+            XCTAssertEqual(homeCount, expected, "answeredGateCount mismatch at \(rank)")
+
+            let history = FixtureGateKeyHistory(trialProgress: progress)
+            for count in 1...7 {
+                let key = GateKeyDefinition(
+                    id: "probe-\(count)", label: "", movementIds: [], metric: .gatesAnswered(count)
+                )
+                XCTAssertEqual(
+                    history.satisfies(key, bodyweightKg: 80),
+                    homeCount >= count,
+                    "gatesAnswered(\(count)) must track answeredGateCount at \(rank)"
+                )
+            }
+        }
     }
 
     // MARK: - Readiness wiring (attribute key shows; accumulated-rank is gone)
@@ -102,7 +148,6 @@ final class GateKeysTests: XCTestCase {
                 userId: "u1",
                 currentRank: .apprentice,
                 overallLevel: definition.minOverallLevel,
-                aggregateRank: definition.targetRank,
                 equipment: readyEquipment(),
                 clearedGateKeys: Set(keyIds)
             )
@@ -283,15 +328,20 @@ final class GateKeysTests: XCTestCase {
         return p
     }
 
-    private func attempt(for definition: OverallRankTrialDefinition, passed: Bool) -> OverallRankTrialAttempt {
-        OverallRankTrialAttempt(
-            id: "\(definition.id)-attempt-\(passed)",
+    private func attempt(
+        for definition: OverallRankTrialDefinition,
+        passed: Bool,
+        salt: Int? = nil
+    ) -> OverallRankTrialAttempt {
+        let suffix = salt.map { "-\($0)" } ?? ""
+        return OverallRankTrialAttempt(
+            id: "\(definition.id)-attempt-\(passed)\(suffix)",
             userId: "u1",
             definitionId: definition.id,
             targetRank: definition.targetRank,
             startedAt: Date(timeIntervalSince1970: 100),
             completedAt: Date(timeIntervalSince1970: 1_000),
-            performanceLogId: "\(definition.id)-log-\(passed)",
+            performanceLogId: "\(definition.id)-log-\(passed)\(suffix)",
             passed: passed,
             movementAPGained: 0,
             overallLevelXPGained: 0

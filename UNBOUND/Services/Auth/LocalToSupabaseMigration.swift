@@ -126,6 +126,7 @@ enum LocalToSupabaseMigration {
         migrated.goals = legacy.goals
         migrated.targetAreas = legacy.targetAreas
         migrated.workoutTime = legacy.workoutTime
+        migrated.workoutMinuteOfDay = legacy.workoutMinuteOfDay
         migrated.exerciseStyles = legacy.exerciseStyles
         migrated.trainingFeedbackMode = legacy.trainingFeedbackMode
         migrated.trainingStyleOverride = legacy.trainingStyleOverride

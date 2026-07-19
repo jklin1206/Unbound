@@ -105,7 +105,10 @@ final class ProgressionEngine {
         if let loggedWeight = bestSet.weightKg,
            loggedWeight > next.currentWorkingWeightKg,
            bestSet.rpe.map({ $0 <= 7 }) == true {
-            next.currentWorkingWeightKg = WeightPlatePolicy.snappedSuggestionKilograms(loggedWeight)
+            next.currentWorkingWeightKg = WeightPlatePolicy.snappedSuggestionKilograms(
+                loggedWeight,
+                exerciseKey: next.exerciseKey
+            )
         }
 
         if overPerformed {
@@ -122,6 +125,19 @@ final class ProgressionEngine {
             next.underTargetSessionCount = misses
             next.prescriptionBias = misses >= 2 ? .easier : .hold
         }
+
+        // A deload session neither bumps load nor unlocks a tier: it counts
+        // down toward the bounded exit back to accumulation. This is the seam
+        // that un-sticks the deload trap — nothing else resets `blockType`.
+        if next.blockType == .deload {
+            finalizeDeloadSession(&next)
+            try? await database.create(next, collection: "progression_states", documentId: next.id)
+            return
+        }
+
+        // A normal (post-deload) session ticks down any lingering immunity so
+        // plateau detection can resume once the cooldown lapses.
+        decrementDeloadCooldown(&next)
 
         // Advance the movement family's unlocked tier after two proofs.
         if next.consecutiveSessionsAtTarget >= 2 {
@@ -227,6 +243,14 @@ final class ProgressionEngine {
             next.prescriptionBias = misses >= 2 ? .easier : .hold
         }
 
+        // Timed holds honor the same bounded deload exit as loaded lifts.
+        if next.blockType == .deload {
+            finalizeDeloadSession(&next)
+            try? await database.create(next, collection: "progression_states", documentId: next.id)
+            return
+        }
+        decrementDeloadCooldown(&next)
+
         if next.consecutiveSessionsAtTarget >= 2 {
             await maybeUnlockTier(
                 userId: userId,
@@ -285,15 +309,22 @@ final class ProgressionEngine {
 
     private func applyBump(to state: inout ProgressionState) {
         let classification = state.classification
+        let implement = LoadImplement.resolve(exerciseKey: state.exerciseKey)
 
         switch classification {
         case .upperCompound, .lowerCompound:
-            state.currentWorkingWeightKg = WeightPlatePolicy.progressedWeightKilograms(
+            let candidate = WeightPlatePolicy.progressedWeightKilograms(
                 from: state.currentWorkingWeightKg,
-                classification: classification
+                classification: classification,
+                implement: implement
             )
+            if candidate > state.currentWorkingWeightKg {
+                state.currentWorkingWeightKg = candidate
+                state.lastBumpDate = Date()
+                // Fresh load, fresh climb: the rep ask restarts at the bottom.
+                state.lastSessionReps = nil
+            }
             state.consecutiveSessionsAtTarget = 0
-            state.lastBumpDate = Date()
 
         case .accessory:
             // Accessories climb reps to a cap, then bump load and reset the range.
@@ -304,21 +335,47 @@ final class ProgressionEngine {
             } else {
                 let candidate = WeightPlatePolicy.progressedWeightKilograms(
                     from: state.currentWorkingWeightKg,
-                    classification: classification
+                    classification: classification,
+                    implement: implement
                 )
                 if candidate > state.currentWorkingWeightKg,
                    candidate <= maximumAutomaticAccessoryWeight(for: state) {
                     state.currentWorkingWeightKg = candidate
                     state.targetRepMax = classification.defaultRepRange(for: state.blockType).upperBound
                     state.lastBumpDate = Date()
+                    state.lastSessionReps = nil
                 }
                 state.consecutiveSessionsAtTarget = 0
             }
 
         case .bodyweightSkill:
             // Bodyweight difficulty advances through the skill tree, not load.
+            // No reset of the rep ask: with nothing harder swapped in, the
+            // target holds at the ceiling instead of collapsing to the bottom.
             state.consecutiveSessionsAtTarget = 0
         }
+    }
+
+    // MARK: Deload lifecycle
+
+    /// Advances the bounded deload counter for a lift training in `.deload`.
+    /// Once `DeloadPolicy.sessionsInDeload` reduced sessions are complete the
+    /// lift exits back to accumulation (see `ProgressionState.exitingDeload`);
+    /// otherwise the counter just ticks up. `updatedAt` is already set to the
+    /// logged date by the caller before this runs.
+    private func finalizeDeloadSession(_ state: inout ProgressionState) {
+        let completed = (state.deloadSessionsCompleted ?? 0) + 1
+        if completed >= DeloadPolicy.sessionsInDeload {
+            state = state.exitingDeload()
+        } else {
+            state.deloadSessionsCompleted = completed
+        }
+    }
+
+    /// Ticks the post-deload immunity down by one normal session.
+    private func decrementDeloadCooldown(_ state: inout ProgressionState) {
+        guard let remaining = state.deloadCooldownRemaining, remaining > 0 else { return }
+        state.deloadCooldownRemaining = remaining - 1
     }
 
     static func sessionHitsTarget(bestSetReps: Int, targetRepMax: Int) -> Bool {
@@ -330,8 +387,12 @@ final class ProgressionEngine {
         return loggedRPE <= targetRPE
     }
 
+    /// Accessories widen at most two reps past the block's default top before
+    /// load must move, and never past 15 — grinding out 17-19 rep sets is
+    /// junk volume, not progression.
     private func accessoryRepCeiling(for state: ProgressionState) -> Int {
-        max(20, state.classification.defaultRepRange(for: state.blockType).upperBound)
+        let upper = state.classification.defaultRepRange(for: state.blockType).upperBound
+        return max(upper, min(15, upper + 2))
     }
 
     /// Bounds automatic ramps; logged proof may still establish a higher load.

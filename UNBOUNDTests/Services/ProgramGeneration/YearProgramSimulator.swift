@@ -224,10 +224,16 @@ struct BaselineYearProgramSimulator {
         let maximumBlocks = 80
         var previousBlock: ProgramBlock?
         let simulatedBodyweightKg: Double = persona.experience == .current ? 82 : 72
+        // Unique per-run userId isolates this persona's progression state in the
+        // shared store (same pattern as ProgressionEngineBehaviorTests). The
+        // generator still runs under persona.id — it reads progression only from
+        // the passed-in `progressionStates` dict, never the store.
         var progression = SimulationProgressionTracker(
-            userId: persona.id,
+            userId: "\(persona.id)-sim-\(UUID().uuidString)",
             experience: persona.experience,
-            bodyweightKg: simulatedBodyweightKg
+            bodyweightKg: simulatedBodyweightKg,
+            feedbackMode: TrainingFeedbackMode.default(for: persona.experience),
+            mode: persona.cutModeActive ? .preserve : .advance
         )
         var exerciseBlockCounts: [String: Int] = [:]
         var previousBlockExercises = Set<String>()
@@ -399,6 +405,12 @@ struct BaselineYearProgramSimulator {
             ))
         }
 
+        // The report is built from the in-memory mirror, so the engine's
+        // per-run state is no longer needed. Delete it (and the session logs
+        // that fed plateau detection) so the shared local store does not grow
+        // unbounded across personas and repeated test runs.
+        await progression.cleanUpEngineState()
+
         return YearPersonaRun(
             persona: persona.export,
             days: days,
@@ -539,7 +551,32 @@ struct BaselineYearProgramSimulator {
             ))
         }
 
-        let exercises = effectiveWorkout.mainExercises.map { exercise -> YearExerciseExport in
+        // A missed session produces no WorkoutLog in the real app, so it must
+        // not feed the engine. On completed days we synthesize the athlete's
+        // performance, then drive the REAL ProgressionEngine (with its
+        // AutoDeloadService) over the whole day's log and read the state back.
+        var performances: [SimulatedExercisePerformance] = []
+        var outcomes: [String: ProgressionLogOutcome] = [:]
+        if !missed {
+            for (index, exercise) in effectiveWorkout.mainExercises.enumerated() {
+                performances.append(progression.synthesize(
+                    exercise: exercise,
+                    absoluteDay: absoluteDay,
+                    sequence: index,
+                    shouldGrind: stressed || absoluteDay % 43 == 0,
+                    shouldUnderperform: absoluteDay % 37 == 0
+                ))
+            }
+            outcomes = await progression.ingest(
+                performances: performances,
+                programId: program.id,
+                dayNumber: day.dayNumber,
+                absoluteDay: absoluteDay,
+                date: date
+            )
+        }
+
+        let exercises = effectiveWorkout.mainExercises.enumerated().map { index, exercise -> YearExerciseExport in
             let compatibilityEquipment: [Equipment] = travel ? [.bodyweight, .bands] : persona.equipment
             if let definition = MovementCatalog.canonicalExercise(named: exercise.name),
                !MovementCatalog.isProgramCompatible(definition, style: travel ? .bodyweight : persona.trainingStyle, userEquipment: compatibilityEquipment) {
@@ -560,29 +597,23 @@ struct BaselineYearProgramSimulator {
                 ))
             }
 
-            let outcome = progression.log(
-                exercise: exercise,
-                date: date,
-                shouldGrind: stressed || absoluteDay % 43 == 0,
-                shouldUnderperform: missed || absoluteDay % 37 == 0,
-                cutModeActive: persona.cutModeActive
-            )
-            if outcome.bumpedOnGrindyRPE {
+            let outcome = missed ? nil : outcomes[performances[index].entry.id]
+            if outcome?.bumpedOnGrindyRPE == true {
                 violations.append(YearConstraintViolation(
                     severity: .warning,
                     day: absoluteDay,
                     date: dateString(date),
                     code: "progressed_on_grindy_rpe",
-                    detail: "\(exercise.name) progressed after top-range reps at RPE \(outcome.rpe), which should probably be held or reviewed."
+                    detail: "\(exercise.name) progressed after the engine flagged the session grindy (RPE \(outcome?.rpe ?? 0)); load should have held."
                 ))
             }
-            if outcome.accessoryRepCeilingTooHigh {
+            if outcome?.accessoryRepCeilingTooHigh == true {
                 violations.append(YearConstraintViolation(
                     severity: .warning,
                     day: absoluteDay,
                     date: dateString(date),
                     code: "accessory_rep_ceiling_runaway",
-                    detail: "\(exercise.name) accessory rep ceiling reached \(outcome.targetRepMaxAfter); load may never bump."
+                    detail: "\(exercise.name) accessory rep ceiling reached \(outcome?.targetRepMaxAfter ?? 0); load may never bump."
                 ))
             }
 
@@ -592,11 +623,11 @@ struct BaselineYearProgramSimulator {
                 reps: exercise.reps,
                 rpe: exercise.rpe,
                 completedSets: missed ? 0 : exercise.sets,
-                simulatedTopSetReps: missed ? 0 : outcome.reps,
-                simulatedTopSetHoldSeconds: missed ? nil : outcome.holdSeconds,
-                simulatedTopSetRPE: missed ? nil : outcome.rpe,
-                simulatedWeightKg: outcome.weightKg,
-                classification: outcome.classification.rawValue,
+                simulatedTopSetReps: missed ? 0 : (outcome?.reps ?? 0),
+                simulatedTopSetHoldSeconds: missed ? nil : outcome?.holdSeconds,
+                simulatedTopSetRPE: missed ? nil : outcome?.rpe,
+                simulatedWeightKg: outcome?.weightKg ?? 0,
+                classification: (outcome?.classification ?? ExerciseClassification.classify(exerciseKey: exerciseKey(exercise))).rawValue,
                 substitution: exercise.substitution
             )
         }

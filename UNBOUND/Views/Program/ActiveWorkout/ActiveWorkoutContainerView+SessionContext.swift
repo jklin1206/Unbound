@@ -62,6 +62,9 @@ extension ActiveWorkoutContainerView {
                     session.exercises[ei].sets[si].suggestedWeightKg = g.weightKg.map {
                         WeightPlatePolicy.snappedSuggestionKilograms(
                             $0,
+                            implement: LoadImplement.resolve(
+                                exerciseKey: session.exercises[ei].name
+                            ),
                             unit: weightUnit,
                             microloadingEnabled: microloadingEnabled
                         )

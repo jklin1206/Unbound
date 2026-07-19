@@ -29,6 +29,10 @@ struct ProgramOverviewView: View {
     @State var showPaywall = false
     @State var showRationale = false
     @State var activeWorkoutDraft: TrainingSessionDraft?
+    // Quick Log resume: a stashed custom draft awaiting the resume-or-start-fresh
+    // prompt, and the resumed session presented full-screen once resumed.
+    @State var quickLogResumeCandidate: ActiveWorkoutSession?
+    @State var resumeCustomDraft: ActiveWorkoutSession?
     @State var sessionEditorDraft: TrainingSessionDraft?
     @State var savedWorkoutEditorDraft: TrainingSessionDraft?
     @State var planningWorkoutDraft: TrainingSessionDraft?
@@ -88,6 +92,10 @@ struct ProgramOverviewView: View {
     // next Arc automatically after a brief "complete" beat instead of dead-ending
     // on a manual tap. Guards the auto-trigger to fire once per block-complete.
     @State var hasAutoTriggeredRollover = false
+    // End-of-Arc recap: photo → level climb → hex shift → highlights → build.
+    // Presented once per block-complete; its final beat drives the rollover.
+    @State var arcRecapSummary: ArcRecapSummary?
+    @State var hasPresentedArcRecap = false
 
     // Resume draft affordance.
     @State var resumeDraft: ActiveWorkoutSession?
@@ -187,9 +195,7 @@ struct ProgramOverviewView: View {
                     case .myWorkouts:
                         MyWorkoutsView(
                             refreshTrigger: savedWorkoutLibraryRevision,
-                            onQuickLog: {
-                                activeWorkoutDraft = QuickLogDraftFactory.empty(userId: services.auth.currentUserId ?? "")
-                            },
+                            onQuickLog: { launchQuickLog() },
                             onBuild: {
                                 savedWorkoutEditorDraft = SavedWorkoutDraftFactory.empty(userId: services.auth.currentUserId ?? "")
                             },
@@ -331,6 +337,46 @@ struct ProgramOverviewView: View {
                 activeWorkoutDraft = nil
                 Task { await viewModel.refreshCompletionState(asOf: selectedDayDate) }
             })
+            .environmentObject(services)
+        }
+        // Reopening Quick Log with a stashed custom draft offers to resume it,
+        // mirroring the program-day resume affordance on the custom slot.
+        .confirmationDialog(
+            "Resume your Quick Log?",
+            isPresented: Binding(
+                get: { quickLogResumeCandidate != nil },
+                set: { if !$0 { quickLogResumeCandidate = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Resume") {
+                let stashed = quickLogResumeCandidate
+                quickLogResumeCandidate = nil
+                // Defer the cover so it isn't swallowed while the dialog dismisses
+                // (same guard the session-editor handoff uses).
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                    resumeCustomDraft = stashed
+                }
+            }
+            Button("Start fresh", role: .destructive) { startFreshQuickLog() }
+            Button("Cancel", role: .cancel) { quickLogResumeCandidate = nil }
+        } message: {
+            Text("You have logged sets from an unfinished Quick Log.")
+        }
+        .fullScreenCover(item: $resumeCustomDraft) { draft in
+            ActiveWorkoutContainerView(
+                workout: Workout(name: "", targetMuscleGroups: [], warmup: [],
+                                mainExercises: [], cooldown: [], estimatedMinutes: 0,
+                                notes: nil, blockType: nil),
+                programId: "",
+                dayNumber: 0,
+                services: services,
+                resuming: draft
+            ) {
+                UserDefaults.standard.set(0, forKey: "unbound.shortSessionDate")
+                resumeCustomDraft = nil
+                Task { await viewModel.refreshCompletionState(asOf: selectedDayDate) }
+            }
             .environmentObject(services)
         }
         .fullScreenCover(item: $sessionEditorDraft) { draft in

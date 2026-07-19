@@ -3,9 +3,10 @@ import XCTest
 
 /// Locks the single-number prescription contract: the min...max window stays
 /// the engine's internal rails, and `currentTargetReps` is the one number the
-/// user chases — bottom to start, +1 per delivered session, hold at the top,
-/// reset to the bottom after a weight bump, keep climbing after an accessory
-/// window widening.
+/// user chases — bottom to start, +1 per delivered session, hold at the top.
+/// A weight bump clears `lastSessionReps`, restarting the climb at the
+/// bottom; when nothing got harder (bodyweight ceiling, implement cap) the
+/// ask holds at the top instead of collapsing.
 final class ProgressionSingleTargetTests: XCTestCase {
     private func state(
         last: Int?,
@@ -42,9 +43,24 @@ final class ProgressionSingleTargetTests: XCTestCase {
     }
 
     func testWeightBumpRestartsAtBottom() {
-        // applyBump resets the counter after a top-range session → new weight,
-        // climb restarts at the bottom of the window.
-        XCTAssertEqual(state(last: 12, hit: true, consecutive: 0).currentTargetReps, 8)
+        // applyBump clears lastSessionReps when the load bump lands → the
+        // climb restarts at the bottom of the window at the new weight.
+        XCTAssertEqual(state(last: nil, hit: true, consecutive: 0).currentTargetReps, 8)
+    }
+
+    func testTopHitWithoutBumpHoldsAtTop() {
+        // Ceiling hit but nothing got harder (bodyweight movement, or a load
+        // bump blocked by the implement cap): the ask holds at the top rather
+        // than collapsing to the bottom for the same difficulty.
+        XCTAssertEqual(state(last: 12, hit: true, consecutive: 0).currentTargetReps, 12)
+    }
+
+    func testDeloadBlockAsksBottomOfWindow() {
+        var s = state(last: 12, hit: true, consecutive: 0)
+        s.blockType = .deload
+        s.targetRepMin = 6
+        s.targetRepMax = 8
+        XCTAssertEqual(s.currentTargetReps, 6)
     }
 
     func testAccessoryWindowWideningKeepsClimbing() {

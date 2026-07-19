@@ -4,8 +4,8 @@ import Foundation
 //
 // Curated lock-screen notification copy used for marketing screenshots
 // (TikTok carousel slide-3 "payoff" frame, IG story stickers, etc).
-// Tone: ambiguous, in-character, never preachy — the streak / rank / hex
-// shift quietly tells the story. The viewer connects the dots.
+// Tone: concise, readable, and in-character. Every title should feel like a
+// System event while the body immediately explains what changed.
 //
 // Each preset is a (title, body) pair shaped to read well on a lock screen
 // when previewed via the Dev Player Tools "Notification Preview" section.
@@ -51,219 +51,219 @@ enum ContentNotificationCatalog {
         all.filter { $0.category == category }
     }
 
-    // MARK: Streak — milestones that read like a quiet flex
+    // MARK: Streak
     static let streak: [ContentNotificationPreset] = [
         ContentNotificationPreset(
             id: "streak.day-7",
             category: .streak,
-            title: "7-day streak",
-            body: "One full week. The hard part is starting it again tomorrow."
+            title: "[ SYSTEM ] 7-DAY STREAK",
+            body: "One week confirmed. Return tomorrow to extend the Arc."
         ),
         ContentNotificationPreset(
             id: "streak.day-30",
             category: .streak,
-            title: "30-day streak",
-            body: "A month with zero skipped sessions. You stopped negotiating with yourself."
+            title: "[ SYSTEM ] 30-DAY STREAK",
+            body: "Thirty days confirmed. Your Arc is holding."
         ),
         ContentNotificationPreset(
             id: "streak.day-60",
             category: .streak,
-            title: "60-day streak",
-            body: "Two months. Everyone who started with you quit weeks ago."
+            title: "[ SYSTEM ] 60-DAY STREAK",
+            body: "Two months confirmed. The pattern is now part of your build."
         ),
         ContentNotificationPreset(
             id: "streak.day-100",
             category: .streak,
-            title: "100-day streak",
-            body: "Triple digits. The body that watches anime is gone."
+            title: "[ SYSTEM ] 100-DAY STREAK",
+            body: "Triple digits confirmed. Your proof archive keeps growing."
         ),
         ContentNotificationPreset(
             id: "streak.day-184",
             category: .streak,
-            title: "184-day streak",
-            body: "Six months. You're not the person who downloaded this anymore."
+            title: "[ SYSTEM ] 184-DAY STREAK",
+            body: "Six months confirmed. Your build has changed."
         ),
         ContentNotificationPreset(
             id: "streak.day-365",
             category: .streak,
-            title: "365-day streak",
-            body: "A full year. No off days. No exceptions. Unbound."
+            title: "[ SYSTEM ] 365-DAY STREAK",
+            body: "One year confirmed. The Arc is complete."
         ),
         ContentNotificationPreset(
             id: "streak.locked-in",
             category: .streak,
-            title: "Streak locked in",
-            body: "Session logged. Day 47 of the arc. Don't break it now."
+            title: "[ SYSTEM ] STREAK SECURED",
+            body: "Session logged. Day 47 is complete."
         ),
     ]
 
-    // MARK: Rank Up — tier crossings (Initiate → Unbound)
+    // MARK: Rank Up
     static let rankUp: [ContentNotificationPreset] = [
         ContentNotificationPreset(
             id: "rank.initiate-to-novice",
             category: .rankUp,
-            title: "Rank up — NOVICE",
-            body: "You crossed the line everyone hesitates at. Initiate → Novice."
+            title: "[ SYSTEM ] RANK ADVANCED",
+            body: "Initiate → Novice. Your next gate is open."
         ),
         ContentNotificationPreset(
             id: "rank.novice-to-apprentice",
             category: .rankUp,
-            title: "Rank up — APPRENTICE",
-            body: "Novice → Apprentice. The reps started building someone new."
+            title: "[ SYSTEM ] RANK ADVANCED",
+            body: "Novice → Apprentice. New trials are available."
         ),
         ContentNotificationPreset(
             id: "rank.apprentice-to-forged",
             category: .rankUp,
-            title: "Rank up — FORGED",
-            body: "Apprentice → Forged. This is where the people who quit stop reading."
+            title: "[ SYSTEM ] RANK ADVANCED",
+            body: "A new rank is active. Your next gate is open."
         ),
         ContentNotificationPreset(
             id: "rank.forged-to-honed",
             category: .rankUp,
-            title: "Rank up — HONED",
-            body: "Forged → Honed. Sharper, leaner, harder to break."
+            title: "[ SYSTEM ] RANK ADVANCED",
+            body: "Another rank cleared. Your build has advanced."
         ),
         ContentNotificationPreset(
             id: "rank.honed-to-ascendant",
             category: .rankUp,
-            title: "Rank up — ASCENDANT",
-            body: "Honed → Ascendant. Top 5% of everyone who started this app."
+            title: "[ SYSTEM ] RANK ADVANCED",
+            body: "Ascendant reached. You entered the top band."
         ),
         ContentNotificationPreset(
             id: "rank.ascendant-to-unbound",
             category: .rankUp,
-            title: "Rank up — UNBOUND",
-            body: "Ascendant → UNBOUND. There is no rank above this one."
+            title: "[ SYSTEM ] FINAL RANK",
+            body: "Unbound reached. Final rank confirmed."
         ),
     ]
 
-    // MARK: Hex Shift — attribute crossings (PULL/PUSH/CORE/LEGS/EXPLOSIVE/MOBILITY)
+    // MARK: Build Shift
     static let hexShift: [ContentNotificationPreset] = [
         ContentNotificationPreset(
             id: "hex.pull-ascendant",
             category: .hexShift,
-            title: "PULL → ASCENDANT",
-            body: "Your hex just shifted. Weighted pull-ups crossed top 5%."
+            title: "[ SYSTEM ] PULL ADVANCED",
+            body: "Weighted pull-ups moved your Pull axis to Ascendant."
         ),
         ContentNotificationPreset(
             id: "hex.push-honed",
             category: .hexShift,
-            title: "PUSH → HONED",
-            body: "Push axis advanced. Dips and presses are no longer the bottleneck."
+            title: "[ SYSTEM ] PUSH ADVANCED",
+            body: "Dips and presses moved your Push axis forward."
         ),
         ContentNotificationPreset(
             id: "hex.core-forged",
             category: .hexShift,
-            title: "CORE → FORGED",
-            body: "Core just hit forged. L-sit holds are getting boring — time to load them."
+            title: "[ SYSTEM ] CORE ADVANCED",
+            body: "L-sit proof moved your Core axis into a new rank."
         ),
         ContentNotificationPreset(
             id: "hex.legs-ascendant",
             category: .hexShift,
-            title: "LEGS → ASCENDANT",
-            body: "Pistols at bodyweight × 8. Lower body crossed Ascendant tonight."
+            title: "[ SYSTEM ] LEGS ADVANCED",
+            body: "Eight pistol squats moved your Legs axis to Ascendant."
         ),
         ContentNotificationPreset(
             id: "hex.explosive-unbound",
             category: .hexShift,
-            title: "EXPLOSIVE → UNBOUND",
-            body: "Clap pullups · 6 clean. The explosive axis has no ceiling left."
+            title: "[ SYSTEM ] EXPLOSIVE ADVANCED",
+            body: "Six clean clap pull-ups moved this axis to Unbound."
         ),
         ContentNotificationPreset(
             id: "hex.mobility-honed",
             category: .hexShift,
-            title: "MOBILITY → HONED",
-            body: "Pancake at depth. Your mobility just stopped being a weak link."
+            title: "[ SYSTEM ] MOBILITY ADVANCED",
+            body: "New range proof moved your Mobility axis forward."
         ),
         ContentNotificationPreset(
             id: "hex.full-radar",
             category: .hexShift,
-            title: "Hex radar updated",
-            body: "All six axes moved this week. The build is closing the gap on the goal."
+            title: "[ SYSTEM ] BUILD UPDATED",
+            body: "All six axes advanced this week."
         ),
     ]
 
-    // MARK: Identity — the quiet "you're someone else now" framing
+    // MARK: Identity
     static let identity: [ContentNotificationPreset] = [
         ContentNotificationPreset(
             id: "identity.not-the-same",
             category: .identity,
-            title: "Profile updated",
-            body: "You're not the same person who downloaded this 184 days ago."
+            title: "[ SYSTEM ] PROFILE UPDATED",
+            body: "Your current build no longer matches Day Zero."
         ),
         ContentNotificationPreset(
             id: "identity.title-unlocked",
             category: .identity,
-            title: "Title unlocked — The Quiet One",
-            body: "Six months. No streak resets. No public posting. Just the work."
+            title: "[ SYSTEM ] TITLE UNLOCKED",
+            body: "The Quiet One is ready to equip."
         ),
         ContentNotificationPreset(
             id: "identity.becoming",
             category: .identity,
-            title: "Becoming",
-            body: "Your build percentile crossed 92%. The before-photo is unrecognizable now."
+            title: "[ SYSTEM ] BUILD ADVANCED",
+            body: "Your build percentile crossed 92%."
         ),
         ContentNotificationPreset(
             id: "identity.arc-complete",
             category: .identity,
-            title: "Arc complete",
-            body: "The Forged Protocol — 12 weeks done. Time to pick the next one."
+            title: "[ SYSTEM ] ARC COMPLETE",
+            body: "Twelve weeks complete. Select your next path."
         ),
         ContentNotificationPreset(
             id: "identity.before-after",
             category: .identity,
-            title: "Before/After ready",
-            body: "Your scan delta is in. The comparison everyone asks about is on your profile."
+            title: "[ SYSTEM ] PROOF READY",
+            body: "Your scan comparison is ready on your profile."
         ),
     ]
 
-    // MARK: Comeback — re-engagement that doesn't shame
+    // MARK: Comeback
     static let callBack: [ContentNotificationPreset] = [
         ContentNotificationPreset(
             id: "callback.three-days",
             category: .callBack,
-            title: "3 days off",
-            body: "You earned the rest. The streak resets at midnight — get one in."
+            title: "[ SYSTEM ] ARC PAUSED",
+            body: "Three days away. One session restarts your momentum."
         ),
         ContentNotificationPreset(
             id: "callback.one-week",
             category: .callBack,
-            title: "A week away",
-            body: "The arc is still here. One session today and you're back on the ladder."
+            title: "[ SYSTEM ] PATH REMAINS",
+            body: "Your Arc is waiting. Complete one session to return."
         ),
         ContentNotificationPreset(
             id: "callback.return",
             category: .callBack,
-            title: "Welcome back",
-            body: "Picked up where you left off. The protocol remembers your numbers."
+            title: "[ SYSTEM ] ARC RESUMED",
+            body: "Your plan and previous numbers are ready."
         ),
     ]
 
-    // MARK: Session — short, punchy, in-character
+    // MARK: Session
     static let session: [ContentNotificationPreset] = [
         ContentNotificationPreset(
             id: "session.window-open",
             category: .session,
-            title: "Training window open",
-            body: "Pull day. 4 lifts. Twenty-eight minutes. Lock in."
+            title: "[ SYSTEM ] DIRECTIVE ISSUED",
+            body: "Pull day. Four movements. Twenty-eight minutes."
         ),
         ContentNotificationPreset(
             id: "session.everyone-asleep",
             category: .session,
-            title: "Late-night session",
-            body: "Everyone you compare yourself to is asleep. You're building."
+            title: "[ SYSTEM ] NIGHT DIRECTIVE",
+            body: "Your night training window is open."
         ),
         ContentNotificationPreset(
             id: "session.empty-gym",
             category: .session,
-            title: "Empty-gym window",
-            body: "First one in. The reps are yours before anyone else's day starts."
+            title: "[ SYSTEM ] DAWN DIRECTIVE",
+            body: "Your early training window is open."
         ),
         ContentNotificationPreset(
             id: "session.pr-ready",
             category: .session,
-            title: "PR window detected",
-            body: "Your last 3 weighted pull-ups says today's the day. Don't waste the curve."
+            title: "[ SYSTEM ] PR WINDOW",
+            body: "Your last three pull sessions support a new attempt."
         ),
     ]
 }

@@ -170,11 +170,10 @@ enum ProgramTrainingContextResolver {
             equipment: equipment,
             currentExerciseStyles: currentExerciseStyles
         )
-        let experience = resolvedExperience(
-            mode: selection.mode,
-            selectedExperience: selection.experience,
-            currentExperience: currentExperience
-        )
+        // The ability-level pick is authoritative in every mode. It used to be
+        // honored only for calisthenics/hybrid, which left lifting/machines
+        // users pinned to their onboarding experience with no way out.
+        let experience = selection.experience ?? currentExperience
         let isManual = selection.mode == .freeform || selection.scope == .freeformManual
         let canRegenerate = selection.scope.shouldRegenerateProgram && !isManual
 
@@ -302,19 +301,6 @@ enum ProgramTrainingContextResolver {
             return styles
         case .machines:
             return preserved.union([.machines])
-        }
-    }
-
-    private static func resolvedExperience(
-        mode: ProgramTrainingContextMode,
-        selectedExperience: Experience?,
-        currentExperience: Experience?
-    ) -> Experience? {
-        switch mode {
-        case .calisthenics, .hybrid:
-            return selectedExperience ?? currentExperience
-        case .automatic, .lifting, .machines, .freeform:
-            return currentExperience
         }
     }
 

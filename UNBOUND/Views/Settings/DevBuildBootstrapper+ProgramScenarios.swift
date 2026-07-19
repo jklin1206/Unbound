@@ -585,7 +585,7 @@ extension DevBuildBootstrapper {
 
         await MainActor.run {
             ProgramScheduleStore.shared.clear(userId: userId)
-            WorkoutDraftStore().clear()
+            WorkoutDraftStore().clearAll()
 
             if let todayWorkout = savedWorkouts.first {
                 ProgramScheduleStore.shared.replacePrimary(

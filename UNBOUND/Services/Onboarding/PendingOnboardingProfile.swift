@@ -21,7 +21,9 @@ enum PendingOnboardingProfile {
         UserDefaults.standard.set(fields, forKey: key)
     }
 
-    /// The pending payload, or nil if none is waiting.
+    /// The pending payload, or nil if none is waiting. A peek — it does NOT
+    /// clear. Route replays through `replay(_:)` so the stash only clears on a
+    /// successful write.
     static func take() -> [String: Any]? {
         guard let fields = UserDefaults.standard.dictionary(forKey: key), !fields.isEmpty else {
             return nil
@@ -32,5 +34,16 @@ enum PendingOnboardingProfile {
     /// Clear after the payload has landed on the authenticated user.
     static func clear() {
         UserDefaults.standard.removeObject(forKey: key)
+    }
+
+    /// Replay the pending payload through `apply`, clearing the stash ONLY if
+    /// `apply` succeeds — a thrown error leaves it in place so a later launch or
+    /// sign-in retries. No-op when nothing is stashed. This is the real "take"
+    /// contract: `take()` alone is a peek, so replaying through here is what
+    /// prevents clearing on a failed write.
+    static func replay(_ apply: (_ fields: [String: Any]) async throws -> Void) async rethrows {
+        guard let fields = take() else { return }
+        try await apply(fields)
+        clear()
     }
 }

@@ -221,7 +221,10 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
             documentId: "\(userId):bench press"
         )
         XCTAssertGreaterThan(state?.currentWorkingWeightKg ?? 0, 60)
-        XCTAssertEqual(state?.lastSessionReps, 12)
+        // The bump clears rep history so the ask restarts at the bottom of
+        // the window at the new, heavier load.
+        XCTAssertNil(state?.lastSessionReps)
+        XCTAssertEqual(state?.currentTargetReps, state?.targetRepMin)
         XCTAssertEqual(state?.lastSessionRPE, 7)
         XCTAssertEqual(state?.prescriptionBias, .harder)
     }
@@ -340,7 +343,9 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
     func testAccessoryProgressionCapsRepRangeThenBumpsLoad() async {
         let userId = "accessory-cap-\(UUID().uuidString)"
         let startedAt = Date(timeIntervalSince1970: 4_000)
-        let repTargets = [15, 15, 17, 17, 19, 19, 20, 20]
+        // The 10...15 accessory window tops out at the 15-rep ceiling, so two
+        // clean top-range sessions move load instead of inflating reps to 17+.
+        let repTargets = [15, 15]
 
         for (index, reps) in repTargets.enumerated() {
             await ProgressionEngine.shared.ingest(
@@ -364,6 +369,149 @@ final class ProgressionEngineBehaviorTests: XCTestCase {
         XCTAssertEqual(state?.targetRepMax, 15)
         XCTAssertEqual(state?.consecutiveSessionsAtTarget, 0)
         XCTAssertGreaterThan(state?.currentWorkingWeightKg ?? 0, 10)
+        // The load bump clears rep history so the ask restarts at the bottom.
+        XCTAssertNil(state?.lastSessionReps)
+        XCTAssertEqual(state?.currentTargetReps, 10)
+    }
+
+    @MainActor
+    func testBodyweightCeilingHoldsAskInsteadOfCollapsing() async {
+        let userId = "bw-hold-\(UUID().uuidString)"
+        let startedAt = Date(timeIntervalSince1970: 4_500)
+
+        // Push-up rides the 5...12 bodyweight window. Hitting the top twice
+        // has no load to bump, so the ask must hold at 12 - not collapse to 5.
+        for (index, reps) in [12, 12].enumerated() {
+            await ProgressionEngine.shared.ingest(
+                log: progressionLog(
+                    id: "pushup-\(index)-\(UUID().uuidString)",
+                    userId: userId,
+                    exerciseName: "push-up",
+                    reps: reps,
+                    weightKg: 0,
+                    rpe: 7,
+                    at: startedAt.addingTimeInterval(Double(index) * 86_400)
+                ),
+                mode: .advance
+            )
+        }
+
+        // The engine canonicalizes "push-up" to the catalog key "pushup".
+        let state: ProgressionState? = try? await DatabaseService.shared.read(
+            collection: "progression_states",
+            documentId: "\(userId):pushup"
+        )
+        XCTAssertEqual(state?.classification, .bodyweightSkill)
+        XCTAssertEqual(state?.lastSessionReps, 12)
+        XCTAssertEqual(state?.currentTargetReps, state?.targetRepMax)
+    }
+
+    // (b) A deloaded lift exits back to accumulation after the bounded number
+    // of deload sessions, with counters reset and the rep ask resumed at the
+    // restored accumulation floor — never pinned at the deload minimum.
+    @MainActor
+    func testDeloadExitsToAccumulationAfterBoundedSessions() async {
+        let userId = "deload-exit-\(UUID().uuidString)"
+        let startedAt = Date(timeIntervalSince1970: 10_000)
+
+        // Seed a deload exactly as the auto/coach deload path would.
+        let seeded = DeloadPlanner.shared.planDeload(for: [
+            ProgressionState.seed(userId: userId, exercise: "bench press", startingWeightKg: 60)
+        ])[0]
+        XCTAssertEqual(seeded.blockType, .deload)
+        try? await DatabaseService.shared.create(
+            seeded, collection: "progression_states", documentId: seeded.id
+        )
+
+        for i in 0..<DeloadPolicy.sessionsInDeload {
+            await ProgressionEngine.shared.ingest(
+                log: progressionLog(
+                    id: "deload-\(i)-\(UUID().uuidString)",
+                    userId: userId,
+                    exerciseName: "bench press",
+                    reps: 8,
+                    weightKg: 50,
+                    rpe: 6,
+                    at: startedAt.addingTimeInterval(Double(i) * 86_400)
+                ),
+                mode: .advance
+            )
+        }
+
+        let state: ProgressionState? = try? await DatabaseService.shared.read(
+            collection: "progression_states",
+            documentId: "\(userId):bench press"
+        )
+        let accumRange = ExerciseClassification.upperCompound.defaultRepRange(for: .accumulation)
+        let deloadFloor = ExerciseClassification.upperCompound.defaultRepRange(for: .deload).lowerBound
+        XCTAssertEqual(state?.blockType, .accumulation, "Deload must exit after the bounded session count")
+        XCTAssertEqual(state?.targetRepMin, accumRange.lowerBound)
+        XCTAssertEqual(state?.targetRepMax, accumRange.upperBound)
+        XCTAssertNil(state?.lastSessionReps, "Exit clears rep history so the ask restarts at the restored floor")
+        XCTAssertEqual(state?.currentTargetReps, accumRange.lowerBound, "Resumed target sits at the accumulation floor")
+        XCTAssertGreaterThan(state?.currentTargetReps ?? 0, deloadFloor, "Resumed target climbs off the deload minimum")
+        XCTAssertEqual(state?.deloadCooldownRemaining, DeloadPolicy.postDeloadCooldownSessions, "Exit arms the anti-thrash cooldown")
+        XCTAssertNil(state?.deloadSessionsCompleted, "Deload counter clears on exit")
+    }
+
+    // (c) End-to-end freeze regression: the old trap deloaded a lift and never
+    // reset `blockType`, pinning `currentTargetReps` at the deload floor
+    // forever. Replay that sequence and assert the target is NOT frozen: after
+    // exit the ask climbs with logged reps instead of sticking at the floor.
+    @MainActor
+    func testStickyDeloadNoLongerFreezesRepTarget() async {
+        let userId = "deload-freeze-\(UUID().uuidString)"
+        let startedAt = Date(timeIntervalSince1970: 11_000)
+
+        let seeded = DeloadPlanner.shared.planDeload(for: [
+            ProgressionState.seed(userId: userId, exercise: "bench press", startingWeightKg: 60)
+        ])[0]
+        try? await DatabaseService.shared.create(
+            seeded, collection: "progression_states", documentId: seeded.id
+        )
+        let deloadFloor = ExerciseClassification.upperCompound.defaultRepRange(for: .deload).lowerBound
+        // The trap starting point: while deloaded the shown target is the floor.
+        XCTAssertEqual(seeded.currentTargetReps, deloadFloor)
+
+        // Train through the deload (exits after the bounded count), then keep
+        // training in accumulation.
+        for i in 0..<DeloadPolicy.sessionsInDeload {
+            await ProgressionEngine.shared.ingest(
+                log: progressionLog(
+                    id: "freeze-deload-\(i)-\(UUID().uuidString)",
+                    userId: userId,
+                    exerciseName: "bench press",
+                    reps: 6,
+                    weightKg: 50,
+                    rpe: 6,
+                    at: startedAt.addingTimeInterval(Double(i) * 86_400)
+                ),
+                mode: .advance
+            )
+        }
+        // One post-exit accumulation session with mid-range reps: the ask should
+        // climb to last+1, proving the target is no longer pinned.
+        await ProgressionEngine.shared.ingest(
+            log: progressionLog(
+                id: "freeze-accum-\(UUID().uuidString)",
+                userId: userId,
+                exerciseName: "bench press",
+                reps: 9,
+                weightKg: 50,
+                rpe: 7,
+                at: startedAt.addingTimeInterval(Double(DeloadPolicy.sessionsInDeload + 1) * 86_400)
+            ),
+            mode: .advance
+        )
+
+        let state: ProgressionState? = try? await DatabaseService.shared.read(
+            collection: "progression_states",
+            documentId: "\(userId):bench press"
+        )
+        XCTAssertEqual(state?.blockType, .accumulation, "The lift must not stay stuck in deload")
+        XCTAssertEqual(state?.lastSessionReps, 9)
+        XCTAssertEqual(state?.currentTargetReps, 10, "The ask climbs to last+1 within the restored window")
+        XCTAssertGreaterThan(state?.currentTargetReps ?? 0, deloadFloor, "Target is not frozen at the deload floor")
     }
 
     private func neutralLatPulldownLog(

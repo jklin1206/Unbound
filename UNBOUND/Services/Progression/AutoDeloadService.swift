@@ -9,12 +9,15 @@ import Foundation
 // never deloaded unless the user tapped Coach.
 //
 // This runs automatically at the end of post-log progression ingest: it detects
-// plateaus and, when a deload is warranted, applies DeloadPlanner.planDeload and
-// persists — so the next generated/resolved day is a deload with no Coach tap.
+// plateaus and, when a deload is warranted, applies DeloadPlanner.planDeload to
+// ONLY the plateaued exercises and persists — so the next generated/resolved day
+// deloads those lifts with no Coach tap, leaving progressing lifts untouched.
 //
-// Anti-thrash: it never re-deloads an athlete already in a deload block, so a
-// run of plateaued sessions can't trap them in a perpetual deload or fight a
-// Coach-initiated one.
+// Anti-thrash is per-exercise and self-healing: it never re-deloads a lift
+// already in a deload (that lift exits on its own after
+// DeloadPolicy.sessionsInDeload sessions, see ProgressionEngine), and it skips
+// lifts inside the post-deload cooldown. Once deloads exit and cooldowns lapse,
+// evaluation resumes normally — nothing gets trapped in a perpetual deload.
 
 @MainActor
 final class AutoDeloadService {
@@ -27,29 +30,41 @@ final class AutoDeloadService {
 
     private init() {}
 
-    /// Pure decision: deloaded states to persist, or nil when no deload is due.
-    /// Skips when already in a deload block (anti-thrash).
-    static func plan(states: [ProgressionState], plateauCount: Int) -> [ProgressionState]? {
-        guard !states.contains(where: { $0.blockType == .deload }) else { return nil }
-        guard DeloadPlanner.shared.shouldDeload(states: states, plateauCount: plateauCount) else { return nil }
-        return DeloadPlanner.shared.planDeload(for: states)
+    /// Pure decision: the deloaded states to persist, or nil when no deload is
+    /// due. Scoped and self-healing — only the freshly-plateaued exercises are
+    /// candidates, and a candidate already in a deload or inside its post-deload
+    /// cooldown is excluded (the detector already filters cooldowns; the filter
+    /// here is defensive). The systemic threshold is measured against the
+    /// candidate count, so a lone stall never drags the whole table into deload.
+    static func plan(
+        states: [ProgressionState],
+        plateauedKeys: Set<String>
+    ) -> [ProgressionState]? {
+        let candidates = states.filter { state in
+            plateauedKeys.contains(state.exerciseKey)
+                && state.blockType != .deload
+                && (state.deloadCooldownRemaining ?? 0) == 0
+        }
+        guard DeloadPlanner.shared.shouldDeload(plateauCount: candidates.count) else { return nil }
+        return DeloadPlanner.shared.planDeload(for: candidates)
     }
 
-    /// Detect plateaus and auto-apply a deload if warranted. Returns whether a
-    /// deload fired. Safe to call on every logged session.
+    /// Detect plateaus and auto-apply a scoped deload if warranted. Returns
+    /// whether a deload fired. Safe to call on every logged session.
     @discardableResult
     func evaluate(userId: String) async -> Bool {
         let states = await store.fetchAll(userId: userId)
         guard !states.isEmpty else { return false }
 
         let plateaus = await detector.detect(userId: userId, states: states)
-        guard let deloaded = Self.plan(states: states, plateauCount: plateaus.count) else { return false }
+        let plateauedKeys = Set(plateaus.map(\.exerciseKey))
+        guard let deloaded = Self.plan(states: states, plateauedKeys: plateauedKeys) else { return false }
 
         for state in deloaded {
             await store.save(state)
         }
         logger.log(
-            "AutoDeloadService: auto-deload fired (\(plateaus.count) plateaus, \(deloaded.count) lifts)",
+            "AutoDeloadService: scoped auto-deload fired (\(plateaus.count) plateaus, \(deloaded.count) lifts deloaded)",
             level: .info
         )
         return true

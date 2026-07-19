@@ -15,6 +15,12 @@ struct RootView: View {
     // immediately re-routes the app back into onboarding.
     @AppStorage("onboardingCompleted") private var hasCompletedOnboarding: Bool = false
 
+    // Observes the offline auth-deferral timestamp so that tapping "continue for
+    // now" on the forced-auth screen re-routes past the wall immediately (same
+    // mechanism the onboardingCompleted key uses). Read in `route` so the
+    // dependency is tracked; the TTL interpretation lives in AuthDeferralStore.
+    @AppStorage(AuthDeferralStore.deferredAtKey) private var authDeferredAt: Double = 0
+
     init() {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
@@ -68,17 +74,48 @@ struct RootView: View {
         #endif
     }
 
+    // Pure top-level routing decision. The offline deferral is interpreted from
+    // the `@AppStorage`-observed raw timestamp so a fresh "continue for now" tap
+    // invalidates the body and re-routes without any extra plumbing.
+    private var route: RootRoute {
+        RootRouter.route(
+            isCheckingAuth: isCheckingAuth,
+            onboardingCompleted: hasCompletedOnboarding,
+            isCloudLinked: isCloudLinked,
+            deferralActive: AuthDeferralStore.isActive(deferredAt: authDeferredAt),
+            forceAuthScreen: Self.forceAuthScreen
+        )
+    }
+
+    // DEBUG review hook: `--unbound-force-auth` forces the forced-auth screen
+    // through the real routing path (even if a lingering deferral would skip it)
+    // so the orchestrator can screenshot it on-sim. Mirrors the `--unbound-open-*`
+    // launch-argument convention and is compiled out of release builds.
+    private static var forceAuthScreen: Bool {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("--unbound-force-auth")
+        #else
+        return false
+        #endif
+    }
+
     private var mainContent: some View {
         Group {
-            if isCheckingAuth {
+            switch route {
+            case .loading:
                 AppLaunchLoadingView()
-            } else if !hasCompletedOnboarding {
+            case .onboarding:
                 OnboardingContainerView(onComplete: {
                     hasCompletedOnboarding = true
                 })
-            } else if !isCloudLinked {
-                AuthContainerView()
-            } else {
+            case .auth:
+                // Sign-in stays the default, encouraged path; the quiet escape
+                // hatch records a deferral (routing above re-reads it and moves
+                // the user into the main app as the anonymous local user).
+                AuthContainerView(onContinueWithoutAccount: {
+                    AuthDeferralStore.shared.markDeferred()
+                })
+            case .main:
                 HomeTabView()
                     .subscriptionGate()
             }
@@ -96,6 +133,11 @@ struct RootView: View {
                 isCloudLinked = cloudLinked
                 isCheckingAuth = false
                 if let userId, cloudLinked {
+                    // The offline deferral is meaningless once linked (routing
+                    // already resolves to the main app on a real session); clear
+                    // it so no stale timestamp survives into a later signed-out
+                    // state.
+                    AuthDeferralStore.shared.clear()
                     services.analytics.identify(
                         userId: userId,
                         traits: ["authState": "signedIn"]
@@ -110,13 +152,10 @@ struct RootView: View {
                         // was just created by createUserIfNeeded), then clear — so
                         // the real user isn't blank and program-gen sees the real
                         // goals/equipment/body inputs.
-                        if let pending = PendingOnboardingProfile.take() {
-                            do {
-                                try await services.user.updateProfile(userId: userId, fields: pending)
-                                PendingOnboardingProfile.clear()
-                            } catch {
-                                // Keep the stash; a later launch retries the replay.
-                            }
+                        // Clears the stash only on a successful write; a throw
+                        // leaves it in place so a later launch retries.
+                        try? await PendingOnboardingProfile.replay { fields in
+                            try await services.user.updateProfile(userId: userId, fields: fields)
                         }
                         #if DEBUG
                         if userId != DevBuildBootstrapper.userId {

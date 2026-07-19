@@ -291,6 +291,20 @@ enum BlockRolloverService {
             familyStates: familyStates
         )
 
+        // Clear any lingering deload before the new Arc: a deload is a brief
+        // in-Arc recovery response, not a state to carry across the boundary.
+        // The pre-rollover deload signal was already captured into
+        // exerciseHistory above (ExerciseRefreshRule reads it), so clearing now
+        // is safe. Reset both the persisted row and the in-memory map the
+        // generator reads, so the new Arc prescribes accumulation targets rather
+        // than the deload floor.
+        for state in fetchedProgressionStates where state.blockType == .deload {
+            var cleared = state.exitingDeload()
+            cleared.updatedAt = now
+            await ProgressionStateStore.shared.save(cleared)
+            progressionStates[MovementCatalog.normalized(cleared.exerciseKey)] = cleared
+        }
+
         let resolution = resolveRollover(
             previousBlock: previous,
             newFocusAreas: focusAreas,
@@ -389,6 +403,11 @@ enum BlockRolloverService {
             )
         }
 
+        // Pin the attribute state at arc start; the end-of-Arc recap diffs
+        // against this to show what the block earned.
+        let startAttributes = AttributeProfileSnapshot(
+            await AttributeService.shared.profile(userId: userId)
+        )
         let newBlock = ProgramBlock(
             id: UUID().uuidString,
             userId: userId,
@@ -399,7 +418,8 @@ enum BlockRolloverService {
             accessoryBias: resolution.accessoryBiasResult.bias,
             cutModeActive: profile.cutMode.enabled,
             biasRefreshedFromPrevious: resolution.accessoryBiasResult.carriedForward,
-            exerciseRotationsThisBlock: resolution.exercisesToRotate
+            exerciseRotationsThisBlock: resolution.exercisesToRotate,
+            startAttributes: startAttributes
         )
 
         await ProgramBlockStore.shared.save(newBlock)

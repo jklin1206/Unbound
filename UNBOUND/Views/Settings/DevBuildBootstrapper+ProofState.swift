@@ -418,7 +418,7 @@ extension DevBuildBootstrapper {
 
         seedFreshSessionXP(at: Date())
         ProgramTrainingContextStore.shared.clear(userId: userId, programId: "dev-program")
-        WorkoutDraftStore().clear()
+        WorkoutDraftStore().clearAll()
         TrainingSessionDraftStore().clear()
         RoutineHistoryStore.shared.clear()
         OutboxStore.shared.clear()
@@ -537,7 +537,7 @@ extension DevBuildBootstrapper {
 
         ProgramStore.shared.clear()
         ProgramScheduleStore.shared.clear(userId: userId)
-        WorkoutDraftStore().clear()
+        WorkoutDraftStore().clearAll()
         TrainingSessionDraftStore().clear()
         RoutineHistoryStore.shared.clear()
         ProfilePhotoStore.shared.remove(userId: userId)

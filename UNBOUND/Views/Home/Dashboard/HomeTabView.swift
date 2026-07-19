@@ -4,6 +4,9 @@ struct HomeTabView: View {
     @EnvironmentObject var services: ServiceContainer
     @ObservedObject private var restTimer = RestTimerModel.shared
     @State private var selectedTab: Int
+    // A tapped squad invite that survived (persisted) until routing reached the
+    // main app. Non-nil drives the JoinSquadSheet — see consumePendingSquadInvite.
+    @State private var pendingSquadInviteCode: String?
     private let restClock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     #if DEBUG
     @State private var debugPresentedSkillNode: SkillNode?
@@ -95,6 +98,33 @@ struct HomeTabView: View {
         .onReceive(NotificationCenter.default.publisher(for: .requestNavigateToProgramTab)) { _ in
             selectedTab = 1
         }
+        // Central consumption seam for a persisted squad invite. HomeTabView is
+        // the one place guaranteed alive once routing has resolved to the main
+        // app (signed-in + onboarded), so it owns switching to the Squad tab and
+        // presenting the join sheet — no dependency on SquadTabView being alive.
+        .sheet(item: Binding<SquadInviteCodeItem?>(
+            get: { pendingSquadInviteCode.map(SquadInviteCodeItem.init) },
+            set: { pendingSquadInviteCode = $0?.value }
+        )) { item in
+            // On join, nudge .squadStateChanged so the (now-selected) Squad tab
+            // refreshes. The remote join already posts this; the DEBUG local-only
+            // path does not, so posting here keeps both paths consistent.
+            JoinSquadSheet(prefilledCode: item.value) {
+                NotificationCenter.default.post(name: .squadStateChanged, object: nil)
+            }
+            .environmentObject(services)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .squadInviteCodeReceived)) { _ in
+            // Warm path: URL handler persisted the code then posted. Consume from
+            // the store (the source of truth), not the notification payload.
+            consumePendingSquadInviteIfNeeded()
+        }
+        .onAppear {
+            // Cold-launch path: a new user finishing onboarding+auth minutes later
+            // lands here; the invite that fired into the void during onboarding was
+            // persisted and is now surfaced.
+            consumePendingSquadInviteIfNeeded()
+        }
         #if DEBUG
         .fullScreenCover(isPresented: $debugShowCardioLogger) {
             LogCardioView()
@@ -181,6 +211,26 @@ struct HomeTabView: View {
         case 4: return "profile"
         default: return "unknown"
         }
+    }
+
+    // Switch to the Squad tab and present the join sheet with the persisted code
+    // prefilled. Clearing here (at presentation) satisfies the clear-on-present
+    // contract — the invite is spent the moment the sheet goes up, not on mere
+    // foreground. Guarded so a sheet already up isn't re-triggered, and a TTL-
+    // expired code returns nil (the store clears it) and does nothing.
+    private func consumePendingSquadInviteIfNeeded() {
+        guard pendingSquadInviteCode == nil,
+              let code = PendingSquadInvite.shared.pendingCode()
+        else { return }
+        selectedTab = 3
+        pendingSquadInviteCode = code
+        PendingSquadInvite.shared.clear()
+    }
+
+    private struct SquadInviteCodeItem: Identifiable {
+        let value: String
+        var id: String { value }
+        init(_ value: String) { self.value = value }
     }
 
     #if DEBUG
