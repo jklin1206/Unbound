@@ -53,15 +53,15 @@ struct CreateSquadSheet: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 footer
             }
+            // The footer must NOT ride the keyboard - lifted, it collides with
+            // the keyboard toolbar's Done button. It stays seated at the screen
+            // bottom (hidden while typing); the keyboard's return key submits.
+            .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationTitle("New Squad")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") { isNameFocused = false }
                 }
             }
             .onAppear {

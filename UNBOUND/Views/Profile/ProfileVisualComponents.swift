@@ -12,6 +12,7 @@ struct ProfileHeroAvatar: View {
     let letterFallback: String
     let shopBorder: ShopProfileBorderID?
     let size: CGFloat
+    var defaultPortrait: DefaultPortrait = .masculine
 
     var body: some View {
         let glowSize = size * 1.08
@@ -33,7 +34,8 @@ struct ProfileHeroAvatar: View {
                 size: size,
                 image: image,
                 letterFallback: letterFallback,
-                shopBorder: shopBorder
+                shopBorder: shopBorder,
+                defaultPortrait: defaultPortrait
             )
             .shadow(color: profileTint.opacity(frameGlowOpacity), radius: frameGlowRadius)
 

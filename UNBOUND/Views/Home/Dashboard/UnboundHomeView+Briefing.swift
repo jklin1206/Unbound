@@ -42,7 +42,11 @@ extension UnboundHomeView {
             avatarImage: photoStore.image(userId: services.auth.currentUserId ?? ""),
             avatarLetter: avatarInitial,
             arcBalance: walletStore.balance,
-            profileBorder: equippedShopProfileBorder
+            profileBorder: equippedShopProfileBorder,
+            defaultPortrait: DefaultPortrait.resolve(
+                gender: model.profile?.gender,
+                biologicalSex: model.profile?.biologicalSex
+            )
         ) {
             UnboundHaptics.soft()
             showingNotificationSettings = true

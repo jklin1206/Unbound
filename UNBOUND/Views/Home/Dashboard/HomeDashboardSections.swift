@@ -7,6 +7,7 @@ struct HomeTopBarSection: View {
     let avatarLetter: String
     let arcBalance: Int
     let profileBorder: ShopProfileBorderID?
+    var defaultPortrait: DefaultPortrait = .masculine
     let onNotifications: () -> Void
 
     var body: some View {
@@ -16,7 +17,8 @@ struct HomeTopBarSection: View {
                 rank: rank,
                 image: avatarImage,
                 letterFallback: avatarLetter,
-                profileBorder: profileBorder
+                profileBorder: profileBorder,
+                defaultPortrait: defaultPortrait
             )
 
             Text("UNBOUND")
@@ -54,6 +56,7 @@ private struct HomeAvatarBadge: View {
     let image: UIImage?
     let letterFallback: String
     let profileBorder: ShopProfileBorderID?
+    var defaultPortrait: DefaultPortrait = .masculine
 
     var body: some View {
         HStack(spacing: 8) {
@@ -63,7 +66,8 @@ private struct HomeAvatarBadge: View {
                     size: 48,
                     image: image,
                     letterFallback: letterFallback,
-                    shopBorder: profileBorder
+                    shopBorder: profileBorder,
+                    defaultPortrait: defaultPortrait
                 )
 
                 Text("\(level)")

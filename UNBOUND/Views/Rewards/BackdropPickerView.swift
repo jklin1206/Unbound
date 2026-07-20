@@ -113,7 +113,7 @@ struct BackdropPickerView: View {
             .frame(width: 46, height: 46)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("\(selectedSurface.displayName.uppercased()) \(selectedSurface.cosmeticLabel.uppercased())")
+                Text(selectedSurface.cosmeticLabel.uppercased())
                     .font(.system(size: 10, weight: .black, design: .monospaced))
                     .tracking(1.4)
                     .foregroundStyle(Color.unbound.textTertiary)
@@ -183,15 +183,22 @@ struct BackdropPickerView: View {
         case .home:
             return "home_background_chalk"
         case .profile:
-            return RankCosmetics.profileBackgroundAsset(for: .initiate)
+            // Preview the same landscape banner the profile header actually
+            // renders for this user's rank - the legacy portrait art reads as
+            // a broken half-empty card in the wide banner frame.
+            return RankCosmetics.profileHeaderBannerAsset(for: defaultProfileBannerTier)
         }
     }
 
     private var defaultAccent: Color {
         switch selectedSurface {
         case .home: return Color.skinHex("2DD4BF")
-        case .profile: return SkillTier.initiate.rewardTint
+        case .profile: return defaultProfileBannerTier.rewardTint
         }
+    }
+
+    private var defaultProfileBannerTier: RankTitle {
+        RankCosmetics.equippedBackgroundTierReadOnly(userId: userId)
     }
 
     private var isDefaultSelected: Bool {

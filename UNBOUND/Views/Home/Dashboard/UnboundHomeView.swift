@@ -49,6 +49,17 @@ struct UnboundHomeView: View {
     @State var showingBodyWeightHistory = false
     @State var showingShop = false
     @State var showingBackdropPicker = false
+
+    // DEBUG review hook: `--unbound-open-backdrops-profile` lands the picker on
+    // the Profile surface directly.
+    var backdropPickerInitialSurface: ShopBackdropSurface {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--unbound-open-backdrops-profile") {
+            return .profile
+        }
+        #endif
+        return .home
+    }
     @State var showRankInfo = false
     @State var showTrialRecords = false
     @State var bodyWeightJustLogged = false
@@ -148,6 +159,7 @@ struct UnboundHomeView: View {
             else if args.contains("--unbound-open-ranks")
                     || args.contains(where: { $0.hasPrefix("--unbound-open-rank-detail") }) { showRankLibrary = true }
             else if args.contains("--unbound-open-backdrops") { showingBackdropPicker = true }
+            else if args.contains("--unbound-open-backdrops-profile") { showingBackdropPicker = true }
             else if args.contains("--unbound-open-weight") { showingBodyWeightHistory = true }
             else if args.contains("--unbound-open-rank-info") { showRankInfo = true }
             #endif
@@ -319,7 +331,7 @@ struct UnboundHomeView: View {
         }
         .sheet(isPresented: $showingBackdropPicker) {
             NavigationStack {
-                BackdropPickerView(initialSurface: .home) {
+                BackdropPickerView(initialSurface: backdropPickerInitialSurface) {
                     showingBackdropPicker = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
                         showingShop = true

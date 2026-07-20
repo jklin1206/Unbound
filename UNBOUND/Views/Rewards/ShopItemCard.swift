@@ -137,19 +137,16 @@ struct ShopItemCard: View {
                 itemGradient
                 ShopPreviewLinework(color: item.accent)
                     .opacity(0.20)
-                VStack(spacing: 6) {
-                    Image(systemName: "textformat.alt")
-                        .font(.system(size: 16, weight: .black))
-                        .foregroundStyle(Color.unbound.textPrimary)
-                    Text(TitleCatalog.displayName(for: titleID).uppercased())
-                        .font(.system(size: 8, weight: .black, design: .monospaced))
-                        .tracking(0.6)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(Color.unbound.textPrimary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.62)
-                        .padding(.horizontal, 6)
-                }
+                // The title text IS the product - no glyph, just the
+                // nameplate in quotes.
+                Text("\u{201C}\(TitleCatalog.displayName(for: titleID).uppercased())\u{201D}")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .tracking(0.6)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Color.unbound.textPrimary)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.62)
+                    .padding(.horizontal, 8)
             }
         }
     }

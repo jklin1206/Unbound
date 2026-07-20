@@ -86,6 +86,16 @@ enum ShopTitleCatalog {
         case "ironStatic": return "PR Pending"
         case "goldSignal": return "Aura Farmer"
         case "solarBreaker": return "Main Character Arc"
+        case "gymRat": return "Certified Gym Rat"
+        case "legDay": return "Leg Day Loyalist"
+        case "restDenier": return "Rest Day Denier"
+        case "proteinGoblin": return "Protein Goblin"
+        case "oneMoreRep": return "One More Rep"
+        case "volumeMerchant": return "Volume Merchant"
+        case "builtDifferent": return "Built Different"
+        case "loreAccurate": return "Lore Accurate"
+        case "gravityOpp": return "Gravity's Opp"
+        case "finalBoss": return "Final Boss"
         default:
             return id
                 .replacingOccurrences(of: "_", with: " ")

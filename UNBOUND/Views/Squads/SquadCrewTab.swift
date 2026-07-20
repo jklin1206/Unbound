@@ -76,7 +76,7 @@ extension SquadDetailView {
                         lastTrainedAt: lastTrainedAt(for: member.userId),
                         displayNameOverride: displayName(for: member),
                         frameTier: flair?.frameTier
-                            ?? RankCosmetics.equippedFrameTier(userId: memberProfileId, currentTier: .initiate),
+                            ?? RankCosmetics.equippedFrameTierReadOnly(userId: memberProfileId),
                         borderId: flair?.borderId
                             ?? ShopInventoryStore.equippedProfileBorder(userId: memberProfileId),
                         avatarImage: ProfilePhotoStore.shared.image(userId: memberProfileId),

@@ -129,6 +129,29 @@ final class ShopInventoryStoreTests: XCTestCase {
         XCTAssertNil(ShopInventoryStore.equippedBackdrop(for: .profile, userId: userId, defaults: defaults))
     }
 
+    /// Returning to the default must survive the cloud backup's
+    /// adopt-when-unset restore. Clearing used to REMOVE the slot keys, making
+    /// a deliberate default indistinguishable from never-touched - the next
+    /// seed pass re-adopted the old cloud value and "Use" on the default card
+    /// appeared to do nothing.
+    func testClearedSlotReadsAsLocallySetSoRestoreCannotResurrect() {
+        let defaults = isolatedDefaults()
+        let userId = "shop-test-user"
+        let profileItem = ShopCatalog.item(id: "profileBackground.archiveWall")!
+
+        ShopInventoryStore.markPurchased(profileItem, userId: userId, defaults: defaults)
+        ShopInventoryStore.setEquippedBackdrop(profileItem, for: .profile, userId: userId, defaults: defaults)
+        ShopInventoryStore.clearEquippedBackdrop(for: .profile, userId: userId, defaults: defaults)
+
+        // The reader resolves to default...
+        XCTAssertNil(ShopInventoryStore.equippedBackdrop(for: .profile, userId: userId, defaults: defaults))
+        // ...but the raw snapshot still reads as locally set, which is the
+        // exact guard `seedEquippedSlots` keys its adopt-when-unset checks off.
+        let snapshot = ShopInventoryStore.equippedSlotSnapshot(userId: userId, defaults: defaults)
+        XCTAssertEqual(snapshot.profileBackground, ShopInventoryStore.equippedDefaultSentinel)
+        XCTAssertEqual(snapshot.profileBackdrop, ShopInventoryStore.equippedDefaultSentinel)
+    }
+
     func testInsufficientFundsDoesNotPersistPurchase() {
         let defaults = isolatedDefaults()
         let wallet = CurrencyWalletStore(defaults: defaults)

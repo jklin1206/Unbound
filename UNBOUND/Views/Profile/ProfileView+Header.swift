@@ -303,7 +303,11 @@ extension ProfileView {
                 image: photoStore.image(userId: photoUserId),
                 letterFallback: avatarInitial,
                 shopBorder: equippedShopProfileBorder,
-                size: size
+                size: size,
+                defaultPortrait: DefaultPortrait.resolve(
+                    gender: profile?.gender,
+                    biologicalSex: profile?.biologicalSex
+                )
             )
         }
         .buttonStyle(.plain)
