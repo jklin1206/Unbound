@@ -114,16 +114,18 @@ struct SessionEditorView: View {
                 }
             }
         }
-        .sheet(item: $pickerRoute) { route in
+        .fullScreenCover(item: $pickerRoute) { route in
             switch route {
             case .add(let blockId):
                 ExerciseSwapSheet(
-                    mode: .add,
+                    mode: .addMulti,
                     currentExerciseName: "Session",
                     alternatives: allCatalogExercises,
                     onSelect: { exercise in
                         addExercise(exercise, toBlockId: blockId)
-                        pickerRoute = nil
+                    },
+                    onDeselect: { exercise in
+                        removeLastAdded(exercise, fromBlockId: blockId)
                     },
                     recentExerciseNames: recentExerciseNames,
                     preferenceStatusesByKey: preferenceStatusesByKey,
@@ -163,6 +165,13 @@ struct SessionEditorView: View {
         }
         .task {
             await loadPickerContext()
+            #if DEBUG
+            // Dev harness: `--unbound-open-session-editor-add` opens the
+            // add-exercise picker on launch for on-sim screenshots.
+            if ProcessInfo.processInfo.arguments.contains("--unbound-open-session-editor-add") {
+                openAddExercise()
+            }
+            #endif
         }
         .numberPadDock(model: keypad)
     }
@@ -373,6 +382,20 @@ struct SessionEditorView: View {
         refreshDraftEstimate()
     }
 
+    /// Undo for the .addMulti picker's toggle-off tap. `addExercise` always
+    /// appends, so the row this-visit just added is the LAST prescription in
+    /// the block matching this exercise's name — never remove anything else,
+    /// and never remove if nothing matches (the tap simply lands elsewhere).
+    func removeLastAdded(_ exercise: CatalogExercise, fromBlockId blockId: String) {
+        guard let blockIndex = draft.blocks.firstIndex(where: { $0.id == blockId }) else { return }
+        guard let prescriptionIndex = draft.blocks[blockIndex].prescriptions.lastIndex(where: {
+            MovementCatalog.normalized($0.exerciseName) == MovementCatalog.normalized(exercise.displayName)
+                || MovementCatalog.normalized($0.exerciseName) == MovementCatalog.normalized(exercise.name)
+        }) else { return }
+        draft.blocks[blockIndex].prescriptions.remove(at: prescriptionIndex)
+        refreshDraftEstimate()
+    }
+
     func removePrescription(at target: PrescriptionTarget) {
         guard draft.blocks.indices.contains(target.blockIndex),
               draft.blocks[target.blockIndex].prescriptions.indices.contains(target.prescriptionIndex)
@@ -506,12 +529,18 @@ struct SessionEditorView: View {
 
     func muscleGroups(for pattern: MovementPattern) -> [MuscleGroup] {
         switch pattern {
-        case .legsQuad, .legsPosterior, .calves:
-            return [.legs, .glutes]
-        case .pushHorizontal, .pushVertical, .arms:
-            return [.chest, .shoulders, .arms]
+        case .legsQuad:
+            return [.quads, .glutes]
+        case .legsPosterior:
+            return [.hamstrings, .glutes]
+        case .calves:
+            return [.calves]
+        case .pushHorizontal, .pushVertical:
+            return [.chest, .shoulders, .triceps]
+        case .arms:
+            return [.biceps, .triceps]
         case .pullHorizontal, .pullVertical:
-            return [.back, .arms]
+            return [.back, .biceps]
         case .core:
             return [.core]
         }

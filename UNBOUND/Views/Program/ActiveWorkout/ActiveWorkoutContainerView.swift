@@ -281,7 +281,7 @@ struct ActiveWorkoutContainerView: View {
         // Grid cell editing + RPE now use the shared bottom-docked keypad module
         // (.numberPadDock(model: keypad)), not modal sheets.
         // Swap sheet — uses the existing ExerciseSwapSheet with real init
-        .sheet(item: Binding(
+        .fullScreenCover(item: Binding(
             get: { swapExerciseIndex.map(SwapContext.init(index:)) },
             set: { swapExerciseIndex = $0?.index }
         )) { ctx in
@@ -310,14 +310,17 @@ struct ActiveWorkoutContainerView: View {
         }
         // Live "Add Exercise" picker for free/Quick-Log sessions — reuses the
         // same catalog picker the session editor uses.
-        .sheet(isPresented: $showingAddExercise) {
+        .fullScreenCover(isPresented: $showingAddExercise) {
             ExerciseSwapSheet(
-                mode: .add,
+                mode: .addMulti,
                 currentExerciseName: "Quick Log",
                 alternatives: addExerciseCatalog,
                 onSelect: { exercise in
                     session.appendCatalogExercise(exercise)
-                    showingAddExercise = false
+                    saveDraft()
+                },
+                onDeselect: { exercise in
+                    session.removeLastAddedExercise(matching: exercise.displayName)
                     saveDraft()
                 },
                 onCreateCustom: {

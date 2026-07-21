@@ -103,7 +103,7 @@ struct WorkoutDetailView: View {
             })
             .environmentObject(services)
         }
-        .sheet(item: Binding(
+        .fullScreenCover(item: Binding(
             get: { swapTargetExerciseId.map(SwapTarget.init(id:)) },
             set: { swapTargetExerciseId = $0?.id }
         )) { target in
