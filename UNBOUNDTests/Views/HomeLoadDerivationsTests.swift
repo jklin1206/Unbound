@@ -32,6 +32,57 @@ final class HomeLoadDerivationsTests: XCTestCase {
             [])
     }
 
+    // MARK: - weekCreditedDays (streak-covered rest days in the week strip)
+
+    func test_weekCreditedDays_coversStreakSpanThroughToday() {
+        // Streak of 4 ending Tuesday (Sat-Tue), today Thursday: streak still
+        // alive (gap 2 <= 3). This week's credited run is Mon..Thu = 1...4.
+        let days = HomeLoadDerivations.weekCreditedDays(
+            lastSessionDate: date(2026, 5, 12),   // Tue
+            currentStreak: 4,
+            now: date(2026, 5, 14),               // Thu
+            calendar: cal()
+        )
+        XCTAssertEqual(days, [1, 2, 3, 4])
+    }
+
+    func test_weekCreditedDays_clipsToStreakStartMidWeek() {
+        // Streak of 2 (Tue-Wed), today Wednesday: Monday predates the streak
+        // and stays unlit; Tue+Wed are covered.
+        let days = HomeLoadDerivations.weekCreditedDays(
+            lastSessionDate: date(2026, 5, 13),   // Wed
+            currentStreak: 2,
+            now: date(2026, 5, 13),
+            calendar: cal()
+        )
+        XCTAssertEqual(days, [2, 3])
+    }
+
+    func test_weekCreditedDays_emptyOnceGraceLapsed() {
+        // Last session Monday, today Friday: 4-day gap breaks the streak —
+        // nothing renders credited.
+        let days = HomeLoadDerivations.weekCreditedDays(
+            lastSessionDate: date(2026, 5, 11),   // Mon
+            currentStreak: 9,
+            now: date(2026, 5, 15),               // Fri
+            calendar: cal()
+        )
+        XCTAssertEqual(days, [])
+    }
+
+    func test_weekCreditedDays_emptyWithoutStreak() {
+        XCTAssertEqual(
+            HomeLoadDerivations.weekCreditedDays(
+                lastSessionDate: nil, currentStreak: 0,
+                now: date(2026, 5, 13), calendar: cal()),
+            [])
+        XCTAssertEqual(
+            HomeLoadDerivations.weekCreditedDays(
+                lastSessionDate: date(2026, 5, 12), currentStreak: 0,
+                now: date(2026, 5, 13), calendar: cal()),
+            [])
+    }
+
     func test_lastLog_and_hasLogged() {
         let logs: [WorkoutLog] = []
         XCTAssertNil(HomeLoadDerivations.lastLog(logs))

@@ -111,9 +111,10 @@ extension UnboundHomeView {
                 NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
             } else if canStart {
                 beginTodaySession()
-            } else if isRest {
-                captureMode = .photo
             } else {
+                // Rest days auto-credit the streak (ProgramAwareStreakPolicy);
+                // there is nothing to log, so the tap reviews the day's
+                // recovery work instead of demanding a photo check-in.
                 NotificationCenter.default.post(name: .requestNavigateToProgramTab, object: nil)
             }
         }
@@ -133,6 +134,10 @@ extension UnboundHomeView {
         HomeWeekPathSection(
             currentStreak: model.sessionXP?.currentStreak ?? streakDays,
             weekSessionDays: model.weekSessionDays,
+            weekCreditedDays: HomeLoadDerivations.weekCreditedDays(
+                lastSessionDate: model.sessionXP?.lastSessionDate,
+                currentStreak: model.sessionXP?.currentStreak ?? 0
+            ),
             countdown: streakCountdown,
             reduceMotion: reduceMotion
         )

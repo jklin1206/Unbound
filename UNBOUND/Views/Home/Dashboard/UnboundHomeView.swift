@@ -77,9 +77,6 @@ struct UnboundHomeView: View {
     @State var pendingDailyQuestCompletionRecord: RoutineCompletionRecord?
     @State var dailyQuestCompletionError: String?
 
-    // Photo/Scan capture flow presentation
-    @State var captureMode: PhotoCaptureFlow.Mode?
-
     @State var showScanCaptureFlow = false
 
     @State var showTrialPicker = false
@@ -227,17 +224,6 @@ struct UnboundHomeView: View {
                 })
                 .environmentObject(services)
             }
-        }
-        .fullScreenCover(item: $captureMode) { mode in
-            PhotoCaptureFlow(mode: mode) { outcome in
-                captureMode = nil
-                if outcome == .photoSaved || outcome == .scanCompleted || outcome == .scanDegradedToPhoto {
-                    // Updated timestamps already persisted by the flow.
-                    // Just refresh rank/stat triggers that might care.
-                    Task { await model.refreshRanksAndStats() }
-                }
-            }
-            .environmentObject(services)
         }
         .background(
             EmptyView()

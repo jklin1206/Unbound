@@ -11,9 +11,9 @@ settings:
     SWIFT_VERSION: "5.9"
     # App Store version identity. Builds 1-3 were uploaded with ad-hoc
     # overrides; these make the generated project self-sufficient. Bump
-    # CURRENT_PROJECT_VERSION for every upload (next upload after build 5 = 6).
+    # CURRENT_PROJECT_VERSION for every upload (next upload after build 6 = 7).
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: 6
+    CURRENT_PROJECT_VERSION: 7
     # HTTPS-only exempt crypto; answers the export-compliance question at
     # upload time so builds don't stall on "Missing Compliance".
     INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
@@ -79,7 +79,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.unboundapp.ios
         MARKETING_VERSION: "1.0"
-        CURRENT_PROJECT_VERSION: "6"
+        CURRENT_PROJECT_VERSION: "7"
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
         # Partial plist merged UNDER the generated keys: carries only what
