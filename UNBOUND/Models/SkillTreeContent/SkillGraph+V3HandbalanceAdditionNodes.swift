@@ -12,7 +12,7 @@ extension SkillGraph {
             cluster: .handstand, tier: 2, type: .hold,
             target: .hold(exercise: "headstand", seconds: 30),
             prereqs: [PrerequisiteGroup("hs.wall-plank")],
-            primary: [.shoulders, .core], secondary: [.arms],
+            primary: [.shoulders, .core], secondary: [.triceps],
             subtitle: "The inversion that still respects your neck.",
             description: "30-second tripod or supported headstand with active hands, light head contact, long neck, and body stacked vertical. First real taste of inverted balance without treating the neck like the base.",
             formCues: [
@@ -35,7 +35,7 @@ extension SkillGraph {
             cluster: .handstand, tier: 3, type: .hold,
             target: .hold(exercise: "tuck handstand", seconds: 5),
             prereqs: [PrerequisiteGroup("hs.wall-handstand-30")],
-            primary: [.shoulders, .core], secondary: [.arms],
+            primary: [.shoulders, .core], secondary: [.triceps],
             subtitle: "Freestanding on-ramp.",
             description: "5-second freestanding tuck handstand — balance on hands with knees pulled tight to chest. Easier lever than full handstand, teaches the balance.",
             formCues: [
@@ -57,7 +57,7 @@ extension SkillGraph {
             cluster: .planche, tier: 2, type: .hold,
             target: .hold(exercise: "crow pose", seconds: 15),
             prereqs: [PrerequisiteGroup("hs.wall-plank")],
-            primary: [.shoulders, .arms, .core],
+            primary: [.shoulders, .triceps, .core],
             subtitle: "Knees on the triceps. Balance on the hands.",
             description: "15-second crow pose — squat, plant hands, rest knees on the backs of the triceps, shift weight forward until feet leave the floor.",
             formCues: [
@@ -79,7 +79,7 @@ extension SkillGraph {
             cluster: .planche, tier: 3, type: .hold,
             target: .hold(exercise: "crane pose", seconds: 10),
             prereqs: [PrerequisiteGroup("hs.crow-pose")],
-            primary: [.shoulders, .arms, .core],
+            primary: [.shoulders, .triceps, .core],
             subtitle: "Crow, but arms straight.",
             description: "10-second crane pose — same knees-on-triceps position as crow, but arms are fully locked out. Harder balance and a real strength challenge.",
             formCues: [
@@ -101,7 +101,7 @@ extension SkillGraph {
             cluster: .planche, tier: 3, type: .hold,
             target: .hold(exercise: "flying crow", seconds: 5),
             prereqs: [PrerequisiteGroup(["hs.crow-pose", "hs.crane-pose"])],
-            primary: [.shoulders, .arms, .core],
+            primary: [.shoulders, .triceps, .core],
             subtitle: "One leg extended straight back.",
             description: "5-second flying crow — from crane or crow, extend one leg straight back into the air. Full body engagement with a long lever fighting the balance.",
             formCues: [
@@ -123,7 +123,7 @@ extension SkillGraph {
             cluster: .planche, tier: 3, type: .hold,
             target: .hold(exercise: "elbow lever", seconds: 10),
             prereqs: [PrerequisiteGroup("hs.crow-pose")],
-            primary: [.shoulders, .core, .arms],
+            primary: [.shoulders, .core, .triceps],
             subtitle: "Body horizontal, elbows into the hips.",
             description: "10-second elbow lever — hands plant on the floor, elbows drive into the ribs or hip crease, body extends horizontal. Parlor trick that builds serious core.",
             formCues: [
@@ -145,7 +145,7 @@ extension SkillGraph {
             cluster: .planche, tier: 4, type: .hold,
             target: .hold(exercise: "one-arm elbow lever", seconds: 5),
             prereqs: [PrerequisiteGroup(["hs.elbow-lever", "hs.crane-pose"])],
-            primary: [.shoulders, .core, .arms],
+            primary: [.shoulders, .core, .triceps],
             subtitle: "Same lever. Half the supports.",
             description: "5-second one-arm elbow lever. Same position as the two-arm version but supported by a single arm — the elbow of the working side presses into the hip crease.",
             formCues: [
@@ -167,7 +167,7 @@ extension SkillGraph {
             cluster: .handstand, tier: 5, type: .skill,
             target: .reps(exercise: "tuck press", count: 3),
             prereqs: [PrerequisiteGroup(["hs.tuck-handstand", "hs.freestanding-hs-30", "cl.hollow-body-30"])],
-            primary: [.shoulders, .core], secondary: [.arms],
+            primary: [.shoulders, .core], secondary: [.triceps],
             subtitle: "Press up from tuck to handstand.",
             description: "3 tuck presses — from an L-sit or compressed tuck on the floor, press through straight arms to a tuck handstand without kipping.",
             formCues: [
@@ -189,7 +189,7 @@ extension SkillGraph {
             cluster: .handstand, tier: 6, type: .skill,
             target: .reps(exercise: "straddle press", count: 3),
             prereqs: [PrerequisiteGroup(["hs.tuck-press", "hs.freestanding-hs-30", "cal.pike-pushup"])],
-            primary: [.shoulders, .core], secondary: [.arms],
+            primary: [.shoulders, .core], secondary: [.triceps],
             subtitle: "Legs split. Straight arms all the way.",
             description: "3 straddle presses to handstand — from a straddle pike compression on the floor, press through straight arms and a split-leg shape up to handstand. Hamstring flexibility + pressing strength.",
             formCues: [
@@ -212,7 +212,7 @@ extension SkillGraph {
             target: .reps(exercise: "press to handstand", count: 1),
             prereqs: [PrerequisiteGroup(["hs.straddle-press", "hs.freestanding-hs-30", "cl.straddle-l-sit"])],
             isMythic: true,
-            primary: [.shoulders, .core], secondary: [.arms],
+            primary: [.shoulders, .core], secondary: [.triceps],
             subtitle: "Legs glued. Straight up.",
             description: "One clean pike press to handstand — legs together, arms straight, press from floor pike to vertical handstand without momentum. Gymnastic standard.",
             formCues: [

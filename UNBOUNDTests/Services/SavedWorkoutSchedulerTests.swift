@@ -37,7 +37,7 @@ final class SavedWorkoutSchedulerTests: XCTestCase {
                             sets: 3,
                             target: .repsRange(8, 10),
                             restSeconds: 90,
-                            muscleGroups: [.legs]
+                            muscleGroups: [.quads]
                         )
                     ]
                 ),

@@ -75,7 +75,7 @@ final class WorkingWeightService: WorkingWeightServiceProtocol, @unchecked Senda
             let definition = MovementCatalog.canonicalExercise(named: exerciseName)
             let isCompound = definition.map(ExerciseLibrary.isCompound) ?? false
             let isLowerBody = definition?
-                .muscleGroups.contains(where: { [.legs, .glutes].contains($0) }) ?? false
+                .muscleGroups.contains(where: { [.legs, .quads, .hamstrings, .glutes].contains($0) }) ?? false
 
             if isCompound {
                 return .increaseWeight(

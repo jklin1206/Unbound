@@ -99,8 +99,8 @@ enum ExerciseLibrarySearch {
     /// "what am I training today". It was also nearly inert in swap mode, where
     /// every candidate is same-slot by construction, so the chips filtered nothing.
     static let muscleFilterOrder: [MuscleGroup] = [
-        .chest, .back, .lats, .traps, .shoulders, .arms, .forearms,
-        .core, .legs, .glutes, .calves, .neck
+        .chest, .back, .lats, .traps, .shoulders, .biceps, .triceps, .forearms,
+        .core, .quads, .hamstrings, .glutes, .calves, .neck, .arms, .legs
     ]
 
     static func availableMuscleGroups(in alternatives: [CatalogExercise]) -> [MuscleGroup] {
@@ -545,8 +545,8 @@ enum ExerciseLibrarySearch {
     }
 
     /// Keep the catalog's own ordering — it is authored prime-mover first
-    /// (`[.legs, .glutes, .core]` for a squat). Re-sorting these into the chip's
-    /// anatomical order surfaced a squat as "Core · Legs · Glutes", which reads
+    /// (`[.quads, .glutes, .core]` for a squat). Re-sorting these into the chip's
+    /// anatomical order surfaced a squat as "Core · Quads · Glutes", which reads
     /// like a core exercise.
     static func muscleSummary(for muscleGroups: [MuscleGroup]) -> String {
         muscleGroups.prefix(3).map(\.displayName).joined(separator: " · ")

@@ -21,13 +21,13 @@ enum DayTemplate: String, Codable, CaseIterable, Hashable {
     /// empty; the generator fills weakPoint dynamically from the scan's focus areas.
     var muscleGroups: [MuscleGroup] {
         switch self {
-        case .push: return [.chest, .shoulders, .arms]
-        case .pull: return [.back, .lats, .arms, .traps]
-        case .legs: return [.legs, .glutes, .calves, .core]
-        case .upper: return [.chest, .back, .shoulders, .arms, .lats]
-        case .lower: return [.legs, .glutes, .calves, .core]
-        case .fullBody: return [.chest, .back, .legs, .shoulders, .core]
-        case .skill: return [.core, .arms, .shoulders]
+        case .push: return [.chest, .shoulders, .triceps]
+        case .pull: return [.back, .lats, .biceps, .traps]
+        case .legs: return [.quads, .hamstrings, .glutes, .calves, .core]
+        case .upper: return [.chest, .back, .shoulders, .biceps, .triceps, .lats]
+        case .lower: return [.quads, .hamstrings, .glutes, .calves, .core]
+        case .fullBody: return [.chest, .back, .quads, .hamstrings, .shoulders, .core]
+        case .skill: return [.core, .biceps, .triceps, .shoulders]
         case .weakPoint: return []
         case .rest: return []
         }

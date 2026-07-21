@@ -207,7 +207,7 @@ final class ProgramAwareLoggingTests: XCTestCase {
         XCTAssertEqual(exercise.plannedSets, 2)
         XCTAssertEqual(exercise.plannedReps, "10-12")
         XCTAssertEqual(exercise.restSeconds, 75)
-        XCTAssertEqual(exercise.muscleGroups, [.back, .arms])
+        XCTAssertEqual(exercise.muscleGroups, [.back, .biceps])
         XCTAssertEqual(exercise.sets.count, 2)
         XCTAssertEqual(exercise.sets[0].suggestedReps, 10)
         XCTAssertEqual(exercise.sets[0].suggestedRPE, 8)

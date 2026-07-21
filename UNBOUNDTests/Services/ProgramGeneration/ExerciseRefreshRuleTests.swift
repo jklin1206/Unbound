@@ -87,7 +87,7 @@ final class ExerciseRefreshRuleTests: XCTestCase {
         let unrelated = CatalogExercise(
             name: "curl",
             displayName: "Curl",
-            muscleGroups: [.arms],
+            muscleGroups: [.biceps],
             defaultSubstitute: nil
         )
         let pool = [a, sibling, unrelated]
@@ -111,7 +111,7 @@ final class ExerciseRefreshRuleTests: XCTestCase {
         let differentGroups = CatalogExercise(
             name: "curl",
             displayName: "Curl",
-            muscleGroups: [.arms],
+            muscleGroups: [.biceps],
             defaultSubstitute: nil
         )
         let alt = ExerciseRefreshRule.alternative(for: a, in: [a, sibling, differentGroups])
@@ -132,7 +132,7 @@ final class ExerciseRefreshRuleTests: XCTestCase {
         let unrelated = CatalogExercise(
             name: "curl",
             displayName: "Curl",
-            muscleGroups: [.arms],
+            muscleGroups: [.biceps],
             defaultSubstitute: nil
         )
         let alt = ExerciseRefreshRule.alternative(for: a, in: [a, unrelated])

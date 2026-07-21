@@ -218,7 +218,7 @@ extension DeterministicProgramGenerator {
         }
 
         return catalog.filter { definition in
-            !Set(definition.muscleGroups).intersection(templateGroups).isEmpty
+            !Set(MuscleGroup.modernized(definition.muscleGroups)).intersection(templateGroups).isEmpty
         }
     }
 
@@ -339,7 +339,7 @@ extension DeterministicProgramGenerator {
     ) -> Bool {
         guard !bias.isEmpty else { return false }
         let biasedGroups = Set(bias.keys)
-        return !Set(definition.muscleGroups).intersection(biasedGroups).isEmpty
+        return !Set(MuscleGroup.modernized(definition.muscleGroups)).intersection(biasedGroups).isEmpty
     }
 
     static func rotationFiltered(

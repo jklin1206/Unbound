@@ -80,7 +80,7 @@ enum SkillBlockRouter {
             case .push:
                 groups.append(.chest)
             case .legs:
-                groups.append(.legs)
+                groups.append(contentsOf: [.quads, .hamstrings])
             case .core:
                 groups.append(.core)
             case .posterior:

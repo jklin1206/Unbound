@@ -206,8 +206,9 @@ struct SavedWorkout: Codable, Identifiable, Hashable, Sendable {
         let counts = Dictionary(grouping: muscleGroups, by: { $0 }).mapValues(\.count)
         let push = (counts[.chest] ?? 0) + (counts[.shoulders] ?? 0)
         let pull = counts[.back] ?? 0
-        let legs = (counts[.legs] ?? 0) + (counts[.glutes] ?? 0)
-        let upper = push + pull + (counts[.arms] ?? 0)
+        // .legs/.arms are legacy coarse tags kept for persisted data alongside the fine-grained cases.
+        let legs = (counts[.quads] ?? 0) + (counts[.hamstrings] ?? 0) + (counts[.glutes] ?? 0) + (counts[.legs] ?? 0)
+        let upper = push + pull + (counts[.biceps] ?? 0) + (counts[.triceps] ?? 0) + (counts[.arms] ?? 0)
         if legs > upper { return "legs" }
         if push > pull { return "push" }
         if pull > push { return "pull" }

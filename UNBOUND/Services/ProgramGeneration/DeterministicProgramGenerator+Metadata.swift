@@ -23,11 +23,17 @@ extension DeterministicProgramGenerator {
     static func labelFor(template: DayTemplate, bias: [MuscleGroup: Int]) -> String {
         // Only advertise a bias the day can actually express — a "Legs Bias"
         // tag on a push day is a placebo label. Deterministic tie-break so the
-        // same inputs always produce the same label.
+        // same inputs always produce the same label. Both sides are
+        // modernized before matching so legacy persisted bias (`.arms`/
+        // `.legs`) still lines up with the fine-grained template groups.
+        let modernizedBias = Dictionary(
+            bias.flatMap { key, value in key.modernized.map { ($0, value) } },
+            uniquingKeysWith: max
+        )
         let relevantGroups: Set<MuscleGroup> = template == .weakPoint
-            ? Set(bias.keys)
-            : Set(template.muscleGroups)
-        let biggest = bias
+            ? Set(modernizedBias.keys)
+            : Set(MuscleGroup.modernized(template.muscleGroups))
+        let biggest = modernizedBias
             .filter { relevantGroups.contains($0.key) }
             .sorted { lhs, rhs in
                 lhs.value != rhs.value ? lhs.value > rhs.value : lhs.key.rawValue < rhs.key.rawValue

@@ -313,12 +313,16 @@ enum ProgramRankTargetRegionSet {
                 return [.lats, .rhomboids, .traps]
             case .shoulders:
                 return [.frontSideDelts]
-            case .arms:
-                return [.biceps, .triceps, .forearms]
+            case .biceps:
+                return [.biceps]
+            case .triceps:
+                return [.triceps]
             case .forearms:
                 return [.forearms]
-            case .legs:
-                return [.quads, .hamstrings, .glutes, .calves]
+            case .quads:
+                return [.quads]
+            case .hamstrings:
+                return [.hamstrings]
             case .glutes:
                 return [.glutes]
             case .core:
@@ -331,6 +335,11 @@ enum ProgramRankTargetRegionSet {
                 return [.calves]
             case .neck:
                 return []
+            // Legacy coarse tags from persisted data
+            case .arms:
+                return [.biceps, .triceps, .forearms]
+            case .legs:
+                return [.quads, .hamstrings, .glutes, .calves]
             }
         }
     }

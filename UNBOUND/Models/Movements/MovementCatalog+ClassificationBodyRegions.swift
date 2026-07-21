@@ -164,12 +164,16 @@ extension MovementCatalog {
                 return [.lats, .traps]
             case .shoulders:
                 return [.frontSideDelts]
-            case .arms:
-                return [.biceps, .triceps]
+            case .biceps:
+                return [.biceps]
+            case .triceps:
+                return [.triceps]
             case .forearms:
                 return [.forearms]
-            case .legs:
-                return [.quads, .hamstrings]
+            case .quads:
+                return [.quads]
+            case .hamstrings:
+                return [.hamstrings]
             case .glutes:
                 return [.glutes]
             case .core:
@@ -182,6 +186,11 @@ extension MovementCatalog {
                 return [.calves]
             case .neck:
                 return []
+            // Legacy coarse tags from persisted data
+            case .arms:
+                return [.biceps, .triceps]
+            case .legs:
+                return [.quads, .hamstrings]
             }
         }
         return Array(Set(regions)).sorted { $0.rawValue < $1.rawValue }

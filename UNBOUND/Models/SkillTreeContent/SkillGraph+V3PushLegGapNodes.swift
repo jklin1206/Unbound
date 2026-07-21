@@ -9,7 +9,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 6, type: .skill,
             target: .reps(exercise: "bent arm press", count: 3),
             prereqs: [PrerequisiteGroup(["cal.floating-pike-pushup", "hs.wall-handstand-30"])],
-            primary: [.shoulders, .arms], secondary: [.core, .chest],
+            primary: [.shoulders, .triceps], secondary: [.core, .chest],
             subtitle: "Tripod or tuck press to handstand.",
             description: "A bent-arm press to handstand: start from a controlled tripod, tuck, or straddle setup, shift shoulders forward, float the hips first, then press through bent arms to a stacked handstand without jumping.",
             formCues: [
@@ -34,7 +34,7 @@ extension SkillGraph {
             target: .reps(exercise: "step up", count: 15),
             prereqs: [PrerequisiteGroup("ld.goblet-20")],
             equipment: [.elevatedSurface],
-            primary: [.legs, .glutes], secondary: [.core],
+            primary: [.quads, .glutes], secondary: [.core],
             subtitle: "The most skipped entry.",
             description: "Step up onto a knee-height box, drive through the heel, control the descent. Hidden gold for quad/glute strength and single-leg control without needing pistol-level mobility.",
             formCues: [
@@ -56,7 +56,7 @@ extension SkillGraph {
             cluster: .legDominance, tier: 3, type: .hold,
             target: .hold(exercise: "deep squat", seconds: 60),
             prereqs: [PrerequisiteGroup("ld.step-up")],
-            primary: [.legs, .glutes], secondary: [.core],
+            primary: [.quads, .glutes], secondary: [.core],
             subtitle: "The squat your body forgot.",
             description: "Sit in a full-depth bodyweight squat — hips below knees, feet flat, chest up — for the duration. Ankle, hip, and knee mobility floor that every squat progression depends on.",
             formCues: [
@@ -101,7 +101,7 @@ extension SkillGraph {
             target: .weightMultiplier(exercise: "weighted bss", multiplier: 0.5),
             prereqs: [PrerequisiteGroup("ld.bulgarian-split-squat")],
             equipment: [.dumbbells, .kettlebell, .elevatedSurface],
-            primary: [.legs, .glutes], secondary: [.core],
+            primary: [.quads, .glutes], secondary: [.core],
             subtitle: "Load the single leg.",
             description: "Bulgarian split squat holding dumbbells or kettlebells — 0.5x bodyweight total load. 8 reps per leg. Direct strength path toward the pistol and weighted pistol.",
             formCues: [
@@ -123,7 +123,7 @@ extension SkillGraph {
             cluster: .legDominance, tier: 5, type: .skill,
             target: .reps(exercise: "sissy squat", count: 8),
             prereqs: [PrerequisiteGroup("ld.leg-extensions")],
-            primary: [.legs], secondary: [.core],
+            primary: [.quads], secondary: [.core],
             subtitle: "Pure quad isolation.",
             description: "Lean back, bend at the knees only (hips stay extended), drop the heels — torso, hips, and knees stay in a straight line. The brutal quad-only movement that gym bros sleep on.",
             formCues: [
@@ -146,7 +146,7 @@ extension SkillGraph {
             target: .reps(exercise: "nordic hip hinge", count: 8),
             prereqs: [PrerequisiteGroup("ld.single-leg-glute-bridge")],
             equipment: [.elevatedSurface],
-            primary: [.legs, .glutes], secondary: [.core],
+            primary: [.hamstrings, .glutes], secondary: [.core],
             subtitle: "Hamstrings meet hip hinge.",
             description: "Kneeling hip hinge with feet anchored — lean forward from the knees, hinge at the hips mid-rep, then return. The on-ramp to the full Nordic curl that teaches the exact motor pattern.",
             formCues: [
@@ -169,7 +169,7 @@ extension SkillGraph {
             target: .reps(exercise: "nordic curl", count: 3),
             prereqs: [PrerequisiteGroup(["ld.advancing-nordic-curl", "ld.single-leg-glute-bridge"])],
             equipment: [.elevatedSurface],
-            primary: [.legs, .glutes], secondary: [.core],
+            primary: [.hamstrings, .glutes], secondary: [.core],
             subtitle: "The hamstring holy grail.",
             description: "Kneeling, ankles anchored, lower the torso to the floor using only hamstring strength — then pull yourself back up with no hand assist. The hardest bodyweight hamstring move in existence.",
             formCues: [

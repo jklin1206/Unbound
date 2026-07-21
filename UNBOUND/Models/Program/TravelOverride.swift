@@ -106,8 +106,8 @@ extension TravelDay {
         let lower = title.lowercased()
         if lower.contains("leg") {
             return [
-                supportExercise("Hip Opener Flow", groups: [.legs, .glutes, .core], reps: "45s", notes: "Move slowly."),
-                supportExercise("Tempo Air Squat", groups: [.legs, .glutes, .core], reps: "8", notes: "Three-second lower.")
+                supportExercise("Hip Opener Flow", groups: [.quads, .hamstrings, .glutes, .core], reps: "45s", notes: "Move slowly."),
+                supportExercise("Tempo Air Squat", groups: [.quads, .glutes, .core], reps: "8", notes: "Three-second lower.")
             ]
         }
         if lower.contains("push") {
@@ -117,8 +117,8 @@ extension TravelDay {
             ]
         }
         return [
-            supportExercise("Hip Opener Flow", groups: [.legs, .glutes, .back, .core], reps: "45s", notes: "Full-body prep."),
-            supportExercise("Jumping Jack", groups: [.legs, .calves, .shoulders], reps: "45s", notes: "Easy pulse raise.")
+            supportExercise("Hip Opener Flow", groups: [.quads, .hamstrings, .glutes, .back, .core], reps: "45s", notes: "Full-body prep."),
+            supportExercise("Jumping Jack", groups: [.quads, .hamstrings, .calves, .shoulders], reps: "45s", notes: "Easy pulse raise.")
         ]
     }
 
@@ -129,27 +129,27 @@ extension TravelDay {
         let notes: String
 
         if lower.contains("row") || lower.contains("pulldown") || lower.contains("pull-down") {
-            groups = [.back, .lats, .arms]
+            groups = [.back, .lats, .biceps]
             reps = "8-12"
             notes = "Pull elbows toward ribs; keep shoulders down."
         } else if lower.contains("romanian") || lower.contains("rdl") || lower.contains("deadlift") || lower.contains("hinge") {
-            groups = [.glutes, .legs, .back, .core]
+            groups = [.glutes, .hamstrings, .back, .core]
             reps = "8-12"
             notes = "Hinge cleanly; stop when hamstrings limit the range."
         } else if lower.contains("push") || lower.contains("dip") {
-            groups = [.chest, .shoulders, .arms, .core]
+            groups = [.chest, .shoulders, .triceps, .core]
             reps = "8-15"
             notes = "Stop 1-2 reps before form breaks."
         } else if lower.contains("squat") || lower.contains("lunge") || lower.contains("wall sit") {
-            groups = [.legs, .glutes, .core]
+            groups = [.quads, .glutes, .core]
             reps = lower.contains("wall sit") ? "30-45s" : "10-14/side"
             notes = "Control the descent; keep the knee tracking clean."
         } else if lower.contains("glute") {
-            groups = [.glutes, .legs, .core]
+            groups = [.glutes, .hamstrings, .core]
             reps = "10-14/side"
             notes = "Pause at the top."
         } else if lower.contains("calf") {
-            groups = [.calves, .legs]
+            groups = [.calves, .quads, .hamstrings]
             reps = "15-25"
             notes = "Full stretch and full lockout."
         } else if lower.contains("plank") || lower.contains("hollow") || lower.contains("mountain") {

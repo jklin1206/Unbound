@@ -5,13 +5,13 @@ final class SavedWorkoutModelTests: XCTestCase {
     func testFactoryFromWorkoutPreservesPrescriptionTargetsAndInfersRole() {
         let workout = Workout(
             name: "Pull Day A",
-            targetMuscleGroups: [.back, .arms],
+            targetMuscleGroups: [.back, .biceps],
             warmup: [],
             mainExercises: [
                 Exercise(
                     id: "pull-up-slot",
                     name: "Pull-Up",
-                    muscleGroups: [.back, .arms],
+                    muscleGroups: [.back, .biceps],
                     sets: 3,
                     reps: "6-8",
                     restSeconds: 120,
@@ -97,7 +97,7 @@ final class SavedWorkoutModelTests: XCTestCase {
                             sets: 3,
                             target: .repsRange(8, 12),
                             restSeconds: 75,
-                            muscleGroups: [.back, .arms],
+                            muscleGroups: [.back, .biceps],
                             rpe: 7
                         )
                     ]

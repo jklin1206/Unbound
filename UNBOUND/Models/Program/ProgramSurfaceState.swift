@@ -259,12 +259,12 @@ enum ProgramProofProgramFactory {
     private static func calibrationProofWorkout() -> Workout {
         Workout(
             name: "Calibration: Upper Standard",
-            targetMuscleGroups: [.chest, .back, .shoulders, .arms],
+            targetMuscleGroups: [.chest, .back, .shoulders, .biceps, .triceps],
             warmup: [],
             mainExercises: [
-                Exercise(id: "proof-cal-bench", name: "Barbell Bench Press", muscleGroups: [.chest, .shoulders, .arms], sets: 2, reps: "6-8", restSeconds: 120, rpe: 7, notes: "Calibration set: choose a clean RPE 6-7 load.", substitution: nil),
-                Exercise(id: "proof-cal-row", name: "Machine Row", muscleGroups: [.back, .lats, .arms], sets: 2, reps: "6-8", restSeconds: 120, rpe: 7, notes: "Calibration set: stop with 2-3 reps in reserve.", substitution: nil),
-                Exercise(id: "proof-cal-ohp", name: "Dumbbell OHP", muscleGroups: [.shoulders, .arms], sets: 2, reps: "6-8", restSeconds: 120, rpe: 7, notes: "Calibration set: control the tempo.", substitution: nil)
+                Exercise(id: "proof-cal-bench", name: "Barbell Bench Press", muscleGroups: [.chest, .shoulders, .triceps], sets: 2, reps: "6-8", restSeconds: 120, rpe: 7, notes: "Calibration set: choose a clean RPE 6-7 load.", substitution: nil),
+                Exercise(id: "proof-cal-row", name: "Machine Row", muscleGroups: [.back, .lats, .biceps], sets: 2, reps: "6-8", restSeconds: 120, rpe: 7, notes: "Calibration set: stop with 2-3 reps in reserve.", substitution: nil),
+                Exercise(id: "proof-cal-ohp", name: "Dumbbell OHP", muscleGroups: [.shoulders, .triceps], sets: 2, reps: "6-8", restSeconds: 120, rpe: 7, notes: "Calibration set: control the tempo.", substitution: nil)
             ],
             cooldown: [],
             estimatedMinutes: 35,
@@ -277,12 +277,12 @@ enum ProgramProofProgramFactory {
         let workouts: [Workout] = [
             Workout(
                 name: "Power Upper",
-                targetMuscleGroups: [.chest, .shoulders, .arms],
+                targetMuscleGroups: [.chest, .shoulders, .biceps, .triceps],
                 warmup: [],
                 mainExercises: [
-                    Exercise(id: "proof-bench", name: "Bench Press", muscleGroups: [.chest, .shoulders, .arms], sets: 4, reps: "4-6", restSeconds: 180, rpe: 8, notes: nil, substitution: nil),
-                    Exercise(id: "proof-ohp", name: "Overhead Press", muscleGroups: [.shoulders, .arms], sets: 3, reps: "5", restSeconds: 150, rpe: 8, notes: nil, substitution: nil),
-                    Exercise(id: "proof-pullup", name: "Pullup", muscleGroups: [.back, .arms], sets: 4, reps: "6-10", restSeconds: 120, rpe: 8, notes: nil, substitution: nil)
+                    Exercise(id: "proof-bench", name: "Bench Press", muscleGroups: [.chest, .shoulders, .triceps], sets: 4, reps: "4-6", restSeconds: 180, rpe: 8, notes: nil, substitution: nil),
+                    Exercise(id: "proof-ohp", name: "Overhead Press", muscleGroups: [.shoulders, .triceps], sets: 3, reps: "5", restSeconds: 150, rpe: 8, notes: nil, substitution: nil),
+                    Exercise(id: "proof-pullup", name: "Pullup", muscleGroups: [.back, .biceps], sets: 4, reps: "6-10", restSeconds: 120, rpe: 8, notes: nil, substitution: nil)
                 ],
                 cooldown: [],
                 estimatedMinutes: 55,
@@ -291,11 +291,11 @@ enum ProgramProofProgramFactory {
             ),
             Workout(
                 name: "Lower Output",
-                targetMuscleGroups: [.legs, .glutes, .core],
+                targetMuscleGroups: [.quads, .hamstrings, .glutes, .core],
                 warmup: [],
                 mainExercises: [
-                    Exercise(id: "proof-squat", name: "Back Squat", muscleGroups: [.legs, .glutes, .core], sets: 4, reps: "3-5", restSeconds: 180, rpe: 8, notes: nil, substitution: nil),
-                    Exercise(id: "proof-rdl", name: "Romanian Deadlift", muscleGroups: [.legs, .glutes, .back], sets: 3, reps: "6-8", restSeconds: 150, rpe: 8, notes: nil, substitution: nil)
+                    Exercise(id: "proof-squat", name: "Back Squat", muscleGroups: [.quads, .glutes, .core], sets: 4, reps: "3-5", restSeconds: 180, rpe: 8, notes: nil, substitution: nil),
+                    Exercise(id: "proof-rdl", name: "Romanian Deadlift", muscleGroups: [.hamstrings, .glutes, .back], sets: 3, reps: "6-8", restSeconds: 150, rpe: 8, notes: nil, substitution: nil)
                 ],
                 cooldown: [],
                 estimatedMinutes: 60,

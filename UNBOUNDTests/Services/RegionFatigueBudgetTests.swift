@@ -39,13 +39,13 @@ final class RegionFatigueBudgetTests: XCTestCase {
     func testWorkoutRegionLoadUsesRoleWeightedBodyLedger() {
         let workout = Workout(
             name: "Push",
-            targetMuscleGroups: [.chest, .shoulders, .arms],
+            targetMuscleGroups: [.chest, .shoulders, .triceps],
             warmup: [],
             mainExercises: [
                 Exercise(
                     id: "bench",
                     name: "Bench Press",
-                    muscleGroups: [.chest, .shoulders, .arms],
+                    muscleGroups: [.chest, .shoulders, .triceps],
                     sets: 4,
                     reps: "6-8",
                     restSeconds: 120,
@@ -106,7 +106,7 @@ final class RegionFatigueBudgetTests: XCTestCase {
                             sets: 4,
                             target: .distanceMeters(40),
                             restSeconds: 90,
-                            muscleGroups: [.back, .arms, .shoulders]
+                            muscleGroups: [.back, .biceps, .triceps, .shoulders]
                         )
                     ]
                 )

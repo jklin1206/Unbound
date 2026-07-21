@@ -65,12 +65,18 @@ extension ActiveWorkoutSession {
 
     private static func muscleGroups(for pattern: MovementPattern) -> [MuscleGroup] {
         switch pattern {
-        case .legsQuad, .legsPosterior, .calves:
-            return [.legs, .glutes]
-        case .pushHorizontal, .pushVertical, .arms:
-            return [.chest, .shoulders, .arms]
+        case .legsQuad:
+            return [.quads, .glutes]
+        case .legsPosterior:
+            return [.hamstrings, .glutes]
+        case .calves:
+            return [.calves]
+        case .pushHorizontal, .pushVertical:
+            return [.chest, .shoulders, .triceps]
+        case .arms:
+            return [.biceps, .triceps]
         case .pullHorizontal, .pullVertical:
-            return [.back, .arms]
+            return [.back, .biceps]
         case .core:
             return [.core]
         }

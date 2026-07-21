@@ -50,10 +50,12 @@ enum SessionRoleTagger {
             return match.role
         }
 
-        let counts = Dictionary(grouping: muscleGroups, by: { $0 }).mapValues(\.count)
-        let push = (counts[.chest] ?? 0) + (counts[.shoulders] ?? 0) + (counts[.arms] ?? 0)
-        let pull = (counts[.back] ?? 0) + (counts[.lats] ?? 0) + (counts[.traps] ?? 0) + (counts[.forearms] ?? 0)
-        let legs = (counts[.legs] ?? 0) + (counts[.glutes] ?? 0) + (counts[.calves] ?? 0)
+        // Persisted workouts may still carry legacy `.arms`/`.legs` tags;
+        // modernize before counting so old and new data classify the same way.
+        let counts = Dictionary(grouping: MuscleGroup.modernized(muscleGroups), by: { $0 }).mapValues(\.count)
+        let push = (counts[.chest] ?? 0) + (counts[.shoulders] ?? 0) + (counts[.triceps] ?? 0)
+        let pull = (counts[.back] ?? 0) + (counts[.lats] ?? 0) + (counts[.traps] ?? 0) + (counts[.forearms] ?? 0) + (counts[.biceps] ?? 0)
+        let legs = (counts[.quads] ?? 0) + (counts[.hamstrings] ?? 0) + (counts[.glutes] ?? 0) + (counts[.calves] ?? 0)
         let core = counts[.core] ?? 0
 
         if push > 0 && pull > 0 && legs > 0 { return .fullBody }

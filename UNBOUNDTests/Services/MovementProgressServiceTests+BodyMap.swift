@@ -48,7 +48,7 @@ extension MovementProgressServiceTests {
             Exercise(
                 id: "ledger-bench",
                 name: "Bench Press",
-                muscleGroups: [.chest, .shoulders, .arms],
+                muscleGroups: [.chest, .shoulders, .triceps],
                 sets: 4,
                 reps: "6-8",
                 restSeconds: 120,
@@ -59,7 +59,7 @@ extension MovementProgressServiceTests {
             Exercise(
                 id: "ledger-pullup",
                 name: "Pullup",
-                muscleGroups: [.back, .lats, .arms],
+                muscleGroups: [.back, .lats, .biceps],
                 sets: 3,
                 reps: "6-10",
                 restSeconds: 120,
@@ -114,12 +114,12 @@ extension MovementProgressServiceTests {
             return Dictionary(uniqueKeysWithValues: loads.map { ($0.region, $0) })
         }
 
-        let latPulldown = loadMap(for: "Lat Pulldown", muscleGroups: [.back, .lats, .arms])
+        let latPulldown = loadMap(for: "Lat Pulldown", muscleGroups: [.back, .lats, .biceps])
         XCTAssertEqual(latPulldown[.lats]?.directHardSets, 3)
         XCTAssertNil(latPulldown[.rhomboids])
         XCTAssertNil(latPulldown[.lowerBack])
 
-        let machineRow = loadMap(for: "Machine Row", muscleGroups: [.back, .lats, .arms])
+        let machineRow = loadMap(for: "Machine Row", muscleGroups: [.back, .lats, .biceps])
         XCTAssertEqual(machineRow[.lats]?.directHardSets, 3)
         XCTAssertEqual(machineRow[.rhomboids]?.directHardSets, 3)
         XCTAssertNil(machineRow[.rearDelts])
@@ -131,19 +131,19 @@ extension MovementProgressServiceTests {
         XCTAssertNil(facePull[.lats])
         XCTAssertNil(facePull[.triceps])
 
-        let tricepPushdown = loadMap(for: "Tricep Pushdown", muscleGroups: [.arms])
+        let tricepPushdown = loadMap(for: "Tricep Pushdown", muscleGroups: [.triceps])
         XCTAssertEqual(tricepPushdown[.triceps]?.directHardSets, 3)
         XCTAssertNil(tricepPushdown[.biceps])
 
-        let machineChestPress = loadMap(for: "Machine Chest Press", muscleGroups: [.chest, .shoulders, .arms])
+        let machineChestPress = loadMap(for: "Machine Chest Press", muscleGroups: [.chest, .shoulders, .triceps])
         XCTAssertEqual(machineChestPress[.midLowerChest]?.directHardSets, 3)
         XCTAssertNil(machineChestPress[.upperChest])
 
-        let inclineBenchPress = loadMap(for: "Incline Bench Press", muscleGroups: [.chest, .shoulders, .arms])
+        let inclineBenchPress = loadMap(for: "Incline Bench Press", muscleGroups: [.chest, .shoulders, .triceps])
         XCTAssertEqual(inclineBenchPress[.upperChest]?.directHardSets, 3)
         XCTAssertNil(inclineBenchPress[.midLowerChest])
 
-        let hipAdductor = loadMap(for: "Hip Adductor Machine", muscleGroups: [.legs, .glutes])
+        let hipAdductor = loadMap(for: "Hip Adductor Machine", muscleGroups: [.quads, .glutes])
         XCTAssertEqual(hipAdductor[.adductors]?.directHardSets, 3)
         XCTAssertNil(hipAdductor[.quads])
         XCTAssertNil(hipAdductor[.glutes])
@@ -152,7 +152,7 @@ extension MovementProgressServiceTests {
         XCTAssertEqual(hipAbductor[.abductors]?.directHardSets, 3)
         XCTAssertEqual(hipAbductor[.glutes]?.directHardSets, 3)
 
-        let legExtension = loadMap(for: "Leg Extension", muscleGroups: [.legs])
+        let legExtension = loadMap(for: "Leg Extension", muscleGroups: [.quads])
         XCTAssertEqual(legExtension[.quads]?.directHardSets, 3)
         XCTAssertNil(legExtension[.hamstrings])
     }
@@ -185,7 +185,7 @@ extension MovementProgressServiceTests {
                             sets: 4,
                             target: .distanceMeters(40),
                             restSeconds: 90,
-                            muscleGroups: [.back, .arms, .shoulders]
+                            muscleGroups: [.back, .biceps, .triceps, .shoulders]
                         )
                     ]
                 )

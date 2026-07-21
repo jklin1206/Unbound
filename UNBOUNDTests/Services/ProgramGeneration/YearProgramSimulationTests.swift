@@ -13,7 +13,7 @@ final class YearProgramSimulationTests: XCTestCase {
         let curl = Exercise(
             id: "curl",
             name: "Cable Curl",
-            muscleGroups: [.arms],
+            muscleGroups: [.biceps],
             sets: 3,
             reps: "10 reps",
             restSeconds: 60

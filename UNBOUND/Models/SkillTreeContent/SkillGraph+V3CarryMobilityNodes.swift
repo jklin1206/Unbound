@@ -12,7 +12,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 1, type: .skill,
             target: .reps(exercise: "incline pushup", count: 10),
             equipment: [.bodyweight, .elevatedSurface],
-            primary: [.chest, .arms, .shoulders], secondary: [.core],
+            primary: [.chest, .triceps, .shoulders], secondary: [.core],
             subtitle: "The pushup on-ramp.",
             description: "Hands on a bench or box, feet on the floor. 10 clean reps at a reduced lever — the starting point for anyone who can't yet hit a strict floor pushup.",
             formCues: [
@@ -35,7 +35,7 @@ extension SkillGraph {
             target: .reps(exercise: "decline pushup", count: 10),
             prereqs: [PrerequisiteGroup("cal.pushup")],
             equipment: [.bodyweight, .elevatedSurface],
-            primary: [.chest, .shoulders, .arms], secondary: [.core],
+            primary: [.chest, .shoulders, .triceps], secondary: [.core],
             subtitle: "Feet up. Shoulders light up.",
             description: "Feet elevated on a bench or box, hands on floor. 10 clean reps — shifts the load onto the upper chest and front delts.",
             formCues: [
@@ -57,7 +57,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 4, type: .skill,
             target: .reps(exercise: "sphinx pushup", count: 8),
             prereqs: [PrerequisiteGroup("cal.pike-pushup")],
-            primary: [.arms], secondary: [.chest, .shoulders, .core],
+            primary: [.triceps], secondary: [.chest, .shoulders, .core],
             subtitle: "Triceps in isolation.",
             description: "Pushup on forearms — start from elbow plank, press up through the forearms until elbows lock out. 8 clean reps. Direct tricep hypertrophy.",
             formCues: [
@@ -79,7 +79,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 4, type: .skill,
             target: .reps(exercise: "archer pushup", count: 3),
             prereqs: [PrerequisiteGroup(["cal.decline-pushup", "cal.pushup"])],
-            primary: [.chest, .arms], secondary: [.shoulders, .core],
+            primary: [.chest, .triceps], secondary: [.shoulders, .core],
             subtitle: "Unilateral pushup on-ramp.",
             description: "Hands wide, weight shifts to one side as you descend — working arm bends deep, off arm stays straight. 3 reps per side. Bridge to the one-arm pushup.",
             formCues: [
@@ -101,7 +101,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 5, type: .skill,
             target: .reps(exercise: "one-arm pushup", count: 1),
             prereqs: [PrerequisiteGroup(["cal.archer-pushup", "cal.decline-pushup", "cal.diamond-pushup"])],
-            primary: [.chest, .arms, .shoulders, .core],
+            primary: [.chest, .triceps, .shoulders, .core],
             subtitle: "Full bodyweight on one arm.",
             description: "One strict one-arm pushup. Feet wide for balance, body rigid, chest touches the floor, arm locks out at the top.",
             formCues: [
@@ -123,7 +123,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 3, type: .skill,
             target: .reps(exercise: "explosive pushup", count: 5),
             prereqs: [PrerequisiteGroup("cal.decline-pushup")],
-            primary: [.chest, .arms, .shoulders], secondary: [.core],
+            primary: [.chest, .triceps, .shoulders], secondary: [.core],
             subtitle: "Ballistic pressing. Airtime included.",
             description: "5 pushups with an aggressive concentric that launches the hands off the floor. Bridge to the clapping pushup.",
             formCues: [
@@ -146,7 +146,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 4, type: .skill,
             target: .reps(exercise: "clapping pushup", count: 3),
             prereqs: [PrerequisiteGroup(["cal.explosive-pushup", "cal.pushup"])],
-            primary: [.chest, .arms, .shoulders], secondary: [.core],
+            primary: [.chest, .triceps, .shoulders], secondary: [.core],
             subtitle: "Push high enough to clap.",
             description: "3 pushups where the concentric is explosive enough to clap the hands at chest before landing. Classic plyometric benchmark.",
             formCues: [
@@ -169,7 +169,7 @@ extension SkillGraph {
             target: .reps(exercise: "floating pike pushup", count: 3),
             prereqs: [PrerequisiteGroup(["cal.elevated-pike-pushup", "hs.wall-handstand-30"])],
             equipment: [.parallettes],
-            primary: [.shoulders, .arms], secondary: [.core],
+            primary: [.shoulders, .triceps], secondary: [.core],
             subtitle: "Pike pushup with feet off the ground.",
             description: "Pike pushup on parallettes where the feet never touch the floor — legs tucked or straddled. 3 reps of pure shoulder pressing.",
             formCues: [
@@ -193,7 +193,7 @@ extension SkillGraph {
             target: .reps(exercise: "bench dip", count: 10),
             prereqs: [PrerequisiteGroup("cal.incline-pushup")],
             equipment: [.bodyweight, .elevatedSurface],
-            primary: [.arms], secondary: [.chest, .shoulders],
+            primary: [.triceps], secondary: [.chest, .shoulders],
             subtitle: "The dip on-ramp.",
             description: "10 controlled bench dips — hands on a stable bench behind the hips, elbows track back, shoulders stay organized, lower only to a safe pain-free depth, then press to full lockout.",
             formCues: [
@@ -216,7 +216,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 7, type: .skill,
             target: .reps(exercise: "triple clap pushup", count: 1),
             prereqs: [PrerequisiteGroup(["cal.clapping-pushup", "cal.explosive-pushup"])],
-            primary: [.chest, .arms, .shoulders], secondary: [.core],
+            primary: [.chest, .triceps, .shoulders], secondary: [.core],
             subtitle: "Three claps. One rep. No excuses.",
             description: "One clean pushup where the airtime is so violent you fit three claps before landing. Famed for being essentially impossible without elite power-to-weight.",
             formCues: [
@@ -289,7 +289,7 @@ extension SkillGraph {
             target: .reps(exercise: "box jump", count: 5),
             prereqs: [PrerequisiteGroup("ld.jumping-squat")],
             equipment: [.bodyweight, .elevatedSurface],
-            primary: [.legs, .glutes], secondary: [.calves, .core],
+            primary: [.quads, .hamstrings, .glutes], secondary: [.calves, .core],
             subtitle: "Explosive triple extension.",
             description: "Clean box jumps to a box at knee height or higher. Land soft, stand tall, step down — never jump down.",
             formCues: [
@@ -312,7 +312,7 @@ extension SkillGraph {
             cluster: .legDominance, tier: 4, type: .skill,
             target: .reps(exercise: "jumping squat", count: 10),
             prereqs: [PrerequisiteGroup("ld.deep-squat")],
-            primary: [.legs, .glutes], secondary: [.calves, .core],
+            primary: [.quads, .hamstrings, .glutes], secondary: [.calves, .core],
             subtitle: "Squat, then launch.",
             description: "Bodyweight jumping squats — full-depth squat, explode to jump, land soft, re-descend into the next rep. Power endurance.",
             formCues: [
@@ -336,7 +336,7 @@ extension SkillGraph {
             target: .reps(exercise: "weighted split squat", count: 8, load: "0.25x bw"),
             prereqs: [PrerequisiteGroup("ld.split-squat")],
             equipment: [.dumbbells, .kettlebell],
-            primary: [.legs, .glutes], secondary: [.core],
+            primary: [.quads, .glutes], secondary: [.core],
             subtitle: "Load the lead leg.",
             description: "Split squat holding dumbbells or kettlebells at the sides. 8 reps per leg under load. Bridge between bodyweight split squat and the bulgarian split squat.",
             formCues: [
@@ -380,7 +380,7 @@ extension SkillGraph {
             cluster: .legDominance, tier: 3, type: .skill,
             target: .reps(exercise: "single-leg glute bridge", count: 10),
             prereqs: [PrerequisiteGroup("ld.glute-bridge")],
-            primary: [.glutes], secondary: [.core, .legs],
+            primary: [.glutes], secondary: [.core, .hamstrings],
             subtitle: "Glute isolation. No quads allowed.",
             description: "10 single-leg glute bridges per side — lying on back, foot planted, raise hips driving through the heel. Other leg extended.",
             formCues: [
@@ -424,7 +424,7 @@ extension SkillGraph {
             cluster: .legDominance, tier: 4, type: .skill,
             target: .reps(exercise: "bodyweight leg extension", count: 8),
             prereqs: [PrerequisiteGroup("ld.deep-squat")],
-            primary: [.legs], secondary: [.core],
+            primary: [.quads], secondary: [.core],
             subtitle: "Reverse-Nordic quad isolation.",
             description: "Kneeling bodyweight leg extension / reverse-Nordic pattern: hips stay open, ribs down, knees bend as the body leans back in one line, then quads extend the body tall again through a pain-free arc.",
             formCues: [
@@ -447,7 +447,7 @@ extension SkillGraph {
             target: .reps(exercise: "advanced nordic hip hinge", count: 5),
             prereqs: [PrerequisiteGroup("ld.nordic-hip-hinge")],
             equipment: [.elevatedSurface],
-            primary: [.legs, .glutes], secondary: [.core],
+            primary: [.hamstrings, .glutes], secondary: [.core],
             subtitle: "Deeper hinge, no curl yet.",
             description: "Kneeling, ankles anchored — hinge further forward than the basic nordic hip hinge, breaking the hip-shoulder line slightly to extend ROM. The eccentric stepping stone before the full nordic curl pattern.",
             formCues: [
@@ -469,7 +469,7 @@ extension SkillGraph {
             cluster: .legDominance, tier: 5, type: .skill,
             target: .reps(exercise: "floor to ceiling squat", count: 1),
             prereqs: [PrerequisiteGroup("ld.jumping-squat")],
-            primary: [.legs, .glutes], secondary: [.core, .calves],
+            primary: [.quads, .hamstrings, .glutes], secondary: [.core, .calves],
             subtitle: "From flat on the floor, jump up and touch ceiling.",
             description: "Lie supine on the floor, stand up in one motion, and explode into a jump high enough to touch an 8-foot ceiling. Full-body explosive power.",
             formCues: [

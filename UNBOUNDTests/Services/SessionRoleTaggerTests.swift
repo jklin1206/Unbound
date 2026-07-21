@@ -11,7 +11,7 @@ final class SessionRoleTaggerTests: XCTestCase {
     }
 
     func testMuscleGroupInferenceCatchesInvalidRotationCandidate() {
-        let push = SessionRoleTagger.role(title: "Training", muscleGroups: [.chest, .shoulders, .arms])
+        let push = SessionRoleTagger.role(title: "Training", muscleGroups: [.chest, .shoulders, .triceps])
         let pull = SessionRoleTagger.role(title: "Training", muscleGroups: [.back, .lats])
 
         XCTAssertEqual(push, .push)

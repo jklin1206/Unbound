@@ -1139,9 +1139,11 @@ final class MovementResolverTests: XCTestCase {
         let chips = ExerciseLibrarySearch.availableMuscleGroups(in: all)
         XCTAssertEqual(chips, ExerciseLibrarySearch.muscleFilterOrder.filter { chips.contains($0) },
                        "chips must keep a stable anatomical order")
-        for expected: MuscleGroup in [.chest, .back, .shoulders, .arms, .legs, .glutes, .core, .traps] {
+        for expected: MuscleGroup in [.chest, .back, .shoulders, .biceps, .triceps, .quads, .hamstrings, .glutes, .core, .traps] {
             XCTAssertTrue(chips.contains(expected), "expected a \(expected.displayName) chip")
         }
+        XCTAssertFalse(chips.contains(.arms), "catalog no longer tags exercises .arms; chip should not surface")
+        XCTAssertFalse(chips.contains(.legs), "catalog no longer tags exercises .legs; chip should not surface")
 
         let chest = ExerciseLibrarySearch.filteredAlternatives(all, searchText: "", selectedMuscle: .chest)
         XCTAssertFalse(chest.isEmpty)

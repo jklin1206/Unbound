@@ -68,7 +68,11 @@ final class AccessoryBiasRefreshRuleTests: XCTestCase {
         )
         XCTAssertFalse(result.carriedForward)
         XCTAssertEqual(result.bias[.chest], 2)
-        XCTAssertEqual(result.bias[.arms], 1)
+        // Legacy `.arms` focus spreads its full weight across both modernized
+        // groups rather than being keyed under `.arms` itself.
+        XCTAssertEqual(result.bias[.biceps], 1)
+        XCTAssertEqual(result.bias[.triceps], 1)
+        XCTAssertNil(result.bias[.arms])
         XCTAssertNil(result.bias[.shoulders])
     }
 

@@ -18,7 +18,7 @@ extension MovementCatalog {
             defaultMetric: .durationSeconds,
             equipment: cardioEquipment(for: type),
             difficulty: .beginner,
-            muscleGroups: [.legs],
+            muscleGroups: [.quads, .hamstrings],
             bodyRegions: [.quads, .hamstrings, .glutes, .calves],
             movementSlot: .cardio,
             substitutionGroup: "cardio.\(type.rawValue)",
@@ -87,7 +87,7 @@ extension MovementCatalog {
             defaultMetric: .distanceMeters,
             equipment: displayName == "Sled Push" ? [.sled] : [.dumbbell, .kettlebell, .openSpace],
             difficulty: .intermediate,
-            muscleGroups: [.forearms, .traps, .core, .legs],
+            muscleGroups: [.forearms, .traps, .core, .quads, .hamstrings],
             bodyRegions: [.forearms, .traps, .abs, .obliques, .lowerBack, .quads, .hamstrings, .glutes, .calves],
             movementSlot: .carry,
             substitutionGroup: "carry.loaded",
@@ -101,21 +101,21 @@ extension MovementCatalog {
             "hip-flexor-stretch",
             "Hip Flexor Stretch",
             aliases: ["hip flexor stretch", "couch stretch", "deep lunge hold"],
-            muscleGroups: [.legs, .glutes],
+            muscleGroups: [.quads, .glutes],
             bodyRegions: [.quads, .glutes]
         ),
         mobility(
             "hamstring-fold",
             "Hamstring Fold",
             aliases: ["hamstring fold", "seated forward fold", "forward fold"],
-            muscleGroups: [.legs, .glutes, .back],
+            muscleGroups: [.hamstrings, .glutes, .back],
             bodyRegions: [.hamstrings, .calves, .lowerBack]
         ),
         mobility(
             "pigeon-pose",
             "Pigeon Pose",
             aliases: ["pigeon pose", "figure-4", "figure 4"],
-            muscleGroups: [.glutes, .legs],
+            muscleGroups: [.glutes, .hamstrings],
             bodyRegions: [.glutes, .hamstrings, .lowerBack]
         ),
         mobility(
@@ -136,7 +136,7 @@ extension MovementCatalog {
             "frog-stretch",
             "Frog Stretch",
             aliases: ["frog stretch"],
-            muscleGroups: [.legs, .glutes],
+            muscleGroups: [.quads, .glutes],
             bodyRegions: [.quads, .glutes]
         ),
         mobility(
@@ -157,14 +157,14 @@ extension MovementCatalog {
             "deep-squat-hold",
             "Deep Squat Hold",
             aliases: ["deep squat hold", "resting squat", "deep squat"],
-            muscleGroups: [.legs, .glutes, .core],
+            muscleGroups: [.quads, .glutes, .core],
             bodyRegions: [.quads, .glutes, .calves, .lowerBack]
         ),
         mobility(
             "ankle-rocks",
             "Ankle Rocks",
             aliases: ["ankle rocks", "ankle mobility rocks", "knee to wall"],
-            muscleGroups: [.calves, .legs],
+            muscleGroups: [.calves],
             bodyRegions: [.calves, .quads]
         ),
         mobility(
@@ -178,7 +178,7 @@ extension MovementCatalog {
             "quad-stretch",
             "Quad Stretch",
             aliases: ["quad stretch", "standing quad stretch", "couch quad stretch"],
-            muscleGroups: [.legs, .glutes],
+            muscleGroups: [.quads, .glutes],
             bodyRegions: [.quads, .glutes]
         ),
         mobility(
@@ -206,7 +206,7 @@ extension MovementCatalog {
             "ninety-ninety-hip-switch",
             "90/90 Hip Switch",
             aliases: ["90/90 hip switch", "90 90 hip switch", "shin box switch"],
-            muscleGroups: [.glutes, .legs, .core],
+            muscleGroups: [.glutes, .hamstrings, .core],
             bodyRegions: [.glutes, .hamstrings, .obliques]
         ),
         mobility(
@@ -220,7 +220,7 @@ extension MovementCatalog {
             "worlds-greatest-stretch",
             "World's Greatest Stretch",
             aliases: ["world's greatest stretch", "worlds greatest stretch", "hip opener flow", "lunge mobility", "runner lunge rotation"],
-            muscleGroups: [.legs, .glutes, .back, .core],
+            muscleGroups: [.quads, .hamstrings, .glutes, .back, .core],
             bodyRegions: [.quads, .hamstrings, .glutes, .lats, .obliques]
         )
     ]
@@ -448,7 +448,7 @@ extension MovementCatalog {
         if node.title.lowercased().contains("handstand") || node.title.lowercased().contains("planche") || node.title.lowercased().contains("pushup") {
             tags.insert("wrist-sensitive")
         }
-        if muscles.contains(.legs) || node.title.lowercased().contains("squat") || node.title.lowercased().contains("jump") {
+        if muscles.contains(.legs) || muscles.contains(.quads) || muscles.contains(.hamstrings) || node.title.lowercased().contains("squat") || node.title.lowercased().contains("jump") {
             tags.insert("knee-sensitive")
         }
         if node.title.lowercased().contains("lever") || node.title.lowercased().contains("row") {

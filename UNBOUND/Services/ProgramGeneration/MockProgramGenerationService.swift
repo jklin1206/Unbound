@@ -13,7 +13,7 @@ final class MockProgramGenerationService: ProgramGenerationServiceProtocol, @unc
                 isRestDay: isRest,
                 workout: isRest ? nil : Workout(
                     name: "Upper Push Hypertrophy",
-                    targetMuscleGroups: [.chest, .shoulders, .arms],
+                    targetMuscleGroups: [.chest, .shoulders, .triceps],
                     warmup: [Exercise(id: UUID().uuidString, name: "Arm Circles", muscleGroups: [.shoulders], sets: 2, reps: "15", restSeconds: 30, rpe: nil, notes: nil, substitution: nil)],
                     mainExercises: [
                         Exercise(id: UUID().uuidString, name: "Overhead Press", muscleGroups: [.shoulders], sets: 4, reps: "8-12", restSeconds: 90, rpe: 8, notes: "Brace core, press overhead", substitution: "Dumbbell shoulder press"),
