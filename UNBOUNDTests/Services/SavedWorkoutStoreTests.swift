@@ -22,7 +22,7 @@ final class SavedWorkoutStoreTests: XCTestCase {
                             sets: 3,
                             target: .repsRange(6, 8),
                             restSeconds: 120,
-                            muscleGroups: [.back, .arms],
+                            muscleGroups: [.back, .biceps],
                             rpe: 8
                         )
                     ]

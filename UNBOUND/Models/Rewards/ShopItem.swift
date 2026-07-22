@@ -12,7 +12,7 @@ enum ShopCategory: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .backdrop: return "Backdrops"
-        case .profileWallpaper: return "Profile Banners"
+        case .profileWallpaper: return "Banners"
         case .skillTree: return "Tree Skins"
         case .profileBorder: return "Borders"
         case .title: return "Titles"
@@ -25,7 +25,7 @@ enum ShopCategory: String, CaseIterable, Identifiable {
         case .profileWallpaper: return "person.crop.rectangle.stack.fill"
         case .skillTree: return "point.3.connected.trianglepath.dotted"
         case .profileBorder: return "person.crop.circle.badge.sparkles"
-        case .title: return "textformat.alt"
+        case .title: return "rosette"
         }
     }
 }
@@ -603,6 +603,96 @@ enum ShopCatalog {
             rarity: "Legendary",
             reward: .profileTitle(.shop("solarBreaker")),
             colors: [Color.skinHex("F6C95B"), Color.skinHex("FF4FD8"), Color.skinHex("5EEAD4")]
+        ),
+        .init(
+            id: "profileTitle.gymRat",
+            category: .title,
+            name: "Certified Gym Rat",
+            price: 240,
+            rarity: "Common",
+            reward: .profileTitle(.shop("gymRat")),
+            colors: [Color.skinHex("CBD5E1"), Color.skinHex("38BDF8")]
+        ),
+        .init(
+            id: "profileTitle.legDay",
+            category: .title,
+            name: "Leg Day Loyalist",
+            price: 280,
+            rarity: "Common",
+            reward: .profileTitle(.shop("legDay")),
+            colors: [Color.skinHex("5EEAD4"), Color.skinHex("F6C95B")]
+        ),
+        .init(
+            id: "profileTitle.restDenier",
+            category: .title,
+            name: "Rest Day Denier",
+            price: 340,
+            rarity: "Common",
+            reward: .profileTitle(.shop("restDenier")),
+            colors: [Color.skinHex("F472B6"), Color.skinHex("64748B")]
+        ),
+        .init(
+            id: "profileTitle.proteinGoblin",
+            category: .title,
+            name: "Protein Goblin",
+            price: 520,
+            rarity: "Rare",
+            reward: .profileTitle(.shop("proteinGoblin")),
+            colors: [Color.skinHex("5EEAD4"), Color.skinHex("A78BFA")]
+        ),
+        .init(
+            id: "profileTitle.oneMoreRep",
+            category: .title,
+            name: "One More Rep",
+            price: 700,
+            rarity: "Rare",
+            reward: .profileTitle(.shop("oneMoreRep")),
+            colors: [Color.skinHex("38BDF8"), Color.skinHex("F6C95B")]
+        ),
+        .init(
+            id: "profileTitle.volumeMerchant",
+            category: .title,
+            name: "Volume Merchant",
+            price: 860,
+            rarity: "Rare",
+            reward: .profileTitle(.shop("volumeMerchant")),
+            colors: [Color.skinHex("A78BFA"), Color.skinHex("2DD4BF")]
+        ),
+        .init(
+            id: "profileTitle.builtDifferent",
+            category: .title,
+            name: "Built Different",
+            price: 1_300,
+            rarity: "Epic",
+            reward: .profileTitle(.shop("builtDifferent")),
+            colors: [Color.skinHex("F6C95B"), Color.skinHex("38BDF8")]
+        ),
+        .init(
+            id: "profileTitle.loreAccurate",
+            category: .title,
+            name: "Lore Accurate",
+            price: 1_600,
+            rarity: "Epic",
+            reward: .profileTitle(.shop("loreAccurate")),
+            colors: [Color.skinHex("FF4FD8"), Color.skinHex("A78BFA")]
+        ),
+        .init(
+            id: "profileTitle.gravityOpp",
+            category: .title,
+            name: "Gravity's Opp",
+            price: 1_800,
+            rarity: "Epic",
+            reward: .profileTitle(.shop("gravityOpp")),
+            colors: [Color.skinHex("67E8F9"), Color.skinHex("F472B6")]
+        ),
+        .init(
+            id: "profileTitle.finalBoss",
+            category: .title,
+            name: "Final Boss",
+            price: 2_400,
+            rarity: "Legendary",
+            reward: .profileTitle(.shop("finalBoss")),
+            colors: [Color.skinHex("FF4FD8"), Color.skinHex("F6C95B"), Color.skinHex("A78BFA")]
         )
     ]
 

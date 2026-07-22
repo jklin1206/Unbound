@@ -34,7 +34,7 @@ extension SkillGraph {
             cluster: .coreLever, tier: 2, type: .skill,
             target: .reps(exercise: "reverse crunch", count: 15),
             prereqs: [PrerequisiteGroup("cl.crunch")],
-            primary: [.core], secondary: [.legs],
+            primary: [.core], secondary: [.quads, .hamstrings],
             subtitle: "Lower abs emphasis.",
             description: "15 reverse crunches — lie on back, curl hips off the floor by pulling knees toward chest. Targets lower ab engagement the standard crunch misses.",
             formCues: [
@@ -78,7 +78,7 @@ extension SkillGraph {
             cluster: .coreLever, tier: 3, type: .hold,
             target: .hold(exercise: "extended plank", seconds: 15),
             prereqs: [PrerequisiteGroup("cl.bird-dog-plank")],
-            primary: [.core, .shoulders], secondary: [.arms],
+            primary: [.core, .shoulders], secondary: [.triceps],
             subtitle: "Hands way out front of the shoulders.",
             description: "15-second plank with hands reached forward past the shoulders — long lever demands more core tension than a standard plank.",
             formCues: [
@@ -145,7 +145,7 @@ extension SkillGraph {
             target: .reps(exercise: "inverted sit-up", count: 5),
             prereqs: [PrerequisiteGroup("cl.decline-situp")],
             equipment: [.pullupBar],
-            primary: [.core, .lats], secondary: [.arms],
+            primary: [.core, .lats], secondary: [.biceps],
             subtitle: "Sit-up while hanging upside down.",
             description: "5 hanging sit-ups — hook legs over a pullup bar so you hang inverted, curl the torso toward the knees, return slowly. Demands real core strength.",
             formCues: [
@@ -168,7 +168,7 @@ extension SkillGraph {
             target: .reps(exercise: "skin the cat", count: 3),
             prereqs: [PrerequisiteGroup("cl.german-hang")],
             equipment: [.gymnasticRings, .pullupBar],
-            primary: [.shoulders, .core, .lats], secondary: [.arms],
+            primary: [.shoulders, .core, .lats], secondary: [.biceps],
             subtitle: "Rings or bar pass-through. Shoulder opener.",
             description: "Controlled pass-through on rings or a bar from hang to inverted hang to German hang and back. The rep proves shoulder extension tolerance, straight-arm control, and a calm reverse path.",
             formCues: [
@@ -193,7 +193,7 @@ extension SkillGraph {
             target: .hold(exercise: "german hang", seconds: 10),
             prereqs: [PrerequisiteGroup("pp.dead-hang")],
             equipment: [.gymnasticRings, .pullupBar],
-            primary: [.shoulders, .chest], secondary: [.core, .arms],
+            primary: [.shoulders, .chest], secondary: [.core, .biceps],
             subtitle: "The hang position only mobile shoulders own.",
             description: "Pain-free hold at the bottom of a skin-the-cat path, on rings or a bar. The arms are behind the body, shoulders are open, the hang is quiet, and the athlete can exit without panic.",
             formCues: [
@@ -219,7 +219,7 @@ extension SkillGraph {
             target: .reps(exercise: "360 ring pull", count: 1),
             prereqs: [PrerequisiteGroup(["cl.skin-the-cat", "cl.german-hang"])],
             equipment: [.gymnasticRings],
-            primary: [.lats, .arms, .core], secondary: [.back, .shoulders],
+            primary: [.lats, .biceps, .core], secondary: [.back, .shoulders],
             subtitle: "A full ring arc through front and back lever lanes.",
             description: "Controlled straight-arm ring pull through a 360-degree arc: active hang, front-lever lane, inverted hang, back-lever lane, German hang, then reverse under control. No release or re-catch.",
             formCues: [

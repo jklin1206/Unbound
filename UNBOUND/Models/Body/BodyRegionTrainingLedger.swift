@@ -407,15 +407,20 @@ enum BodyRegionTrainingLedger {
             case .chest: return [.upperChest, .midLowerChest]
             case .back: return [.lats, .traps]
             case .shoulders: return [.frontSideDelts]
-            case .arms: return [.biceps, .triceps, .forearms]
+            case .biceps: return [.biceps]
+            case .triceps: return [.triceps]
             case .forearms: return [.forearms]
-            case .legs: return [.quads, .hamstrings, .glutes, .calves]
+            case .quads: return [.quads]
+            case .hamstrings: return [.hamstrings]
             case .glutes: return [.glutes]
             case .core: return [.abs, .obliques, .lowerBack]
             case .traps: return [.traps]
             case .lats: return [.lats]
             case .calves: return [.calves]
             case .neck: return []
+            // Legacy coarse tags from persisted data
+            case .arms: return [.biceps, .triceps, .forearms]
+            case .legs: return [.quads, .hamstrings, .glutes, .calves]
             }
         }
     }

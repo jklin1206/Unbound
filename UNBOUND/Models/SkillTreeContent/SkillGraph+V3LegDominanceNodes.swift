@@ -12,7 +12,7 @@ extension SkillGraph {
             cluster: .legDominance, tier: 1, type: .skill,
             target: .reps(exercise: "goblet squat", count: 12, load: "0.25x bw"),
             equipment: [.dumbbells],
-            primary: [.legs, .glutes, .core],
+            primary: [.quads, .glutes, .core],
             subtitle: "The loaded squat on-ramp.",
             description: "Full-depth squats holding a dumbbell or kettlebell at the chest — elbows inside the knees, chest tall. The loaded squat pattern every leg skill grows from; rank climbs with the weight you can own (% of bodyweight), not endless reps.",
             formCues: [
@@ -35,7 +35,7 @@ extension SkillGraph {
             cluster: .legDominance, tier: 2, type: .skill,
             target: .reps(exercise: "split squat", count: 10),
             prereqs: [PrerequisiteGroup("ld.goblet-20")],
-            primary: [.legs, .glutes], secondary: [.core],
+            primary: [.quads, .glutes], secondary: [.core],
             subtitle: "Single-leg foundation.",
             description: "10 strict split squats per leg — back foot planted on floor, front foot forward, drive through front heel. The unilateral on-ramp before the bulgarian.",
             formCues: [
@@ -58,7 +58,7 @@ extension SkillGraph {
             target: .reps(exercise: "bulgarian split squat", count: 10),
             prereqs: [PrerequisiteGroup("ld.split-squat")],
             equipment: [.bodyweight, .elevatedSurface],
-            primary: [.legs, .glutes], secondary: [.core],
+            primary: [.quads, .glutes], secondary: [.core],
             subtitle: "The single-leg on-ramp.",
             description: "Rear-foot-elevated split squat, 10 reps per leg. The humbling unilateral move that preps you for pistols.",
             formCues: [
@@ -81,7 +81,7 @@ extension SkillGraph {
             cluster: .legDominance, tier: 4, type: .skill,
             target: .reps(exercise: "shrimp squat", count: 3),
             prereqs: [PrerequisiteGroup(["ld.pistol-squat", "ld.deep-squat"])],
-            primary: [.legs, .glutes], secondary: [.core],
+            primary: [.quads, .glutes], secondary: [.core],
             subtitle: "Single-leg strength after pistol.",
             description: "Single-leg squat where you grab the rear ankle with the opposite hand and sit down until the rear knee touches the floor. The path runs through assisted, beginner, and intermediate shrimp before the strict rep. 3 clean reps per leg.",
             formCues: [
@@ -104,7 +104,7 @@ extension SkillGraph {
             target: .reps(exercise: "pistol squat", count: 5),
             prereqs: [PrerequisiteGroup(["ld.deep-squat", "ld.bulgarian-split-squat"])],
             isKeystone: true,
-            primary: [.legs, .glutes], secondary: [.core],
+            primary: [.quads, .glutes], secondary: [.core],
             subtitle: "Single-leg mastery.",
             description: "Full-depth single-leg squat. Non-working leg extended straight forward, hips below the working knee, chest up. 5 clean reps per leg.",
             formCues: [
@@ -128,7 +128,7 @@ extension SkillGraph {
             target: .reps(exercise: "weighted pistol", count: 3, load: "0.5x bw"),
             prereqs: [PrerequisiteGroup("ld.pistol-squat")],
             equipment: [.dumbbells, .kettlebell],
-            primary: [.legs, .glutes], secondary: [.core],
+            primary: [.quads, .glutes], secondary: [.core],
             subtitle: "Load the single leg.",
             description: "Pistol squat holding half your bodyweight at chest (dumbbell or kettlebell goblet style). 3 clean reps per leg.",
             formCues: [

@@ -16,7 +16,7 @@ extension DeterministicProgramGenerator {
         case .push:
             base = [
                 warmupExercise("Shoulder Opener", groups: [.shoulders, .chest, .back], reps: "45s"),
-                warmupExercise("Incline Pushup", groups: [.chest, .shoulders, .arms, .core], reps: "8")
+                warmupExercise("Incline Pushup", groups: [.chest, .shoulders, .triceps, .core], reps: "8")
             ]
         case .pull:
             base = [
@@ -25,8 +25,8 @@ extension DeterministicProgramGenerator {
             ]
         case .legs, .lower:
             base = [
-                warmupExercise("Hip Opener Flow", groups: [.legs, .glutes, .back, .core], reps: "45s"),
-                warmupExercise("Bodyweight Squat", groups: [.legs, .glutes, .core], reps: "10")
+                warmupExercise("Hip Opener Flow", groups: [.quads, .hamstrings, .glutes, .back, .core], reps: "45s"),
+                warmupExercise("Bodyweight Squat", groups: [.quads, .glutes, .core], reps: "10")
             ]
         case .upper:
             base = [
@@ -35,8 +35,8 @@ extension DeterministicProgramGenerator {
             ]
         case .fullBody, .weakPoint:
             base = [
-                warmupExercise("Hip Opener Flow", groups: [.legs, .glutes, .back, .core], reps: "45s"),
-                warmupExercise("Incline Pushup", groups: [.chest, .shoulders, .arms, .core], reps: "8")
+                warmupExercise("Hip Opener Flow", groups: [.quads, .hamstrings, .glutes, .back, .core], reps: "45s"),
+                warmupExercise("Incline Pushup", groups: [.chest, .shoulders, .triceps, .core], reps: "8")
             ]
         case .skill:
             base = [
@@ -57,13 +57,13 @@ extension DeterministicProgramGenerator {
         switch template {
         case .legs, .lower:
             return [
-                warmupExercise("Hip Opener Flow", groups: [.legs, .glutes, .back, .core], reps: "45s"),
-                warmupExercise("Bodyweight Squat", groups: [.legs, .glutes, .core], reps: "10")
+                warmupExercise("Hip Opener Flow", groups: [.quads, .hamstrings, .glutes, .back, .core], reps: "45s"),
+                warmupExercise("Bodyweight Squat", groups: [.quads, .glutes, .core], reps: "10")
             ]
         case .push:
             return [
                 warmupExercise("Wrist Prep", groups: [.forearms], reps: "45s"),
-                warmupExercise("High Plank", groups: [.chest, .shoulders, .arms, .core], reps: "20s")
+                warmupExercise("High Plank", groups: [.chest, .shoulders, .triceps, .core], reps: "20s")
             ]
         case .pull, .upper:
             return [
@@ -72,8 +72,8 @@ extension DeterministicProgramGenerator {
             ]
         case .fullBody, .weakPoint:
             return [
-                warmupExercise("Hip Opener Flow", groups: [.legs, .glutes, .back, .core], reps: "45s"),
-                warmupExercise("Glute Bridge", groups: [.glutes, .legs, .core], reps: "10")
+                warmupExercise("Hip Opener Flow", groups: [.quads, .hamstrings, .glutes, .back, .core], reps: "45s"),
+                warmupExercise("Glute Bridge", groups: [.glutes, .hamstrings, .core], reps: "10")
             ]
         case .skill:
             return [
@@ -109,11 +109,11 @@ extension DeterministicProgramGenerator {
     static func rampWarmupExercise(for template: DayTemplate) -> Exercise? {
         switch template {
         case .push, .upper:
-            return warmupExercise("Pushup", groups: [.chest, .shoulders, .arms, .core], sets: 1, reps: "5", restSeconds: 45, notes: "Ramp set before loading.")
+            return warmupExercise("Pushup", groups: [.chest, .shoulders, .triceps, .core], sets: 1, reps: "5", restSeconds: 45, notes: "Ramp set before loading.")
         case .pull:
-            return warmupExercise("Inverted Row", groups: [.back, .lats, .arms], sets: 1, reps: "6", restSeconds: 45, notes: "Ramp set before loading.")
+            return warmupExercise("Inverted Row", groups: [.back, .lats, .biceps], sets: 1, reps: "6", restSeconds: 45, notes: "Ramp set before loading.")
         case .legs, .lower, .fullBody, .weakPoint:
-            return warmupExercise("Bodyweight Squat", groups: [.legs, .glutes, .core], sets: 1, reps: "6", restSeconds: 45, notes: "Ramp set before loading.")
+            return warmupExercise("Bodyweight Squat", groups: [.quads, .glutes, .core], sets: 1, reps: "6", restSeconds: 45, notes: "Ramp set before loading.")
         case .skill, .rest:
             return nil
         }

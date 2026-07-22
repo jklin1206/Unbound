@@ -494,28 +494,34 @@ final class ProgramGenerationService: ProgramGenerationServiceProtocol, @uncheck
     }
 
     private func focusAreasFromTargets(_ targetAreas: Set<TargetArea>) -> [FocusArea] {
+        // Priority is per picked TARGET, not per muscle: a coarse pick like
+        // Arms fans out to biceps+triceps sharing one priority slot, so a
+        // second picked area still lands within the weighted (1-2) range.
         TargetArea.allCases
             .filter { targetAreas.contains($0) }
-            .compactMap { target -> MuscleGroup? in
+            .map { target -> [MuscleGroup] in
                 switch target {
-                case .chest: return .chest
-                case .back: return .back
-                case .shoulders: return .shoulders
-                case .arms: return .arms
-                case .core: return .core
-                case .legs: return .legs
-                case .glutes: return .glutes
-                case .fullBody: return nil
+                case .chest: return [.chest]
+                case .back: return [.back]
+                case .shoulders: return [.shoulders]
+                case .arms: return [.biceps, .triceps]
+                case .core: return [.core]
+                case .legs: return [.quads, .hamstrings]
+                case .glutes: return [.glutes]
+                case .fullBody: return []
                 }
             }
+            .filter { !$0.isEmpty }
             .enumerated()
-            .map { index, muscle in
-                FocusArea(
-                    muscleGroup: muscle,
-                    priority: index + 1,
-                    rationale: "Selected during onboarding",
-                    suggestedFocus: "Bias accessory volume toward \(muscle.displayName.lowercased())"
-                )
+            .flatMap { index, muscles in
+                muscles.map { muscle in
+                    FocusArea(
+                        muscleGroup: muscle,
+                        priority: index + 1,
+                        rationale: "Selected during onboarding",
+                        suggestedFocus: "Bias accessory volume toward \(muscle.displayName.lowercased())"
+                    )
+                }
             }
     }
 

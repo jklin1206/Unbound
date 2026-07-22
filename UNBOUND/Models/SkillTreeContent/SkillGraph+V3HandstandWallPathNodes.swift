@@ -8,7 +8,7 @@ extension SkillGraph {
             title: "Wall Plank",
             cluster: .handstand, tier: 1, type: .hold,
             target: .hold(exercise: "wall plank", seconds: 30),
-            primary: [.shoulders, .core], secondary: [.arms],
+            primary: [.shoulders, .core], secondary: [.triceps],
             subtitle: "Handstand starts horizontal.",
             description: "Plank position with feet walked up the wall until shoulders stack over wrists. The shared root for wall handstand, headstand, and early planche balance.",
             formCues: [
@@ -30,7 +30,7 @@ extension SkillGraph {
             cluster: .handstand, tier: 5, type: .hold,
             target: .hold(exercise: "wall-supported one-arm handstand", seconds: 5),
             prereqs: [PrerequisiteGroup(["hs.freestanding-hs-30", "hs.wall-handstand-30"])],
-            primary: [.shoulders, .core], secondary: [.forearms, .arms],
+            primary: [.shoulders, .core], secondary: [.forearms, .triceps],
             subtitle: "One arm. Wall for insurance.",
             description: "One-arm handstand drill using chest-to-wall, side-wall, or fingertip wall feedback so the working arm carries the stack without a banana-back lean. The bridge between freestanding handstand and a freestanding one-arm handstand.",
             formCues: [

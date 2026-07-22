@@ -7,6 +7,7 @@ struct HomeTopBarSection: View {
     let avatarLetter: String
     let arcBalance: Int
     let profileBorder: ShopProfileBorderID?
+    var defaultPortrait: DefaultPortrait = .masculine
     let onNotifications: () -> Void
 
     var body: some View {
@@ -16,7 +17,8 @@ struct HomeTopBarSection: View {
                 rank: rank,
                 image: avatarImage,
                 letterFallback: avatarLetter,
-                profileBorder: profileBorder
+                profileBorder: profileBorder,
+                defaultPortrait: defaultPortrait
             )
 
             Text("UNBOUND")
@@ -54,6 +56,7 @@ private struct HomeAvatarBadge: View {
     let image: UIImage?
     let letterFallback: String
     let profileBorder: ShopProfileBorderID?
+    var defaultPortrait: DefaultPortrait = .masculine
 
     var body: some View {
         HStack(spacing: 8) {
@@ -63,7 +66,8 @@ private struct HomeAvatarBadge: View {
                     size: 48,
                     image: image,
                     letterFallback: letterFallback,
-                    shopBorder: profileBorder
+                    shopBorder: profileBorder,
+                    defaultPortrait: defaultPortrait
                 )
 
                 Text("\(level)")
@@ -313,7 +317,7 @@ struct HomeTrainingConsoleSection: View {
                     Text(Self.protocolPrimaryLabel(canStart: canStart, isRest: isRest, isCleared: isCleared).uppercased())
                         .font(Font.unbound.bodyMStrong)
                         .tracking(1.4)
-                    Image(systemName: isCleared ? "checkmark" : (canStart ? "arrow.right" : (isRest ? "camera.fill" : "calendar.badge.plus")))
+                    Image(systemName: isCleared ? "checkmark" : (canStart ? "arrow.right" : (isRest ? "moon.zzz" : "calendar.badge.plus")))
                         .font(.system(size: 13, weight: .bold))
                 }
                 .foregroundStyle(Color.unbound.textPrimary)
@@ -392,7 +396,9 @@ struct HomeTrainingConsoleSection: View {
     private static func protocolPrimaryLabel(canStart: Bool, isRest: Bool, isCleared: Bool) -> String {
         if isCleared { return "Session Complete" }
         if canStart { return "Begin Session" }
-        return isRest ? "Log Check-In" : "Plan Session"
+        // Rest days credit the streak automatically — the button is a status
+        // plus a review tap, never a "log this" demand.
+        return isRest ? "Rest Day · Auto-Logged" : "Plan Session"
     }
 }
 
@@ -458,6 +464,7 @@ private struct HomeProtocolSignalTag: View {
 struct HomeWeekPathSection: View {
     let currentStreak: Int
     let weekSessionDays: Set<Int>
+    var weekCreditedDays: Set<Int> = []
     let countdown: (text: String, urgent: Bool, safe: Bool)?
     let reduceMotion: Bool
 
@@ -538,6 +545,7 @@ struct HomeWeekPathSection: View {
                         HomeWeekHeatFlame(
                             dayLabel: weekdayLabels[index],
                             hasSession: weekSessionDays.contains(index + 1),
+                            isCredited: weekCreditedDays.contains(index + 1),
                             isToday: (index + 1) == todayIndex,
                             reduceMotion: reduceMotion
                         )
@@ -570,14 +578,18 @@ private struct HomeCountdownLabel: View {
 private struct HomeWeekHeatFlame: View {
     let dayLabel: String
     let hasSession: Bool
+    let isCredited: Bool
     let isToday: Bool
     let reduceMotion: Bool
 
     var body: some View {
-        // Strictly two flame states: ignited (session logged) or unlit.
-        // "Today" is marked by the label color and a neutral ring, never by
-        // a half-ember flame - the in-between state read as a third status.
-        let flameColor = hasSession
+        // A day is either ignited or unlit — never a half-ember in between
+        // (that read as a broken third status). Streak-credited rest days
+        // ignite with the SAME full ember as session days so a live streak
+        // renders as an unbroken run; session days alone carry the gold core
+        // and pulse. "Today" is marked by the label color only.
+        let isLit = hasSession || isCredited
+        let flameColor = isLit
             ? Color.unbound.ember
             : Color.unbound.textTertiary.opacity(0.48)
         let labelColor = isToday ? Color.unbound.textPrimary : Color.unbound.textTertiary
@@ -588,22 +600,15 @@ private struct HomeWeekHeatFlame: View {
                 let pulse = CGFloat(shouldAnimate ? HomeAnimationMath.flamePulse(at: timeline.date) : 0)
 
                 ZStack {
-                    Circle()
-                        .strokeBorder(
-                            isToday ? Color.unbound.textPrimary.opacity(0.22) : Color.clear,
-                            lineWidth: 1
-                        )
-                        .frame(width: 28, height: 28)
-
-                    Image(systemName: hasSession ? "flame.fill" : "flame")
-                        .font(.system(size: hasSession ? 22 : 19, weight: .black))
+                    Image(systemName: isLit ? "flame.fill" : "flame")
+                        .font(.system(size: isLit ? 22 : 19, weight: .black))
                         .foregroundStyle(flameColor)
                         .scaleEffect(shouldAnimate ? 0.985 + (0.03 * pulse) : 1, anchor: .bottom)
                         .brightness(shouldAnimate ? Double(0.012 * pulse) : 0)
                         .shadow(
-                            color: hasSession ? Color.unbound.ember.opacity(0.42 + (0.10 * Double(pulse))) : Color.clear,
-                            radius: shouldAnimate ? 5 + (1.5 * pulse) : (hasSession ? 6 : 0),
-                            y: hasSession ? 2 : 0
+                            color: isLit ? Color.unbound.ember.opacity(0.42 + (0.10 * Double(pulse))) : Color.clear,
+                            radius: shouldAnimate ? 5 + (1.5 * pulse) : (isLit ? 6 : 0),
+                            y: isLit ? 2 : 0
                         )
 
                     if hasSession {
@@ -625,9 +630,9 @@ private struct HomeWeekHeatFlame: View {
                 .lineLimit(1)
         }
         .frame(width: 28)
-        .accessibilityLabel("\(dayLabel) \(hasSession ? "lit" : "unlit")")
+        .accessibilityLabel("\(dayLabel) \(hasSession ? "trained" : (isCredited ? "rest, streak alive" : "unlit"))")
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: hasSession)
-        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: isToday)
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: isCredited)
     }
 }
 

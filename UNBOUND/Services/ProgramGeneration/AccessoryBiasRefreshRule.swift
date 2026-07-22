@@ -27,13 +27,27 @@ enum AccessoryBiasRefreshRule {
             return Result(bias: newBias, carriedForward: false)
         }
 
-        let prevTop2 = topTwo(from: previousBlock.accessoryBias)
+        // previousBlock.accessoryBias is persisted and may still carry legacy
+        // `.arms`/`.legs` keys from before the muscle-group split; modernize
+        // before comparing or carrying it forward so old and new bias line up
+        // and downstream matching against fine-grained tags still works.
+        let previousBias = modernized(previousBlock.accessoryBias)
+        let prevTop2 = topTwo(from: previousBias)
         let newTop2 = topTwo(from: newBias)
 
         if prevTop2 == newTop2 {
-            return Result(bias: previousBlock.accessoryBias, carriedForward: true)
+            return Result(bias: previousBias, carriedForward: true)
         }
         return Result(bias: newBias, carriedForward: false)
+    }
+
+    /// Spreads any legacy coarse keys over their `modernized` fine-grained
+    /// equivalents, each keeping the full weight; deduped via max on collision.
+    private static func modernized(_ bias: [MuscleGroup: Int]) -> [MuscleGroup: Int] {
+        Dictionary(
+            bias.flatMap { key, value in key.modernized.map { ($0, value) } },
+            uniquingKeysWith: max
+        )
     }
 
     /// Extract the top-2 muscle groups by bias weight, in rank order.

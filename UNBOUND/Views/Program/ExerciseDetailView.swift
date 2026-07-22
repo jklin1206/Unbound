@@ -122,7 +122,7 @@ private struct ExerciseDetailMetadataFlowLayout: Layout {
         ExerciseDetailView(exercise: Exercise(
             id: "1",
             name: "Barbell Back Squat",
-            muscleGroups: [.legs, .glutes, .core],
+            muscleGroups: [.quads, .glutes, .core],
             sets: 4,
             reps: "6-8",
             restSeconds: 120,
@@ -148,7 +148,7 @@ struct ExerciseDetailDemoHarness: View {
             ExerciseDetailView(exercise: Exercise(
                 id: "demo",
                 name: name,
-                muscleGroups: [.legs, .glutes, .core],
+                muscleGroups: [.quads, .glutes, .core],
                 sets: 4,
                 reps: "6-8",
                 restSeconds: 120,

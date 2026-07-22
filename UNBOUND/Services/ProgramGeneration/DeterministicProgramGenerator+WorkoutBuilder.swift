@@ -305,17 +305,17 @@ extension DeterministicProgramGenerator {
                 (
                     "Calibration: Floor Push + Core Standard",
                     [.horizontalPush, .squat, .core],
-                    [.chest, .legs, .core]
+                    [.chest, .quads, .core]
                 ),
                 (
                     "Calibration: Floor Legs + Hinge Standard",
                     [.squat, .hinge, .core],
-                    [.legs, .glutes, .core]
+                    [.quads, .hamstrings, .glutes, .core]
                 ),
                 (
                     "Calibration: Full-Body Floor Standard",
                     [.horizontalPush, .squat, .hinge, .core],
-                    [.chest, .legs, .glutes, .core]
+                    [.chest, .quads, .hamstrings, .glutes, .core]
                 )
             ]
         } else if bodyweightOnly {
@@ -328,12 +328,12 @@ extension DeterministicProgramGenerator {
                 (
                     "Calibration: Legs + Control Standard",
                     [.squat, .hinge, .verticalPush, .core],
-                    [.legs, .glutes, .shoulders, .core]
+                    [.quads, .hamstrings, .glutes, .shoulders, .core]
                 ),
                 (
                     "Calibration: Full-Body Standard",
                     [.horizontalPush, .horizontalPull, .squat, .core],
-                    [.chest, .back, .legs, .core]
+                    [.chest, .back, .quads, .core]
                 )
             ]
         } else {
@@ -341,17 +341,17 @@ extension DeterministicProgramGenerator {
                 (
                     "Calibration: Upper Standard",
                     [.horizontalPush, .horizontalPull, .verticalPush, .verticalPull],
-                    [.chest, .back, .shoulders, .arms]
+                    [.chest, .back, .shoulders, .biceps, .triceps]
                 ),
                 (
                     "Calibration: Lower Standard",
                     [.squat, .hinge, .core],
-                    [.legs, .glutes, .core]
+                    [.quads, .hamstrings, .glutes, .core]
                 ),
                 (
                     "Calibration: Full-Body Standard",
                     [.squat, .horizontalPush, .verticalPull, .core],
-                    [.legs, .chest, .back, .core]
+                    [.quads, .chest, .back, .core]
                 ),
                 (
                     "Calibration: Pull + Hinge Standard",

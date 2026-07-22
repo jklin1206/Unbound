@@ -18,7 +18,7 @@ final class WeakPointBiaserTests: XCTestCase {
 
     func testPriorityThreeAndHigherAreIgnored() {
         let focus = [
-            FocusArea(muscleGroup: .arms, priority: 3, rationale: "", suggestedFocus: ""),
+            FocusArea(muscleGroup: .biceps, priority: 3, rationale: "", suggestedFocus: ""),
             FocusArea(muscleGroup: .core, priority: 4, rationale: "", suggestedFocus: "")
         ]
         XCTAssertTrue(WeakPointBiaser.bias(from: focus).isEmpty)
@@ -45,7 +45,7 @@ final class WeakPointBiaserTests: XCTestCase {
 
     func testPickBiasedFallsBackToFirstWhenNoOverlap() {
         struct Ex: Equatable { let name: String; let groups: [MuscleGroup] }
-        let a = Ex(name: "squat", groups: [.legs])
+        let a = Ex(name: "squat", groups: [.quads])
         let b = Ex(name: "bench", groups: [.chest])
         let picked = WeakPointBiaser.pickBiased(
             candidates: [a, b],
@@ -75,7 +75,7 @@ final class WeakPointBiaserTests: XCTestCase {
             Ex(name: "raise",     groups: [.shoulders]),   // shoulders=2 → score 2
             Ex(name: "face-pull", groups: [.shoulders]),   // score 2
             Ex(name: "shrug",     groups: [.traps]),       // traps=1 → score 1
-            Ex(name: "curl",      groups: [.arms])         // unbiased → score 0
+            Ex(name: "curl",      groups: [.biceps])       // unbiased → score 0
         ]
         let result = WeakPointBiaser.addAccessories(
             to: [Ex](),
@@ -109,8 +109,8 @@ final class WeakPointBiaserTests: XCTestCase {
 
     func testAddAccessoriesReturnsUnchangedWhenNoBias() {
         struct Ex: Equatable { let name: String; let groups: [MuscleGroup] }
-        let pool = [Ex(name: "curl", groups: [.arms]), Ex(name: "bench", groups: [.chest])]
-        let base = [Ex(name: "squat", groups: [.legs])]
+        let pool = [Ex(name: "curl", groups: [.biceps]), Ex(name: "bench", groups: [.chest])]
+        let base = [Ex(name: "squat", groups: [.quads])]
         let result = WeakPointBiaser.addAccessories(
             to: base,
             from: pool,

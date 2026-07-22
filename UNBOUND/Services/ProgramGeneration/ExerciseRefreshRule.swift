@@ -41,7 +41,8 @@ enum ExerciseRefreshRule {
             }
         }
         return pool.first(where: {
-            $0.muscleGroups == entry.muscleGroups && $0.name != entry.name
+            Set(MuscleGroup.modernized($0.muscleGroups)) == Set(MuscleGroup.modernized(entry.muscleGroups))
+                && $0.name != entry.name
         })
     }
 }

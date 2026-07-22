@@ -264,13 +264,13 @@ enum ProgramBodyRegion: Hashable, Sendable {
 
     static func from(muscleGroup: MuscleGroup) -> ProgramBodyRegion {
         switch muscleGroup {
-        case .back, .lats, .traps, .forearms:
+        case .back, .lats, .traps, .forearms, .biceps:
             return .pull
-        case .chest, .arms:
+        case .chest, .triceps:
             return .push
-        case .legs, .calves:
+        case .quads, .calves:
             return .legs
-        case .glutes:
+        case .glutes, .hamstrings:
             return .posterior
         case .core:
             return .core
@@ -278,6 +278,11 @@ enum ProgramBodyRegion: Hashable, Sendable {
             return .shoulders
         case .neck:
             return .other("neck")
+        // Legacy coarse tags from persisted data
+        case .arms:
+            return .push
+        case .legs:
+            return .legs
         }
     }
 

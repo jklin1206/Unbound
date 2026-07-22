@@ -403,9 +403,18 @@ final class ShopInventoryStore: ObservableObject {
         NotificationCenter.default.post(name: .shopInventoryChanged, object: item)
     }
 
+    /// Marker persisted when the user DELIBERATELY returns a slot to the
+    /// default. Removing the key instead makes the slot indistinguishable from
+    /// never-touched, and the cloud backup's adopt-when-unset restore then
+    /// resurrects the previously equipped item - "Use" on the default card
+    /// looked dead. Every reader parses raw values through an enum/catalog
+    /// init, so the sentinel resolves to nil (= default) everywhere while the
+    /// raw snapshot still reads as locally-set.
+    static let equippedDefaultSentinel = "__default__"
+
     static func clearEquippedHomeBackground(userId: String, defaults: UserDefaults = .standard) {
-        defaults.removeObject(forKey: equippedHomeBackgroundKeyPrefix + userId)
-        defaults.removeObject(forKey: equippedHomeBackdropKeyPrefix + userId)
+        defaults.set(equippedDefaultSentinel, forKey: equippedHomeBackgroundKeyPrefix + userId)
+        defaults.set(equippedDefaultSentinel, forKey: equippedHomeBackdropKeyPrefix + userId)
         NotificationCenter.default.post(name: .shopInventoryChanged, object: nil)
     }
 
@@ -444,8 +453,8 @@ final class ShopInventoryStore: ObservableObject {
     }
 
     static func clearEquippedProfileBackground(userId: String, defaults: UserDefaults = .standard) {
-        defaults.removeObject(forKey: equippedBackgroundKeyPrefix + userId)
-        defaults.removeObject(forKey: equippedProfileBackdropKeyPrefix + userId)
+        defaults.set(equippedDefaultSentinel, forKey: equippedBackgroundKeyPrefix + userId)
+        defaults.set(equippedDefaultSentinel, forKey: equippedProfileBackdropKeyPrefix + userId)
         NotificationCenter.default.post(name: .shopInventoryChanged, object: nil)
     }
 
@@ -454,12 +463,12 @@ final class ShopInventoryStore: ObservableObject {
         userId: String,
         defaults: UserDefaults = .standard
     ) {
-        defaults.removeObject(forKey: equippedBackdropKeyPrefix(for: surface) + userId)
+        defaults.set(equippedDefaultSentinel, forKey: equippedBackdropKeyPrefix(for: surface) + userId)
         switch surface {
         case .home:
-            defaults.removeObject(forKey: equippedHomeBackgroundKeyPrefix + userId)
+            defaults.set(equippedDefaultSentinel, forKey: equippedHomeBackgroundKeyPrefix + userId)
         case .profile:
-            defaults.removeObject(forKey: equippedBackgroundKeyPrefix + userId)
+            defaults.set(equippedDefaultSentinel, forKey: equippedBackgroundKeyPrefix + userId)
         }
         NotificationCenter.default.post(name: .shopInventoryChanged, object: nil)
     }

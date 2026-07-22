@@ -311,6 +311,21 @@ final class ActiveWorkoutSession: ObservableObject, Identifiable {
         exercises.append(exercise)
     }
 
+    /// Undo for the quick-log add picker's toggle-off tap. Only removes the
+    /// LAST exercise with this name, and only if nothing has been logged
+    /// against it yet — a set the person actually performed is never
+    /// discarded by a picker tap.
+    func removeLastAddedExercise(matching displayName: String) {
+        guard let index = exercises.lastIndex(where: { $0.name == displayName }) else { return }
+        guard !exercises[index].sets.contains(where: \.logged) else { return }
+        objectWillChange.send()
+        exercises.remove(at: index)
+        if currentExerciseIndex >= exercises.count {
+            currentExerciseIndex = max(0, exercises.count - 1)
+            currentSetIndex = 0
+        }
+    }
+
     func markCurrentExerciseStarted(at date: Date = Date()) {
         markExerciseStarted(exerciseIndex: currentExerciseIndex, at: date)
     }

@@ -13,12 +13,12 @@ extension DevBuildBootstrapper {
         let workouts: [Workout] = [
             Workout(
                 name: "Push Strength",
-                targetMuscleGroups: [.chest, .shoulders, .arms],
+                targetMuscleGroups: [.chest, .shoulders, .triceps],
                 warmup: [],
                 mainExercises: [
-                    Exercise(id: "dev-bench", name: "Barbell Bench Press", muscleGroups: [.chest, .shoulders, .arms], sets: 4, reps: "4-6", restSeconds: 180, rpe: 8, notes: "Pause the first rep. Stop one rep before grind.", substitution: "Dumbbell Bench Press"),
-                    Exercise(id: "dev-incline-db", name: "Incline Dumbbell Press", muscleGroups: [.chest, .shoulders, .arms], sets: 3, reps: "8-10", restSeconds: 120, rpe: 8, notes: nil, substitution: "Push-Up"),
-                    Exercise(id: "dev-ohp", name: "Overhead Press", muscleGroups: [.shoulders, .arms], sets: 3, reps: "5-7", restSeconds: 150, rpe: 8, notes: nil, substitution: "Dumbbell OHP")
+                    Exercise(id: "dev-bench", name: "Barbell Bench Press", muscleGroups: [.chest, .shoulders, .triceps], sets: 4, reps: "4-6", restSeconds: 180, rpe: 8, notes: "Pause the first rep. Stop one rep before grind.", substitution: "Dumbbell Bench Press"),
+                    Exercise(id: "dev-incline-db", name: "Incline Dumbbell Press", muscleGroups: [.chest, .shoulders, .triceps], sets: 3, reps: "8-10", restSeconds: 120, rpe: 8, notes: nil, substitution: "Push-Up"),
+                    Exercise(id: "dev-ohp", name: "Overhead Press", muscleGroups: [.shoulders, .triceps], sets: 3, reps: "5-7", restSeconds: 150, rpe: 8, notes: nil, substitution: "Dumbbell OHP")
                 ],
                 cooldown: [],
                 estimatedMinutes: 55,
@@ -27,12 +27,12 @@ extension DevBuildBootstrapper {
             ),
             Workout(
                 name: "Lower Output",
-                targetMuscleGroups: [.legs, .glutes, .core],
+                targetMuscleGroups: [.quads, .hamstrings, .glutes, .core],
                 warmup: [],
                 mainExercises: [
-                    Exercise(id: "dev-squat", name: "Back Squat", muscleGroups: [.legs, .glutes, .core], sets: 4, reps: "3-5", restSeconds: 180, rpe: 8, notes: nil, substitution: nil),
-                    Exercise(id: "dev-rdl", name: "Romanian Deadlift", muscleGroups: [.legs, .glutes, .back], sets: 3, reps: "6-8", restSeconds: 150, rpe: 8, notes: nil, substitution: nil),
-                    Exercise(id: "dev-split-squat", name: "Bulgarian Split Squat", muscleGroups: [.legs, .glutes], sets: 3, reps: "8-10", restSeconds: 90, rpe: 8, notes: nil, substitution: "Reverse Lunge")
+                    Exercise(id: "dev-squat", name: "Back Squat", muscleGroups: [.quads, .glutes, .core], sets: 4, reps: "3-5", restSeconds: 180, rpe: 8, notes: nil, substitution: nil),
+                    Exercise(id: "dev-rdl", name: "Romanian Deadlift", muscleGroups: [.hamstrings, .glutes, .back], sets: 3, reps: "6-8", restSeconds: 150, rpe: 8, notes: nil, substitution: nil),
+                    Exercise(id: "dev-split-squat", name: "Bulgarian Split Squat", muscleGroups: [.quads, .glutes], sets: 3, reps: "8-10", restSeconds: 90, rpe: 8, notes: nil, substitution: "Reverse Lunge")
                 ],
                 cooldown: [],
                 estimatedMinutes: 60,
@@ -41,11 +41,11 @@ extension DevBuildBootstrapper {
             ),
             Workout(
                 name: "Pull Volume",
-                targetMuscleGroups: [.back, .lats, .arms],
+                targetMuscleGroups: [.back, .lats, .biceps],
                 warmup: [],
                 mainExercises: [
-                    Exercise(id: "dev-pullup", name: "Pull-Up", muscleGroups: [.back, .lats, .arms], sets: 4, reps: "6-10", restSeconds: 120, rpe: 8, notes: nil, substitution: "Lat Pulldown"),
-                    Exercise(id: "dev-row", name: "Chest-Supported Row", muscleGroups: [.back, .lats, .arms], sets: 4, reps: "8-12", restSeconds: 120, rpe: 8, notes: nil, substitution: "One-Arm Dumbbell Row"),
+                    Exercise(id: "dev-pullup", name: "Pull-Up", muscleGroups: [.back, .lats, .biceps], sets: 4, reps: "6-10", restSeconds: 120, rpe: 8, notes: nil, substitution: "Lat Pulldown"),
+                    Exercise(id: "dev-row", name: "Chest-Supported Row", muscleGroups: [.back, .lats, .biceps], sets: 4, reps: "8-12", restSeconds: 120, rpe: 8, notes: nil, substitution: "One-Arm Dumbbell Row"),
                     Exercise(id: "dev-face-pull", name: "Face Pull", muscleGroups: [.shoulders, .traps], sets: 3, reps: "12-15", restSeconds: 75, rpe: 7, notes: nil, substitution: "Band Pull-Apart")
                 ],
                 cooldown: [],
@@ -60,7 +60,7 @@ extension DevBuildBootstrapper {
                 mainExercises: [
                     Exercise(id: "dev-handstand", name: "Wall Handstand", muscleGroups: [.shoulders, .core], sets: 5, reps: "30s", restSeconds: 90, rpe: 7, notes: nil, substitution: nil),
                     Exercise(id: "dev-lsit", name: "L-Sit", muscleGroups: [.core], sets: 5, reps: "15s", restSeconds: 90, rpe: 7, notes: nil, substitution: nil),
-                    Exercise(id: "dev-mobility", name: "Deep Squat Hold", muscleGroups: [.legs, .core], sets: 3, reps: "60s", restSeconds: 60, rpe: 6, notes: nil, substitution: nil)
+                    Exercise(id: "dev-mobility", name: "Deep Squat Hold", muscleGroups: [.quads, .core], sets: 3, reps: "60s", restSeconds: 60, rpe: 6, notes: nil, substitution: nil)
                 ],
                 cooldown: [],
                 estimatedMinutes: 45,
@@ -69,11 +69,11 @@ extension DevBuildBootstrapper {
             ),
             Workout(
                 name: "Full Body Engine",
-                targetMuscleGroups: [.legs, .glutes, .back, .shoulders, .forearms],
+                targetMuscleGroups: [.quads, .hamstrings, .glutes, .back, .shoulders, .forearms],
                 warmup: [],
                 mainExercises: [
-                    Exercise(id: "dev-deadlift", name: "Deadlift", muscleGroups: [.legs, .glutes, .back, .traps], sets: 3, reps: "3-5", restSeconds: 180, rpe: 8, notes: "Leave one clean rep in reserve.", substitution: "Trap Bar Deadlift"),
-                    Exercise(id: "dev-push-press", name: "Dumbbell Push Press", muscleGroups: [.shoulders, .arms, .legs], sets: 3, reps: "6-8", restSeconds: 120, rpe: 8, notes: nil, substitution: "Landmine Press"),
+                    Exercise(id: "dev-deadlift", name: "Deadlift", muscleGroups: [.hamstrings, .glutes, .back, .traps], sets: 3, reps: "3-5", restSeconds: 180, rpe: 8, notes: "Leave one clean rep in reserve.", substitution: "Trap Bar Deadlift"),
+                    Exercise(id: "dev-push-press", name: "Dumbbell Push Press", muscleGroups: [.shoulders, .triceps, .quads, .hamstrings], sets: 3, reps: "6-8", restSeconds: 120, rpe: 8, notes: nil, substitution: "Landmine Press"),
                     Exercise(id: "dev-farmer", name: "Farmer Carry", muscleGroups: [.forearms, .traps, .core], sets: 4, reps: "40m", restSeconds: 90, rpe: 8, notes: nil, substitution: "Suitcase Carry")
                 ],
                 cooldown: [],
@@ -696,7 +696,7 @@ extension DevBuildBootstrapper {
                                 sets: 4,
                                 target: .repsRange(5, 8),
                                 restSeconds: 120,
-                                muscleGroups: [.shoulders, .chest, .arms],
+                                muscleGroups: [.shoulders, .chest, .triceps],
                                 rpe: 8
                             )
                         ]
@@ -710,7 +710,7 @@ extension DevBuildBootstrapper {
                                 sets: 3,
                                 target: .repsRange(8, 10),
                                 restSeconds: 105,
-                                muscleGroups: [.chest, .shoulders, .arms],
+                                muscleGroups: [.chest, .shoulders, .triceps],
                                 rpe: 8,
                                 suggestedWeightKg: 28
                             ),
@@ -745,7 +745,7 @@ extension DevBuildBootstrapper {
                                 sets: 5,
                                 target: .repsRange(2, 4),
                                 restSeconds: 150,
-                                muscleGroups: [.back, .lats, .arms],
+                                muscleGroups: [.back, .lats, .biceps],
                                 rpe: 8
                             ),
                             TrainingBlockPrescription(
@@ -753,7 +753,7 @@ extension DevBuildBootstrapper {
                                 sets: 4,
                                 target: .repsRange(2, 4),
                                 restSeconds: 120,
-                                muscleGroups: [.back, .lats, .chest, .arms],
+                                muscleGroups: [.back, .lats, .chest, .biceps, .triceps],
                                 rpe: 7
                             )
                         ]
@@ -767,7 +767,7 @@ extension DevBuildBootstrapper {
                                 sets: 4,
                                 target: .repsRange(8, 12),
                                 restSeconds: 75,
-                                muscleGroups: [.back, .lats, .arms],
+                                muscleGroups: [.back, .lats, .biceps],
                                 rpe: 8
                             ),
                             TrainingBlockPrescription(
@@ -801,7 +801,7 @@ extension DevBuildBootstrapper {
                                 sets: 5,
                                 target: .repsRange(3, 5),
                                 restSeconds: 120,
-                                muscleGroups: [.legs, .glutes, .core],
+                                muscleGroups: [.quads, .glutes, .core],
                                 rpe: 8
                             ),
                             TrainingBlockPrescription(
@@ -809,7 +809,7 @@ extension DevBuildBootstrapper {
                                 sets: 3,
                                 target: .repsRange(6, 8),
                                 restSeconds: 75,
-                                muscleGroups: [.legs, .glutes],
+                                muscleGroups: [.quads, .glutes],
                                 rpe: 7
                             )
                         ]
@@ -823,7 +823,7 @@ extension DevBuildBootstrapper {
                                 sets: 4,
                                 target: .repsRange(8, 10),
                                 restSeconds: 90,
-                                muscleGroups: [.legs, .glutes, .core],
+                                muscleGroups: [.quads, .glutes, .core],
                                 rpe: 8,
                                 suggestedWeightKg: 32
                             )
@@ -849,7 +849,7 @@ extension DevBuildBootstrapper {
                                 sets: 4,
                                 target: .repsRange(4, 6),
                                 restSeconds: 180,
-                                muscleGroups: [.legs, .glutes, .core],
+                                muscleGroups: [.quads, .glutes, .core],
                                 rpe: 8,
                                 suggestedWeightKg: 92.5
                             ),
@@ -858,7 +858,7 @@ extension DevBuildBootstrapper {
                                 sets: 4,
                                 target: .repsRange(5, 8),
                                 restSeconds: 120,
-                                muscleGroups: [.back, .lats, .arms],
+                                muscleGroups: [.back, .lats, .biceps],
                                 rpe: 8
                             ),
                             TrainingBlockPrescription(
@@ -902,7 +902,7 @@ extension DevBuildBootstrapper {
                             sets: 4,
                             target: .repsRange(5, 8),
                             restSeconds: 120,
-                            muscleGroups: [.back, .lats, .arms]
+                            muscleGroups: [.back, .lats, .biceps]
                         )
                     ]
                 ),

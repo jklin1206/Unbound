@@ -7,7 +7,7 @@ final class ArcGeneratorTests: XCTestCase {
             days: [
                 ProgramTestFactory.makeDay(dayNumber: 1, label: "Push", role: .push, muscleGroups: [.chest]),
                 ProgramTestFactory.makeDay(dayNumber: 2, label: "Pull", role: .pull, muscleGroups: [.back, .lats]),
-                ProgramTestFactory.makeDay(dayNumber: 3, label: "Legs", role: .legs, muscleGroups: [.legs])
+                ProgramTestFactory.makeDay(dayNumber: 3, label: "Legs", role: .legs, muscleGroups: [.quads, .hamstrings, .glutes, .calves])
             ],
             createdAt: Date(timeIntervalSince1970: 0),
             withArc: false

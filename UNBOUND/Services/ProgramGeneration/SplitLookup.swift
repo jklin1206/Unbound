@@ -1,9 +1,11 @@
 // UNBOUND/Services/ProgramGeneration/SplitLookup.swift
 import Foundation
 
-/// The ordered sequence of training-day templates that make up one week of a
-/// training plan. Rest days are NOT included — they're scheduled separately
-/// based on which weekdays the user picked.
+/// The ordered, repeating cycle of training-day templates for a training plan.
+/// The scheduler tiles the cycle across training days without resetting at
+/// week boundaries, so it may be shorter than a week (e.g. a continuous PPL
+/// cycle at 5 days/week). Rest days are NOT included — they're scheduled
+/// separately based on which weekdays the user picked.
 struct Split: Equatable {
     let trainingDayTemplates: [DayTemplate]
 }
@@ -45,7 +47,10 @@ enum SplitLookup {
         case (false, .four):
             return [.upper, .lower, .upper, .lower]
         case (false, .five):
-            return [.push, .pull, .legs, .upper, .lower]
+            // Continuous PPL cycle: the scheduler tiles templates with
+            // `cursor % count` and never resets at week boundaries, so a
+            // 3-template cycle at 5 days/week runs P P L P P, then L P P L P…
+            return [.push, .pull, .legs]
         case (false, .six):
             return [.push, .pull, .legs, .push, .pull, .legs]
         }

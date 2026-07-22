@@ -20,7 +20,7 @@ extension SkillGraph {
             cluster: .pullingPower, tier: 1, type: .skill,
             target: .reps(exercise: "incline row", count: 12),
             equipment: [.pullupBar],
-            primary: [.back, .lats], secondary: [.arms, .core],
+            primary: [.back, .lats], secondary: [.biceps, .core],
             subtitle: "The row on-ramp.",
             description: "Bar set high — body near-vertical — pull chest to bar. 12 reps. The simplest pulling entry point before the first pull-up is reachable.",
             formCues: [
@@ -43,7 +43,7 @@ extension SkillGraph {
             target: .reps(exercise: "inverted row", count: 10),
             prereqs: [PrerequisiteGroup("pp.incline-row")],
             equipment: [.pullupBar, .gymnasticRings],
-            primary: [.back, .lats], secondary: [.arms, .core],
+            primary: [.back, .lats], secondary: [.biceps, .core],
             subtitle: "The clean horizontal pull.",
             description: "Bodyweight inverted row on a low bar or rings. Body stays in one plank line, heels on the floor, ribs pull to the implement, and every rep returns to straight arms.",
             formCues: [
@@ -66,7 +66,7 @@ extension SkillGraph {
             target: .reps(exercise: "decline row", count: 10),
             prereqs: [PrerequisiteGroup("pp.row")],
             equipment: [.pullupBar, .elevatedSurface],
-            primary: [.back, .lats], secondary: [.arms, .core],
+            primary: [.back, .lats], secondary: [.biceps, .core],
             subtitle: "Feet up. Back lights up.",
             description: "Inverted row with feet elevated on a bench or box. 10 reps. The bridge between a standing row and a full horizontal pull.",
             formCues: [
@@ -89,7 +89,7 @@ extension SkillGraph {
             target: .reps(exercise: "one arm row", count: 5),
             prereqs: [PrerequisiteGroup("pp.decline-row")],
             equipment: [.pullupBar],
-            primary: [.back, .lats], secondary: [.arms, .core],
+            primary: [.back, .lats], secondary: [.biceps, .core],
             subtitle: "Pull your bodyweight on one arm.",
             description: "Strict one-arm rows on rings or a low bar — bodyweight horizontal, single arm pulls chest to the implement, control the descent.",
             formCues: [
@@ -113,7 +113,7 @@ extension SkillGraph {
             target: .reps(exercise: "tuck row", count: 8),
             prereqs: [PrerequisiteGroup("pp.decline-row")],
             equipment: [.pullupBar],
-            primary: [.back, .lats], secondary: [.arms, .core],
+            primary: [.back, .lats], secondary: [.biceps, .core],
             subtitle: "The front-lever on-ramp.",
             description: "Low-bar or ring row with knees tucked tight to chest and hips high. 8 reps. Builds the lat-and-core coordination that every front lever progression depends on.",
             formCues: [
@@ -137,7 +137,7 @@ extension SkillGraph {
             target: .reps(exercise: "straddle row", count: 5),
             prereqs: [PrerequisiteGroup("pp.tuck-row")],
             equipment: [.pullupBar],
-            primary: [.back, .lats], secondary: [.arms, .core],
+            primary: [.back, .lats], secondary: [.biceps, .core],
             subtitle: "Legs split. Lever longer.",
             description: "Inverted row with legs extended in a wide straddle, body parallel to floor. 5 reps. Harder than tuck row — direct bridge toward straddle front lever row.",
             formCues: [
@@ -161,7 +161,7 @@ extension SkillGraph {
             target: .reps(exercise: "tuck front lever pullup", count: 3),
             prereqs: [PrerequisiteGroup(["cl.tuck-front-lever", "pp.one-arm-row", "pp.strict-pullup"])],
             equipment: [.pullupBar],
-            primary: [.lats, .arms, .core], secondary: [.back],
+            primary: [.lats, .biceps, .core], secondary: [.back],
             subtitle: "Pull-up while holding the front lever.",
             description: "Hanging pull-up performed while holding a tuck front lever — body horizontal, knees tucked. Harder and stricter than the low-bar tuck lever row.",
             formCues: [
@@ -186,7 +186,7 @@ extension SkillGraph {
             target: .reps(exercise: "heighted chin-up", count: 3),
             prereqs: [PrerequisiteGroup(["pp.weighted-chin-up", "pp.chin-up"])],
             equipment: [.pullupBar],
-            primary: [.lats, .arms, .back], secondary: [.core, .forearms],
+            primary: [.lats, .biceps, .back], secondary: [.core, .forearms],
             subtitle: "Beyond chin-to-bar — pull collarbones to the bar.",
             description: "3 strict chin-ups where the collarbones (sternum) clear the bar — extreme ROM, requires explosive pull off a base of weighted chin-up strength.",
             formCues: [
@@ -210,7 +210,7 @@ extension SkillGraph {
             prereqs: [PrerequisiteGroup(["pp.heighted-chin-up", "pp.weighted-chin-up", "pp.chin-up"])],
             isMythic: true,
             equipment: [.pullupBar],
-            primary: [.lats, .arms, .back], secondary: [.core, .forearms],
+            primary: [.lats, .biceps, .back], secondary: [.core, .forearms],
             subtitle: "Supinated ceiling.",
             description: "One strict chin-up with a single arm — full dead hang to chin-over-bar, underhand grip, no kip. The supinated counterpart to the one-arm pull-up.",
             formCues: [
@@ -236,7 +236,7 @@ extension SkillGraph {
             prereqs: [PrerequisiteGroup(["pp.muscle-up", "pp.weighted-pullup", "cal.5-dips"])],
             isMythic: true,
             equipment: [.pullupBar],
-            primary: [.lats, .chest, .arms], secondary: [.core, .shoulders],
+            primary: [.lats, .chest, .biceps, .triceps], secondary: [.core, .shoulders],
             subtitle: "No hips. No kip.",
             description: "Muscle-up with zero lower-body contribution — legs stay dead straight, hips pass through the bar from pure upper-body strength. 1 clean rep.",
             formCues: [

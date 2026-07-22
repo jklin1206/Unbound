@@ -79,7 +79,8 @@ struct BaselineYearProgramSimulator {
             stressLevel: 4,
             commitment: 9,
             focusAreas: [
-                FocusArea(muscleGroup: .legs, priority: 1, rationale: "Scan lag", suggestedFocus: "Lower body"),
+                FocusArea(muscleGroup: .quads, priority: 1, rationale: "Scan lag", suggestedFocus: "Lower body"),
+                FocusArea(muscleGroup: .hamstrings, priority: 1, rationale: "Scan lag", suggestedFocus: "Lower body"),
                 FocusArea(muscleGroup: .back, priority: 2, rationale: "Scan lag", suggestedFocus: "Back width")
             ],
             cutModeActive: false,
@@ -102,7 +103,8 @@ struct BaselineYearProgramSimulator {
             stressLevel: 5,
             commitment: 10,
             focusAreas: [
-                FocusArea(muscleGroup: .legs, priority: 1, rationale: "Performance priority", suggestedFocus: "Squat/deadlift base"),
+                FocusArea(muscleGroup: .quads, priority: 1, rationale: "Performance priority", suggestedFocus: "Squat/deadlift base"),
+                FocusArea(muscleGroup: .hamstrings, priority: 1, rationale: "Performance priority", suggestedFocus: "Squat/deadlift base"),
                 FocusArea(muscleGroup: .glutes, priority: 2, rationale: "Performance priority", suggestedFocus: "Posterior chain")
             ],
             cutModeActive: false,
@@ -151,7 +153,8 @@ struct BaselineYearProgramSimulator {
             commitment: 7,
             focusAreas: [
                 FocusArea(muscleGroup: .chest, priority: 1, rationale: "Scan lag", suggestedFocus: "Push volume"),
-                FocusArea(muscleGroup: .legs, priority: 2, rationale: "Scan lag", suggestedFocus: "Leg density")
+                FocusArea(muscleGroup: .quads, priority: 2, rationale: "Scan lag", suggestedFocus: "Leg density"),
+                FocusArea(muscleGroup: .hamstrings, priority: 2, rationale: "Scan lag", suggestedFocus: "Leg density")
             ],
             cutModeActive: false,
             adherence: .inconsistent
@@ -699,7 +702,7 @@ struct BaselineYearProgramSimulator {
                     sets: 3,
                     target: .distanceMeters(40),
                     restSeconds: 90,
-                    muscleGroups: [.back, .arms, .shoulders]
+                    muscleGroups: [.back, .biceps, .triceps, .shoulders]
                 )
             ]
         )

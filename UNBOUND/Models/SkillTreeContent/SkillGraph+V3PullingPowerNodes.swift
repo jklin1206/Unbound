@@ -37,7 +37,7 @@ extension SkillGraph {
             target: .reps(exercise: "pullup", count: 5),
             prereqs: [PrerequisiteGroup("pp.dead-hang")],
             equipment: [.pullupBar],
-            primary: [.lats, .arms], secondary: [.back, .core],
+            primary: [.lats, .biceps], secondary: [.back, .core],
             subtitle: "The move that separates gym-curious from gym-able.",
             description: "Strict pullup from a full dead hang — chin over bar, no kip or leg swing. The foundation for every bar skill that follows.",
             formCues: [
@@ -62,7 +62,7 @@ extension SkillGraph {
             prereqs: [PrerequisiteGroup("pp.pullup")],
             isKeystone: true,
             equipment: [.pullupBar],
-            primary: [.lats, .arms], secondary: [.back, .core],
+            primary: [.lats, .biceps], secondary: [.back, .core],
             subtitle: "The strict pull-up is the gateway to the rest of the tree.",
             description: "Strict pull-ups — dead hang start, chin clears the bar, no kip, no swing, controlled descent. The volume gate that opens weighted pulling, explosive pulling, and the muscle-up.",
             formCues: [
@@ -86,7 +86,7 @@ extension SkillGraph {
             target: .reps(exercise: "archer pullup", count: 3),
             prereqs: [PrerequisiteGroup(["pp.weighted-pullup", "pp.pullup"])],
             equipment: [.pullupBar],
-            primary: [.lats, .arms], secondary: [.core],
+            primary: [.lats, .biceps], secondary: [.core],
             subtitle: "The bridge to one-arm work.",
             description: "Pullup where one arm bends fully while the other stays extended along the bar. The extended arm assists just enough to keep you honest. Alternates sides.",
             formCues: [
@@ -110,7 +110,7 @@ extension SkillGraph {
             target: .weightMultiplier(exercise: "weighted pullup", multiplier: 0.5),
             prereqs: [PrerequisiteGroup(["pp.strict-pullup", "pp.pullup"])],
             equipment: [.pullupBar, .dumbbells],
-            primary: [.lats, .arms], secondary: [.back, .forearms],
+            primary: [.lats, .biceps], secondary: [.back, .forearms],
             subtitle: "Load the pull.",
             description: "Strict pullup with added external load (belt + plate, or dumbbell between feet). Sweeps from 0.1× bodyweight up to a full bodyweight pull-up. Gateway to one-arm pulling.",
             formCues: [
@@ -134,7 +134,7 @@ extension SkillGraph {
             target: .reps(exercise: "one-arm pullup negative", count: 3),
             prereqs: [PrerequisiteGroup(["pp.archer-pullup", "pp.weighted-pullup"])],
             equipment: [.pullupBar],
-            primary: [.lats, .arms, .back], secondary: [.core, .forearms],
+            primary: [.lats, .biceps, .back], secondary: [.core, .forearms],
             subtitle: "Lower yourself with one arm — the bridge to the full one-arm.",
             description: "3 strict 5s eccentric one-arm pull-up negatives per side. Slow lower from the top, no jerk.",
             formCues: [
@@ -158,7 +158,7 @@ extension SkillGraph {
             prereqs: [PrerequisiteGroup(["pp.oap-negative", "pp.weighted-pullup", "pp.archer-pullup"])],
             isMythic: true,
             equipment: [.pullupBar],
-            primary: [.lats, .arms, .back], secondary: [.core, .forearms],
+            primary: [.lats, .biceps, .back], secondary: [.core, .forearms],
             subtitle: "The pulling ceiling most will never touch.",
             description: "One strict pullup with a single arm — full dead hang to chin-over-bar, no kip, no momentum. The pulling ceiling for 95%+ of humans.",
             formCues: [
@@ -185,7 +185,7 @@ extension SkillGraph {
             isKeystone: true,
             isMythic: true,
             equipment: [.pullupBar],
-            primary: [.lats, .chest, .arms], secondary: [.core, .shoulders],
+            primary: [.lats, .chest, .biceps, .triceps], secondary: [.core, .shoulders],
             subtitle: "The gateway between pulling and pushing.",
             description: "Bar muscle-up: explosive high pull, close bar path, chest over hands, then a clean straight-bar dip lockout. A controlled hollow-to-arch swing or hip drive is allowed here; strict zero-momentum reps belong to the strict muscle-up node.",
             formCues: [
@@ -209,7 +209,7 @@ extension SkillGraph {
             target: .reps(exercise: "ring muscle-up", count: 1),
             prereqs: [PrerequisiteGroup(["pp.muscle-up", "cal.ring-dip"])],
             equipment: [.gymnasticRings],
-            primary: [.lats, .chest, .arms, .shoulders],
+            primary: [.lats, .chest, .biceps, .triceps, .shoulders],
             subtitle: "Muscle-up, harder canvas.",
             description: "One strict muscle-up on gymnastic rings. The instability demands more from every stabilizer than the bar version.",
             formCues: [

@@ -474,6 +474,26 @@ final class DeterministicProgramGeneratorTests: XCTestCase {
         XCTAssertFalse(exercises.contains { $0.name.localizedCaseInsensitiveContains("Barbell") })
     }
 
+    // 5-day weights runs PPL as a continuous cycle across week boundaries:
+    // week 1 is Push Pull Legs Push Pull, and week 2 picks up the cycle at
+    // Legs instead of restarting at Push.
+    func testFiveDayWeightsPPLCycleContinuesAcrossWeeks() throws {
+        let input = makeInput(
+            frequency: .five,
+            trainingDays: [.monday, .tuesday, .wednesday, .thursday, .friday],
+            buildIdentity: BuildIdentity(primary: .power, secondary: nil, shape: .balancedAthlete),
+            trainingStyle: .freeWeights,
+            equipment: [.fullGym]
+        )
+
+        let program = try DeterministicProgramGenerator.generate(input: input)
+        let sessionLabels = program.days.filter { !$0.isRestDay }.map(\.label)
+        XCTAssertEqual(
+            Array(sessionLabels.prefix(10)),
+            ["Push", "Pull", "Legs", "Push", "Pull", "Legs", "Push", "Pull", "Legs", "Push"]
+        )
+    }
+
     func testPullTemplateOnlyUsesPullMovementSlots() throws {
         let input = makeInput(
             frequency: .five,

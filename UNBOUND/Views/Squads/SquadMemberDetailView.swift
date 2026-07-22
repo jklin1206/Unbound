@@ -40,7 +40,7 @@ struct SquadMemberDetailView: View {
     // MARK: - Flair-resolved cosmetics (prefer published flair; local fallback)
 
     private var resolvedFrameTier: RankTitle {
-        flair?.frameTier ?? RankCosmetics.equippedFrameTier(userId: profileUserId, currentTier: aggregateTier)
+        flair?.frameTier ?? RankCosmetics.equippedFrameTierReadOnly(userId: profileUserId, currentTier: aggregateTier)
     }
     private var resolvedBorder: ShopProfileBorderID? {
         flair?.borderId ?? ShopInventoryStore.equippedProfileBorder(userId: profileUserId)

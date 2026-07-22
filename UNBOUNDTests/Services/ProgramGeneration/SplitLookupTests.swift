@@ -45,6 +45,14 @@ final class SplitLookupTests: XCTestCase {
         XCTAssertEqual(split.trainingDayTemplates, [.push, .pull, .legs, .push, .pull, .legs])
     }
 
+    // 5-day weights is a continuous PPL cycle: the scheduler tiles the
+    // 3-template cycle across training days without resetting weekly,
+    // so a week reads P P L P P and the next continues L P P L P.
+    func testWeightsFiveIsContinuousPPLCycle() {
+        let split = SplitLookup.split(buildIdentity: Self.powerHybrid, frequency: .five)
+        XCTAssertEqual(split.trainingDayTemplates, [.push, .pull, .legs])
+    }
+
     func testBodyweightTrainingStyleForcesCalisthenicSplitForAnyIdentity() {
         let split = SplitLookup.split(
             buildIdentity: Self.powerHybrid,
@@ -166,9 +174,11 @@ final class SplitLookupTests: XCTestCase {
         XCTAssertEqual(split.trainingDayTemplates, [.upper, .lower, .fullBody])
     }
 
-    // Every (buildIdentity, frequency) pair must yield a split whose training-day
-    // count matches the frequency. This guards against any drift in the table.
-    func testSplitCountAlwaysMatchesFrequency() {
+    // Every (buildIdentity, frequency) pair must yield a non-empty cycle no
+    // longer than the frequency: either one template per weekly session, or a
+    // shorter continuous cycle the scheduler tiles (e.g. 5-day weights PPL).
+    // This guards against any drift in the table.
+    func testSplitCycleNeverExceedsFrequency() {
         let identities: [BuildIdentity] = [
             Self.controlSpecialist,
             Self.powerHybrid,
@@ -179,8 +189,10 @@ final class SplitLookupTests: XCTestCase {
         for identity in identities {
             for f in frequencies {
                 let split = SplitLookup.split(buildIdentity: identity, frequency: f)
-                XCTAssertEqual(split.trainingDayTemplates.count, f.numericCount,
-                               "\(identity.displayName) + \(f) should yield \(f.numericCount) templates, got \(split.trainingDayTemplates.count)")
+                XCTAssertFalse(split.trainingDayTemplates.isEmpty,
+                               "\(identity.displayName) + \(f) should yield a non-empty cycle")
+                XCTAssertLessThanOrEqual(split.trainingDayTemplates.count, f.numericCount,
+                                         "\(identity.displayName) + \(f) cycle shouldn't exceed \(f.numericCount) templates, got \(split.trainingDayTemplates.count)")
                 XCTAssertFalse(split.trainingDayTemplates.contains(.rest),
                                "Split shouldn't contain rest days — those are scheduled separately")
             }

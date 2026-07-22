@@ -35,7 +35,7 @@ extension SkillGraph {
             target: .hold(exercise: "l-sit", seconds: 10),
             prereqs: [PrerequisiteGroup("cl.knee-raise")],
             equipment: [.parallettes, .bodyweight],
-            primary: [.core, .shoulders], secondary: [.arms, .legs],
+            primary: [.core, .shoulders], secondary: [.triceps, .quads],
             subtitle: "The move that makes people stop scrolling.",
             description: "Seated on parallettes or floor with hands flat, press body up, legs straight out at 90° from torso, and hold the shape cleanly.",
             formCues: [
@@ -57,7 +57,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 2, type: .skill,
             target: .reps(exercise: "pushup", count: 10),
             prereqs: [PrerequisiteGroup("cal.incline-pushup")],
-            primary: [.chest, .arms, .shoulders], secondary: [.core],
+            primary: [.chest, .triceps, .shoulders], secondary: [.core],
             subtitle: "The upper-body foundation.",
             description: "Full-range pushup from plank — chest touches the floor, elbows tuck at ~45°, full lockout. Target 10 clean reps.",
             formCues: [
@@ -82,7 +82,7 @@ extension SkillGraph {
             target: .reps(exercise: "dip", count: 5),
             prereqs: [PrerequisiteGroup("cal.bench-dip")],
             equipment: [.parallettes, .elevatedSurface],
-            primary: [.chest, .arms, .shoulders],
+            primary: [.chest, .triceps, .shoulders],
             subtitle: "Vertical press, meet bodyweight.",
             description: "5 strict dips on parallel bars or rings. Shoulders below elbows at the bottom, full lockout at the top.",
             formCues: [
@@ -106,7 +106,7 @@ extension SkillGraph {
             prereqs: [PrerequisiteGroup("cal.5-dips")],
             isKeystone: true,
             equipment: [.gymnasticRings],
-            primary: [.chest, .arms, .shoulders], secondary: [.core],
+            primary: [.chest, .triceps, .shoulders], secondary: [.core],
             subtitle: "Strict dip on unstable rings.",
             description: "5 strict dips on gymnastic rings, starting and ending with rings turned out in full support. Rings demand more stabilizer work than bars at every inch of the ROM.",
             formCues: [
@@ -129,7 +129,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 3, type: .skill,
             target: .reps(exercise: "diamond pushup", count: 10),
             prereqs: [PrerequisiteGroup("cal.pushup")],
-            primary: [.arms, .chest],
+            primary: [.triceps, .chest],
             subtitle: "Triceps on notice.",
             description: "10 pushups with hands together, thumbs and index fingers forming a diamond. Elbows track close to the body. Tricep-dominant.",
             formCues: [
@@ -151,7 +151,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 4, type: .skill,
             target: .reps(exercise: "pseudo-planche pushup", count: 5),
             prereqs: [PrerequisiteGroup(["cal.decline-pushup", "cal.pushup"])],
-            primary: [.shoulders, .chest, .arms], secondary: [.core],
+            primary: [.shoulders, .chest, .triceps], secondary: [.core],
             subtitle: "Planche prep.",
             description: "Pushup with hands low near the ribs or hips, leaning weight forward so shoulders travel past the hands. Hand angle is tolerance-based: slightly out, forward, or backward if wrists and shoulders allow.",
             formCues: [
@@ -174,7 +174,7 @@ extension SkillGraph {
             target: .hold(exercise: "tuck planche", seconds: 5),
             prereqs: [PrerequisiteGroup(["hs.crane-pose", "cal.pseudo-planche-pushup", "cal.l-sit-10"])],
             equipment: [.parallettes],
-            primary: [.shoulders, .core], secondary: [.chest, .arms],
+            primary: [.shoulders, .core], secondary: [.chest, .triceps],
             subtitle: "The planche on-ramp.",
             description: "Knees tucked tight to chest, weight balanced on straight arms, feet off the floor. Hold for 5 seconds. First real planche position.",
             formCues: [
@@ -247,7 +247,7 @@ extension SkillGraph {
             isKeystone: true,
             isMythic: true,
             equipment: [.parallettes, .bodyweight],
-            primary: [.shoulders, .core, .chest, .arms], secondary: [.forearms, .lats],
+            primary: [.shoulders, .core, .chest, .triceps], secondary: [.forearms, .lats],
             subtitle: "Horizontal ceiling.",
             description: "Full horizontal hold. Body straight and parallel to the ground, supported only by straight arms.",
             formCues: [
@@ -271,7 +271,7 @@ extension SkillGraph {
             target: .reps(exercise: "handstand pushup", count: 1),
             prereqs: [PrerequisiteGroup(["cal.elevated-pike-pushup", "hs.wall-handstand-30", "cal.pike-pushup"])],
             isKeystone: true,
-            primary: [.shoulders, .arms], secondary: [.core, .chest],
+            primary: [.shoulders, .triceps], secondary: [.core, .chest],
             subtitle: "Pressing your bodyweight from upside down.",
             description: "One strict handstand push-up — wall-supported acceptable for the early levels, freestanding for mastery. Hands and crown/head pad form a tripod at the bottom, then arms press to a tall lockout.",
             formCues: [
@@ -295,7 +295,7 @@ extension SkillGraph {
             target: .reps(exercise: "90 degree pushup", count: 1),
             prereqs: [PrerequisiteGroup(["cal.handstand-pushup", "cal.pseudo-planche-pushup", "hs.wall-handstand-30"])],
             equipment: [.parallettes],
-            primary: [.shoulders, .arms, .chest], secondary: [.core],
+            primary: [.shoulders, .triceps, .chest], secondary: [.core],
             subtitle: "Handstand into a bent-arm planche line.",
             description: "Start from a controlled handstand, lean the shoulders forward, lower as one piece into a bent-arm horizontal line, then press back to handstand without kicking or piking.",
             formCues: [
@@ -318,7 +318,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 7, type: .skill,
             target: .reps(exercise: "clapping handstand pushup", count: 1),
             prereqs: [PrerequisiteGroup(["cal.ninety-degree-pushup", "cal.handstand-pushup"])],
-            primary: [.shoulders, .arms], secondary: [.core, .chest],
+            primary: [.shoulders, .triceps], secondary: [.core, .chest],
             subtitle: "Push the floor away hard enough to clap upside down.",
             description: "One freestanding handstand push-up explosive enough that the hands leave the floor and clap before catching. Power-to-weight on a different planet.",
             formCues: [
@@ -347,7 +347,7 @@ extension SkillGraph {
             cluster: .calisthenicControl, tier: 4, type: .skill,
             target: .reps(exercise: "pike pushup", count: 10),
             prereqs: [PrerequisiteGroup(["cal.diamond-pushup", "hs.wall-handstand-30"])],
-            primary: [.shoulders, .arms], secondary: [.core],
+            primary: [.shoulders, .triceps], secondary: [.core],
             subtitle: "The vertical pressing pattern HSPU will test.",
             description: "10 strict pike pushups. Hips high, shoulders active, ribs controlled, and head descends between the hands on a tripod-like path. Trains the HSPU motor pattern without the balance demand.",
             formCues: [
@@ -370,7 +370,7 @@ extension SkillGraph {
             target: .reps(exercise: "elevated pike pushup", count: 10),
             prereqs: [PrerequisiteGroup(["cal.pike-pushup", "hs.wall-handstand-30"])],
             equipment: [.bodyweight, .elevatedSurface],
-            primary: [.shoulders, .arms], secondary: [.core],
+            primary: [.shoulders, .triceps], secondary: [.core],
             subtitle: "Steeper angle — halfway to vertical pressing.",
             description: "Feet on a box or bench, hips stacked higher. 10 strict reps. The bridge between pike pushup and wall HSPU.",
             formCues: [
@@ -393,7 +393,7 @@ extension SkillGraph {
             target: .hold(exercise: "wall handstand", seconds: 30),
             prereqs: [PrerequisiteGroup("hs.wall-plank")],
             equipment: [.bodyweight],
-            primary: [.shoulders, .core], secondary: [.arms],
+            primary: [.shoulders, .core], secondary: [.triceps],
             subtitle: "Build the line before you chase balance.",
             description: "Chest-to-wall handstand hold with hands close enough to stack wrists, shoulders, hips, and ankles. The wall removes the balance fight so you can build wrist tolerance, locked elbows, active shoulders, hollow tension, and calm breathing upside down.",
             formCues: [

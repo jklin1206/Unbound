@@ -44,7 +44,7 @@ struct Step_WorkoutLogDemo: View {
                             sets: 2,
                             target: .repsRange(8, 10),
                             restSeconds: 75,
-                            muscleGroups: [.chest, .shoulders, .arms],
+                            muscleGroups: [.chest, .shoulders, .triceps],
                             notes: "Straight line. Full lockout. Stop before form breaks."
                         ),
                         TrainingBlockPrescription(
@@ -52,7 +52,7 @@ struct Step_WorkoutLogDemo: View {
                             sets: 2,
                             target: .reps(10),
                             restSeconds: 90,
-                            muscleGroups: [.legs, .glutes, .core],
+                            muscleGroups: [.quads, .glutes, .core],
                             suggestedWeightKg: 24
                         )
                     ]

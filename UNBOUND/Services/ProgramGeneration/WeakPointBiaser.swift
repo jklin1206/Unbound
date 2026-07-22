@@ -15,6 +15,9 @@ import Foundation
 enum WeakPointBiaser {
 
     /// FocusArea priority → bias weight. Only priority 1 and 2 produce weight.
+    /// A legacy coarse `muscleGroup` (`.arms`/`.legs` from persisted focus
+    /// areas) spreads its full weight across its `modernized` groups so
+    /// matching against current fine-grained tags still works.
     static func bias(from focusAreas: [FocusArea]) -> [MuscleGroup: Int] {
         var result: [MuscleGroup: Int] = [:]
         for fa in focusAreas {
@@ -24,7 +27,9 @@ enum WeakPointBiaser {
             case 2: weight = 1
             default: continue
             }
-            result[fa.muscleGroup] = weight
+            for group in fa.muscleGroup.modernized {
+                result[group] = weight
+            }
         }
         return result
     }
@@ -72,6 +77,6 @@ enum WeakPointBiaser {
         biasedGroups: [MuscleGroup: Int],
         groupsFor: (T) -> [MuscleGroup]
     ) -> Int {
-        groupsFor(value).reduce(0) { $0 + (biasedGroups[$1] ?? 0) }
+        MuscleGroup.modernized(groupsFor(value)).reduce(0) { $0 + (biasedGroups[$1] ?? 0) }
     }
 }

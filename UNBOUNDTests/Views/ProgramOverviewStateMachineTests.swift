@@ -227,7 +227,7 @@ final class ProgramOverviewStateMachineTests: XCTestCase {
                             sets: 1,
                             target: .timedSeconds(30),
                             restSeconds: 15,
-                            muscleGroups: [.legs]
+                            muscleGroups: [.quads, .hamstrings]
                         )
                     ]
                 )

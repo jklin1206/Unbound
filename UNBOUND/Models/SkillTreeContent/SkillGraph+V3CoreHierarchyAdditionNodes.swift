@@ -31,7 +31,7 @@ extension SkillGraph {
             cluster: .coreLever, tier: 5, type: .hold,
             target: .hold(exercise: "v-sit", seconds: 10),
             prereqs: [PrerequisiteGroup(["cal.l-sit-10", "cl.hollow-body-30"])],
-            primary: [.core, .arms], secondary: [.shoulders],
+            primary: [.core, .triceps], secondary: [.shoulders],
             subtitle: "L-Sit, compressed upward.",
             description: "From a seated push-up position, lift the legs until they're above horizontal — body forms a V shape. 10 seconds. The compression and hip-flexor strength benchmark beyond the L-sit.",
             formCues: [
@@ -53,7 +53,7 @@ extension SkillGraph {
             cluster: .coreLever, tier: 6, type: .hold,
             target: .hold(exercise: "straddle l-sit", seconds: 10),
             prereqs: [PrerequisiteGroup(["cl.semi-straddle-l-sit", "cal.l-sit-10"])],
-            primary: [.core, .arms], secondary: [.shoulders],
+            primary: [.core, .triceps], secondary: [.shoulders],
             subtitle: "Wide. Horizontal. Humbling.",
             description: "L-sit with legs split into a wide straddle — legs parallel to floor, toes pointed outward. 10 seconds. The lateral compression demand the standard L-sit doesn't test.",
             formCues: [
@@ -99,7 +99,7 @@ extension SkillGraph {
             target: .reps(exercise: "decline sit-up", count: 15),
             prereqs: [PrerequisiteGroup("cl.levitation-crunch")],
             equipment: [.elevatedSurface],
-            primary: [.core], secondary: [.legs],
+            primary: [.core], secondary: [.quads],
             subtitle: "More range. More burn.",
             description: "Sit-up on a decline bench — feet anchored above the head, full ROM from fully extended to torso at the knees. 15 reps.",
             formCues: [
@@ -145,7 +145,7 @@ extension SkillGraph {
             cluster: .coreLever, tier: 4, type: .skill,
             target: .reps(exercise: "leg raise", count: 12),
             prereqs: [PrerequisiteGroup("cl.knee-raise")],
-            primary: [.core], secondary: [.legs],
+            primary: [.core], secondary: [.quads],
             subtitle: "Straight legs, full ROM.",
             description: "12 strict leg raises — supine on floor or supported on dip bars. Legs locked straight, lower back pressed down, raise legs to vertical, controlled descent.",
             formCues: [
@@ -167,7 +167,7 @@ extension SkillGraph {
             cluster: .coreLever, tier: 5, type: .hold,
             target: .hold(exercise: "semi straddle l-sit", seconds: 10),
             prereqs: [PrerequisiteGroup("cal.l-sit-10")],
-            primary: [.core, .arms], secondary: [.shoulders, .legs],
+            primary: [.core, .triceps], secondary: [.shoulders, .quads],
             subtitle: "L-sit with one leg straddled out.",
             description: "10s hold with one leg in standard L-sit position, the other leg opened to the side at ~45°. Bridges L-sit to full straddle.",
             formCues: [

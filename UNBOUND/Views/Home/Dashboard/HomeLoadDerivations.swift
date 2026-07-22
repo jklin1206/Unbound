@@ -183,6 +183,39 @@ enum HomeLoadDerivations {
         return days
     }
 
+    /// Monday-indexed (Mon=1 … Sun=7) set of this week's days that the live
+    /// streak covers WITHOUT a logged session — the auto-credited rest days
+    /// (ProgramAwareStreakPolicy counts days, not sessions). Days after the
+    /// last session up to today are provisionally covered while the streak is
+    /// alive; the whole set is empty once the 3-day grace has lapsed.
+    static func weekCreditedDays(lastSessionDate: Date?,
+                                 currentStreak: Int,
+                                 now: Date = .now,
+                                 calendar baseCal: Calendar = .current) -> Set<Int> {
+        guard currentStreak > 0, let lastSession = lastSessionDate else { return [] }
+        var cal = baseCal
+        cal.firstWeekday = 2 // Monday
+        let today = cal.startOfDay(for: now)
+        let lastDay = cal.startOfDay(for: lastSession)
+        let gap = cal.dateComponents([.day], from: lastDay, to: today).day ?? 0
+        guard gap >= 0, gap <= ProgramAwareStreakPolicy.maxGapDays else { return [] }
+
+        let components = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
+        guard let weekStart = cal.date(from: components),
+              let streakStart = cal.date(byAdding: .day, value: -(currentStreak - 1), to: lastDay)
+        else { return [] }
+
+        var days: Set<Int> = []
+        var cursor = max(weekStart, streakStart)
+        while cursor <= today {
+            let weekday = cal.component(.weekday, from: cursor)
+            days.insert(((weekday + 5) % 7) + 1)
+            guard let next = cal.date(byAdding: .day, value: 1, to: cursor) else { break }
+            cursor = next
+        }
+        return days
+    }
+
     private static func bodyRegions(for entry: ExerciseLogEntry) -> [BodyRegion] {
         if let resolved = MovementCatalog.resolvedTrainingMovement(
             name: entry.exerciseName,

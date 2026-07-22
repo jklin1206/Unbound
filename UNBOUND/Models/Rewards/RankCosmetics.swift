@@ -108,6 +108,44 @@ enum RankCosmetics {
         )
     }
 
+    /// Read-only equipped-tier resolution for BODY-time callers. The guarded
+    /// getters above funnel through `recordUnlockedTier`, which WRITES
+    /// UserDefaults - a write during a SwiftUI view update is undefined
+    /// behavior (it reverted surface switches and crashed the backdrop
+    /// picker). Same fallback semantics, no write.
+    static func equippedFrameTierReadOnly(userId: String, currentTier: SkillTier = .initiate, defaults: UserDefaults = .standard) -> RankTitle {
+        readOnlyEquippedTier(
+            persisted: persistedEquippedFrameTier(userId: userId, defaults: defaults),
+            userId: userId,
+            currentTier: currentTier,
+            defaults: defaults
+        )
+    }
+
+    static func equippedBackgroundTierReadOnly(userId: String, currentTier: SkillTier = .initiate, defaults: UserDefaults = .standard) -> RankTitle {
+        readOnlyEquippedTier(
+            persisted: persistedEquippedBackgroundTier(userId: userId, defaults: defaults),
+            userId: userId,
+            currentTier: currentTier,
+            defaults: defaults
+        )
+    }
+
+    private static func readOnlyEquippedTier(
+        persisted: SkillTier?,
+        userId: String,
+        currentTier: SkillTier,
+        defaults: UserDefaults
+    ) -> RankTitle {
+        let highestRaw = max(
+            persistedHighestTierRawValue(userId: userId, defaults: defaults) ?? 0,
+            currentTier.rawValue
+        )
+        let highest = SkillTier(rawValue: highestRaw) ?? currentTier
+        guard let persisted, persisted.rawValue <= highest.rawValue else { return highest }
+        return persisted
+    }
+
     static func setEquippedFrameTier(_ tier: SkillTier, userId: String, currentTier: SkillTier, defaults: UserDefaults = .standard) {
         setEquippedTier(
             tier,
@@ -199,12 +237,33 @@ extension Notification.Name {
 /// Avatar wrapper — composes a profile photo (or letter fallback) inside
 /// the rank-frame ring. Frame falls back to the existing violet stroke
 /// when no asset exists for the tier.
+/// Bundled default portrait art shown when a user has no profile photo. The
+/// local user's variant follows their stated gender (biological sex as the
+/// fallback); surfaces rendering OTHER users cannot know a variant, so they
+/// use the masculine default until squad flair carries a hint.
+enum DefaultPortrait: String {
+    case masculine = "profile_avatar_default_m"
+    case feminine = "profile_avatar_default_f"
+
+    static func resolve(gender: Gender?, biologicalSex: BiologicalSex?) -> DefaultPortrait {
+        switch gender {
+        case .male: return .masculine
+        case .female: return .feminine
+        case .unspecified, nil:
+            return biologicalSex == .female ? .feminine : .masculine
+        }
+    }
+
+    var image: UIImage? { UIImage(named: rawValue) }
+}
+
 struct CosmeticAvatar: View {
     let tier: RankTitle
     let size: CGFloat
     var image: UIImage? = nil
     var letterFallback: String = "U"
     var shopBorder: ShopProfileBorderID? = nil
+    var defaultPortrait: DefaultPortrait = .masculine
 
     var body: some View {
         ZStack {
@@ -240,7 +299,18 @@ struct CosmeticAvatar: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .clipShape(Circle())
+            } else if let portrait = defaultPortrait.image {
+                // No profile photo set - fall back to the default portrait art
+                // before the flat letter circle so an unset avatar reads as a
+                // character, not an initial. Bundled assets only, so it is safe
+                // for every avatar with no per-user state.
+                Image(uiImage: portrait)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .clipShape(Circle())
             } else {
+                // Ultimate fallback - only when the default-portrait asset is
+                // missing - so nothing can render an empty circle.
                 Circle()
                     .fill(Color.unbound.accent)
                 if avatarFallbackText.isEmpty {
@@ -258,6 +328,9 @@ struct CosmeticAvatar: View {
         }
     }
 
+    /// Shared default portrait art, resolved once and cached. Rendered when
+    /// the user has no profile photo, ahead of the letter fallback. Nil when
+    /// the imageset is not shipped, which drops through to the letter branch.
     private var avatarFallbackText: String {
         String(
             letterFallback

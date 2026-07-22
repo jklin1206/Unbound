@@ -246,6 +246,12 @@ struct ProgramOverviewView: View {
             if ProcessInfo.processInfo.arguments.contains("--unbound-open-exercise-library") {
                 showExerciseStarterLibrary = true
             }
+            // Dev harness: `--unbound-open-session-editor-add` opens the session
+            // editor on an empty workout (the loadout-building flow); the editor
+            // then auto-opens its add-exercise picker off the same argument.
+            if ProcessInfo.processInfo.arguments.contains("--unbound-open-session-editor-add") {
+                openStartEmptyWorkout()
+            }
             #endif
         }
         .sheet(isPresented: $showPaywall) {
@@ -288,9 +294,9 @@ struct ProgramOverviewView: View {
             .presentationDragIndicator(.visible)
             .presentationBackground(Color.unbound.bg)
         }
-        .sheet(isPresented: $showExerciseStarterLibrary) {
+        .fullScreenCover(isPresented: $showExerciseStarterLibrary) {
             ExerciseSwapSheet(
-                mode: .add,
+                mode: .addSingle,
                 currentExerciseName: "Workout",
                 alternatives: exerciseStarterSheetAlternatives(program: viewModel.program),
                 onSelect: { exercise in

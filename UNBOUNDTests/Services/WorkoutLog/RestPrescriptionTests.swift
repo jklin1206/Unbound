@@ -10,11 +10,11 @@ final class RestPrescriptionTests: XCTestCase {
         XCTAssertEqual(RestPrescription.restSeconds(for: ex(name: "Bench Press", muscles: [.chest], rest: 120)), 120)
     }
     func test_zeroOrInsaneRest_fallsBackToClassification() {
-        XCTAssertEqual(RestPrescription.restSeconds(for: ex(name: "Back Squat", muscles: [.legs], rest: 0)), 150)
-        XCTAssertEqual(RestPrescription.restSeconds(for: ex(name: "Cable Curl", muscles: [.arms], rest: 0)), 90)
-        XCTAssertEqual(RestPrescription.restSeconds(for: ex(name: "Cable Curl", muscles: [.arms], rest: 5000)), 90)
+        XCTAssertEqual(RestPrescription.restSeconds(for: ex(name: "Back Squat", muscles: [.quads], rest: 0)), 150)
+        XCTAssertEqual(RestPrescription.restSeconds(for: ex(name: "Cable Curl", muscles: [.biceps], rest: 0)), 90)
+        XCTAssertEqual(RestPrescription.restSeconds(for: ex(name: "Cable Curl", muscles: [.biceps], rest: 5000)), 90)
     }
     func test_multiMuscleCountsAsCompound() {
-        XCTAssertEqual(RestPrescription.restSeconds(for: ex(name: "Pendlay", muscles: [.back, .arms], rest: 0)), 150)
+        XCTAssertEqual(RestPrescription.restSeconds(for: ex(name: "Pendlay", muscles: [.back, .biceps], rest: 0)), 150)
     }
 }

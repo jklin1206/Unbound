@@ -2,20 +2,34 @@ import SwiftUI
 
 struct ProgramExerciseLibraryView: View {
     enum Mode {
-        case add
+        case addMulti    // SessionEditor add, ActiveWorkout quick-log add
+        case addSingle   // ProgramOverview starter — pick one, dismiss, route onward
         case swap
+
+        var dismissesOnSelect: Bool { self != .addMulti }
+        var showsDoneBar: Bool { self == .addMulti }
+        var showsTrailingChevron: Bool { self != .addMulti }
+    }
+
+    /// The canonical, stable per-exercise key — the same normalization
+    /// `preferenceStatusesByKey` is keyed by. Using it for `addedKeys` means a
+    /// toggle repaints the one matching row in place instead of reshuffling.
+    static func canonicalKey(for exercise: CatalogExercise) -> String {
+        ExercisePreferenceLookup.normalizedKey(exercise.name)
     }
 
     var mode: Mode = .swap
     let currentExerciseName: String
     let alternatives: [CatalogExercise]
-    let onSelect: (CatalogExercise) -> Void
+    let onRowTap: (CatalogExercise) -> Void
     var recentExerciseNames: Set<String> = []
     var preferenceStatusesByKey: [String: ExercisePreferenceStatus] = [:]
     var availableEquipment: [Equipment]? = nil
     var onCreateCustom: (() -> Void)? = nil
-    var onSearchFocused: (() -> Void)? = nil
-    var onDismiss: () -> Void = {}
+    /// Rendering only — which rows the shell has toggled on in `.addMulti`.
+    /// Must never influence search, ranking, or filtering (see
+    /// `ExerciseLibrarySearch`), or a tap would reshuffle the list under itself.
+    var addedKeys: Set<String> = []
 
     @State private var searchText = ""
     @State private var selectedMuscle: MuscleGroup?
@@ -89,11 +103,11 @@ struct ProgramExerciseLibraryView: View {
     /// results survived. Search now sits directly under this line.
     private func header(matchCount: Int) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: mode == .add ? "plus" : "arrow.triangle.2.circlepath")
+            Image(systemName: mode != .swap ? "plus" : "arrow.triangle.2.circlepath")
                 .font(.system(size: 11, weight: .heavy))
-                .foregroundStyle(mode == .add ? Color.unbound.coachCyan : Color.unbound.accent)
+                .foregroundStyle(mode != .swap ? Color.unbound.coachCyan : Color.unbound.accent)
 
-            Text(mode == .add ? "ADD EXERCISE" : "SWAP")
+            Text(mode != .swap ? "ADD EXERCISE" : "SWAP")
                 .font(Font.unbound.captionS.weight(.heavy))
                 .tracking(1.4)
                 .foregroundStyle(Color.unbound.textTertiary)
@@ -133,9 +147,6 @@ struct ProgramExerciseLibraryView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .focused($searchIsFocused)
-                    .onChange(of: searchIsFocused) { _, focused in
-                        if focused { onSearchFocused?() }
-                    }
                 if !searchText.isEmpty {
                     Button {
                         searchText = ""
@@ -288,7 +299,6 @@ struct ProgramExerciseLibraryView: View {
         Button {
             UnboundHaptics.medium()
             onCreateCustom?()
-            onDismiss()
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "plus")
@@ -328,15 +338,14 @@ struct ProgramExerciseLibraryView: View {
         let metadata = result.definition.map { libraryMetadata(for: $0) }
         let signals = result.signals
         let compatibility = result.compatibility
+        let isAdded = mode == .addMulti && addedKeys.contains(Self.canonicalKey(for: alt))
 
         return Button(action: {
             guard compatibility.isSelectable else { return }
-            UnboundHaptics.medium()
-            onSelect(alt)
-            onDismiss()
+            onRowTap(alt)
         }, label: {
             HStack(spacing: 12) {
-                libraryRowVisual(result, compatibility: compatibility)
+                libraryRowVisual(result, compatibility: compatibility, isAdded: isAdded)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(alt.displayName)
                         .font(Font.unbound.bodyLStrong)
@@ -371,15 +380,17 @@ struct ProgramExerciseLibraryView: View {
                     }
                 }
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.unbound.textTertiary)
+                if mode.showsTrailingChevron {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.unbound.textTertiary)
+                }
             }
             .padding(13)
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(compatibility.isSelectable ? Color.unbound.surface : Color.unbound.surface.opacity(0.72))
+                    .fill(isAdded ? Color.unbound.surfaceElevated : (compatibility.isSelectable ? Color.unbound.surface : Color.unbound.surface.opacity(0.72)))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -394,9 +405,12 @@ struct ProgramExerciseLibraryView: View {
     @ViewBuilder
     private func libraryRowVisual(
         _ result: ExerciseLibrarySearchResult,
-        compatibility: ExerciseLibraryCompatibilityState
+        compatibility: ExerciseLibraryCompatibilityState,
+        isAdded: Bool
     ) -> some View {
         let tint = compatibility.isSelectable ? compatibilityColor(compatibility) : Color.unbound.textTertiary
+        let badgeIcon = isAdded ? "checkmark.circle.fill" : (mode != .swap ? "plus" : "arrow.left.arrow.right")
+        let badgeTint = isAdded ? Color.unbound.success : tint
         ZStack(alignment: .bottomTrailing) {
             if let definition = result.definition {
                 ExerciseVisualView(definition: definition, size: .thumbnail)
@@ -412,11 +426,11 @@ struct ProgramExerciseLibraryView: View {
                     )
             }
 
-            Image(systemName: mode == .add ? "plus" : "arrow.left.arrow.right")
+            Image(systemName: badgeIcon)
                 .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(Color.unbound.bg)
                 .frame(width: 22, height: 22)
-                .background(Circle().fill(tint))
+                .background(Circle().fill(badgeTint))
                 .overlay(Circle().strokeBorder(Color.unbound.bg.opacity(0.78), lineWidth: 1))
                 .offset(x: 4, y: 4)
         }

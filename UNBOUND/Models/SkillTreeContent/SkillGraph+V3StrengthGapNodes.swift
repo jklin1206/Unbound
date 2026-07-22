@@ -206,7 +206,7 @@ extension SkillGraph {
             isKeystone: true,
             isMythic: true,
             equipment: [.pullupBar, .gymnasticRings],
-            primary: [.lats, .core], secondary: [.back, .arms],
+            primary: [.lats, .core], secondary: [.back, .biceps],
             subtitle: "Horizontal lats, horizontal body.",
             description: "Hang from a bar or rings, body horizontal, face up, legs together and straight. Five seconds unbroken.",
             formCues: [
@@ -231,7 +231,7 @@ extension SkillGraph {
             target: .hold(exercise: "tuck back lever", seconds: 10),
             prereqs: [PrerequisiteGroup(["cl.skin-the-cat", "pp.pullup", "cl.german-hang"])],
             equipment: [.pullupBar, .gymnasticRings],
-            primary: [.shoulders, .chest, .core], secondary: [.lats, .arms],
+            primary: [.shoulders, .chest, .core], secondary: [.lats, .biceps],
             subtitle: "Back lever starts compact.",
             description: "A straight-arm tuck back lever from a controlled skin-the-cat route. Knees stay tight, shoulders tolerate extension, elbows stay locked, and the body pauses face-down before any straddle or full lever attempt.",
             formCues: [
@@ -256,7 +256,7 @@ extension SkillGraph {
             target: .hold(exercise: "straddle back lever", seconds: 5),
             prereqs: [PrerequisiteGroup(["cl.tuck-back-lever", "pp.pullup", "cl.german-hang"])],
             equipment: [.pullupBar],
-            primary: [.shoulders, .chest, .core], secondary: [.lats, .arms],
+            primary: [.shoulders, .chest, .core], secondary: [.lats, .biceps],
             subtitle: "Legs split. Lever longer.",
             description: "Back lever from a controlled skin-the-cat path with legs extended wide. The body is face-down and horizontal while the shoulders tolerate extension and the elbows stay locked.",
             formCues: [
@@ -321,7 +321,7 @@ extension SkillGraph {
             target: .reps(exercise: "chin-up", count: 5),
             prereqs: [PrerequisiteGroup("pp.dead-hang")],
             equipment: [.pullupBar],
-            primary: [.arms, .lats], secondary: [.back],
+            primary: [.biceps, .lats], secondary: [.back],
             subtitle: "Underhand grip. Biceps join the pull.",
             description: "Strict chin-up — palms facing you, chin clears the bar from a full dead hang. Biceps-dominant cousin of the pullup.",
             formCues: [
@@ -345,7 +345,7 @@ extension SkillGraph {
             target: .reps(exercise: "chin-up", count: 8),
             prereqs: [PrerequisiteGroup("pp.chin-up")],
             equipment: [.pullupBar],
-            primary: [.arms, .lats], secondary: [.back, .core],
+            primary: [.biceps, .lats], secondary: [.back, .core],
             subtitle: "Chin-up volume benchmark.",
             description: "Strict chin-ups unbroken from dead hang. First real capacity test on the underhand grip.",
             formCues: [
@@ -368,7 +368,7 @@ extension SkillGraph {
             target: .weightMultiplier(exercise: "weighted chin-up", multiplier: 0.5),
             prereqs: [PrerequisiteGroup("pp.strict-chin-up")],
             equipment: [.pullupBar, .dumbbells],
-            primary: [.arms, .lats], secondary: [.back],
+            primary: [.biceps, .lats], secondary: [.back],
             subtitle: "Load the underhand pull.",
             description: "Chin-up with a weighted belt or dumbbell held between the feet. Sweeps from 0.1× bodyweight up to a full bodyweight chin-up.",
             formCues: [
@@ -391,7 +391,7 @@ extension SkillGraph {
             target: .reps(exercise: "l-sit chin-up", count: 5),
             prereqs: [PrerequisiteGroup(["pp.strict-chin-up", "cal.l-sit-10"])],
             equipment: [.pullupBar],
-            primary: [.arms, .lats, .core], secondary: [.back],
+            primary: [.biceps, .lats, .core], secondary: [.back],
             subtitle: "Chin-up while holding an L-sit.",
             description: "Chin-up from a dead hang with legs locked out horizontally in L-sit position. 3 clean reps — combines pulling strength with core compression.",
             formCues: [
@@ -414,7 +414,7 @@ extension SkillGraph {
             target: .reps(exercise: "wide pullup", count: 5),
             prereqs: [PrerequisiteGroup("pp.pullup")],
             equipment: [.pullupBar],
-            primary: [.lats, .back], secondary: [.arms],
+            primary: [.lats, .back], secondary: [.biceps],
             subtitle: "Wider grip, more lat.",
             description: "Strict pullups with hands set outside shoulder width only as far as the shoulders stay smooth. Lat-dominant — emphasizes back width without turning width into joint strain.",
             formCues: [
@@ -437,7 +437,7 @@ extension SkillGraph {
             target: .reps(exercise: "explosive pullup", count: 3),
             prereqs: [PrerequisiteGroup(["pp.strict-pullup", "pp.pullup"])],
             equipment: [.pullupBar],
-            primary: [.lats, .arms], secondary: [.back, .core],
+            primary: [.lats, .biceps], secondary: [.back, .core],
             subtitle: "Pull hard enough the hands come off.",
             description: "Pullups where the concentric is explosive enough that hands briefly leave the bar at the top. Bridge between strict pullup and muscle-up.",
             formCues: [
@@ -460,7 +460,7 @@ extension SkillGraph {
             target: .reps(exercise: "clapping pullup", count: 1),
             prereqs: [PrerequisiteGroup(["pp.explosive-pullup", "pp.pullup"])],
             equipment: [.pullupBar],
-            primary: [.lats, .arms, .back], secondary: [.core],
+            primary: [.lats, .biceps, .back], secondary: [.core],
             subtitle: "Pull high enough to clap before catching.",
             description: "Clapping pullup — pull explosively enough to release the bar, clap hands at chest, and re-grip before the descent. Bar-muscle-up prerequisite for most athletes.",
             formCues: [

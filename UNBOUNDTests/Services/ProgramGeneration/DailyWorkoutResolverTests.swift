@@ -218,7 +218,7 @@ final class DailyWorkoutResolverTests: XCTestCase {
     func testResolvedTravelWorkoutSwapsCommonGymAccessoriesToBodyweightBandSafeMovements() {
         let workout = Workout(
             name: "Travel Full Body",
-            targetMuscleGroups: [.chest, .shoulders, .arms, .core, .legs, .glutes],
+            targetMuscleGroups: [.chest, .shoulders, .biceps, .triceps, .core, .quads, .hamstrings, .glutes],
             warmup: [
                 exercise("world's greatest stretch", sets: 1, reps: "45s")
             ],
@@ -269,7 +269,7 @@ final class DailyWorkoutResolverTests: XCTestCase {
     func testTravelSubstitutionsAvoidDuplicateReplacementsWhenPossible() {
         let workout = Workout(
             name: "Travel Arms",
-            targetMuscleGroups: [.arms],
+            targetMuscleGroups: [.biceps, .triceps],
             warmup: [],
             mainExercises: [
                 exercise("barbell curl", sets: 3),
@@ -382,7 +382,7 @@ final class DailyWorkoutResolverTests: XCTestCase {
     func testTrialPrepModifierAddsMissingRequirementBlock() {
         let workout = Workout(
             name: "Base Day",
-            targetMuscleGroups: [.legs],
+            targetMuscleGroups: [.quads],
             warmup: [],
             mainExercises: [
                 exercise("goblet squat", sets: 3)
